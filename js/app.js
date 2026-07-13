@@ -14578,11 +14578,25 @@ function hideSplashScreen(delay = 0) {
 
     setTimeout(() => {
         if (!splash.isConnected) return;
-        splash.classList.add('is-hidden');
+        let removalFallback = null;
+        const removeSplash = () => {
+            if (removalFallback) {
+                clearTimeout(removalFallback);
+                removalFallback = null;
+            }
 
-        setTimeout(() => {
+            splash.removeEventListener('transitionend', handleSplashTransitionEnd);
             if (splash.isConnected) splash.remove();
-        }, 800);
+        };
+        const handleSplashTransitionEnd = (event) => {
+            if (event.target === splash && event.propertyName === 'opacity') {
+                removeSplash();
+            }
+        };
+
+        splash.classList.add('intro-exiting', 'is-hidden');
+        splash.addEventListener('transitionend', handleSplashTransitionEnd);
+        removalFallback = setTimeout(removeSplash, 900);
     }, delay);
 }
 

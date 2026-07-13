@@ -6050,12 +6050,17 @@ body.dark-mode .about-feature {
     background: #0f172a url("../icons/splash 2.png") center / cover no-repeat;
     z-index: 30000;
     opacity: 1;
-    transition: opacity 0.8s ease;
+    visibility: visible;
+    transition:
+        opacity 700ms ease,
+        visibility 700ms ease;
     overflow: hidden;
 }
 
+#splash-screen.intro-exiting,
 #splash-screen.is-hidden {
     opacity: 0;
+    visibility: hidden;
     pointer-events: none;
 }
 
@@ -6078,6 +6083,14 @@ body.dark-mode .about-feature {
 
 #splash-screen.is-video-playing video {
     opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #splash-screen {
+        transition:
+            opacity 80ms ease,
+            visibility 80ms ease;
+    }
 }
 
 /* =========================================================

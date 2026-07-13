@@ -93,10 +93,12 @@
     ].join('-');
     const splash = document.getElementById('splash-screen');
     const video = document.getElementById('splash-video');
+    const SPLASH_EXIT_FALLBACK_MS = 900;
     let hideRequested = false;
     let hideDelay = 0;
     let videoFinished = false;
     let hiding = false;
+    let removalFallback = null;
 
     function shouldPlaySplashVideoToday() {
         try {
@@ -118,31 +120,38 @@
 
     function finishSplashVideo() {
         videoFinished = true;
-        splash?.classList.remove('is-video-playing');
+        hideSplash(0);
+    }
+
+    function removeSplash() {
+        if (removalFallback) {
+            clearTimeout(removalFallback);
+            removalFallback = null;
+        }
 
         if (video) {
-            video.style.display = 'none';
             video.pause();
             video.removeAttribute('src');
             video.load();
         }
 
-        hideSplash(0, true);
+        if (splash?.isConnected) {
+            splash.remove();
+        }
     }
 
-    function hideSplash(delay = 0, immediate = false) {
+    function handleSplashTransitionEnd(event) {
+        if (event.target === splash && event.propertyName === 'opacity') {
+            splash.removeEventListener('transitionend', handleSplashTransitionEnd);
+            removeSplash();
+        }
+    }
+
+    function hideSplash(delay = 0) {
         hideRequested = true;
         hideDelay = Math.max(0, delay);
 
         if (hiding || !splash) return;
-
-        if (immediate) {
-            hiding = true;
-            if (splash.isConnected) {
-                splash.remove();
-            }
-            return;
-        }
 
         if (shouldPlayVideo && !videoFinished) {
             return;
@@ -153,13 +162,9 @@
         setTimeout(() => {
             if (!splash.isConnected) return;
 
-            splash.classList.add('is-hidden');
-
-            setTimeout(() => {
-                if (splash.isConnected) {
-                    splash.remove();
-                }
-            }, 800);
+            splash.classList.add('intro-exiting', 'is-hidden');
+            splash.addEventListener('transitionend', handleSplashTransitionEnd);
+            removalFallback = setTimeout(removeSplash, SPLASH_EXIT_FALLBACK_MS);
         }, hideDelay);
     }
 
