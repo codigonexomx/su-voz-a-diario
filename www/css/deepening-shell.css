@@ -294,17 +294,6 @@ html.deepening-shell-active body {
     display: none !important;
 }
 
-.deepening-prompt-eyebrow {
-    margin: 0 0 8px;
-    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.76rem;
-    font-weight: 600;
-    line-height: 1.4;
-    letter-spacing: 0;
-    text-transform: uppercase;
-    color: rgba(31, 27, 22, 0.34);
-}
-
 .deepening-prompt h2 {
     margin: 0 0 10px;
     font-family: "Cormorant Garamond", Georgia, serif;

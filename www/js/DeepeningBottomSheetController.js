@@ -40,6 +40,9 @@
         let closeRequested = false;
         let viewportRafId = null;
         let focusRafId = null;
+        let focusOutTimerId = null;
+        let editingFocused = false;
+        let stateBeforeEditing = null;
 
         const callbacks = {
             onClose: options.onClose,
@@ -57,9 +60,13 @@
 
         function getSnapPoints() {
             const height = getSheetHeight();
+            const viewportHeight = getViewportHeight();
+            const readingContextHeight = Math.max(88, viewportHeight * 0.16);
+            const focusedVisibleHeight = Math.min(height, Math.max(320, viewportHeight - readingContextHeight));
+
             return {
                 [STATES.EXPANDED]: 0,
-                [STATES.MIDDLE]: height * 0.46,
+                [STATES.MIDDLE]: editingFocused ? Math.max(0, height - focusedVisibleHeight) : height * 0.46,
                 [STATES.CLOSED]: height + 32
             };
         }
@@ -76,18 +83,18 @@
             root.style.setProperty('--deepening-keyboard-offset', `${keyboardOffset}px`);
             shellRoot?.style.setProperty('--deepening-viewport-height', `${viewportHeight}px`);
             shellRoot?.style.setProperty('--deepening-keyboard-offset', `${keyboardOffset}px`);
-            ensureFocusedElementVisible();
             if (viewportRafId !== null) {
                 cancelAnimationFrame(viewportRafId);
             }
             viewportRafId = requestAnimationFrame(() => {
                 viewportRafId = null;
                 applyState(state, true);
+                ensureFocusedElementVisible();
             });
         }
 
         function ensureFocusedElementVisible() {
-            if (!body || state !== STATES.EXPANDED) return;
+            if (!body || (!editingFocused && state !== STATES.EXPANDED)) return;
 
             const active = document.activeElement;
             if (!active || !body.contains(active) || !isEditableElement(active)) return;
@@ -101,7 +108,8 @@
 
                 const bodyRect = body.getBoundingClientRect();
                 const activeRect = active.getBoundingClientRect();
-                const overflowBottom = activeRect.bottom - bodyRect.bottom + FOCUSED_FIELD_MARGIN;
+                const visibleBottom = Math.min(bodyRect.bottom, getViewportHeight()) - FOCUSED_FIELD_MARGIN;
+                const overflowBottom = activeRect.bottom - visibleBottom;
                 const overflowTop = bodyRect.top - activeRect.top + FOCUSED_FIELD_MARGIN;
 
                 if (overflowBottom > 0) {
@@ -137,7 +145,7 @@
             }
 
             if (body) {
-                body.style.overflowY = nextState === STATES.EXPANDED ? 'auto' : 'hidden';
+                body.style.overflowY = nextState === STATES.EXPANDED || editingFocused ? 'auto' : 'hidden';
             }
 
             callbacks.onStateChange?.(nextState);
@@ -243,9 +251,41 @@
             requestClose();
         }
 
-        function onFocusIn() {
+        function onFocusIn(event) {
+            if (focusOutTimerId !== null) {
+                clearTimeout(focusOutTimerId);
+                focusOutTimerId = null;
+            }
+
+            if (isEditableElement(event.target)) {
+                if (!editingFocused) {
+                    stateBeforeEditing = state;
+                }
+                editingFocused = true;
+                applyState(STATES.MIDDLE);
+            }
+
             applyViewportMetrics();
             ensureFocusedElementVisible();
+        }
+
+        function onFocusOut() {
+            if (focusOutTimerId !== null) {
+                clearTimeout(focusOutTimerId);
+            }
+
+            focusOutTimerId = setTimeout(() => {
+                focusOutTimerId = null;
+                const active = document.activeElement;
+                const stillEditing = Boolean(active && body?.contains(active) && isEditableElement(active));
+
+                if (stillEditing) return;
+
+                editingFocused = false;
+                applyViewportMetrics();
+                applyState(stateBeforeEditing || STATES.MIDDLE);
+                stateBeforeEditing = null;
+            }, 0);
         }
 
         function init(elements = {}) {
@@ -264,7 +304,7 @@
             sheet.addEventListener('pointercancel', onPointerEnd);
             closeButton?.addEventListener('click', onCloseClick);
             body.addEventListener('focusin', onFocusIn);
-            body.addEventListener('focusout', applyViewportMetrics);
+            body.addEventListener('focusout', onFocusOut);
             visualViewport?.addEventListener('resize', applyViewportMetrics);
             visualViewport?.addEventListener('scroll', applyViewportMetrics);
             window.addEventListener('resize', applyViewportMetrics);
@@ -283,6 +323,10 @@
                 cancelAnimationFrame(focusRafId);
                 focusRafId = null;
             }
+            if (focusOutTimerId !== null) {
+                clearTimeout(focusOutTimerId);
+                focusOutTimerId = null;
+            }
             if (activePointerId !== null) {
                 sheet?.releasePointerCapture?.(activePointerId);
             }
@@ -294,7 +338,7 @@
             sheet?.removeEventListener('pointercancel', onPointerEnd);
             closeButton?.removeEventListener('click', onCloseClick);
             body?.removeEventListener('focusin', onFocusIn);
-            body?.removeEventListener('focusout', applyViewportMetrics);
+            body?.removeEventListener('focusout', onFocusOut);
             visualViewport?.removeEventListener('resize', applyViewportMetrics);
             visualViewport?.removeEventListener('scroll', applyViewportMetrics);
             window.removeEventListener('resize', applyViewportMetrics);
@@ -307,6 +351,8 @@
             activePointerId = null;
             dragOwner = null;
             state = STATES.CLOSED;
+            editingFocused = false;
+            stateBeforeEditing = null;
         }
 
         return {

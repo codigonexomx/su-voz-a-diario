@@ -91,7 +91,6 @@
                         data-step-panel="${step.id}"
                         ${index === 0 ? '' : 'hidden'}
                     >
-                        <p class="deepening-prompt-eyebrow">Movimiento 0${index + 1}</p>
                         <h2>${step.label}</h2>
                         <p>${step.title}</p>
                         <textarea
