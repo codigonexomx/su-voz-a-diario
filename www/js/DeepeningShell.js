@@ -95,7 +95,7 @@
                         <p>${step.title}</p>
                         <textarea
                             class="deepening-journal-field"
-                            rows="7"
+                            rows="4"
                             placeholder="Escribe despacio. Una frase honesta es suficiente."
                             aria-label="Respuesta de meditación: ${step.label}"
                         ></textarea>

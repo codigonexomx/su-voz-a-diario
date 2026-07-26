@@ -1,4 +1,4 @@
-const APP_VERSION = 'v110';
+const APP_VERSION = 'v113';
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -6,12 +6,12 @@ const OFFICIAL_ORIGIN = 'https://suvoz.app';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './manifest.json?v=110',
-  './css/styles.css?v=110',
-  './css/deepening-shell.css?v=11',
-  './js/app.js?v=110',
-  './js/DeepeningBottomSheetController.js?v=12',
-  './js/DeepeningShell.js?v=10',
+  './manifest.json?v=113',
+  './css/styles.css?v=113',
+  './css/deepening-shell.css?v=14',
+  './js/app.js?v=113',
+  './js/DeepeningBottomSheetController.js?v=13',
+  './js/DeepeningShell.js?v=12',
   './js/core/constants.js',
   './js/core/defaults.js',
   './js/bible/bibleModel.js',
@@ -49,12 +49,12 @@ const STATIC_ASSETS = [
 const REQUIRED_ASSETS = new Set([
   './',
   './index.html',
-  './manifest.json?v=110',
-  './css/styles.css?v=110',
-  './css/deepening-shell.css?v=11',
-  './js/app.js?v=110',
-  './js/DeepeningBottomSheetController.js?v=12',
-  './js/DeepeningShell.js?v=10'
+  './manifest.json?v=113',
+  './css/styles.css?v=113',
+  './css/deepening-shell.css?v=14',
+  './js/app.js?v=113',
+  './js/DeepeningBottomSheetController.js?v=13',
+  './js/DeepeningShell.js?v=12'
 ]);
 
 // Firebase compat en Service Worker.

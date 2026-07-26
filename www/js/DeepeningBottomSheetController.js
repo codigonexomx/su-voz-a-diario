@@ -62,12 +62,15 @@
         function getSnapPoints() {
             const height = getSheetHeight();
             const viewportHeight = getViewportHeight();
-            const readingContextHeight = Math.max(72, viewportHeight * 0.12);
-            const focusedVisibleHeight = Math.min(height, Math.max(320, viewportHeight - readingContextHeight));
+            const middleTranslateY = height * 0.46;
+            const middleVisibleHeight = height - middleTranslateY;
+            const readingContextHeight = Math.max(128, viewportHeight * 0.28);
+            const maxFocusedVisibleHeight = Math.min(height, Math.max(300, viewportHeight - readingContextHeight));
+            const focusedVisibleHeight = middleVisibleHeight + Math.max(0, maxFocusedVisibleHeight - middleVisibleHeight) * 0.5;
 
             return {
                 [STATES.EXPANDED]: 0,
-                [STATES.MIDDLE]: editingFocused ? Math.max(0, height - focusedVisibleHeight) : height * 0.46,
+                [STATES.MIDDLE]: editingFocused ? Math.max(0, height - focusedVisibleHeight) : middleTranslateY,
                 [STATES.CLOSED]: height + 32
             };
         }

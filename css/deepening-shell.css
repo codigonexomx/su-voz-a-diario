@@ -315,9 +315,9 @@ html.deepening-shell-active body {
 
 .deepening-journal-field {
     width: 100%;
-    min-height: 204px;
+    min-height: 112px;
     resize: vertical;
-    padding: 12px 0;
+    padding: 10px 0;
     border: 0;
     border-top: 1px solid rgba(54, 47, 39, 0.065);
     border-bottom: 1px solid rgba(54, 47, 39, 0.065);
@@ -326,7 +326,7 @@ html.deepening-shell-active body {
     color: #241f19;
     font-family: "Merriweather", Georgia, serif;
     font-size: 1rem;
-    line-height: 1.68;
+    line-height: 1.62;
 }
 
 .deepening-journal-field::placeholder {
