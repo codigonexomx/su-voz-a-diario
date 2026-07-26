@@ -22,6 +22,12 @@
         return Boolean(element?.closest?.('textarea, input, select, [contenteditable="true"]'));
     }
 
+    function resizeTextarea(element) {
+        if (!(element instanceof HTMLTextAreaElement)) return;
+        element.style.height = 'auto';
+        element.style.height = `${element.scrollHeight}px`;
+    }
+
     function create(options = {}) {
         let root = null;
         let sheet = null;
@@ -102,6 +108,7 @@
 
             const active = document.activeElement;
             if (!active || !body.contains(active) || !isEditableElement(active)) return;
+            resizeTextarea(active);
 
             if (focusRafId !== null) {
                 cancelAnimationFrame(focusRafId);
@@ -267,6 +274,11 @@
             requestClose();
         }
 
+        function onInput(event) {
+            resizeTextarea(event.target);
+            ensureFocusedElementVisible();
+        }
+
         function onFocusIn(event) {
             if (focusOutTimerId !== null) {
                 clearTimeout(focusOutTimerId);
@@ -278,6 +290,7 @@
                     stateBeforeEditing = state;
                 }
                 editingFocused = true;
+                resizeTextarea(event.target);
                 applyState(STATES.MIDDLE);
             }
 
@@ -319,6 +332,7 @@
             sheet.addEventListener('pointerup', onPointerEnd);
             sheet.addEventListener('pointercancel', onPointerEnd);
             closeButton?.addEventListener('click', onCloseClick);
+            body.addEventListener('input', onInput);
             body.addEventListener('focusin', onFocusIn);
             body.addEventListener('focusout', onFocusOut);
             visualViewport?.addEventListener('resize', applyViewportMetrics);
@@ -353,6 +367,7 @@
             sheet?.removeEventListener('pointerup', onPointerEnd);
             sheet?.removeEventListener('pointercancel', onPointerEnd);
             closeButton?.removeEventListener('click', onCloseClick);
+            body?.removeEventListener('input', onInput);
             body?.removeEventListener('focusin', onFocusIn);
             body?.removeEventListener('focusout', onFocusOut);
             visualViewport?.removeEventListener('resize', applyViewportMetrics);

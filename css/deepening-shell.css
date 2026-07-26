@@ -317,6 +317,7 @@ html.deepening-shell-active body {
     width: 100%;
     min-height: 112px;
     resize: vertical;
+    overflow: hidden;
     padding: 10px 0;
     border: 0;
     border-top: 1px solid rgba(54, 47, 39, 0.065);
