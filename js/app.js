@@ -3642,6 +3642,26 @@ syncAppBadge: function(count) {
         }
     },
 
+    openDeepeningShell: function(reading) {
+        if (!reading || !window.DeepeningShell) {
+            this.openSlidingNotebook(reading);
+            return;
+        }
+
+        const readingText = this.getDailyReadingText(reading);
+        const readingHtml = this.renderVerseText(readingText, reading.date);
+
+        window.DeepeningShell.mount({
+            reading,
+            readingHtml,
+            onRestore: () => {
+                if (this.openNoteDate === reading.date) {
+                    this.toggleNote(reading.date);
+                }
+            }
+        });
+    },
+
     closeSlidingNotebook: function() {
         if (window.NotebookGestureController) {
             window.NotebookGestureController.hide();
@@ -14502,21 +14522,21 @@ if (pdfBtn) {
 }
 
 // Notas
-const noteBtn = e.target.closest('[data-action="toggle-note"]');
-if (noteBtn) {
-    const date = noteBtn.getAttribute('data-date');
-    const isClosing = this.openNoteDate === date;
-    this.toggleNote(date);
+	const noteBtn = e.target.closest('[data-action="toggle-note"]');
+	if (noteBtn) {
+	    const date = noteBtn.getAttribute('data-date');
+	    const isClosing = this.openNoteDate === date;
+	    this.toggleNote(date);
 
-    if (isClosing) {
-        this.closeSlidingNotebook();
-        return;
-    }
+	    if (isClosing) {
+	        window.DeepeningShell?.unmount();
+	        return;
+	    }
 
-    const reading = await this.getReadingByDate(date);
-    this.openSlidingNotebook(reading);
-    return;
-}
+	    const reading = await this.getReadingByDate(date);
+	    this.openDeepeningShell(reading);
+	    return;
+	}
 const completeSessionBtn = e.target.closest('[data-action="complete-session"]');
 if (completeSessionBtn) {
     if (this.currentMeditationSessionId) {

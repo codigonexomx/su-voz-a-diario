@@ -70,8 +70,12 @@
             const viewportHeight = getViewportHeight();
             const keyboardOffset = 0;
 
+            const shellRoot = root.querySelector('.deepening-shell');
+
             root.style.setProperty('--deepening-viewport-height', `${viewportHeight}px`);
             root.style.setProperty('--deepening-keyboard-offset', `${keyboardOffset}px`);
+            shellRoot?.style.setProperty('--deepening-viewport-height', `${viewportHeight}px`);
+            shellRoot?.style.setProperty('--deepening-keyboard-offset', `${keyboardOffset}px`);
             ensureFocusedElementVisible();
             if (viewportRafId !== null) {
                 cancelAnimationFrame(viewportRafId);
