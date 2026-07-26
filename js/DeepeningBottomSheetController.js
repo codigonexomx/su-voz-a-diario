@@ -12,6 +12,7 @@
     const DRAG_CLOSE_VELOCITY = 0.62;
     const DRAG_EXPAND_VELOCITY = -0.5;
     const FOCUSED_FIELD_MARGIN = 24;
+    const DRAG_CLOSE_ENABLED = false;
 
     function clamp(value, min, max) {
         return Math.max(min, Math.min(max, value));
@@ -61,7 +62,7 @@
         function getSnapPoints() {
             const height = getSheetHeight();
             const viewportHeight = getViewportHeight();
-            const readingContextHeight = Math.max(88, viewportHeight * 0.16);
+            const readingContextHeight = Math.max(72, viewportHeight * 0.12);
             const focusedVisibleHeight = Math.min(height, Math.max(320, viewportHeight - readingContextHeight));
 
             return {
@@ -117,6 +118,17 @@
                 } else if (overflowTop > 0) {
                     body.scrollTop -= overflowTop;
                 }
+
+                const promptDescription = active.closest?.('.deepening-prompt')?.querySelector?.('p');
+                if (promptDescription) {
+                    const updatedBodyRect = body.getBoundingClientRect();
+                    const descriptionRect = promptDescription.getBoundingClientRect();
+                    const descriptionIsPartiallyCut = descriptionRect.top < updatedBodyRect.top && descriptionRect.bottom > updatedBodyRect.top;
+
+                    if (descriptionIsPartiallyCut) {
+                        body.scrollTop -= updatedBodyRect.top - descriptionRect.top + FOCUSED_FIELD_MARGIN;
+                    }
+                }
             });
         }
 
@@ -169,7 +181,7 @@
             const snaps = getSnapPoints();
             const projectedY = currentTranslateY + velocityY * 120;
 
-            if (velocityY > DRAG_CLOSE_VELOCITY || projectedY > (snaps[STATES.MIDDLE] + snaps[STATES.CLOSED]) / 2) {
+            if (DRAG_CLOSE_ENABLED && (velocityY > DRAG_CLOSE_VELOCITY || projectedY > (snaps[STATES.MIDDLE] + snaps[STATES.CLOSED]) / 2)) {
                 return STATES.CLOSED;
             }
 
@@ -206,7 +218,8 @@
             lastTime = now;
 
             const snaps = getSnapPoints();
-            const nextY = clamp(startTranslateY + deltaY, snaps[STATES.EXPANDED], snaps[STATES.CLOSED]);
+            const maxTranslateY = DRAG_CLOSE_ENABLED ? snaps[STATES.CLOSED] : snaps[STATES.MIDDLE];
+            const nextY = clamp(startTranslateY + deltaY, snaps[STATES.EXPANDED], maxTranslateY);
 
             event.preventDefault();
             setTransform(nextY, true);

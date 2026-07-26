@@ -113,7 +113,7 @@ html.deepening-shell-active body {
     transform: translate3d(0, 100%, 0);
     transition:
         opacity 240ms ease,
-        transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
     will-change: transform;
 }
 
@@ -122,8 +122,8 @@ html.deepening-shell-active body {
 }
 
 .deepening-sheet-header {
-    min-height: calc(58px + env(safe-area-inset-top));
-    padding: calc(8px + env(safe-area-inset-top)) 16px 8px;
+    min-height: calc(50px + env(safe-area-inset-top));
+    padding: calc(4px + env(safe-area-inset-top)) 14px 2px;
     display: grid;
     grid-template-columns: 44px 1fr 44px;
     align-items: center;
@@ -136,7 +136,7 @@ html.deepening-shell-active body {
 
 .deepening-sheet-grabber {
     position: absolute;
-    top: calc(8px + env(safe-area-inset-top));
+    top: calc(5px + env(safe-area-inset-top));
     left: 50%;
     width: 30px;
     height: 3px;
@@ -147,7 +147,7 @@ html.deepening-shell-active body {
 
 .deepening-sheet-title {
     grid-column: 2;
-    margin: 8px 0 0;
+    margin: 5px 0 0;
     font-family: "Cormorant Garamond", Georgia, serif;
     font-size: clamp(1.12rem, 3.8vw, 1.3rem);
     font-weight: 500;
@@ -163,7 +163,7 @@ html.deepening-shell-active body {
     height: 44px;
     min-width: 44px;
     min-height: 44px;
-    margin: 5px 0 0;
+    margin: 2px 0 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -186,7 +186,7 @@ html.deepening-shell-active body {
     min-height: 0;
     overflow: hidden;
     overscroll-behavior: contain;
-    padding: 18px clamp(24px, 6vw, 58px) calc(38px + env(safe-area-inset-bottom));
+    padding: 12px clamp(24px, 6vw, 58px) calc(30px + env(safe-area-inset-bottom));
 }
 
 .deepening-sheet[data-state="expanded"] .deepening-sheet-body {
@@ -215,10 +215,10 @@ html.deepening-shell-active body {
     display: flex;
     align-items: stretch;
     position: relative;
-    gap: 8px;
-    margin: 0 0 20px;
-    padding: 0 0 12px;
-    border-bottom: 1px solid rgba(54, 47, 39, 0.045);
+    gap: 7px;
+    margin: 0 0 14px;
+    padding: 0 0 8px;
+    border-bottom: 1px solid rgba(54, 47, 39, 0.032);
     overflow-x: auto;
     scrollbar-width: none;
 }
@@ -230,8 +230,8 @@ html.deepening-shell-active body {
 .deepening-step {
     position: relative;
     min-width: max-content;
-    min-height: 38px;
-    padding: 4px 2px 6px;
+    min-height: 34px;
+    padding: 3px 2px 5px;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -259,7 +259,7 @@ html.deepening-shell-active body {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: -13px;
+    bottom: -9px;
     height: 1px;
     border-radius: 999px;
     background: rgba(95, 76, 52, 0.38);
@@ -272,7 +272,7 @@ html.deepening-shell-active body {
 
 .deepening-step-kicker {
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.68rem;
+    font-size: 0.64rem;
     font-weight: 700;
     line-height: 1;
     letter-spacing: 0;
@@ -295,9 +295,9 @@ html.deepening-shell-active body {
 }
 
 .deepening-prompt h2 {
-    margin: 0 0 10px;
+    margin: 0 0 7px;
     font-family: "Cormorant Garamond", Georgia, serif;
-    font-size: clamp(1.68rem, 6.2vw, 2.34rem);
+    font-size: clamp(1.58rem, 5.7vw, 2.22rem);
     font-weight: 500;
     line-height: 1.08;
     letter-spacing: 0;
@@ -306,34 +306,27 @@ html.deepening-shell-active body {
 
 .deepening-prompt p {
     max-width: 36rem;
-    margin: 0 0 20px;
+    margin: 0 0 12px;
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.95rem;
-    line-height: 1.62;
+    font-size: 0.9rem;
+    line-height: 1.48;
     color: rgba(31, 27, 22, 0.58);
 }
 
 .deepening-journal-field {
     width: 100%;
-    min-height: 176px;
+    min-height: 204px;
     resize: vertical;
-    padding: 18px 0;
+    padding: 12px 0;
     border: 0;
     border-top: 1px solid rgba(54, 47, 39, 0.065);
     border-bottom: 1px solid rgba(54, 47, 39, 0.065);
     border-radius: 0;
-    background:
-        repeating-linear-gradient(
-            to bottom,
-            transparent 0,
-            transparent calc(1.8em - 1px),
-            rgba(54, 47, 39, 0.035) calc(1.8em - 1px),
-            rgba(54, 47, 39, 0.035) 1.8em
-        );
+    background: transparent;
     color: #241f19;
     font-family: "Merriweather", Georgia, serif;
     font-size: 1rem;
-    line-height: 1.8;
+    line-height: 1.68;
 }
 
 .deepening-journal-field::placeholder {
@@ -400,16 +393,16 @@ html.deepening-shell-active body {
     }
 
     .deepening-sheet-body {
-        padding: 16px 20px calc(34px + env(safe-area-inset-bottom));
+        padding: 10px 20px calc(28px + env(safe-area-inset-bottom));
     }
 
     .deepening-step-list {
-        gap: 7px;
-        margin-bottom: 18px;
+        gap: 6px;
+        margin-bottom: 12px;
     }
 
     .deepening-step {
-        min-height: 36px;
+        min-height: 32px;
     }
 
     .deepening-step-kicker {

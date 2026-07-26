@@ -114,7 +114,15 @@
 
         if (!steps.length || !panels.length) return null;
 
-        const setActiveStep = stepId => {
+        const isTextareaActive = () => document.activeElement?.matches?.('.deepening-journal-field');
+
+        const focusStepTextarea = stepId => {
+            const panel = panels.find(item => item.getAttribute('data-step-panel') === stepId);
+            const field = panel?.querySelector('.deepening-journal-field');
+            field?.focus({ preventScroll: true });
+        };
+
+        const setActiveStep = (stepId, options = {}) => {
             steps.forEach(step => {
                 const isActive = step.getAttribute('data-step') === stepId;
                 step.classList.toggle('is-active', isActive);
@@ -128,6 +136,21 @@
             panels.forEach(panel => {
                 panel.hidden = panel.getAttribute('data-step-panel') !== stepId;
             });
+
+            if (options.keepWriting) {
+                requestAnimationFrame(() => focusStepTextarea(stepId));
+            }
+        };
+
+        const onStepPointerDown = event => {
+            const step = event.target.closest('.deepening-step');
+            if (!step || !frame.contains(step) || !isTextareaActive()) return;
+
+            const stepId = step.getAttribute('data-step');
+            if (!stepId) return;
+
+            event.preventDefault();
+            setActiveStep(stepId, { keepWriting: true });
         };
 
         const onStepClick = event => {
@@ -137,11 +160,15 @@
             const stepId = step.getAttribute('data-step');
             if (!stepId) return;
 
-            setActiveStep(stepId);
+            setActiveStep(stepId, { keepWriting: isTextareaActive() });
         };
 
+        frame.addEventListener('pointerdown', onStepPointerDown);
         frame.addEventListener('click', onStepClick);
-        return () => frame.removeEventListener('click', onStepClick);
+        return () => {
+            frame.removeEventListener('pointerdown', onStepPointerDown);
+            frame.removeEventListener('click', onStepClick);
+        };
     }
 
     function renderShell(options = {}) {
