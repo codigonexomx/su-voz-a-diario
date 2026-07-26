@@ -67,6 +67,7 @@
     <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
     <link rel="preload" as="image" href="./icons/splash%202.png">
     <link rel="stylesheet" href="./css/styles.css?v=95">
+    <link rel="stylesheet" href="./css/deepening-mode.css?v=1">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -237,6 +238,12 @@
             <button id="theme-toggle" class="dropdown-btn" title="Cambiar tema">🌙</button>
         </div>
         <div class="dropdown-section dropdown-section-secondary">
+            <button class="dropdown-btn dropdown-btn-secondary" type="button" onclick="location.hash='#meditations-history'">
+                📚 Biblioteca
+            </button>
+            <button class="dropdown-btn dropdown-btn-secondary" type="button" onclick="location.hash='#meditation-timeline'">
+                ⏳ Línea de Tiempo
+            </button>
             <button class="dropdown-btn dropdown-btn-secondary" type="button" data-action="open-strong-dictionary">
                 Strong beta
             </button>
@@ -340,6 +347,7 @@
   </button>
 
   <button class="action-btn" id="noteBtn" aria-label="Agregar nota">Nota</button>
+  <button class="action-btn" id="meditationBtn" aria-label="Usar en mi meditación">Meditar</button>
   <button class="action-btn danger" id="clearBtn" aria-label="Quitar resaltado">Quitar</button>
 </div>
 
@@ -630,6 +638,7 @@
 })();
 </script>
 
+<script src="js/NotebookGestureController.js"></script>
 <script type="module" src="js/app.js?v=95"></script>
 
 <script>
