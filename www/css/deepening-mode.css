@@ -1,0 +1,729 @@
+/* 
+  MODO PROFUNDIZAR 
+  Estilos inmersivos y ocultamiento de elementos innecesarios
+*/
+
+body.deepening-mode {
+    background-color: #fcf9f2; /* Color crema tipo papel viejo pero moderno */
+    color: #2c2c2c;
+}
+
+/* Ocultamiento optimizado de UI del modo normal */
+body.deepening-mode .view-header,
+body.deepening-mode [data-pergamino],
+body.deepening-mode .bottom-nav,
+body.deepening-mode .home-reading-bar,
+body.deepening-mode .action-group,
+body.deepening-mode .main-action {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* El header inmersivo solo es visible en modo deepening */
+.deepening-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+    background-color: #fcf9f2;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+body.deepening-mode .deepening-header {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* La guía devocional solo es visible en modo deepening */
+.reading-notes-form {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    height: 0;
+    overflow: hidden;
+}
+
+body.deepening-mode .reading-notes-form {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    height: auto;
+    overflow: visible;
+}
+
+
+.deepening-header-close {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    line-height: 1;
+    color: #555;
+    cursor: pointer;
+    padding: 8px;
+    margin-left: -8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.deepening-header-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c2c2c;
+    margin: 0;
+    flex-grow: 1;
+    text-align: center;
+    padding-right: 24px; /* balancear el flex con la X */
+}
+
+/* Estilización tipo papel para lectura */
+body.deepening-mode .reading-card {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding-top: 24px;
+}
+
+body.deepening-mode .section-title {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+body.deepening-mode .reading-reference {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Ajustes de tipografía para lectura cómoda en este modo */
+body.deepening-mode .verse-text-content {
+    line-height: 1.7;
+    color: #333;
+}
+
+/* --- Fase 2: Cuadernillo Flotante --- */
+.sliding-notebook-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    /* No cubre todo para que la Biblia asome en estado Expanded */
+    top: 15vh;
+    background: #fcf9f2; /* Mismo color del modo deepening */
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    /* Reducir bordes y sombras para que parezca una hoja apoyada, no un modal */
+    box-shadow: 0 -1px 3px rgba(0,0,0,0.02), 0 -4px 20px rgba(0,0,0,0.04);
+    border-top: 1px solid rgba(0, 0, 0, 0.03);
+    z-index: 1500;
+    
+    display: flex;
+    flex-direction: column;
+    
+    /* Transformación animada controlada por JS */
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.sliding-notebook-header {
+    height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: grab;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.sliding-notebook-header:active {
+    cursor: grabbing;
+}
+
+.sliding-notebook-grab-handle {
+    width: 40px;
+    height: 5px;
+    background-color: #d1d1d1;
+    border-radius: 3px;
+    margin-bottom: 8px;
+}
+
+.sliding-notebook-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #4a4a4a;
+    letter-spacing: 0.02em;
+}
+
+.sliding-notebook-body {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0;
+}
+
+/* -------------------------------------------------------------
+   REDISEÑO EDITORIAL DEL CONTENIDO (Fase 2.5)
+   Aplica solo al contenido inyectado en .sliding-notebook-body
+   ------------------------------------------------------------- */
+
+/* Contenedor principal: Quitar sensación de "tarjeta" y dar espaciado continuo */
+.sliding-notebook-body .note-box,
+.sliding-notebook-body .devotional-flow {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 32px 24px 64px 24px !important; /* Más respiro visual */
+}
+
+/* Ocultar elementos heredados (repetidos o ruidosos) */
+.sliding-notebook-body .note-privacy,
+.sliding-notebook-body .devotional-flow-header {
+    display: none !important;
+}
+
+/* Stepper: Convertirlo en un índice sutil tipo libro */
+.sliding-notebook-body .devotional-stepper {
+    display: flex;
+    justify-content: flex-start;
+    gap: 16px;
+    margin-bottom: 40px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(0,0,0,0.05); /* Separador sutil */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.sliding-notebook-body .devotional-step-tab {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #999;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    padding: 12px 16px; /* Aumentar área táctil */
+    min-height: 44px; /* Área táctil accesible */
+    display: inline-flex;
+    align-items: center;
+    border-radius: 0;
+    transition: color 0.3s ease;
+}
+
+.sliding-notebook-body .devotional-step-tab.is-active {
+    color: #222;
+    font-weight: 500;
+}
+
+/* Ocultar números circulares del stepper */
+.sliding-notebook-body .devotional-step-index {
+    display: none;
+}
+
+.sliding-notebook-body .devotional-step-label {
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+/* Tarjeta del paso actual: Convertir a hoja continua */
+.sliding-notebook-body .devotional-step-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+}
+
+/* Título de la sección */
+.sliding-notebook-body .note-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+/* Contexto de la sección */
+.sliding-notebook-body .devotional-step-context {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: #444;
+    margin-bottom: 24px;
+}
+
+/* Lista de preguntas */
+.sliding-notebook-body .devotional-question-list {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 40px; /* Más espacio antes del textarea */
+}
+
+.sliding-notebook-body .devotional-question-list li {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.35rem;
+    font-style: italic;
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+/* Textarea: Aspecto de cuaderno para escribir apuntes */
+.sliding-notebook-body .note-textarea {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(0,0,0,0.1) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: #222;
+    padding: 8px 0 !important;
+    min-height: 250px;
+    resize: none;
+    transition: border-color 0.3s ease, background 0.3s ease;
+    /* Fase 3: Espacio reservado para las referencias */
+    margin-top: 16px;
+}
+
+/* Animación sutil de Focus */
+.sliding-notebook-body .note-textarea:focus {
+    outline: none !important;
+    border-bottom-color: rgba(0,0,0,0.3) !important;
+    background: linear-gradient(to bottom, transparent 90%, rgba(0,0,0,0.02) 100%) !important;
+}
+
+/* Ocultar acciones superfluas de notas (borrar, etc) */
+.sliding-notebook-body .note-actions {
+    display: none !important;
+}
+
+/* Navegación anterior/siguiente */
+.sliding-notebook-body .devotional-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 60px;
+    padding-top: 24px;
+    border-top: none; /* No cortar la hoja con líneas gruesas */
+}
+
+.sliding-notebook-body .devotional-nav-btn {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #777 !important;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    min-height: 48px;
+    min-width: 48px; /* Área táctil amplia */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.3s ease;
+}
+
+.sliding-notebook-body .devotional-nav-btn:not([disabled]):active {
+    opacity: 0.5;
+}
+
+.sliding-notebook-body .devotional-nav-btn-primary {
+    color: #222 !important;
+    font-weight: 500;
+}
+
+.sliding-notebook-body .devotional-nav-btn[disabled] {
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+/* Responsive ajustes mínimos (Tablet / Mobile grande) */
+@media (min-width: 768px) {
+    .sliding-notebook-body .note-box {
+        padding: 40px 64px 80px 64px !important;
+    }
+}
+
+/* Fase 2.9: Limitar la altura del cuadernillo en modo Landscape para que no asfixie la lectura */
+@media screen and (orientation: landscape) and (max-height: 600px) {
+    .sliding-notebook-panel {
+        top: 30vh;
+    }
+}
+
+
+/* Fase 3: Referencias Devocionales */
+.devotional-refs-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+
+.devotional-ref-chip {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(18, 18, 18, 0.04);
+    border: 1px solid rgba(18, 18, 18, 0.08);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.1rem;
+}
+
+/* Fase 6: Wrappers para Texto Anclado */
+.devotional-ref-wrapper {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.devotional-ref-wrapper.is-pinned-wrapper {
+    flex-basis: 100%;
+}
+
+.devotional-ref-pinned {
+    margin-top: 8px;
+    padding: 12px 16px;
+    background-color: rgba(250, 248, 245, 0.95);
+    border-left: 3px solid rgba(18, 18, 18, 0.2);
+    border-radius: 0 4px 4px 0;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 1.15rem;
+    line-height: 1.6;
+    color: #333;
+    animation: slideDownFade 0.2s ease-out;
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.devotional-ref-pinned-content {
+    /* Texto del pasaje */
+}
+
+.devotional-ref-pinned-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.devotional-ref-hide {
+    background: transparent;
+    border: 1px solid rgba(18, 18, 18, 0.15);
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 0.8rem;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.devotional-ref-hide:hover {
+    background: rgba(18, 18, 18, 0.05);
+    color: #121212;
+}
+
+@keyframes slideDownFade {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.dark-mode .devotional-ref-chip {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e5e5e5;
+}
+
+.dark-mode .devotional-ref-pinned {
+    background-color: rgba(30, 30, 30, 0.95);
+    border-left: 3px solid rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+.dark-mode .devotional-ref-hide {
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #999;
+}
+
+.dark-mode .devotional-ref-hide:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #e5e5e5;
+}
+
+.devotional-ref-icon {
+    margin-right: 6px;
+    font-size: 0.9em;
+}
+
+.devotional-ref-delete {
+    background: none;
+    border: none;
+    color: inherit;
+    opacity: 0.5;
+    margin-left: 8px;
+    font-size: 0.9em;
+    padding: 2px 4px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.devotional-ref-delete:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .devotional-ref-delete:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* Fase 4: Referencias Vivas */
+.highlight-temporary {
+    background-color: rgba(240, 218, 175, 0.4) !important;
+    border-radius: 4px;
+    transition: background-color 0.5s ease-out;
+}
+
+.dark-mode .highlight-temporary {
+    background-color: rgba(210, 180, 140, 0.3) !important;
+}
+
+.devotional-ref-chip {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.devotional-ref-chip:hover, .devotional-ref-chip:focus {
+    background: rgba(18, 18, 18, 0.08);
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(18, 18, 18, 0.1);
+}
+
+.dark-mode .devotional-ref-chip:hover, .dark-mode .devotional-ref-chip:focus {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.devotional-ref-chip-active {
+    background: rgba(240, 218, 175, 0.4) !important;
+    border-color: rgba(240, 218, 175, 0.6) !important;
+}
+
+.dark-mode .devotional-ref-chip-active {
+    background: rgba(210, 180, 140, 0.3) !important;
+    border-color: rgba(210, 180, 140, 0.5) !important;
+}
+
+/* Fase 5: Referencias Enriquecidas (Popover) */
+.ref-preview-popover {
+    position: fixed;
+    z-index: 2000;
+    width: 320px;
+    max-width: 90vw;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    font-family: 'Inter', sans-serif;
+    color: #222;
+}
+
+.ref-preview-popover.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.dark-mode .ref-preview-popover {
+    background: #1e1e1e;
+    color: #eee;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.ref-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .ref-preview-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ref-preview-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.ref-preview-close {
+    background: none;
+    border: none;
+    color: #777;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 4px;
+}
+
+.ref-preview-close:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #222;
+}
+
+.dark-mode .ref-preview-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.ref-preview-body {
+    padding: 16px;
+    max-height: 250px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.preview-verse-number {
+    font-size: 0.75em;
+    vertical-align: super;
+    font-weight: 600;
+    color: #666;
+    margin-right: 2px;
+}
+
+.dark-mode .preview-verse-number {
+    color: #aaa;
+}
+
+.ref-preview-state {
+    padding: 24px;
+    text-align: center;
+    color: #777;
+    font-size: 0.9rem;
+}
+
+.ref-preview-actions {
+    /* Preparado para el futuro */
+    padding: 8px 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.dark-mode .ref-preview-actions {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* ==============================
+   FASE 7: ANALÍTICAS Y ESTADO UI
+   ============================== */
+
+/* Cabecera de Analíticas (Progreso y Guardado) */
+.devotional-analytics-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 24px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: #888;
+    letter-spacing: 0.02em;
+}
+
+.dark-mode .devotional-analytics-header {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+    color: #777;
+}
+
+/* Estado de Guardado */
+.notebook-save-status {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    transition: opacity 0.3s ease, color 0.3s ease;
+}
+
+.notebook-save-status.is-saving {
+    opacity: 0.7;
+    font-style: italic;
+}
+
+.notebook-save-status.is-saved {
+    opacity: 1;
+}
+
+/* Pie de paso (Contadores y Referencias) */
+.devotional-step-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    color: #999;
+    padding: 0 4px;
+}
+
+.dark-mode .devotional-step-footer {
+    color: #666;
+}
+
+.devotional-step-counters {
+    /* Mantiene los contadores juntos */
+}
+
+.devotional-step-refs-summary {
+    font-style: italic;
+}
+
+/* Ocultar el stepper count nativo redundante */
+.devotional-step-count {
+    display: none !important;
+}

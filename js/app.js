@@ -602,6 +602,7 @@ _selectionPanelEventsBound: false,
 _authInitPromise: null,
 _authListenerReady: false,
 _lastAuthError: null,
+slidingNotebookPanel: null,
     
     // ========================================
     // INICIALIZACIÓN
@@ -643,9 +644,9 @@ this.bindKeyboardViewportFix();
 this.bindBottomNavStateGuard();
 this.setupAndroidBackButton();
 this.setupNativePushActionListeners();
-this.bindCommunityDraftLifecycle();
-this.bindBibleReadingContinuityLifecycle();
-await this.loadData();
+	this.bindCommunityDraftLifecycle();
+	this.bindBibleReadingContinuityLifecycle();
+		await this.loadData();
 
 // Fase 9: Migración única de cuadernillo a sesiones
 this.migrateLegacyNotebookToSessions();
@@ -3599,6 +3600,54 @@ syncAppBadge: function(count) {
             MeditationSessionUIStateStorage.save(newId, { pinnedReferences: {} });
             this.openMeditationSession(newId);
         }
+    },
+
+    getOrCreateSlidingNotebookPanel: function() {
+        let panel = document.querySelector('.sliding-notebook-panel');
+
+        if (!panel) {
+            panel = document.createElement('section');
+            panel.className = 'sliding-notebook-panel';
+            panel.setAttribute('aria-label', 'Cuadernillo de meditación');
+            panel.innerHTML = `
+                <header class="sliding-notebook-header">
+                    <div class="sliding-notebook-grab-handle" aria-hidden="true"></div>
+                    <div class="sliding-notebook-title">Mi meditación</div>
+                </header>
+
+                <div class="sliding-notebook-body"></div>
+            `;
+            this.$content.appendChild(panel);
+        }
+
+        this.slidingNotebookPanel = panel;
+        return panel;
+    },
+
+    openSlidingNotebook: function(reading) {
+        if (!reading) return;
+
+        const panel = this.getOrCreateSlidingNotebookPanel();
+        const header = panel.querySelector('.sliding-notebook-header');
+        const body = panel.querySelector('.sliding-notebook-body');
+
+        if (!header || !body) return;
+
+        body.innerHTML = this.renderDevotionalGuide(reading);
+        document.body.classList.add('deepening-mode');
+
+        if (window.NotebookGestureController) {
+            window.NotebookGestureController.init(panel, header);
+            window.NotebookGestureController.show();
+        }
+    },
+
+    closeSlidingNotebook: function() {
+        if (window.NotebookGestureController) {
+            window.NotebookGestureController.hide();
+        }
+
+        document.body.classList.remove('deepening-mode');
     },
    deleteNote: function(dateStr) {
         if (this.currentMeditationSessionId) {
@@ -7865,8 +7914,6 @@ restoreCalendarPosition: function() {
                 </button>
             </div>
 
-            ${this.openNoteDate === reading.date ? this.renderDevotionalGuide(reading) : ''}
-
             <div class="action-group">
                 <button class="reading-action-card reading-action-read" data-action="mark-read" data-date="${reading.date}" ${this.isRead(reading.date) ? 'disabled' : ''}>
                     <span class="reading-action-icon reading-action-icon-check">✓</span>
@@ -8002,8 +8049,6 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
     </button>
 </div>
 
-           ${this.openNoteDate === reading.date ? this.renderDevotionalGuide(reading) : ''}
-            
          <div class="action-group">
     <button class="reading-action-card reading-action-read" data-action="mark-read" data-date="${reading.date}" ${this.isRead(reading.date) ? 'disabled' : ''}>
         <span class="reading-action-icon reading-action-icon-check">✓</span>
@@ -13779,6 +13824,11 @@ if (devotionalStepBtn) {
     const stepId = devotionalStepBtn.getAttribute('data-step');
 
     this.setActiveDevotionalStep(stepId);
+    if (devotionalStepBtn.closest('.sliding-notebook-panel')) {
+        const reading = await this.getReadingByDate(date);
+        this.openSlidingNotebook(reading);
+        return;
+    }
     this.rerenderCurrentReadingView(date, true);
     return;
 }
@@ -13791,6 +13841,11 @@ if (devotionalPrevBtn) {
 
     if (currentIndex > 0) {
         this.setActiveDevotionalStep(steps[currentIndex - 1].id);
+        if (devotionalPrevBtn.closest('.sliding-notebook-panel')) {
+            const reading = await this.getReadingByDate(date);
+            this.openSlidingNotebook(reading);
+            return;
+        }
         this.rerenderCurrentReadingView(date, true);
     }
     return;
@@ -13804,6 +13859,11 @@ if (devotionalNextBtn) {
 
     if (currentIndex >= 0 && currentIndex < steps.length - 1) {
         this.setActiveDevotionalStep(steps[currentIndex + 1].id);
+        if (devotionalNextBtn.closest('.sliding-notebook-panel')) {
+            const reading = await this.getReadingByDate(date);
+            this.openSlidingNotebook(reading);
+            return;
+        }
         this.rerenderCurrentReadingView(date, true);
     }
     return;
@@ -14445,8 +14505,16 @@ if (pdfBtn) {
 const noteBtn = e.target.closest('[data-action="toggle-note"]');
 if (noteBtn) {
     const date = noteBtn.getAttribute('data-date');
+    const isClosing = this.openNoteDate === date;
     this.toggleNote(date);
-    this.rerenderCurrentReadingView(date);
+
+    if (isClosing) {
+        this.closeSlidingNotebook();
+        return;
+    }
+
+    const reading = await this.getReadingByDate(date);
+    this.openSlidingNotebook(reading);
     return;
 }
 const completeSessionBtn = e.target.closest('[data-action="complete-session"]');
@@ -14459,6 +14527,11 @@ if (completeSessionBtn) {
             session.updatedAt = Date.now();
             MeditationSessionStorage.save(session);
             this.showToast('Meditación marcada como completada');
+            if (completeSessionBtn.closest('.sliding-notebook-panel')) {
+                const reading = await this.getReadingByDate(session.readingId);
+                this.openSlidingNotebook(reading);
+                return;
+            }
             this.rerenderCurrentReadingView(session.readingId);
         }
     }
@@ -14469,6 +14542,10 @@ const deleteNoteBtn = e.target.closest('[data-action="delete-note"]');
 if (deleteNoteBtn) {
     const date = deleteNoteBtn.getAttribute('data-date');
     this.deleteNote(date);
+    if (deleteNoteBtn.closest('.sliding-notebook-panel')) {
+        this.closeSlidingNotebook();
+        return;
+    }
     this.rerenderCurrentReadingView(date);
     return;
 }
@@ -14476,8 +14553,14 @@ if (deleteNoteBtn) {
 const openLibrarySessionBtn = e.target.closest('[data-action="open-library-session"]');
 if (openLibrarySessionBtn) {
     const readingId = openLibrarySessionBtn.getAttribute('data-reading-id');
-    window.location.hash = '#home';
-    this.toggleNote(readingId);
+    this.homeViewingDate = readingId;
+    history.pushState(null, '', '#home');
+    await this.handleRoute();
+    if (this.openNoteDate !== readingId || !this.currentMeditationSessionId) {
+        this.toggleNote(readingId);
+    }
+    const reading = await this.getReadingByDate(readingId);
+    this.openSlidingNotebook(reading);
     return;
 }
 

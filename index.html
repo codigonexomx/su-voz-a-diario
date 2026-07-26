@@ -95,11 +95,13 @@
     const splash = document.getElementById('splash-screen');
     const video = document.getElementById('splash-video');
     const SPLASH_EXIT_FALLBACK_MS = 900;
+    const SPLASH_VIDEO_FAILSAFE_MS = 6500;
     let hideRequested = false;
     let hideDelay = 0;
     let videoFinished = false;
     let hiding = false;
     let removalFallback = null;
+    let videoFailSafe = null;
 
     function shouldPlaySplashVideoToday() {
         try {
@@ -119,15 +121,20 @@
         }
     }
 
-    function finishSplashVideo() {
+    function finishSplashVideo(delay = 0) {
         videoFinished = true;
-        hideSplash(0);
+        hideSplash(delay, true);
     }
 
     function removeSplash() {
         if (removalFallback) {
             clearTimeout(removalFallback);
             removalFallback = null;
+        }
+
+        if (videoFailSafe) {
+            clearTimeout(videoFailSafe);
+            videoFailSafe = null;
         }
 
         if (video) {
@@ -148,14 +155,18 @@
         }
     }
 
-    function hideSplash(delay = 0) {
+    function hideSplash(delay = 0, force = false) {
         hideRequested = true;
         hideDelay = Math.max(0, delay);
 
         if (hiding || !splash) return;
 
-        if (shouldPlayVideo && !videoFinished) {
+        if (shouldPlayVideo && !videoFinished && !force) {
             return;
+        }
+
+        if (force) {
+            videoFinished = true;
         }
 
         hiding = true;
@@ -169,20 +180,22 @@
         }, hideDelay);
     }
 
-    window.suVozHideSplash = hideSplash;
+    window.suVozHideSplash = (delay = 0) => finishSplashVideo(delay);
+    window.suVozSkipSplashVideo = () => finishSplashVideo(0);
     window.suVozShouldPlaySplashVideoToday = shouldPlaySplashVideoToday;
 
     if (shouldPlayVideo) {
         video.addEventListener('ended', () => finishSplashVideo(), { once: true });
-        video.addEventListener('error', () => finishSplashVideo(false), { once: true });
+        video.addEventListener('error', () => finishSplashVideo(), { once: true });
 
         document.addEventListener('DOMContentLoaded', () => {
             splash?.classList.add('is-video-playing');
             rememberSplashVideoPlayedToday();
+            videoFailSafe = setTimeout(() => finishSplashVideo(), SPLASH_VIDEO_FAILSAFE_MS);
             const playback = video.play();
 
             if (playback?.catch) {
-                playback.catch(() => finishSplashVideo(false));
+                playback.catch(() => finishSplashVideo());
             }
         });
     } else {
