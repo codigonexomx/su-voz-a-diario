@@ -1,0 +1,440 @@
+/*
+  DeepeningShell
+  Nueva arquitectura aislada para el futuro Modo Profundizar.
+  No esta conectada al boton actual.
+*/
+
+#deepening-root[hidden] {
+    display: none !important;
+}
+
+#deepening-root {
+    position: fixed;
+    inset: 0;
+    z-index: 1600;
+    background: #f8f6f0;
+    color: #1f1b16;
+}
+
+html.deepening-shell-active,
+html.deepening-shell-active body {
+    overflow: hidden;
+}
+
+.deepening-shell {
+    --deepening-viewport-height: 100dvh;
+    --deepening-keyboard-offset: 0px;
+    --deepening-reading-top: calc(36px + env(safe-area-inset-top));
+    --deepening-page-gutter: clamp(22px, 6vw, 72px);
+    position: relative;
+    width: 100%;
+    height: var(--deepening-viewport-height);
+    min-height: 100%;
+    overflow: hidden;
+    background: #f8f6f0;
+}
+
+.deepening-reading-scroll {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding:
+        var(--deepening-reading-top)
+        var(--deepening-page-gutter)
+        calc(56vh + env(safe-area-inset-bottom));
+}
+
+.deepening-reading {
+    max-width: 680px;
+    margin: 0 auto;
+    padding-bottom: 36px;
+    transition:
+        opacity 240ms ease,
+        transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.deepening-reading-tools {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: clamp(26px, 5vh, 46px);
+}
+
+.deepening-version-slot:empty,
+.deepening-voice-slot:empty {
+    display: none;
+}
+
+.deepening-reading-reference {
+    margin-bottom: 18px;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: rgba(31, 27, 22, 0.43);
+}
+
+.deepening-reading-text {
+    font-family: "Merriweather", Georgia, serif;
+    font-size: clamp(1.09rem, 2.1vw, 1.23rem);
+    line-height: 1.94;
+    color: #28231d;
+    text-wrap: pretty;
+}
+
+.deepening-reading-text p {
+    margin: 0 0 1.35em;
+}
+
+.deepening-reading-text .verse-text-content,
+.deepening-reading-text .verse-container {
+    line-height: inherit;
+}
+
+.deepening-sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(var(--deepening-viewport-height) - 74px - var(--deepening-keyboard-offset));
+    max-height: calc(var(--deepening-viewport-height) - 52px);
+    display: flex;
+    flex-direction: column;
+    background: #fffdf8;
+    border-top: 1px solid rgba(54, 47, 39, 0.045);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    box-shadow: 0 -10px 26px rgba(35, 30, 24, 0.055);
+    transform: translate3d(0, 100%, 0);
+    transition:
+        opacity 240ms ease,
+        transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: transform;
+}
+
+.deepening-sheet.is-dragging {
+    transition: none;
+}
+
+.deepening-sheet-header {
+    min-height: calc(58px + env(safe-area-inset-top));
+    padding: calc(8px + env(safe-area-inset-top)) 16px 8px;
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    border-bottom: 0;
+    touch-action: none;
+    user-select: none;
+}
+
+.deepening-sheet-grabber {
+    position: absolute;
+    top: calc(8px + env(safe-area-inset-top));
+    left: 50%;
+    width: 30px;
+    height: 3px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: rgba(31, 27, 22, 0.13);
+}
+
+.deepening-sheet-title {
+    grid-column: 2;
+    margin: 8px 0 0;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.12rem, 3.8vw, 1.3rem);
+    font-weight: 500;
+    line-height: 1.1;
+    text-align: center;
+    letter-spacing: 0;
+    color: rgba(25, 23, 20, 0.86);
+}
+
+.deepening-sheet-close {
+    grid-column: 3;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 5px 0 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: rgba(31, 27, 22, 0.52);
+    font-size: 1.42rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.deepening-sheet-close:focus-visible {
+    outline: 2px solid rgba(49, 130, 206, 0.9);
+    outline-offset: 2px;
+}
+
+.deepening-sheet-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    padding: 18px clamp(24px, 6vw, 58px) calc(38px + env(safe-area-inset-bottom));
+}
+
+.deepening-sheet[data-state="expanded"] .deepening-sheet-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.deepening-sheet[data-state="middle"] .deepening-sheet-body {
+    pointer-events: auto;
+}
+
+.deepening-sheet-body .note-box,
+.deepening-sheet-body .devotional-flow {
+    margin: 0;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.deepening-meditation-frame {
+    width: min(100%, 620px);
+    margin: 0 auto;
+}
+
+.deepening-step-list {
+    display: flex;
+    align-items: stretch;
+    position: relative;
+    gap: 8px;
+    margin: 0 0 20px;
+    padding: 0 0 12px;
+    border-bottom: 1px solid rgba(54, 47, 39, 0.045);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.deepening-step-list::-webkit-scrollbar {
+    display: none;
+}
+
+.deepening-step {
+    position: relative;
+    min-width: max-content;
+    min-height: 38px;
+    padding: 4px 2px 6px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 0;
+    background: transparent;
+    color: rgba(31, 27, 22, 0.36);
+    font: inherit;
+    text-align: center;
+    opacity: 0.64;
+    transition:
+        opacity 180ms ease,
+        transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.deepening-step.is-active {
+    color: #1f1b16;
+    opacity: 1;
+    transform: translate3d(0, -0.5px, 0);
+}
+
+.deepening-step.is-active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -13px;
+    height: 1px;
+    border-radius: 999px;
+    background: rgba(95, 76, 52, 0.38);
+}
+
+.deepening-step:focus-visible {
+    outline: 2px solid rgba(49, 130, 206, 0.9);
+    outline-offset: 2px;
+}
+
+.deepening-step-kicker {
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+    color: rgba(31, 27, 22, 0.26);
+}
+
+.deepening-step-label {
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: clamp(0.76rem, 2.4vw, 0.88rem);
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.deepening-prompt {
+    padding-top: 2px;
+}
+
+.deepening-prompt-eyebrow {
+    margin: 0 0 8px;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.76rem;
+    font-weight: 600;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    color: rgba(31, 27, 22, 0.34);
+}
+
+.deepening-prompt h2 {
+    margin: 0 0 10px;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.68rem, 6.2vw, 2.34rem);
+    font-weight: 500;
+    line-height: 1.08;
+    letter-spacing: 0;
+    color: #1f1b16;
+}
+
+.deepening-prompt p {
+    max-width: 36rem;
+    margin: 0 0 20px;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.95rem;
+    line-height: 1.62;
+    color: rgba(31, 27, 22, 0.58);
+}
+
+.deepening-journal-field {
+    width: 100%;
+    min-height: 176px;
+    resize: vertical;
+    padding: 18px 0;
+    border: 0;
+    border-top: 1px solid rgba(54, 47, 39, 0.065);
+    border-bottom: 1px solid rgba(54, 47, 39, 0.065);
+    border-radius: 0;
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0,
+            transparent calc(1.8em - 1px),
+            rgba(54, 47, 39, 0.035) calc(1.8em - 1px),
+            rgba(54, 47, 39, 0.035) 1.8em
+        );
+    color: #241f19;
+    font-family: "Merriweather", Georgia, serif;
+    font-size: 1rem;
+    line-height: 1.8;
+}
+
+.deepening-journal-field::placeholder {
+    color: rgba(31, 27, 22, 0.32);
+}
+
+.deepening-journal-field:focus {
+    outline: none;
+    border-color: rgba(95, 76, 52, 0.16);
+}
+
+.deepening-dev-chip {
+    min-height: 34px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(54, 47, 39, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 253, 248, 0.62);
+    color: rgba(31, 27, 22, 0.58);
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.deepening-dev-chip-muted {
+    color: rgba(31, 27, 22, 0.42);
+}
+
+.deepening-shell.is-preparing-reading .deepening-reading,
+.deepening-shell.is-preparing-sheet .deepening-sheet,
+.deepening-shell.is-leaving .deepening-reading,
+.deepening-shell.is-leaving .deepening-sheet {
+    opacity: 0;
+}
+
+.deepening-shell.is-preparing-reading .deepening-reading {
+    transform: translate3d(0, 18px, 0);
+}
+
+.deepening-shell.is-preparing-sheet .deepening-sheet,
+.deepening-shell.is-leaving .deepening-sheet {
+    transform: translate3d(0, 100%, 0);
+}
+
+@media (max-width: 520px) {
+    .deepening-shell {
+        --deepening-reading-top: calc(28px + env(safe-area-inset-top));
+        --deepening-page-gutter: clamp(18px, 5vw, 28px);
+    }
+
+    .deepening-reading-scroll {
+        padding-bottom: calc(59vh + env(safe-area-inset-bottom));
+    }
+
+    .deepening-reading-tools {
+        margin-bottom: 26px;
+    }
+
+    .deepening-sheet {
+        border-top-left-radius: 18px;
+        border-top-right-radius: 18px;
+    }
+
+    .deepening-sheet-body {
+        padding: 16px 20px calc(34px + env(safe-area-inset-bottom));
+    }
+
+    .deepening-step-list {
+        gap: 7px;
+        margin-bottom: 18px;
+    }
+
+    .deepening-step {
+        min-height: 36px;
+    }
+
+    .deepening-step-kicker {
+        display: none;
+    }
+}
+
+@media (min-width: 900px) {
+    .deepening-sheet {
+        left: max(32px, calc((100vw - 780px) / 2));
+        right: max(32px, calc((100vw - 780px) / 2));
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+    }
+}
+
+@supports not (height: 100dvh) {
+    .deepening-shell {
+        --deepening-viewport-height: 100vh;
+    }
+}
