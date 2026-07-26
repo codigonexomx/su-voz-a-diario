@@ -51,7 +51,7 @@
 
     <title>Su voz a diario</title>
 
-    <link rel="manifest" href="./manifest.json?v=95">
+    <link rel="manifest" href="./manifest.json?v=96">
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
     <link rel="apple-touch-startup-image" href="./icons/splash%202.png">
     <link rel="apple-touch-startup-image" href="./icons/splash%202.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
@@ -66,7 +66,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
     <link rel="preload" as="image" href="./icons/splash%202.png">
-    <link rel="stylesheet" href="./css/styles.css?v=95">
+    <link rel="stylesheet" href="./css/styles.css?v=96">
     <link rel="stylesheet" href="./css/deepening-mode.css?v=1">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -652,7 +652,7 @@
 </script>
 
 <script src="js/NotebookGestureController.js"></script>
-<script type="module" src="js/app.js?v=95"></script>
+<script type="module" src="js/app.js?v=96"></script>
 
 <script>
 (function () {
@@ -673,43 +673,81 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const appVersion = 'v95';
+                const appVersion = 'v96';
                 const versionKey = 'su-voz-app-version';
-                const versionReloadKey = `su-voz-version-guard-reloaded-${appVersion}`;
-                const swReloadKey = `su-voz-sw-reloaded-${appVersion}`;
+                const reloadKey = `su-voz-update-reloaded-${appVersion}`;
+                const currentCacheNames = new Set([
+                    `su-voz-${appVersion}`,
+                    `su-voz-dynamic-${appVersion}`
+                ]);
                 const previousVersion = localStorage.getItem(versionKey);
+                let refreshingForUpdate = false;
+                const shouldReloadAfterUpdate = Boolean(
+                    navigator.serviceWorker.controller || previousVersion
+                );
 
-                const clearAppCaches = async () => {
-                    if (!('caches' in window)) return;
+                const reloadOnceForUpdate = () => {
+                    if (refreshingForUpdate || sessionStorage.getItem(reloadKey) === 'true') return false;
 
-                    const keys = await caches.keys();
-                    await Promise.all(
-                        keys
-                            .filter(key => key.startsWith('su-voz-'))
-                            .map(key => caches.delete(key))
-                    );
+                    refreshingForUpdate = true;
+                    sessionStorage.setItem(reloadKey, 'true');
+                    window.location.reload();
+                    return true;
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=95', {
-                    scope: './'
+                const getCacheKeys = async () => {
+                    if (!('caches' in window)) return [];
+                    return caches.keys();
+                };
+
+                const clearOutdatedAppCaches = async () => {
+                    if (!('caches' in window)) return [];
+                    const keys = await caches.keys();
+                    const outdatedKeys = keys.filter(key =>
+                        key.startsWith('su-voz-') && !currentCacheNames.has(key)
+                    );
+
+                    await Promise.all(outdatedKeys.map(key => caches.delete(key)));
+                    return outdatedKeys;
+                };
+
+                const getControllerVersion = () => new Promise(resolve => {
+                    const controller = navigator.serviceWorker.controller;
+
+                    if (!controller || typeof MessageChannel === 'undefined') {
+                        resolve(null);
+                        return;
+                    }
+
+                    const channel = new MessageChannel();
+                    const timeout = setTimeout(() => resolve(null), 1200);
+
+                    channel.port1.onmessage = event => {
+                        clearTimeout(timeout);
+                        resolve(event.data?.version || null);
+                    };
+
+                    controller.postMessage({ type: 'GET_VERSION' }, [channel.port2]);
+                });
+
+                const requestActivation = worker => {
+                    if (!worker) return;
+                    worker.postMessage({ type: 'SKIP_WAITING' });
+                };
+
+                const registration = await navigator.serviceWorker.register('./sw.js?v=96', {
+                    scope: './',
+                    updateViaCache: 'none'
                 });
 
                 console.log('[Index] ServiceWorker registrado correctamente', registration.scope);
 
-                let refreshingForUpdate = false;
-
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                    if (refreshingForUpdate || sessionStorage.getItem(swReloadKey) === 'true') return;
-
-                    refreshingForUpdate = true;
-                    sessionStorage.setItem(swReloadKey, 'true');
-                    window.location.reload();
+                    localStorage.setItem(versionKey, appVersion);
+                    if (shouldReloadAfterUpdate) {
+                        reloadOnceForUpdate();
+                    }
                 });
-
-                const requestActivation = worker => {
-                    if (!worker || !navigator.serviceWorker.controller) return;
-                    worker.postMessage({ type: 'SKIP_WAITING' });
-                };
 
                 registration.addEventListener('updatefound', () => {
                     const newWorker = registration.installing;
@@ -726,19 +764,47 @@
                     requestActivation(registration.waiting);
                 }
 
-                if (previousVersion !== appVersion) {
+                await registration.update();
+
+                if (registration.waiting) {
+                    requestActivation(registration.waiting);
+                }
+
+                if (registration.installing) {
+                    registration.installing.addEventListener('statechange', event => {
+                        if (event.target?.state === 'installed') {
+                            requestActivation(event.target);
+                        }
+                    });
+                }
+
+                const [activeWorkerVersion, cacheKeys] = await Promise.all([
+                    getControllerVersion(),
+                    getCacheKeys()
+                ]);
+
+                const hasOutdatedCaches = cacheKeys.some(key =>
+                    key.startsWith('su-voz-') && !currentCacheNames.has(key)
+                );
+                const controlledByDifferentVersion = Boolean(
+                    activeWorkerVersion && activeWorkerVersion !== appVersion
+                );
+                const hasVersionMismatch =
+                    previousVersion !== appVersion ||
+                    controlledByDifferentVersion ||
+                    hasOutdatedCaches;
+
+                if (hasVersionMismatch) {
+                    await clearOutdatedAppCaches();
                     localStorage.setItem(versionKey, appVersion);
 
-                    await clearAppCaches();
-                    await registration.update();
-
-                    if (registration.waiting) {
-                        requestActivation(registration.waiting);
-                    }
-
-                    if (sessionStorage.getItem(versionReloadKey) !== 'true') {
-                        sessionStorage.setItem(versionReloadKey, 'true');
-                        window.location.reload();
+                    if (
+                        shouldReloadAfterUpdate &&
+                        !controlledByDifferentVersion &&
+                        !registration.waiting &&
+                        !registration.installing
+                    ) {
+                        reloadOnceForUpdate();
                     }
                 }
             } catch (error) {

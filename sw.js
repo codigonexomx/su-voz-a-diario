@@ -1,4 +1,4 @@
-const APP_VERSION = 'v95';
+const APP_VERSION = 'v96';
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -6,9 +6,9 @@ const OFFICIAL_ORIGIN = 'https://suvoz.app';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './manifest.json?v=95',
-  './css/styles.css?v=95',
-  './js/app.js?v=95',
+  './manifest.json?v=96',
+  './css/styles.css?v=96',
+  './js/app.js?v=96',
   './js/core/constants.js',
   './js/core/defaults.js',
   './js/bible/bibleModel.js',
@@ -43,6 +43,14 @@ const STATIC_ASSETS = [
   './icons/splash.png'
 ];
 
+const REQUIRED_ASSETS = new Set([
+  './',
+  './index.html',
+  './manifest.json?v=96',
+  './css/styles.css?v=96',
+  './js/app.js?v=96'
+]);
+
 // Firebase compat en Service Worker.
 // Firebase documenta compat en SW cuando no estás bundling el worker.
 importScripts('https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js');
@@ -62,6 +70,7 @@ const messaging = firebase.messaging();
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
+    const failedRequiredAssets = [];
 
     for (const asset of STATIC_ASSETS) {
       try {
@@ -70,13 +79,23 @@ self.addEventListener('install', event => {
 
         if (!response.ok) {
           console.warn('[SW] No se pudo precachear:', asset, response.status);
+          if (REQUIRED_ASSETS.has(asset)) {
+            failedRequiredAssets.push(`${asset} (${response.status})`);
+          }
           continue;
         }
 
         await cache.put(request, response.clone());
       } catch (error) {
         console.warn('[SW] Error precacheando:', asset, error);
+        if (REQUIRED_ASSETS.has(asset)) {
+          failedRequiredAssets.push(asset);
+        }
       }
+    }
+
+    if (failedRequiredAssets.length > 0) {
+      throw new Error(`[SW] Instalación incompleta. Recursos críticos faltantes: ${failedRequiredAssets.join(', ')}`);
     }
 
     await self.skipWaiting();
@@ -111,7 +130,9 @@ self.addEventListener('activate', event => {
       clientsList.forEach(client => {
         client.postMessage({
           type: 'SW_ACTIVATED',
-          version: APP_VERSION
+          version: APP_VERSION,
+          cacheName: CACHE_NAME,
+          dynamicCacheName: DYNAMIC_CACHE
         });
       });
     })()
@@ -121,6 +142,21 @@ self.addEventListener('activate', event => {
 self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+
+  if (event.data?.type === 'GET_VERSION') {
+    const versionMessage = {
+      type: 'SW_VERSION',
+      version: APP_VERSION,
+      cacheName: CACHE_NAME,
+      dynamicCacheName: DYNAMIC_CACHE
+    };
+
+    if (event.ports?.[0]) {
+      event.ports[0].postMessage(versionMessage);
+    } else {
+      event.source?.postMessage(versionMessage);
+    }
   }
 });
 
@@ -150,7 +186,8 @@ self.addEventListener('fetch', event => {
     request.mode === 'navigate' ||
     request.destination === 'document' ||
     request.destination === 'script' ||
-    request.destination === 'style'
+    request.destination === 'style' ||
+    request.destination === 'manifest'
   ) {
     event.respondWith(networkFirstStrategy(request, { bypassHttpCache: true }));
     return;
