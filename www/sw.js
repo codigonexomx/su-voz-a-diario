@@ -1,4 +1,4 @@
-const APP_VERSION = 'v114';
+const APP_VERSION = 'v115';
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -6,11 +6,11 @@ const OFFICIAL_ORIGIN = 'https://suvoz.app';
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './manifest.json?v=114',
-  './css/styles.css?v=114',
-  './css/deepening-shell.css?v=15',
-  './js/app.js?v=114',
-  './js/DeepeningBottomSheetController.js?v=14',
+  './manifest.json?v=115',
+  './css/styles.css?v=115',
+  './css/deepening-shell.css?v=16',
+  './js/app.js?v=115',
+  './js/DeepeningBottomSheetController.js?v=15',
   './js/DeepeningShell.js?v=12',
   './js/core/constants.js',
   './js/core/defaults.js',
@@ -49,11 +49,11 @@ const STATIC_ASSETS = [
 const REQUIRED_ASSETS = new Set([
   './',
   './index.html',
-  './manifest.json?v=114',
-  './css/styles.css?v=114',
-  './css/deepening-shell.css?v=15',
-  './js/app.js?v=114',
-  './js/DeepeningBottomSheetController.js?v=14',
+  './manifest.json?v=115',
+  './css/styles.css?v=115',
+  './css/deepening-shell.css?v=16',
+  './js/app.js?v=115',
+  './js/DeepeningBottomSheetController.js?v=15',
   './js/DeepeningShell.js?v=12'
 ]);
 

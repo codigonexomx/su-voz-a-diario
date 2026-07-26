@@ -10,8 +10,12 @@
 
 #deepening-root {
     position: fixed;
-    inset: 0;
+    top: var(--deepening-viewport-offset-top, 0px);
+    right: 0;
+    bottom: auto;
+    left: 0;
     z-index: 1600;
+    height: var(--deepening-viewport-height, 100dvh);
     background: #f8f6f0;
     color: #1f1b16;
 }
@@ -23,6 +27,7 @@ html.deepening-shell-active body {
 
 .deepening-shell {
     --deepening-viewport-height: 100dvh;
+    --deepening-viewport-offset-top: 0px;
     --deepening-keyboard-offset: 0px;
     --deepening-reading-top: calc(36px + env(safe-area-inset-top));
     --deepening-page-gutter: clamp(22px, 6vw, 72px);

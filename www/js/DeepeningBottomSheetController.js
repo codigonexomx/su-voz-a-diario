@@ -61,6 +61,10 @@
             return visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
         }
 
+        function getViewportOffsetTop() {
+            return visualViewport?.offsetTop || 0;
+        }
+
         function getSheetHeight() {
             return sheet?.getBoundingClientRect().height || 0;
         }
@@ -85,13 +89,16 @@
             if (!root) return;
 
             const viewportHeight = getViewportHeight();
+            const viewportOffsetTop = getViewportOffsetTop();
             const keyboardOffset = 0;
 
             const shellRoot = root.querySelector('.deepening-shell');
 
             root.style.setProperty('--deepening-viewport-height', `${viewportHeight}px`);
+            root.style.setProperty('--deepening-viewport-offset-top', `${viewportOffsetTop}px`);
             root.style.setProperty('--deepening-keyboard-offset', `${keyboardOffset}px`);
             shellRoot?.style.setProperty('--deepening-viewport-height', `${viewportHeight}px`);
+            shellRoot?.style.setProperty('--deepening-viewport-offset-top', `${viewportOffsetTop}px`);
             shellRoot?.style.setProperty('--deepening-keyboard-offset', `${keyboardOffset}px`);
             if (viewportRafId !== null) {
                 cancelAnimationFrame(viewportRafId);
