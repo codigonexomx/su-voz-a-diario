@@ -290,6 +290,10 @@ html.deepening-shell-active body {
     padding-top: 2px;
 }
 
+.deepening-prompt[hidden] {
+    display: none !important;
+}
+
 .deepening-prompt-eyebrow {
     margin: 0 0 8px;
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;

@@ -7,6 +7,7 @@
     let controller = null;
     let root = null;
     let restoreSnapshot = null;
+    let stepNavigationCleanup = null;
 
     function getRoot() {
         root = root || document.getElementById('deepening-root');
@@ -83,19 +84,65 @@
                     `).join('')}
                 </nav>
 
-                <section class="deepening-prompt" aria-label="Espacio de reflexión">
-                    <p class="deepening-prompt-eyebrow">Primer movimiento</p>
-                    <h2>¿Cómo es Dios?</h2>
-                    <p>${steps[0].title}</p>
-                    <textarea
-                        class="deepening-journal-field"
-                        rows="7"
-                        placeholder="Escribe despacio. Una frase honesta es suficiente."
-                        aria-label="Respuesta de meditación"
-                    ></textarea>
-                </section>
+                ${steps.map((step, index) => `
+                    <section
+                        class="deepening-prompt"
+                        aria-label="${step.label}"
+                        data-step-panel="${step.id}"
+                        ${index === 0 ? '' : 'hidden'}
+                    >
+                        <p class="deepening-prompt-eyebrow">Movimiento 0${index + 1}</p>
+                        <h2>${step.label}</h2>
+                        <p>${step.title}</p>
+                        <textarea
+                            class="deepening-journal-field"
+                            rows="7"
+                            placeholder="Escribe despacio. Una frase honesta es suficiente."
+                            aria-label="Respuesta de meditación: ${step.label}"
+                        ></textarea>
+                    </section>
+                `).join('')}
             </div>
         `;
+    }
+
+    function attachStepNavigation(targetRoot) {
+        const frame = targetRoot.querySelector('.deepening-meditation-frame');
+        if (!frame) return null;
+
+        const steps = Array.from(frame.querySelectorAll('.deepening-step'));
+        const panels = Array.from(frame.querySelectorAll('[data-step-panel]'));
+
+        if (!steps.length || !panels.length) return null;
+
+        const setActiveStep = stepId => {
+            steps.forEach(step => {
+                const isActive = step.getAttribute('data-step') === stepId;
+                step.classList.toggle('is-active', isActive);
+                if (isActive) {
+                    step.setAttribute('aria-current', 'step');
+                } else {
+                    step.removeAttribute('aria-current');
+                }
+            });
+
+            panels.forEach(panel => {
+                panel.hidden = panel.getAttribute('data-step-panel') !== stepId;
+            });
+        };
+
+        const onStepClick = event => {
+            const step = event.target.closest('.deepening-step');
+            if (!step || !frame.contains(step)) return;
+
+            const stepId = step.getAttribute('data-step');
+            if (!stepId) return;
+
+            setActiveStep(stepId);
+        };
+
+        frame.addEventListener('click', onStepClick);
+        return () => frame.removeEventListener('click', onStepClick);
     }
 
     function renderShell(options = {}) {
@@ -129,7 +176,7 @@
                 <section class="deepening-sheet" data-state="middle" aria-label="Mi meditación">
                     <header class="deepening-sheet-header" data-deepening-sheet-header>
                         <div class="deepening-sheet-grabber" aria-hidden="true"></div>
-                        <div class="deepening-sheet-title">Reflexiona</div>
+                        <div class="deepening-sheet-title">Medita la Palabra</div>
                         <button class="deepening-sheet-close" type="button" aria-label="Salir de Profundizar" data-deepening-close>&times;</button>
                     </header>
                     <div class="deepening-sheet-body" data-deepening-sheet-body>
@@ -149,6 +196,8 @@
         } finally {
             controller?.destroy();
             controller = null;
+            stepNavigationCleanup?.();
+            stepNavigationCleanup = null;
             targetRoot.innerHTML = '';
             targetRoot.hidden = true;
             document.documentElement.classList.remove('deepening-shell-active');
@@ -168,6 +217,8 @@
         if (!targetRoot) return null;
 
         controller?.destroy();
+        stepNavigationCleanup?.();
+        stepNavigationCleanup = null;
         restoreSnapshot = createSnapshot(options);
         targetRoot.hidden = false;
         targetRoot.innerHTML = renderShell(options);
@@ -199,6 +250,8 @@
             body,
             closeButton
         });
+
+        stepNavigationCleanup = attachStepNavigation(targetRoot);
 
         targetRoot.querySelector('.deepening-shell')?.focus({ preventScroll: true });
 
