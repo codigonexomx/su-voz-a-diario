@@ -34,7 +34,7 @@ body.deepening-shell-active > .bottom-nav {
 }
 
 .deepening-shell {
-    --deepening-reading-top: calc(18px + env(safe-area-inset-top));
+    --deepening-reading-top: calc(8px + env(safe-area-inset-top));
     --deepening-page-gutter: clamp(20px, 5.6vw, 62px);
     --deepening-mobile-gutter: clamp(18px, 5vw, 24px);
     position: relative;
@@ -89,15 +89,15 @@ body.deepening-shell-active > .bottom-nav {
 
 .deepening-reading-toolbar {
     position: sticky;
-    top: calc(-1 * var(--deepening-reading-top) + 6px);
+    top: calc(-1 * var(--deepening-reading-top));
     z-index: 2;
     max-width: 660px;
-    margin: 0 auto clamp(14px, 2.8vh, 22px);
-    padding: 4px 0 10px;
+    margin: 0 auto clamp(8px, 1.8vh, 14px);
+    padding: 0 0 7px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: 6px;
     background: rgba(255, 253, 248, 0.96);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(54, 47, 39, 0.08);
@@ -572,7 +572,7 @@ body.deepening-shell-active > .bottom-nav {
 
 @media (max-width: 520px) {
     .deepening-shell {
-        --deepening-reading-top: calc(16px + env(safe-area-inset-top));
+        --deepening-reading-top: calc(6px + env(safe-area-inset-top));
         --deepening-page-gutter: var(--deepening-mobile-gutter);
         grid-template-rows: minmax(0, 1.34fr) minmax(0, 0.66fr);
         gap: 8px;
@@ -589,7 +589,7 @@ body.deepening-shell-active > .bottom-nav {
     }
 
     .deepening-reading-toolbar {
-        margin-bottom: 14px;
+        margin-bottom: 8px;
     }
 
     .deepening-reading-version-option {

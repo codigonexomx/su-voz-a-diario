@@ -68,7 +68,7 @@
     <link rel="preload" as="image" href="./icons/splash%202.png">
     <link rel="stylesheet" href="./css/styles.css?v=116">
     <link rel="stylesheet" href="./css/deepening-mode.css?v=1">
-    <link rel="stylesheet" href="./css/deepening-shell.css?v=23">
+    <link rel="stylesheet" href="./css/deepening-shell.css?v=24">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -657,7 +657,7 @@
 <script src="js/NotebookGestureController.js"></script>
 <script src="js/ReadingPositionManager.js?v=1"></script>
 <script src="js/ReadingDocument.js?v=4"></script>
-<script src="js/MeditationDocument.js?v=3"></script>
+<script src="js/MeditationDocument.js?v=4"></script>
 <script src="js/KeyboardManager.js?v=7"></script>
 <script src="js/DeepeningShell.js?v=16"></script>
 <script type="module" src="js/app.js?v=119"></script>
@@ -743,7 +743,7 @@
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=125', {
+                const registration = await navigator.serviceWorker.register('./sw.js?v=126', {
                     scope: './',
                     updateViaCache: 'none'
                 });

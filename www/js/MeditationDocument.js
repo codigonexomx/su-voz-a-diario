@@ -86,6 +86,28 @@
         element.focus({ preventScroll: true });
     }
 
+    function setCaretFromPoint(element, clientX, clientY) {
+        if (!element) return;
+
+        const range = document.caretRangeFromPoint?.(clientX, clientY);
+        if (range && element.contains(range.startContainer)) {
+            const selection = window.getSelection?.();
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+            return;
+        }
+
+        const position = document.caretPositionFromPoint?.(clientX, clientY);
+        if (position?.offsetNode && element.contains(position.offsetNode)) {
+            const selection = window.getSelection?.();
+            const nextRange = document.createRange();
+            nextRange.setStart(position.offsetNode, position.offset);
+            nextRange.collapse(true);
+            selection?.removeAllRanges();
+            selection?.addRange(nextRange);
+        }
+    }
+
     function create(options = {}) {
         let root = null;
         const initialNote = normalizeNote(options.initialNote);
@@ -248,6 +270,15 @@
         }
 
         function onPointerDown(event) {
+            const editor = event.target.closest('[data-deepening-editor]');
+            if (editor && root?.contains(editor) && document.activeElement !== editor) {
+                event.preventDefault();
+                editor.focus({ preventScroll: true });
+                setCaretFromPoint(editor, event.clientX, event.clientY);
+                scheduleAutoSave();
+                return;
+            }
+
             const step = event.target.closest('.deepening-step');
             if (!step || !root?.contains(step) || !isEditorActive()) return;
 
