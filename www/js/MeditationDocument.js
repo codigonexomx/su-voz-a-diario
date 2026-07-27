@@ -64,7 +64,7 @@
 
         function render() {
             return `
-                <section class="deepening-meditation-document" aria-label="Cuaderno de meditacion" data-deepening-meditation-document>
+                <section class="deepening-meditation-panel deepening-meditation-document" aria-label="Cuaderno de meditacion" data-deepening-meditation-document>
                     <header class="deepening-meditation-header">
                         <div class="deepening-meditation-grabber" aria-hidden="true"></div>
                         <div class="deepening-meditation-title">Medita la Palabra</div>

@@ -94,13 +94,17 @@
             const reference = escapeHtml(reading.reference || '');
 
             return `
-                <section class="deepening-reading-document" aria-label="Lectura biblica en modo Profundizar" data-deepening-reading-document>
+                <section class="deepening-bible-panel deepening-reading-document" aria-label="Lectura biblica en modo Profundizar" data-deepening-reading-document>
                     <div class="deepening-reading-toolbar">
-                        ${renderVersionSelector()}
-                        ${renderListenControl()}
+                        <div class="deepening-reading-toolbar-main">
+                            ${reference ? `<div class="deepening-reading-reference">${reference}</div>` : ''}
+                        </div>
+                        <div class="deepening-reading-toolbar-actions">
+                            ${renderVersionSelector()}
+                            ${renderListenControl()}
+                        </div>
                     </div>
                     <main class="deepening-reading" aria-label="Texto biblico">
-                        ${reference ? `<div class="deepening-reading-reference">${reference}</div>` : ''}
                         <div class="deepening-reading-text selection-surface verse-container" data-selection-surface="true" data-deepening-reading-text>
                             ${getReadingHtml(activeVersion)}
                         </div>

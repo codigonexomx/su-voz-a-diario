@@ -4,9 +4,7 @@
  */
 (function() {
     const FIELD_MARGIN = 24;
-    const KEYBOARD_GAP = 10;
-    const MIN_KEYBOARD_DOCUMENT_HEIGHT = 120;
-    const KEYBOARD_DOCUMENT_RATIO = 0.46;
+    const KEYBOARD_THRESHOLD = 80;
 
     function getCaretRect() {
         const selection = window.getSelection?.();
@@ -27,14 +25,12 @@
 
     function create(options = {}) {
         let documentElement = null;
+        let shellElement = null;
+        let rootElement = null;
         let visualViewport = window.visualViewport || null;
         let viewportRafId = null;
         let cursorRafId = null;
-        let baseTransform = '';
-        let baseDocumentBottom = 0;
-        let baseDocumentTop = 0;
-        let baseDocumentHeight = 0;
-        let baseInlineHeight = '';
+        let baseVisibleHeight = 0;
 
         function getViewportHeight() {
             return visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
@@ -79,35 +75,15 @@
         }
 
         function applyViewportPosition() {
-            if (!documentElement) return;
+            if (!documentElement || !shellElement || !rootElement) return;
 
-            const viewportBottom = getViewportOffsetTop() + getViewportHeight();
-            const keyboardOpen = viewportBottom < baseDocumentBottom - KEYBOARD_GAP;
-
-            if (!keyboardOpen) {
-                documentElement.style.height = baseInlineHeight;
-                documentElement.style.transform = baseTransform;
-                ensureCursorVisible();
-                return;
-            }
-
-            const shellTop = document.querySelector('.deepening-shell')?.getBoundingClientRect().top || 0;
-            const availableHeight = Math.max(0, viewportBottom - shellTop - KEYBOARD_GAP);
-            const targetHeight = Math.min(
-                baseDocumentHeight,
-                Math.max(
-                    Math.min(MIN_KEYBOARD_DOCUMENT_HEIGHT, availableHeight),
-                    Math.floor(availableHeight * KEYBOARD_DOCUMENT_RATIO)
-                )
+            const visibleHeight = getViewportHeight();
+            const keyboardOpen = baseVisibleHeight - visibleHeight > KEYBOARD_THRESHOLD;
+            rootElement.style.setProperty(
+                '--deepening-visible-height',
+                `${Math.round(keyboardOpen ? visibleHeight : baseVisibleHeight)}px`
             );
-            const targetBottom = viewportBottom - KEYBOARD_GAP;
-            const targetTop = targetBottom - targetHeight;
-            const offsetY = Math.min(0, Math.floor(targetTop - baseDocumentTop));
-
-            documentElement.style.height = `${Math.round(targetHeight)}px`;
-            documentElement.style.transform = offsetY
-                ? `translate3d(0, ${offsetY}px, 0)`
-                : baseTransform;
+            shellElement.classList.toggle('is-keyboard-open', keyboardOpen);
             ensureCursorVisible();
         }
 
@@ -135,12 +111,9 @@
             documentElement = element;
             if (!documentElement) return;
 
-            baseTransform = documentElement.style.transform || '';
-            baseInlineHeight = documentElement.style.height || '';
-            const baseRect = documentElement.getBoundingClientRect();
-            baseDocumentTop = baseRect.top;
-            baseDocumentBottom = baseRect.bottom;
-            baseDocumentHeight = baseRect.height;
+            shellElement = documentElement.closest('.deepening-shell');
+            rootElement = document.getElementById('deepening-root');
+            baseVisibleHeight = rootElement?.getBoundingClientRect().height || getViewportHeight();
             documentElement.addEventListener('focusin', onFocusIn);
             documentElement.addEventListener('input', onInput);
             visualViewport?.addEventListener('resize', scheduleViewportPosition);
@@ -165,17 +138,13 @@
             visualViewport?.removeEventListener('scroll', scheduleViewportPosition);
             window.removeEventListener('resize', scheduleViewportPosition);
 
-            if (documentElement) {
-                documentElement.style.height = baseInlineHeight;
-                documentElement.style.transform = baseTransform;
-            }
+            rootElement?.style.setProperty('--deepening-visible-height', `${Math.round(baseVisibleHeight)}px`);
+            shellElement?.classList.remove('is-keyboard-open');
 
             documentElement = null;
-            baseTransform = '';
-            baseInlineHeight = '';
-            baseDocumentTop = 0;
-            baseDocumentBottom = 0;
-            baseDocumentHeight = 0;
+            shellElement = null;
+            rootElement = null;
+            baseVisibleHeight = 0;
         }
 
         return {
