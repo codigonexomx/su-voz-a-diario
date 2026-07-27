@@ -5,6 +5,8 @@
 (function() {
     const FIELD_MARGIN = 24;
     const KEYBOARD_GAP = 10;
+    const MIN_KEYBOARD_DOCUMENT_HEIGHT = 120;
+    const KEYBOARD_DOCUMENT_RATIO = 0.46;
 
     function getCaretRect() {
         const selection = window.getSelection?.();
@@ -30,6 +32,9 @@
         let cursorRafId = null;
         let baseTransform = '';
         let baseDocumentBottom = 0;
+        let baseDocumentTop = 0;
+        let baseDocumentHeight = 0;
+        let baseInlineHeight = '';
 
         function getViewportHeight() {
             return visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
@@ -77,11 +82,29 @@
             if (!documentElement) return;
 
             const viewportBottom = getViewportOffsetTop() + getViewportHeight();
-            const targetBottom = viewportBottom - KEYBOARD_GAP;
-            const offsetY = viewportBottom < baseDocumentBottom
-                ? Math.min(0, Math.floor(targetBottom - baseDocumentBottom))
-                : 0;
+            const keyboardOpen = viewportBottom < baseDocumentBottom - KEYBOARD_GAP;
 
+            if (!keyboardOpen) {
+                documentElement.style.height = baseInlineHeight;
+                documentElement.style.transform = baseTransform;
+                ensureCursorVisible();
+                return;
+            }
+
+            const shellTop = document.querySelector('.deepening-shell')?.getBoundingClientRect().top || 0;
+            const availableHeight = Math.max(0, viewportBottom - shellTop - KEYBOARD_GAP);
+            const targetHeight = Math.min(
+                baseDocumentHeight,
+                Math.max(
+                    Math.min(MIN_KEYBOARD_DOCUMENT_HEIGHT, availableHeight),
+                    Math.floor(availableHeight * KEYBOARD_DOCUMENT_RATIO)
+                )
+            );
+            const targetBottom = viewportBottom - KEYBOARD_GAP;
+            const targetTop = targetBottom - targetHeight;
+            const offsetY = Math.min(0, Math.floor(targetTop - baseDocumentTop));
+
+            documentElement.style.height = `${Math.round(targetHeight)}px`;
             documentElement.style.transform = offsetY
                 ? `translate3d(0, ${offsetY}px, 0)`
                 : baseTransform;
@@ -113,7 +136,11 @@
             if (!documentElement) return;
 
             baseTransform = documentElement.style.transform || '';
-            baseDocumentBottom = documentElement.getBoundingClientRect().bottom;
+            baseInlineHeight = documentElement.style.height || '';
+            const baseRect = documentElement.getBoundingClientRect();
+            baseDocumentTop = baseRect.top;
+            baseDocumentBottom = baseRect.bottom;
+            baseDocumentHeight = baseRect.height;
             documentElement.addEventListener('focusin', onFocusIn);
             documentElement.addEventListener('input', onInput);
             visualViewport?.addEventListener('resize', scheduleViewportPosition);
@@ -139,11 +166,16 @@
             window.removeEventListener('resize', scheduleViewportPosition);
 
             if (documentElement) {
+                documentElement.style.height = baseInlineHeight;
                 documentElement.style.transform = baseTransform;
             }
 
             documentElement = null;
             baseTransform = '';
+            baseInlineHeight = '';
+            baseDocumentTop = 0;
+            baseDocumentBottom = 0;
+            baseDocumentHeight = 0;
         }
 
         return {

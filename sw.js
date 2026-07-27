@@ -1,4 +1,4 @@
-const APP_VERSION = 'v120';
+const APP_VERSION = 'v121';
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -13,7 +13,7 @@ const STATIC_ASSETS = [
   './js/ReadingPositionManager.js?v=1',
   './js/ReadingDocument.js?v=3',
   './js/MeditationDocument.js?v=1',
-  './js/KeyboardManager.js?v=4',
+  './js/KeyboardManager.js?v=5',
   './js/DeepeningShell.js?v=15',
   './js/core/constants.js',
   './js/core/defaults.js',
@@ -59,7 +59,7 @@ const REQUIRED_ASSETS = new Set([
   './js/ReadingPositionManager.js?v=1',
   './js/ReadingDocument.js?v=3',
   './js/MeditationDocument.js?v=1',
-  './js/KeyboardManager.js?v=4',
+  './js/KeyboardManager.js?v=5',
   './js/DeepeningShell.js?v=15'
 ]);
 

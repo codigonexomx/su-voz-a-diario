@@ -658,7 +658,7 @@
 <script src="js/ReadingPositionManager.js?v=1"></script>
 <script src="js/ReadingDocument.js?v=3"></script>
 <script src="js/MeditationDocument.js?v=1"></script>
-<script src="js/KeyboardManager.js?v=4"></script>
+<script src="js/KeyboardManager.js?v=5"></script>
 <script src="js/DeepeningShell.js?v=15"></script>
 <script type="module" src="js/app.js?v=118"></script>
 
@@ -743,7 +743,7 @@
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=120', {
+                const registration = await navigator.serviceWorker.register('./sw.js?v=121', {
                     scope: './',
                     updateViaCache: 'none'
                 });
