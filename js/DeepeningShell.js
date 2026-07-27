@@ -24,6 +24,10 @@
         `;
     }
 
+    function getStableViewportHeight() {
+        return window.innerHeight || document.documentElement.clientHeight || screen.height || 0;
+    }
+
     function getBackgroundElements() {
         return [
             document.querySelector('body > header'),
@@ -148,6 +152,7 @@
 
             targetRoot.innerHTML = '';
             targetRoot.hidden = true;
+            targetRoot.style.removeProperty('--deepening-shell-height');
 
             if (options.restore !== false) {
                 await options.onRestore?.(restorePositionRecord);
@@ -168,6 +173,7 @@
 
         restorePositionRecord = window.ReadingPositionManager?.createPositionRecord(options) || null;
         targetRoot.hidden = false;
+        targetRoot.style.setProperty('--deepening-shell-height', `${getStableViewportHeight()}px`);
         targetRoot.innerHTML = renderShell();
         lockBackground({ root: targetRoot });
 

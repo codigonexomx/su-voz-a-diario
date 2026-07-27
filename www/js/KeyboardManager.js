@@ -4,6 +4,7 @@
  */
 (function() {
     const FIELD_MARGIN = 24;
+    const KEYBOARD_GAP = 10;
 
     function getCaretRect() {
         const selection = window.getSelection?.();
@@ -27,6 +28,8 @@
         let visualViewport = window.visualViewport || null;
         let viewportRafId = null;
         let cursorRafId = null;
+        let baseTransform = '';
+        let baseDocumentBottom = 0;
 
         function getViewportHeight() {
             return visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
@@ -71,6 +74,17 @@
         }
 
         function applyViewportPosition() {
+            if (!documentElement) return;
+
+            const viewportBottom = getViewportOffsetTop() + getViewportHeight();
+            const targetBottom = viewportBottom - KEYBOARD_GAP;
+            const offsetY = viewportBottom < baseDocumentBottom
+                ? Math.min(0, Math.floor(targetBottom - baseDocumentBottom))
+                : 0;
+
+            documentElement.style.transform = offsetY
+                ? `translate3d(0, ${offsetY}px, 0)`
+                : baseTransform;
             ensureCursorVisible();
         }
 
@@ -98,6 +112,8 @@
             documentElement = element;
             if (!documentElement) return;
 
+            baseTransform = documentElement.style.transform || '';
+            baseDocumentBottom = documentElement.getBoundingClientRect().bottom;
             documentElement.addEventListener('focusin', onFocusIn);
             documentElement.addEventListener('input', onInput);
             visualViewport?.addEventListener('resize', scheduleViewportPosition);
@@ -122,7 +138,12 @@
             visualViewport?.removeEventListener('scroll', scheduleViewportPosition);
             window.removeEventListener('resize', scheduleViewportPosition);
 
+            if (documentElement) {
+                documentElement.style.transform = baseTransform;
+            }
+
             documentElement = null;
+            baseTransform = '';
         }
 
         return {
