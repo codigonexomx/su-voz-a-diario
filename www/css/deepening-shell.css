@@ -270,14 +270,17 @@ body.deepening-shell-active > .bottom-nav {
         calc(24px + env(safe-area-inset-bottom))
         clamp(42px, 7vw, 70px);
     background:
-        linear-gradient(rgba(88, 76, 59, 0.026) 1px, transparent 1px) 0 122px / 100% 30px,
-        linear-gradient(90deg, rgba(117, 89, 61, 0.032), transparent 18px),
-        #fbfaf5;
-    border: 1px solid rgba(54, 47, 39, 0.055);
+        linear-gradient(rgba(82, 70, 52, 0.018) 1px, transparent 1px) 0 122px / 100% 30px,
+        linear-gradient(90deg, rgba(108, 82, 55, 0.024), transparent 20px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 42%),
+        #f8f4ec;
+    border: 1px solid rgba(72, 56, 37, 0.035);
     border-radius: 20px;
     box-shadow:
-        0 10px 24px rgba(35, 30, 24, 0.032),
-        inset 18px 0 20px rgba(72, 57, 39, 0.018);
+        0 18px 46px rgba(42, 34, 24, 0.055),
+        0 3px 14px rgba(42, 34, 24, 0.028),
+        inset 18px 0 22px rgba(85, 65, 42, 0.014),
+        inset 0 1px 0 rgba(255, 255, 255, 0.34);
     transition: opacity 240ms ease;
     touch-action: pan-y;
 }
@@ -294,9 +297,9 @@ body.deepening-shell-active > .bottom-nav {
     margin: 14px 0 0 calc(clamp(42px, 7vw, 70px) * -0.72);
     pointer-events: none;
     background:
-        radial-gradient(circle at 50% 50%, transparent 0 4px, rgba(69, 57, 43, 0.13) 4.5px 5.4px, transparent 6px)
+        radial-gradient(circle at 50% 50%, transparent 0 4px, rgba(83, 64, 42, 0.105) 4.5px 5.4px, transparent 6px)
         center top / 18px 22px repeat-y;
-    opacity: 0.46;
+    opacity: 0.38;
 }
 
 .deepening-meditation-document::after {
@@ -310,7 +313,7 @@ body.deepening-shell-active > .bottom-nav {
     min-height: 160px;
     margin: 14px 0 0 -9px;
     pointer-events: none;
-    background: linear-gradient(rgba(85, 67, 45, 0.012), rgba(85, 67, 45, 0.07), rgba(85, 67, 45, 0.012));
+    background: linear-gradient(rgba(88, 65, 42, 0.008), rgba(88, 65, 42, 0.045), rgba(88, 65, 42, 0.008));
 }
 
 .deepening-meditation-header {
@@ -443,9 +446,9 @@ body.deepening-shell-active > .bottom-nav {
 
 .deepening-step.is-active {
     z-index: 1;
-    background: #fbfaf5;
+    background: #f8f4ec;
     border-color: rgba(54, 47, 39, 0.085);
-    border-bottom-color: #fbfaf5;
+    border-bottom-color: #f8f4ec;
     color: #241f19;
     opacity: 1;
     transform: translate3d(0, -3px, 0);
