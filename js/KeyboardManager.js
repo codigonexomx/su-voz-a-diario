@@ -79,8 +79,8 @@
 
             const visibleHeight = getViewportHeight();
             const keyboardOpen = baseVisibleHeight - visibleHeight > KEYBOARD_THRESHOLD;
-            rootElement.style.setProperty(
-                '--deepening-visible-height',
+            shellElement.style.setProperty(
+                '--deepening-layout-height',
                 `${Math.round(keyboardOpen ? visibleHeight : baseVisibleHeight)}px`
             );
             shellElement.classList.toggle('is-keyboard-open', keyboardOpen);
@@ -138,7 +138,7 @@
             visualViewport?.removeEventListener('scroll', scheduleViewportPosition);
             window.removeEventListener('resize', scheduleViewportPosition);
 
-            rootElement?.style.setProperty('--deepening-visible-height', `${Math.round(baseVisibleHeight)}px`);
+            shellElement?.style.removeProperty('--deepening-layout-height');
             shellElement?.classList.remove('is-keyboard-open');
 
             documentElement = null;
