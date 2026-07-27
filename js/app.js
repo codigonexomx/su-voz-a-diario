@@ -1874,6 +1874,22 @@ deleteSelectionNoteEntry: function(dateStr, selectedText) {
     return `su-voz-note-${dateStr}`;
     },
 
+    getDeepeningPanelUIStateKey: function(dateStr) {
+        return `su-voz-deepening-ui-${dateStr}`;
+    },
+
+    getDeepeningPanelUIState: function(dateStr) {
+        return this.storage.get(this.getDeepeningPanelUIStateKey(dateStr), {});
+    },
+
+    saveDeepeningPanelUIState: function(dateStr, uiState) {
+        if (!uiState || !dateStr) return;
+        this.storage.set(this.getDeepeningPanelUIStateKey(dateStr), {
+            ...uiState,
+            updatedAt: Date.now()
+        });
+    },
+
 ensureCommunityCutoff: async function() {
     if (this.communityCutoff) return this.communityCutoff;
     if (!this.currentUser?.uid) {
@@ -3260,7 +3276,7 @@ syncAppBadge: function(count) {
         const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
         if (session && session.notes) return session.notes;
     }
-    return defaultNote;
+    return this.storage.get(this.getNoteKey(dateStr), defaultNote);
   },
     
    hasNote: function(dateStr) {
@@ -3275,6 +3291,8 @@ syncAppBadge: function(count) {
         if (typeof NotebookAnalytics !== 'undefined') {
             noteObj = NotebookAnalytics.updateTimestamps(noteObj);
         }
+
+        this.storage.set(this.getNoteKey(dateStr), noteObj);
         
         if (this.currentMeditationSessionId) {
             const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
@@ -3661,6 +3679,8 @@ syncAppBadge: function(count) {
             readingHtml,
             versions,
             currentVersion: this.currentVersion,
+            initialNote: this.getNote(reading.date),
+            initialUIState: this.getDeepeningPanelUIState(reading.date),
             getReadingHtml: versionId => this.renderVerseText(
                 this.getDailyReadingText(reading, versionId),
                 reading.date
@@ -3683,7 +3703,20 @@ syncAppBadge: function(count) {
                     date: this.dailyReadingVoice.date
                 };
             },
-            onAutoSave: () => this.stopDailyReadingVoice(true),
+            onAutoSave: (note, uiState, metadata = {}) => {
+                if (!note) {
+                    this.stopDailyReadingVoice(true);
+                    return;
+                }
+
+                if (metadata.noteChanged) {
+                    this.saveNote(reading.date, note);
+                }
+
+                if (metadata.noteChanged || metadata.uiChanged) {
+                    this.saveDeepeningPanelUIState(reading.date, uiState);
+                }
+            },
             onRestore: () => {
                 if (this.openNoteDate === reading.date) {
                     this.toggleNote(reading.date);

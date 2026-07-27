@@ -34,8 +34,9 @@ body.deepening-shell-active > .bottom-nav {
 }
 
 .deepening-shell {
-    --deepening-reading-top: calc(36px + env(safe-area-inset-top));
-    --deepening-page-gutter: clamp(22px, 6vw, 72px);
+    --deepening-reading-top: calc(24px + env(safe-area-inset-top));
+    --deepening-page-gutter: clamp(24px, 7vw, 72px);
+    --deepening-mobile-gutter: clamp(22px, 6vw, 30px);
     position: relative;
     width: 100%;
     height: 100%;
@@ -44,8 +45,8 @@ body.deepening-shell-active > .bottom-nav {
     overflow: hidden;
     display: grid;
     grid-template-rows: minmax(0, 3fr) minmax(0, 2fr);
-    gap: clamp(10px, 2.6vw, 18px);
-    padding: clamp(10px, 2.6vw, 18px);
+    gap: clamp(12px, 3.2vw, 22px);
+    padding: clamp(10px, 2.8vw, 20px);
     background: #f8f6f0;
     overscroll-behavior: none;
     touch-action: pan-y;
@@ -72,66 +73,70 @@ body.deepening-shell-active > .bottom-nav {
     padding:
         var(--deepening-reading-top)
         var(--deepening-page-gutter)
-        36px;
+        42px;
     touch-action: pan-y;
-    background: rgba(255, 253, 248, 0.72);
-    border: 1px solid rgba(54, 47, 39, 0.06);
-    border-radius: 18px;
+    background: rgba(255, 253, 248, 0.76);
+    border: 1px solid rgba(54, 47, 39, 0.045);
+    border-radius: 20px;
     box-sizing: border-box;
 }
 
 .deepening-reading {
-    max-width: 680px;
+    max-width: 650px;
     margin: 0 auto;
-    padding-bottom: 36px;
+    padding-bottom: 44px;
 }
 
 .deepening-reading-toolbar {
     position: sticky;
-    top: calc(-1 * var(--deepening-reading-top) + 10px);
+    top: calc(-1 * var(--deepening-reading-top) + 8px);
     z-index: 2;
-    max-width: 680px;
-    margin: 0 auto clamp(22px, 4vh, 38px);
-    padding: 10px 0;
+    max-width: 650px;
+    margin: 0 auto clamp(30px, 5vh, 48px);
+    padding: 8px 0 20px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    background: rgba(255, 253, 248, 0.9);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    background: rgba(255, 253, 248, 0.94);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(54, 47, 39, 0.045);
+    border-bottom: 1px solid rgba(54, 47, 39, 0.07);
 }
 
 .deepening-reading-toolbar-main {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
 }
 
 .deepening-reading-toolbar-actions {
-    display: inline-flex;
-    align-items: center;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 12px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
 }
 
 .deepening-reading-version-selector {
-    display: inline-flex;
+    max-width: 100%;
+    display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
+    flex-wrap: wrap;
 }
 
 .deepening-reading-version-option,
 .deepening-reading-listen {
     min-width: 44px;
     min-height: 44px;
-    padding: 0 13px;
-    border: 1px solid rgba(54, 47, 39, 0.1);
+    padding: 0 15px;
+    border: 1px solid rgba(54, 47, 39, 0.085);
     border-radius: 999px;
-    background: rgba(255, 253, 248, 0.64);
-    color: rgba(31, 27, 22, 0.56);
+    background: rgba(255, 253, 248, 0.56);
+    color: rgba(31, 27, 22, 0.54);
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 0.78rem;
     font-weight: 650;
@@ -143,7 +148,7 @@ body.deepening-shell-active > .bottom-nav {
 .deepening-reading-voice {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
 }
 
 .deepening-reading-listen {
@@ -151,6 +156,12 @@ body.deepening-shell-active > .bottom-nav {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-color: rgba(54, 47, 39, 0.075);
+    background: transparent;
+    color: rgba(31, 27, 22, 0.48);
+    font-weight: 600;
 }
 
 .deepening-reading-listen.is-speaking {
@@ -202,24 +213,26 @@ body.deepening-shell-active > .bottom-nav {
 .deepening-reading-reference {
     margin: 0;
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: 0.76rem;
-    font-weight: 600;
-    line-height: 1.4;
-    letter-spacing: 0;
+    max-width: 11rem;
+    font-size: clamp(1.24rem, 5.4vw, 1.7rem);
+    font-weight: 650;
+    line-height: 1.14;
+    letter-spacing: 0.015em;
     text-transform: uppercase;
-    color: rgba(31, 27, 22, 0.43);
+    color: #1f1b16;
+    text-wrap: balance;
 }
 
 .deepening-reading-text {
     font-family: "Merriweather", Georgia, serif;
-    font-size: clamp(1.09rem, 2.1vw, 1.23rem);
-    line-height: 1.94;
+    font-size: clamp(1.13rem, 4.2vw, 1.28rem);
+    line-height: 2.02;
     color: #28231d;
     text-wrap: pretty;
 }
 
 .deepening-reading-text p {
-    margin: 0 0 1.35em;
+    margin: 0 0 1.55em;
 }
 
 .deepening-reading-text .verse-text-content,
@@ -238,18 +251,18 @@ body.deepening-shell-active > .bottom-nav {
     overscroll-behavior-y: contain;
     padding:
         0
-        clamp(28px, 6vw, 62px)
-        calc(34px + env(safe-area-inset-bottom))
-        clamp(44px, 7vw, 74px);
+        clamp(30px, 7vw, 68px)
+        calc(40px + env(safe-area-inset-bottom))
+        clamp(48px, 8vw, 80px);
     background:
-        linear-gradient(rgba(88, 76, 59, 0.035) 1px, transparent 1px) 0 150px / 100% 30px,
-        linear-gradient(90deg, rgba(117, 89, 61, 0.05), transparent 16px),
+        linear-gradient(rgba(88, 76, 59, 0.028) 1px, transparent 1px) 0 164px / 100% 32px,
+        linear-gradient(90deg, rgba(117, 89, 61, 0.032), transparent 18px),
         #fbfaf5;
-    border: 1px solid rgba(54, 47, 39, 0.075);
-    border-radius: 18px;
+    border: 1px solid rgba(54, 47, 39, 0.055);
+    border-radius: 20px;
     box-shadow:
-        0 12px 28px rgba(35, 30, 24, 0.045),
-        inset 20px 0 22px rgba(72, 57, 39, 0.025);
+        0 10px 24px rgba(35, 30, 24, 0.032),
+        inset 18px 0 20px rgba(72, 57, 39, 0.018);
     transition: opacity 240ms ease;
     touch-action: pan-y;
 }
@@ -263,12 +276,12 @@ body.deepening-shell-active > .bottom-nav {
     width: 18px;
     height: calc(100% - 36px);
     min-height: 160px;
-    margin: 18px 0 0 calc(clamp(44px, 7vw, 74px) * -0.78);
+    margin: 18px 0 0 calc(clamp(48px, 8vw, 80px) * -0.72);
     pointer-events: none;
     background:
-        radial-gradient(circle at 50% 50%, transparent 0 4px, rgba(69, 57, 43, 0.22) 4.5px 5.5px, transparent 6px)
+        radial-gradient(circle at 50% 50%, transparent 0 4px, rgba(69, 57, 43, 0.13) 4.5px 5.4px, transparent 6px)
         center top / 18px 22px repeat-y;
-    opacity: 0.72;
+    opacity: 0.46;
 }
 
 .deepening-meditation-document::after {
@@ -282,7 +295,7 @@ body.deepening-shell-active > .bottom-nav {
     min-height: 160px;
     margin: 18px 0 0 -10px;
     pointer-events: none;
-    background: linear-gradient(rgba(85, 67, 45, 0.02), rgba(85, 67, 45, 0.12), rgba(85, 67, 45, 0.02));
+    background: linear-gradient(rgba(85, 67, 45, 0.012), rgba(85, 67, 45, 0.07), rgba(85, 67, 45, 0.012));
 }
 
 .deepening-meditation-header {
@@ -355,12 +368,13 @@ body.deepening-shell-active > .bottom-nav {
     display: flex;
     align-items: stretch;
     position: relative;
-    gap: 7px;
-    margin: -6px 0 22px;
-    padding: 0 2px;
-    border-bottom: 1px solid rgba(54, 47, 39, 0.065);
+    gap: 10px;
+    margin: -2px -6px 30px;
+    padding: 4px 6px 0;
+    border-bottom: 1px solid rgba(54, 47, 39, 0.045);
     overflow-x: auto;
     scrollbar-width: none;
+    scroll-snap-type: x proximity;
 }
 
 .deepening-step-list::-webkit-scrollbar {
@@ -369,23 +383,25 @@ body.deepening-shell-active > .bottom-nav {
 
 .deepening-step {
     position: relative;
+    flex: 0 0 auto;
     min-width: max-content;
     min-height: 44px;
-    padding: 7px 14px 8px;
+    padding: 9px 17px 10px;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 7px;
-    border: 1px solid rgba(54, 47, 39, 0.08);
-    border-bottom-color: rgba(54, 47, 39, 0.12);
-    border-radius: 12px 12px 4px 4px;
-    background: #f0eee6;
-    color: rgba(31, 27, 22, 0.52);
+    border: 1px solid rgba(54, 47, 39, 0.06);
+    border-bottom-color: rgba(54, 47, 39, 0.09);
+    border-radius: 14px 14px 5px 5px;
+    background: #f1eee5;
+    color: rgba(31, 27, 22, 0.5);
     font: inherit;
     text-align: center;
-    opacity: 0.78;
-    box-shadow: inset 0 -8px 12px rgba(56, 45, 32, 0.025);
+    opacity: 0.72;
+    box-shadow: inset 0 -7px 12px rgba(56, 45, 32, 0.018);
+    scroll-snap-align: start;
     transition:
         background-color 160ms ease,
         border-color 160ms ease,
@@ -413,13 +429,13 @@ body.deepening-shell-active > .bottom-nav {
 .deepening-step.is-active {
     z-index: 1;
     background: #fbfaf5;
-    border-color: rgba(54, 47, 39, 0.12);
+    border-color: rgba(54, 47, 39, 0.085);
     border-bottom-color: #fbfaf5;
     color: #241f19;
     opacity: 1;
     transform: translate3d(0, -4px, 0);
     box-shadow:
-        0 -3px 8px rgba(35, 30, 24, 0.035),
+        0 -2px 7px rgba(35, 30, 24, 0.025),
         inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
 
@@ -458,13 +474,13 @@ body.deepening-shell-active > .bottom-nav {
 
 .deepening-step-label {
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    font-size: clamp(0.76rem, 2.4vw, 0.88rem);
+    font-size: clamp(0.78rem, 2.6vw, 0.9rem);
     font-weight: 500;
     line-height: 1.2;
 }
 
 .deepening-prompt {
-    padding-top: 4px;
+    padding-top: 2px;
 }
 
 .deepening-prompt[hidden] {
@@ -472,7 +488,7 @@ body.deepening-shell-active > .bottom-nav {
 }
 
 .deepening-prompt h2 {
-    margin: 0 0 10px;
+    margin: 0 0 14px;
     font-family: "Cormorant Garamond", Georgia, serif;
     font-size: clamp(1.58rem, 5.7vw, 2.22rem);
     font-weight: 500;
@@ -483,10 +499,10 @@ body.deepening-shell-active > .bottom-nav {
 
 .deepening-prompt p {
     max-width: 36rem;
-    margin: 0 0 20px;
+    margin: 0 0 28px;
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 0.9rem;
-    line-height: 1.48;
+    line-height: 1.58;
     color: rgba(31, 27, 22, 0.58);
 }
 
@@ -494,9 +510,9 @@ body.deepening-shell-active > .bottom-nav {
     width: 100%;
     min-height: 112px;
     max-height: min(38vh, 330px);
-    padding: 18px 0 22px;
-    border-top: 1px solid rgba(54, 47, 39, 0.045);
-    border-bottom: 1px solid rgba(54, 47, 39, 0.045);
+    padding: 22px 0 28px;
+    border-top: 1px solid rgba(54, 47, 39, 0.03);
+    border-bottom: 1px solid rgba(54, 47, 39, 0.03);
     background:
         linear-gradient(rgba(87, 75, 59, 0.045) 1px, transparent 1px)
         0 20px / 100% 1.62em;
@@ -541,33 +557,53 @@ body.deepening-shell-active > .bottom-nav {
 
 @media (max-width: 520px) {
     .deepening-shell {
-        --deepening-reading-top: calc(28px + env(safe-area-inset-top));
-        --deepening-page-gutter: clamp(18px, 5vw, 28px);
+        --deepening-reading-top: calc(22px + env(safe-area-inset-top));
+        --deepening-page-gutter: var(--deepening-mobile-gutter);
+        grid-template-rows: minmax(0, 1.16fr) minmax(0, 0.84fr);
+        gap: 12px;
+        padding: 10px;
     }
 
     .deepening-reading-document {
-        padding-bottom: 30px;
+        border-radius: 20px;
+        padding-bottom: 40px;
     }
 
     .deepening-reading-toolbar {
-        margin-bottom: 24px;
+        margin-bottom: 32px;
     }
 
     .deepening-meditation-document {
-        padding: 0 20px calc(28px + env(safe-area-inset-bottom)) 42px;
+        padding: 0 24px calc(34px + env(safe-area-inset-bottom)) 46px;
+        border-radius: 20px;
     }
 
     .deepening-step-list {
-        gap: 6px;
-        margin-bottom: 12px;
+        gap: 9px;
+        margin-bottom: 28px;
     }
 
     .deepening-step {
         min-height: 44px;
+        padding-inline: 16px;
     }
 
     .deepening-step-kicker {
         display: none;
+    }
+}
+
+@media (min-width: 521px) {
+    .deepening-reading-toolbar-actions {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+}
+
+@media (min-width: 760px) {
+    .deepening-shell {
+        grid-template-rows: minmax(0, 1.2fr) minmax(0, 0.8fr);
     }
 }
 

@@ -195,6 +195,8 @@
 
         meditationDocument = window.MeditationDocument?.create({
             meditationHtml: options.meditationHtml,
+            initialNote: options.initialNote,
+            initialUIState: options.initialUIState,
             onAutoSave: options.onAutoSave,
             onClose: () => {
                 unmount({
