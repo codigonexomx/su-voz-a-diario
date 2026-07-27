@@ -3650,10 +3650,22 @@ syncAppBadge: function(count) {
 
         const readingText = this.getDailyReadingText(reading);
         const readingHtml = this.renderVerseText(readingText, reading.date);
+        const versions = [
+            { id: 'rvr60', label: 'RVR60' },
+            { id: 'ntv', label: 'NTV' },
+            { id: 'tla', label: 'TLA' }
+        ].filter(version => reading.versions?.[version.id]);
 
         window.DeepeningShell.mount({
             reading,
             readingHtml,
+            versions,
+            currentVersion: this.currentVersion,
+            voiceControlHtml: this.renderDailyReadingVoiceControl(reading),
+            getReadingHtml: versionId => this.renderVerseText(
+                this.getDailyReadingText(reading, versionId),
+                reading.date
+            ),
             onRestore: () => {
                 if (this.openNoteDate === reading.date) {
                     this.toggleNote(reading.date);
