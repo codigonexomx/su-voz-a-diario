@@ -27,7 +27,6 @@
         let visualViewport = window.visualViewport || null;
         let viewportRafId = null;
         let cursorRafId = null;
-        let baseTransform = '';
 
         function getViewportHeight() {
             return visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
@@ -57,9 +56,10 @@
                 cursorRafId = null;
                 if (!documentElement || !isInsideDocument(active)) return;
 
-                const documentRect = documentElement.getBoundingClientRect();
                 const caretRect = getCaretRect() || active.getBoundingClientRect();
-                const visibleBottom = Math.min(documentRect.bottom, getViewportHeight() + getViewportOffsetTop()) - FIELD_MARGIN;
+                const documentRect = documentElement.getBoundingClientRect();
+                const viewportBottom = getViewportOffsetTop() + getViewportHeight();
+                const visibleBottom = Math.min(documentRect.bottom, viewportBottom) - FIELD_MARGIN;
                 const visibleTop = documentRect.top + FIELD_MARGIN;
 
                 if (caretRect.bottom > visibleBottom) {
@@ -71,14 +71,6 @@
         }
 
         function applyViewportPosition() {
-            if (!documentElement) return;
-
-            const documentRect = documentElement.getBoundingClientRect();
-            const viewportBottom = getViewportOffsetTop() + getViewportHeight();
-            const overlap = Math.max(0, documentRect.bottom - viewportBottom);
-            documentElement.style.transform = overlap
-                ? `translate3d(0, -${Math.ceil(overlap)}px, 0)`
-                : baseTransform;
             ensureCursorVisible();
         }
 
@@ -106,7 +98,6 @@
             documentElement = element;
             if (!documentElement) return;
 
-            baseTransform = documentElement.style.transform || '';
             documentElement.addEventListener('focusin', onFocusIn);
             documentElement.addEventListener('input', onInput);
             visualViewport?.addEventListener('resize', scheduleViewportPosition);
@@ -131,12 +122,7 @@
             visualViewport?.removeEventListener('scroll', scheduleViewportPosition);
             window.removeEventListener('resize', scheduleViewportPosition);
 
-            if (documentElement) {
-                documentElement.style.transform = baseTransform;
-            }
-
             documentElement = null;
-            baseTransform = '';
         }
 
         return {

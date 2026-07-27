@@ -10,26 +10,43 @@
 #deepening-root {
     position: fixed;
     inset: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
     z-index: 1600;
     background: #f8f6f0;
     color: #1f1b16;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 html.deepening-shell-active,
-html.deepening-shell-active body {
-    overflow: hidden;
+body.deepening-shell-active {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+}
+
+body.deepening-shell-active > header,
+body.deepening-shell-active > #app-content,
+body.deepening-shell-active > .bottom-nav {
+    display: none !important;
 }
 
 .deepening-shell {
     --deepening-reading-top: calc(36px + env(safe-area-inset-top));
     --deepening-page-gutter: clamp(22px, 6vw, 72px);
-    --deepening-meditation-height: min(54vh, 470px);
+    --deepening-meditation-height: clamp(260px, 39dvh, 410px);
     position: relative;
     width: 100%;
-    height: 100dvh;
-    min-height: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
     overflow: hidden;
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) minmax(240px, var(--deepening-meditation-height));
     background: #f8f6f0;
+    overscroll-behavior: none;
+    touch-action: pan-y;
 }
 
 .deepening-reading-host,
@@ -38,15 +55,17 @@ html.deepening-shell-active body {
 }
 
 .deepening-reading-document {
-    position: absolute;
-    inset: 0;
+    min-width: 0;
+    min-height: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    overscroll-behavior-y: contain;
     padding:
         var(--deepening-reading-top)
         var(--deepening-page-gutter)
-        calc(var(--deepening-meditation-height) + 56px + env(safe-area-inset-bottom));
+        36px;
+    touch-action: pan-y;
 }
 
 .deepening-reading {
@@ -87,6 +106,59 @@ html.deepening-shell-active body {
     cursor: pointer;
 }
 
+.deepening-reading-voice {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.deepening-reading-listen {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.deepening-reading-listen.is-speaking {
+    background: rgba(31, 27, 22, 0.9);
+    border-color: rgba(31, 27, 22, 0.9);
+    color: #fffdf8;
+}
+
+.deepening-reading-voice-stop {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid rgba(54, 47, 39, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 253, 248, 0.72);
+    color: rgba(31, 27, 22, 0.58);
+    cursor: pointer;
+}
+
+.deepening-reading-voice-stop span {
+    display: block;
+    width: 10px;
+    height: 10px;
+    margin: auto;
+    border-radius: 2px;
+    background: currentColor;
+}
+
+.deepening-reading-version-option:hover,
+.deepening-reading-listen:hover,
+.deepening-reading-voice-stop:hover {
+    border-color: rgba(54, 47, 39, 0.2);
+    background: rgba(255, 253, 248, 0.88);
+}
+
+.deepening-reading-version-option:active,
+.deepening-reading-listen:active,
+.deepening-reading-voice-stop:active {
+    transform: translate3d(0, 1px, 0);
+}
+
 .deepening-reading-version-option.is-active {
     background: #1f1b16;
     color: #fffdf8;
@@ -122,14 +194,13 @@ html.deepening-shell-active body {
 }
 
 .deepening-meditation-document {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: calc(var(--deepening-meditation-height) + env(safe-area-inset-bottom));
+    min-width: 0;
+    min-height: 0;
+    height: auto;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    overscroll-behavior-y: contain;
     padding: 0 clamp(24px, 6vw, 58px) calc(30px + env(safe-area-inset-bottom));
     background: #fffdf8;
     border-top: 1px solid rgba(54, 47, 39, 0.045);
@@ -139,6 +210,7 @@ html.deepening-shell-active body {
     transition:
         opacity 240ms ease,
         transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    touch-action: pan-y;
 }
 
 .deepening-meditation-header {
@@ -196,7 +268,8 @@ html.deepening-shell-active body {
 
 .deepening-meditation-close:focus-visible,
 .deepening-reading-version-option:focus-visible,
-.deepening-reading-listen:focus-visible {
+.deepening-reading-listen:focus-visible,
+.deepening-reading-voice-stop:focus-visible {
     outline: 2px solid rgba(49, 130, 206, 0.9);
     outline-offset: 2px;
 }
@@ -226,25 +299,47 @@ html.deepening-shell-active body {
     position: relative;
     min-width: max-content;
     min-height: 44px;
-    padding: 6px 4px 7px;
+    padding: 6px 12px 7px;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 7px;
-    border: 0;
-    background: transparent;
-    color: rgba(31, 27, 22, 0.36);
+    border: 1px solid rgba(54, 47, 39, 0.09);
+    border-radius: 12px;
+    background: rgba(255, 253, 248, 0.54);
+    color: rgba(31, 27, 22, 0.58);
     font: inherit;
     text-align: center;
     opacity: 0.64;
     transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
         opacity 180ms ease,
         transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.deepening-step:hover {
+    background: rgba(255, 253, 248, 0.78);
+    border-color: rgba(54, 47, 39, 0.16);
+    color: rgba(31, 27, 22, 0.74);
+    opacity: 0.82;
+}
+
+.deepening-step:active {
+    transform: translate3d(0, 1px, 0);
+}
+
+.deepening-step:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
 .deepening-step.is-active {
-    color: #1f1b16;
+    background: rgba(31, 27, 22, 0.92);
+    border-color: rgba(31, 27, 22, 0.92);
+    color: #fffdf8;
     opacity: 1;
     transform: translate3d(0, -0.5px, 0);
 }
@@ -257,7 +352,7 @@ html.deepening-shell-active body {
     bottom: -9px;
     height: 1px;
     border-radius: 999px;
-    background: rgba(95, 76, 52, 0.38);
+    background: transparent;
 }
 
 .deepening-step:focus-visible {
@@ -272,6 +367,14 @@ html.deepening-shell-active body {
     line-height: 1;
     letter-spacing: 0;
     color: rgba(31, 27, 22, 0.26);
+}
+
+.deepening-step.is-active .deepening-step-kicker {
+    color: rgba(255, 253, 248, 0.58);
+}
+
+.deepening-step.is-active .deepening-step-label {
+    font-weight: 600;
 }
 
 .deepening-step-label {
@@ -362,7 +465,7 @@ html.deepening-shell-active body {
     }
 
     .deepening-reading-document {
-        padding-bottom: calc(var(--deepening-meditation-height) + 52px + env(safe-area-inset-bottom));
+        padding-bottom: 30px;
     }
 
     .deepening-reading-toolbar {
@@ -389,10 +492,9 @@ html.deepening-shell-active body {
 
 @media (min-width: 900px) {
     .deepening-meditation-document {
-        left: max(32px, calc((100vw - 780px) / 2));
-        right: max(32px, calc((100vw - 780px) / 2));
         border-top-left-radius: 20px;
         border-top-right-radius: 20px;
+        margin: 0 max(32px, calc((100vw - 780px) / 2));
     }
 }
 

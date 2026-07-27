@@ -58,16 +58,35 @@
         }
 
         function renderListenControl() {
-            if (options.voiceControlHtml) {
-                return `<div class="deepening-reading-voice-slot">${options.voiceControlHtml}</div>`;
-            }
+            if (!options.onVoiceToggle) return '';
 
-            if (!options.onListen) return '';
+            const state = options.getVoiceState?.() || {};
+            const status = state.status || 'idle';
+            const isReading = status === 'speaking';
+            const isPaused = status === 'paused';
 
             return `
-                <button class="deepening-reading-listen" type="button" data-deepening-listen>
-                    Escuchar
-                </button>
+                <div class="deepening-reading-voice" data-deepening-voice>
+                    <button
+                        class="deepening-reading-listen${isReading ? ' is-speaking' : ''}"
+                        type="button"
+                        data-deepening-voice-toggle
+                        aria-label="${isReading ? 'Pausar lectura en voz alta' : (isPaused ? 'Continuar lectura en voz alta' : 'Escuchar lectura en voz alta')}"
+                    >
+                        <span class="deepening-reading-listen-icon" aria-hidden="true">${isReading ? 'Ⅱ' : '▶'}</span>
+                        <span class="deepening-reading-listen-label">${isReading ? 'Escuchando lectura' : (isPaused ? 'Continuar lectura' : 'Escuchar lectura')}</span>
+                    </button>
+                    ${isReading || isPaused ? `
+                        <button
+                            class="deepening-reading-voice-stop"
+                            type="button"
+                            data-deepening-voice-stop
+                            aria-label="Detener lectura en voz alta"
+                        >
+                            <span aria-hidden="true"></span>
+                        </button>
+                    ` : ''}
+                </div>
             `;
         }
 
@@ -96,6 +115,50 @@
                 button.classList.toggle('is-active', isActive);
                 button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
             });
+        }
+
+        function syncVoiceControl() {
+            const voiceRoot = root?.querySelector('[data-deepening-voice]');
+            if (!voiceRoot || !options.onVoiceToggle) return;
+
+            const state = options.getVoiceState?.() || {};
+            const status = state.status || 'idle';
+            const isReading = status === 'speaking';
+            const isPaused = status === 'paused';
+            const mainButton = voiceRoot.querySelector('[data-deepening-voice-toggle]');
+            const icon = voiceRoot.querySelector('.deepening-reading-listen-icon');
+            const label = voiceRoot.querySelector('.deepening-reading-listen-label');
+            const stopButton = voiceRoot.querySelector('[data-deepening-voice-stop]');
+
+            mainButton?.classList.toggle('is-speaking', isReading);
+            mainButton?.setAttribute(
+                'aria-label',
+                isReading
+                    ? 'Pausar lectura en voz alta'
+                    : (isPaused ? 'Continuar lectura en voz alta' : 'Escuchar lectura en voz alta')
+            );
+
+            if (icon) icon.textContent = isReading ? 'Ⅱ' : '▶';
+            if (label) {
+                label.textContent = isReading
+                    ? 'Escuchando lectura'
+                    : (isPaused ? 'Continuar lectura' : 'Escuchar lectura');
+            }
+
+            if ((isReading || isPaused) && !stopButton) {
+                voiceRoot.insertAdjacentHTML('beforeend', `
+                    <button
+                        class="deepening-reading-voice-stop"
+                        type="button"
+                        data-deepening-voice-stop
+                        aria-label="Detener lectura en voz alta"
+                    >
+                        <span aria-hidden="true"></span>
+                    </button>
+                `);
+            } else if (!isReading && !isPaused && stopButton) {
+                stopButton.remove();
+            }
         }
 
         function isEditableElement(element) {
@@ -182,6 +245,7 @@
             syncVersionButtons();
             restoreWritingFocus();
             options.onVersionChange?.(activeVersion);
+            syncVoiceControl();
             preservedReadingScrollTop = null;
             preservedReadingScrollRange = null;
         }
@@ -204,9 +268,20 @@
                 return;
             }
 
-            if (event.target.closest('[data-deepening-listen]')) {
-                options.onListen?.();
+            if (event.target.closest('[data-deepening-voice-toggle]')) {
+                options.onVoiceToggle?.(activeVersion);
+                requestAnimationFrame(syncVoiceControl);
+                return;
             }
+
+            if (event.target.closest('[data-deepening-voice-stop]')) {
+                options.onVoiceStop?.();
+                requestAnimationFrame(syncVoiceControl);
+            }
+        }
+
+        function onVoiceStateChange() {
+            syncVoiceControl();
         }
 
         function mount(target) {
@@ -218,10 +293,12 @@
             root?.addEventListener('scroll', rememberReadingPosition, { passive: true });
             root?.addEventListener('pointerdown', onPointerDown);
             root?.addEventListener('click', onClick);
+            document.addEventListener('suvoz:daily-reading-voice-change', onVoiceStateChange);
             return root;
         }
 
         function destroy() {
+            document.removeEventListener('suvoz:daily-reading-voice-change', onVoiceStateChange);
             root?.removeEventListener('scroll', rememberReadingPosition);
             root?.removeEventListener('pointerdown', onPointerDown);
             root?.removeEventListener('click', onClick);

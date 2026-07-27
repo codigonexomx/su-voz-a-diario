@@ -3661,11 +3661,29 @@ syncAppBadge: function(count) {
             readingHtml,
             versions,
             currentVersion: this.currentVersion,
-            voiceControlHtml: this.renderDailyReadingVoiceControl(reading),
             getReadingHtml: versionId => this.renderVerseText(
                 this.getDailyReadingText(reading, versionId),
                 reading.date
             ),
+            onVersionChange: () => {
+                if (this.dailyReadingVoice.date === reading.date && this.dailyReadingVoice.status !== 'idle') {
+                    this.stopDailyReadingVoice(true);
+                }
+            },
+            onVoiceToggle: versionId => {
+                const rawText = this.getDailyReadingText(reading, versionId);
+                const cleanText = this.getCleanDailyReadingText(reading, rawText);
+                this.pauseOrResumeDailyReadingVoice(reading.date, cleanText);
+            },
+            onVoiceStop: () => this.stopDailyReadingVoice(),
+            getVoiceState: () => {
+                const isSameReading = this.dailyReadingVoice.date === reading.date;
+                return {
+                    status: isSameReading ? this.dailyReadingVoice.status : 'idle',
+                    date: this.dailyReadingVoice.date
+                };
+            },
+            onAutoSave: () => this.stopDailyReadingVoice(true),
             onRestore: () => {
                 if (this.openNoteDate === reading.date) {
                     this.toggleNote(reading.date);
@@ -7303,6 +7321,10 @@ stopDailyReadingVoice: function(silent = false) {
 },
 
 updateDailyReadingVoiceUI: function() {
+    document.dispatchEvent(new CustomEvent('suvoz:daily-reading-voice-change', {
+        detail: { ...this.dailyReadingVoice }
+    }));
+
     const control = document.querySelector('.daily-reading-voice[data-voice-date]');
     if (!control) return;
 

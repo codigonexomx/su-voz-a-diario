@@ -8,6 +8,7 @@
     let readingDocument = null;
     let meditationDocument = null;
     let keyboardManager = null;
+    let backgroundState = null;
 
     function getRoot() {
         root = root || document.getElementById('deepening-root');
@@ -21,6 +22,114 @@
                 <div class="deepening-meditation-host" data-deepening-meditation-host></div>
             </div>
         `;
+    }
+
+    function getBackgroundElements() {
+        return [
+            document.querySelector('body > header'),
+            document.getElementById('app-content'),
+            document.querySelector('body > .bottom-nav')
+        ].filter(Boolean);
+    }
+
+    function lockBackground(options = {}) {
+        if (backgroundState) return;
+
+        const scrollX = window.scrollX || window.pageXOffset || 0;
+        const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+        const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+        const backgroundElements = getBackgroundElements();
+
+        backgroundState = {
+            scrollX,
+            scrollY,
+            activeElement: document.activeElement instanceof HTMLElement ? document.activeElement : null,
+            htmlStyle: {
+                overflow: document.documentElement.style.overflow,
+                overscrollBehavior: document.documentElement.style.overscrollBehavior,
+                scrollbarGutter: document.documentElement.style.scrollbarGutter
+            },
+            bodyStyle: {
+                position: document.body.style.position,
+                top: document.body.style.top,
+                left: document.body.style.left,
+                right: document.body.style.right,
+                width: document.body.style.width,
+                overflow: document.body.style.overflow,
+                paddingRight: document.body.style.paddingRight,
+                overscrollBehavior: document.body.style.overscrollBehavior
+            },
+            backgroundElements: backgroundElements.map(element => ({
+                element,
+                inert: element.inert,
+                inertAttribute: element.hasAttribute('inert'),
+                ariaHidden: element.getAttribute('aria-hidden')
+            }))
+        };
+
+        document.documentElement.classList.add('deepening-shell-active');
+        document.body.classList.add('deepening-shell-active');
+        document.documentElement.style.overflow = 'hidden';
+        document.documentElement.style.overscrollBehavior = 'none';
+        document.documentElement.style.scrollbarGutter = 'stable';
+
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${scrollY}px`;
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        document.body.style.overflow = 'hidden';
+        document.body.style.overscrollBehavior = 'none';
+        if (scrollbarWidth > 0) {
+            document.body.style.paddingRight = `${scrollbarWidth}px`;
+        }
+
+        backgroundState.backgroundElements.forEach(({ element }) => {
+            element.inert = true;
+            element.setAttribute('inert', '');
+            element.setAttribute('aria-hidden', 'true');
+        });
+
+        if (options.root) {
+            options.root.removeAttribute('aria-hidden');
+            options.root.inert = false;
+        }
+    }
+
+    function restoreStyle(target, styles) {
+        Object.entries(styles).forEach(([property, value]) => {
+            target.style[property] = value;
+        });
+    }
+
+    function unlockBackground({ restoreFocus = true } = {}) {
+        if (!backgroundState) return;
+
+        backgroundState.backgroundElements.forEach(({ element, inert, inertAttribute, ariaHidden }) => {
+            element.inert = inert;
+            if (inertAttribute) {
+                element.setAttribute('inert', '');
+            } else {
+                element.removeAttribute('inert');
+            }
+            if (ariaHidden === null) {
+                element.removeAttribute('aria-hidden');
+            } else {
+                element.setAttribute('aria-hidden', ariaHidden);
+            }
+        });
+
+        restoreStyle(document.documentElement, backgroundState.htmlStyle);
+        restoreStyle(document.body, backgroundState.bodyStyle);
+        document.documentElement.classList.remove('deepening-shell-active');
+        document.body.classList.remove('deepening-shell-active');
+        window.scrollTo(backgroundState.scrollX, backgroundState.scrollY);
+
+        if (restoreFocus && backgroundState.activeElement?.isConnected) {
+            backgroundState.activeElement.focus({ preventScroll: true });
+        }
+
+        backgroundState = null;
     }
 
     async function unmount(options = {}) {
@@ -39,14 +148,12 @@
 
             targetRoot.innerHTML = '';
             targetRoot.hidden = true;
-            document.documentElement.classList.remove('deepening-shell-active');
 
             if (options.restore !== false) {
                 await options.onRestore?.(restorePositionRecord);
-                window.ReadingPositionManager?.restoreFocus(restorePositionRecord);
-                window.ReadingPositionManager?.restoreWindowScroll(restorePositionRecord);
             }
 
+            unlockBackground({ restoreFocus: options.restore !== false });
             restorePositionRecord = null;
         }
     }
@@ -62,7 +169,7 @@
         restorePositionRecord = window.ReadingPositionManager?.createPositionRecord(options) || null;
         targetRoot.hidden = false;
         targetRoot.innerHTML = renderShell();
-        document.documentElement.classList.add('deepening-shell-active');
+        lockBackground({ root: targetRoot });
 
         const readingHost = targetRoot.querySelector('[data-deepening-reading-host]');
         const meditationHost = targetRoot.querySelector('[data-deepening-meditation-host]');
@@ -73,10 +180,11 @@
             versions: options.versions,
             currentVersion: options.currentVersion,
             versionSelectorHtml: options.versionSelectorHtml,
-            voiceControlHtml: options.voiceControlHtml,
             getReadingHtml: options.getReadingHtml,
             onVersionChange: options.onVersionChange,
-            onListen: options.onListen
+            onVoiceToggle: options.onVoiceToggle,
+            onVoiceStop: options.onVoiceStop,
+            getVoiceState: options.getVoiceState
         });
 
         meditationDocument = window.MeditationDocument?.create({
