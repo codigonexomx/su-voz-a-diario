@@ -4,10 +4,46 @@
  */
 (function() {
     const STEPS = [
-        { id: 'god', label: '¿Como es Dios?', title: 'Contempla el caracter de Dios revelado en este pasaje.' },
-        { id: 'teaching', label: 'Enseñanza', title: 'Observa que verdad desea formar en ti.' },
-        { id: 'application', label: 'Aplicacion', title: 'Nombra una respuesta sencilla para hoy.' },
-        { id: 'prayer', label: 'Oracion', title: 'Responde a Dios con tus propias palabras.' }
+        {
+            id: 'god',
+            label: '¿Como es Dios?',
+            intro: 'Mira primero a Dios antes de mirarte a ti.',
+            questions: [
+                '¿Qué revela este pasaje acerca de Dios?',
+                '¿Qué acciones de Dios aparecen en el texto?',
+                '¿Qué atributo, promesa o propósito de Dios destaca en este pasaje?'
+            ]
+        },
+        {
+            id: 'teaching',
+            label: 'Enseñanza',
+            intro: 'Escucha con calma la verdad central del pasaje.',
+            questions: [
+                '¿Cuál es la enseñanza principal del texto?',
+                '¿Qué verdad enseña este pasaje?',
+                '¿Hay algún ejemplo, mandato, advertencia o principio que debas notar?'
+            ]
+        },
+        {
+            id: 'application',
+            label: 'Aplicacion',
+            intro: 'Deja que la Palabra ilumine tu vida de hoy.',
+            questions: [
+                '¿Cómo se relaciona este pasaje con tu vida actual?',
+                '¿Qué necesitas creer, cambiar, obedecer o practicar?',
+                '¿Qué paso concreto puedes dar hoy para obedecer esta verdad?'
+            ]
+        },
+        {
+            id: 'prayer',
+            label: 'Oracion',
+            intro: 'Responde a Dios desde lo que has visto en su Palabra.',
+            questions: [
+                '¿Qué puedes agradecerle a Dios?',
+                '¿Qué necesitas confesarle o entregarle?',
+                '¿Qué ayuda necesitas pedirle para vivir esta verdad?'
+            ]
+        }
     ];
     const STEP_FIELDS = {
         god: 'dios',
@@ -144,7 +180,8 @@
                         ${step.id === activeStepId ? '' : 'hidden'}
                     >
                         <h2>${escapeHtml(step.label)}</h2>
-                        <p>${escapeHtml(step.title)}</p>
+                        <p>${escapeHtml(step.intro)}</p>
+                        ${step.questions.map(question => `<p>${escapeHtml(question)}</p>`).join('')}
                         <div
                             class="deepening-writing-area"
                             role="textbox"
