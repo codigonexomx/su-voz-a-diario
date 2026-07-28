@@ -633,17 +633,31 @@ body.deepening-shell-active > .bottom-nav {
     }
 
     .deepening-step-list {
-        gap: 7px;
+        gap: 4px;
         margin-bottom: 14px;
     }
 
     .deepening-step {
         min-height: 36px;
-        padding-inline: 11px;
+        padding-inline: 8px;
     }
 
     .deepening-step-kicker {
         display: none;
+    }
+}
+
+@media (max-width: 360px) {
+    .deepening-step-list {
+        gap: 2px;
+        margin-left: -34px;
+        margin-right: -48px;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    .deepening-step {
+        padding-inline: 4px;
     }
 }
 
