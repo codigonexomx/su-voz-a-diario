@@ -3,18 +3,11 @@
  * Construye el PDF de MeditationDocumentData usando jsPDF programatico.
  */
 (function() {
-    const SECTION_ORDER = [
-        ['dios', 'Como es Dios'],
-        ['aprendizaje', 'Ensenanza'],
-        ['respuesta', 'Aplicacion'],
-        ['oracion', 'Oracion']
-    ];
-
     const COLORS = {
         paper: [245, 241, 232],
         text: [47, 38, 31],
-        accent: [184, 154, 99],
-        divider: [213, 196, 164],
+        accent: [111, 79, 47],
+        divider: [188, 166, 128],
         muted: [118, 101, 82]
     };
 
@@ -59,12 +52,14 @@
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 42;
-        const headerHeight = 82;
+        const headerHeight = 128;
         const footerHeight = 38;
-        const contentTop = headerHeight + 18;
+        const contentTop = headerHeight + 24;
         const contentBottom = pageHeight - footerHeight;
         const usableWidth = pageWidth - margin * 2;
         const logoDataUrl = options.logoDataUrl || '';
+        const lineHeight = 14.2;
+        const paragraphGap = 7;
         let y = contentTop;
 
         function fillPageBackground() {
@@ -75,7 +70,6 @@
         function drawHeader(documentModel) {
             const { metadata } = documentModel;
             const metaLine = [
-                metadata.reference,
                 metadata.version ? metadata.version.toUpperCase() : '',
                 formatDate(metadata.date)
             ].filter(Boolean).join('  |  ');
@@ -84,24 +78,36 @@
 
             if (logoDataUrl) {
                 try {
-                    doc.addImage(logoDataUrl, 'PNG', margin, 30, 30, 30);
+                    doc.addImage(logoDataUrl, 'PNG', margin, 28, 26, 26);
                 } catch (error) {
                     // El PDF debe seguir generandose aunque el logo no pueda incrustarse.
                 }
             }
 
-            doc.setFont('times', 'bold');
-            doc.setFontSize(16);
-            doc.setTextColor(...COLORS.text);
-            doc.text('Su Voz Hoy', logoDataUrl ? margin + 42 : margin, 42);
-
             doc.setFont('times', 'normal');
-            doc.setFontSize(10);
+            doc.setFontSize(9.6);
             doc.setTextColor(...COLORS.muted);
-            doc.text(metaLine || 'Documento de meditacion', logoDataUrl ? margin + 42 : margin, 58);
+            doc.text('Su Voz Hoy', logoDataUrl ? margin + 36 : margin, 36);
+
+            doc.setFont('times', 'bold');
+            doc.setFontSize(9.4);
+            doc.setTextColor(...COLORS.accent);
+            doc.text('PASAJE BÍBLICO', margin, 72);
+
+            doc.setFont('times', 'bold');
+            doc.setFontSize(22);
+            doc.setTextColor(...COLORS.text);
+            doc.text(metadata.reference || 'Meditación bíblica', margin, 102);
+
+            if (metaLine) {
+                doc.setFont('times', 'normal');
+                doc.setFontSize(9.5);
+                doc.setTextColor(...COLORS.muted);
+                doc.text(metaLine, pageWidth - margin, 38, { align: 'right' });
+            }
 
             doc.setDrawColor(...COLORS.divider);
-            doc.setLineWidth(0.7);
+            doc.setLineWidth(0.65);
             doc.line(margin, headerHeight, pageWidth - margin, headerHeight);
         }
 
@@ -116,44 +122,114 @@
             addPage(documentModel);
         }
 
-        function addSectionTitle(documentModel, title) {
-            ensureSpace(documentModel, 42);
-            doc.setFont('times', 'bold');
-            doc.setFontSize(14);
-            doc.setTextColor(...COLORS.text);
-            doc.text(title, margin, y);
-            y += 9;
-            doc.setDrawColor(...COLORS.divider);
-            doc.setLineWidth(0.5);
-            doc.line(margin, y, pageWidth - margin, y);
-            y += 15;
-        }
-
-        function addTextLine(documentModel, line) {
-            ensureSpace(documentModel, 15);
-            doc.text(line, margin, y);
-            y += 14;
-        }
-
-        function addParagraphText(documentModel, text) {
-            const content = safeText(text).trim() || 'Sin contenido.';
-            const paragraphs = content.split('\n');
-
+        function setBodyStyle() {
             doc.setFont('times', 'normal');
-            doc.setFontSize(11.5);
+            doc.setFontSize(10.4);
             doc.setTextColor(...COLORS.text);
+        }
 
-            paragraphs.forEach((paragraph, paragraphIndex) => {
-                const lines = paragraph
-                    ? doc.splitTextToSize(paragraph, usableWidth)
-                    : [''];
+        function setSectionTitleStyle() {
+            doc.setFont('times', 'bold');
+            doc.setFontSize(12.8);
+            doc.setTextColor(...COLORS.accent);
+        }
 
-                lines.forEach(line => addTextLine(documentModel, line));
+        function makeLines(text, width) {
+            const content = safeText(text).trim() || 'Sin contenido.';
+            const blocks = [];
 
-                if (paragraphIndex < paragraphs.length - 1) {
-                    y += 7;
+            content.split('\n').forEach((paragraph, paragraphIndex, paragraphs) => {
+                const lines = paragraph ? doc.splitTextToSize(paragraph, width) : [''];
+                lines.forEach(line => blocks.push({ text: line, gapAfter: 0 }));
+                if (paragraphIndex < paragraphs.length - 1 && blocks.length) {
+                    blocks[blocks.length - 1].gapAfter = paragraphGap;
                 }
             });
+
+            return blocks;
+        }
+
+        function drawHorizontalRule(yPosition) {
+            doc.setDrawColor(...COLORS.divider);
+            doc.setLineWidth(0.55);
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
+        }
+
+        function drawColumnTitle(title, x, yPosition) {
+            setSectionTitleStyle();
+            doc.text(title, x, yPosition);
+        }
+
+        function drawLine(line, x, yPosition) {
+            setBodyStyle();
+            doc.text(line.text, x, yPosition);
+        }
+
+        function renderTwoColumnBlock(documentModel) {
+            const columnGap = 30;
+            const dividerX = margin + usableWidth / 2;
+            const columnWidth = (usableWidth - columnGap) / 2;
+            const leftX = margin;
+            const rightX = dividerX + columnGap / 2;
+            let leftLines = makeLines(documentModel.sections.dios, columnWidth);
+            let rightLines = makeLines(documentModel.sections.aprendizaje, columnWidth);
+            let firstPage = true;
+
+            while (leftLines.length || rightLines.length || firstPage) {
+                ensureSpace(documentModel, 64);
+
+                drawColumnTitle(firstPage ? '¿Cómo es Dios?' : '¿Cómo es Dios? (cont.)', leftX, y);
+                drawColumnTitle(firstPage ? 'Enseñanza' : 'Enseñanza (cont.)', rightX, y);
+                const dividerTop = y + 8;
+                y += 22;
+
+                let leftY = y;
+                let rightY = y;
+
+                while (leftLines.length && leftY + lineHeight <= contentBottom) {
+                    const line = leftLines.shift();
+                    drawLine(line, leftX, leftY);
+                    leftY += lineHeight + line.gapAfter;
+                }
+
+                while (rightLines.length && rightY + lineHeight <= contentBottom) {
+                    const line = rightLines.shift();
+                    drawLine(line, rightX, rightY);
+                    rightY += lineHeight + line.gapAfter;
+                }
+
+                const blockBottom = Math.max(leftY, rightY, y);
+                doc.setDrawColor(...COLORS.divider);
+                doc.setLineWidth(0.5);
+                doc.line(dividerX, dividerTop, dividerX, Math.min(blockBottom - 3, contentBottom));
+
+                y = blockBottom + 18;
+                firstPage = false;
+
+                if (leftLines.length || rightLines.length) {
+                    addPage(documentModel);
+                }
+            }
+        }
+
+        function renderFullWidthSection(documentModel, title, text) {
+            ensureSpace(documentModel, 66);
+            drawHorizontalRule(y);
+            y += 24;
+
+            setSectionTitleStyle();
+            doc.text(title, margin, y);
+            y += 22;
+
+            const lines = makeLines(text, usableWidth);
+            while (lines.length) {
+                ensureSpace(documentModel, lineHeight + 2);
+                const line = lines.shift();
+                drawLine(line, margin, y);
+                y += lineHeight + line.gapAfter;
+            }
+
+            y += 18;
         }
 
         function addFooter() {
@@ -168,7 +244,7 @@
                 doc.setFontSize(9);
                 doc.setTextColor(...COLORS.muted);
                 doc.text('Generado por Su Voz a Diario', margin, pageHeight - 18);
-                doc.text(`Pagina ${pageNumber} de ${totalPages}`, pageWidth - margin, pageHeight - 18, {
+                doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth - margin, pageHeight - 18, {
                     align: 'right'
                 });
             }
@@ -178,13 +254,9 @@
             const documentModel = normalizeDocument(documentData);
 
             drawHeader(documentModel);
-            SECTION_ORDER.forEach(([key, title], index) => {
-                if (index > 0) {
-                    y += 16;
-                }
-                addSectionTitle(documentModel, title);
-                addParagraphText(documentModel, documentModel.sections[key]);
-            });
+            renderTwoColumnBlock(documentModel);
+            renderFullWidthSection(documentModel, 'Aplicación', documentModel.sections.respuesta);
+            renderFullWidthSection(documentModel, 'Oración', documentModel.sections.oracion);
             addFooter();
             return doc;
         }
