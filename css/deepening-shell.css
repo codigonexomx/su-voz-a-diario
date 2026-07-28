@@ -262,6 +262,21 @@ body.deepening-shell-active > .bottom-nav {
     margin: 0 0 1.42em;
 }
 
+.deepening-reading-text .verse-item {
+    transition:
+        background-color 170ms ease,
+        box-shadow 170ms ease,
+        transform 170ms ease;
+}
+
+.deepening-reading-text .verse-item.deepening-active-verse {
+    background-color: rgba(184, 154, 99, 0.105);
+    box-shadow:
+        inset 0 0 0 1px rgba(184, 154, 99, 0.12),
+        0 10px 26px rgba(72, 56, 37, 0.035);
+    border-radius: 12px;
+}
+
 .deepening-reading-text .verse-text-content,
 .deepening-reading-text .verse-container {
     line-height: inherit;

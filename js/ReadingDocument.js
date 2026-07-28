@@ -29,6 +29,7 @@
         let preservedReadingScrollRange = null;
         let lastReadingScrollTop = 0;
         let lastReadingScrollRange = 0;
+        let activeVerseNumber = null;
         const reading = options.reading || {};
         const versions = Array.isArray(options.versions) ? options.versions : [];
 
@@ -165,6 +166,51 @@
             }
         }
 
+        function getVerseItemFromEvent(event) {
+            const verseItem = event.target.closest?.('.verse-item[data-verse-number]');
+            if (!verseItem || !textElement?.contains(verseItem)) return null;
+            if (event.target.closest?.('button, a, input, textarea, [contenteditable="true"]')) return null;
+            return verseItem;
+        }
+
+        function clearActiveVerse() {
+            textElement?.querySelectorAll('.deepening-active-verse').forEach(item => {
+                item.classList.remove('deepening-active-verse');
+                item.removeAttribute('aria-current');
+            });
+        }
+
+        function setActiveVerse(verseItem) {
+            if (!verseItem) return;
+
+            const nextVerseNumber = String(verseItem.getAttribute('data-verse-number') || '').trim();
+            if (!nextVerseNumber) return;
+
+            clearActiveVerse();
+            activeVerseNumber = nextVerseNumber;
+            verseItem.classList.add('deepening-active-verse');
+            verseItem.setAttribute('aria-current', 'true');
+            options.onActiveVerseChange?.({
+                verseNumber: activeVerseNumber,
+                text: verseItem.getAttribute('data-verse-text') || verseItem.textContent || '',
+                element: verseItem
+            });
+        }
+
+        function syncActiveVerse() {
+            clearActiveVerse();
+            if (!activeVerseNumber || !textElement) return;
+
+            const activeVerse = Array.from(textElement.querySelectorAll('.verse-item[data-verse-number]'))
+                .find(item => item.getAttribute('data-verse-number') === activeVerseNumber);
+            if (activeVerse) {
+                activeVerse.classList.add('deepening-active-verse');
+                activeVerse.setAttribute('aria-current', 'true');
+            } else {
+                activeVerseNumber = null;
+            }
+        }
+
         function isEditableElement(element) {
             return Boolean(element?.closest?.('[contenteditable="true"], textarea, input'));
         }
@@ -245,6 +291,7 @@
             if (textElement) {
                 textElement.innerHTML = getReadingHtml(activeVersion);
             }
+            syncActiveVerse();
             restoreReadingPosition(targetScrollTop, targetScrollRange);
             syncVersionButtons();
             restoreWritingFocus();
@@ -266,6 +313,15 @@
         }
 
         function onClick(event) {
+            const verseItem = getVerseItemFromEvent(event);
+            if (verseItem) {
+                event.preventDefault();
+                event.stopPropagation();
+                window.getSelection?.()?.removeAllRanges();
+                setActiveVerse(verseItem);
+                return;
+            }
+
             const versionButton = event.target.closest('[data-deepening-version]');
             if (versionButton && root?.contains(versionButton)) {
                 setVersion(versionButton.getAttribute('data-deepening-version'));
