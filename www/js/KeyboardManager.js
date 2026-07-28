@@ -6,6 +6,13 @@
     const FIELD_MARGIN = 24;
     const KEYBOARD_THRESHOLD = 80;
 
+    function recordLayoutLifecycle(eventName, detail = {}) {
+        window.DeepeningFocusDiagnostics?.recordLayoutLifecycle?.(eventName, {
+            keyboardThreshold: KEYBOARD_THRESHOLD,
+            ...detail
+        });
+    }
+
     function getCaretRect() {
         const selection = window.getSelection?.();
         if (!selection || selection.rangeCount === 0) return null;
@@ -80,6 +87,12 @@
             const visibleHeight = getViewportHeight();
             const keyboardOpen = baseVisibleHeight - visibleHeight > KEYBOARD_THRESHOLD;
             const targetHeight = Math.round(keyboardOpen ? visibleHeight : baseVisibleHeight);
+            recordLayoutLifecycle('applyViewportPosition:before', {
+                baseVisibleHeight,
+                targetHeight,
+                keyboardOpen,
+                visibleHeight
+            });
             rootElement.style.setProperty(
                 '--deepening-shell-height',
                 `${targetHeight}px`
@@ -89,6 +102,12 @@
                 `${targetHeight}px`
             );
             shellElement.classList.toggle('is-keyboard-open', keyboardOpen);
+            recordLayoutLifecycle('applyViewportPosition:after', {
+                baseVisibleHeight,
+                targetHeight,
+                keyboardOpen,
+                visibleHeight
+            });
             ensureCursorVisible();
         }
 
@@ -119,6 +138,12 @@
             shellElement = documentElement.closest('.deepening-shell');
             rootElement = document.getElementById('deepening-root');
             baseVisibleHeight = rootElement?.getBoundingClientRect().height || getViewportHeight();
+            recordLayoutLifecycle('calibrateBaseHeight', {
+                baseVisibleHeight,
+                targetHeight: baseVisibleHeight,
+                keyboardOpen: false,
+                visibleHeight: getViewportHeight()
+            });
             documentElement.addEventListener('focusin', onFocusIn);
             documentElement.addEventListener('input', onInput);
             visualViewport?.addEventListener('resize', scheduleViewportPosition);
@@ -160,5 +185,5 @@
         };
     }
 
-    window.KeyboardManager = { create };
+    window.KeyboardManager = { create, KEYBOARD_THRESHOLD };
 })();

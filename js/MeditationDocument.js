@@ -171,6 +171,8 @@
         let pendingCaretRestore = initialUIState.caret || null;
         let autosaveTimer = null;
         let caretScrollRafId = null;
+        let scrollCueTimer = null;
+        let isScrollCueVisible = false;
         let lastSavedNoteSignature = noteSignature(initialNote);
         let lastSavedUIStateSignature = '';
 
@@ -287,6 +289,48 @@
             }, AUTOSAVE_DELAY);
         }
 
+        function updateScrollCueAvailability() {
+            if (!root) return;
+
+            const canScroll = root.scrollHeight - root.clientHeight > 2;
+            root.classList.toggle('deepening-scroll-cue-available', canScroll);
+            if (!canScroll) {
+                hideScrollCue();
+            }
+        }
+
+        function hideScrollCue() {
+            window.clearTimeout(scrollCueTimer);
+            scrollCueTimer = null;
+            isScrollCueVisible = false;
+            root?.classList.remove('deepening-scroll-cue-visible');
+        }
+
+        function revealScrollCue() {
+            if (!root) return;
+
+            updateScrollCueAvailability();
+            if (!root.classList.contains('deepening-scroll-cue-available')) return;
+
+            isScrollCueVisible = true;
+            root.classList.add('deepening-scroll-cue-visible');
+            window.clearTimeout(scrollCueTimer);
+            scrollCueTimer = window.setTimeout(hideScrollCue, 720);
+        }
+
+        function onMeditationScroll() {
+            scheduleAutoSave();
+            updateScrollCueAvailability();
+            if (isScrollCueVisible) {
+                revealScrollCue();
+            }
+        }
+
+        function onScrollIntent(event) {
+            if (!root?.contains(event.target)) return;
+            revealScrollCue();
+        }
+
         function ensureEditorCaretVisible(editor = getEditor(activeStepId)) {
             if (!editor || document.activeElement !== editor) return;
 
@@ -399,6 +443,7 @@
             const editor = event.target.closest('[data-deepening-editor]');
             if (!editor) return;
             scheduleCaretVisibilityCheck(editor);
+            requestAnimationFrame(updateScrollCueAvailability);
             scheduleAutoSave();
         }
 
@@ -460,15 +505,21 @@
             root?.addEventListener('compositionend', onCompositionEnd);
             root?.addEventListener('paste', onPaste);
             root?.addEventListener('focusin', onFocusIn);
-            root?.addEventListener('scroll', scheduleAutoSave, { passive: true });
+            root?.addEventListener('scroll', onMeditationScroll, { passive: true });
+            root?.addEventListener('wheel', onScrollIntent, { passive: true });
+            root?.addEventListener('touchmove', onScrollIntent, { passive: true });
             document.addEventListener('selectionchange', onSelectionChange);
-            requestAnimationFrame(restoreUIState);
+            requestAnimationFrame(() => {
+                restoreUIState();
+                updateScrollCueAvailability();
+            });
             return root;
         }
 
         function destroy() {
             window.clearTimeout(autosaveTimer);
             autosaveTimer = null;
+            hideScrollCue();
             if (caretScrollRafId !== null) {
                 cancelAnimationFrame(caretScrollRafId);
                 caretScrollRafId = null;
@@ -482,7 +533,9 @@
             root?.removeEventListener('compositionend', onCompositionEnd);
             root?.removeEventListener('paste', onPaste);
             root?.removeEventListener('focusin', onFocusIn);
-            root?.removeEventListener('scroll', scheduleAutoSave);
+            root?.removeEventListener('scroll', onMeditationScroll);
+            root?.removeEventListener('wheel', onScrollIntent);
+            root?.removeEventListener('touchmove', onScrollIntent);
             document.removeEventListener('selectionchange', onSelectionChange);
             root = null;
         }

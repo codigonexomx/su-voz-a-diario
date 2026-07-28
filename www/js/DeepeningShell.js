@@ -9,6 +9,9 @@
     let meditationDocument = null;
     let keyboardManager = null;
     let backgroundState = null;
+    let releaseInstantScrollFrame = null;
+    let releaseInstantScrollSecondFrame = null;
+    let instantScrollRestoreHadClass = false;
 
     function getRoot() {
         root = root || document.getElementById('deepening-root');
@@ -110,6 +113,39 @@
         return new Promise(resolve => requestAnimationFrame(resolve));
     }
 
+    function cancelInstantScrollRelease() {
+        if (releaseInstantScrollFrame !== null) {
+            cancelAnimationFrame(releaseInstantScrollFrame);
+            releaseInstantScrollFrame = null;
+        }
+        if (releaseInstantScrollSecondFrame !== null) {
+            cancelAnimationFrame(releaseInstantScrollSecondFrame);
+            releaseInstantScrollSecondFrame = null;
+        }
+    }
+
+    function enableInstantScrollRestore() {
+        cancelInstantScrollRelease();
+        instantScrollRestoreHadClass = document.documentElement.classList.contains('no-smooth-scroll');
+        if (!instantScrollRestoreHadClass) {
+            document.documentElement.classList.add('no-smooth-scroll');
+        }
+    }
+
+    function releaseInstantScrollRestore() {
+        cancelInstantScrollRelease();
+        releaseInstantScrollFrame = requestAnimationFrame(() => {
+            releaseInstantScrollFrame = null;
+            releaseInstantScrollSecondFrame = requestAnimationFrame(() => {
+                releaseInstantScrollSecondFrame = null;
+                if (!instantScrollRestoreHadClass) {
+                    document.documentElement.classList.remove('no-smooth-scroll');
+                }
+                instantScrollRestoreHadClass = false;
+            });
+        });
+    }
+
     function blurActiveShellElement(targetRoot) {
         const activeElement = document.activeElement;
         if (activeElement instanceof HTMLElement && targetRoot?.contains(activeElement)) {
@@ -126,18 +162,6 @@
         });
     }
 
-    function stabilizeRestoredPosition(positionRecord) {
-        if (!positionRecord) return;
-
-        restoreWindowPosition(positionRecord);
-        requestAnimationFrame(() => {
-            restoreWindowPosition(positionRecord);
-            requestAnimationFrame(() => {
-                restoreWindowPosition(positionRecord);
-            });
-        });
-    }
-
     function unlockBackground({ restoreFocus = true } = {}) {
         if (!backgroundState) return;
 
@@ -145,6 +169,8 @@
             scrollX: backgroundState.scrollX,
             scrollY: backgroundState.scrollY
         };
+
+        enableInstantScrollRestore();
 
         backgroundState.backgroundElements.forEach(({ element, inert, inertAttribute, ariaHidden }) => {
             element.inert = inert;
@@ -170,8 +196,8 @@
             backgroundState.activeElement.focus({ preventScroll: true });
         }
 
-        stabilizeRestoredPosition(positionRecord);
         backgroundState = null;
+        releaseInstantScrollRestore();
     }
 
     async function unmount(options = {}) {
@@ -181,7 +207,6 @@
         try {
             await options.onAutoSave?.();
         } finally {
-            const positionRecord = restorePositionRecord;
             blurActiveShellElement(targetRoot);
             await nextFrame();
             keyboardManager?.destroy();
@@ -200,9 +225,6 @@
             }
 
             unlockBackground({ restoreFocus: options.restore !== false });
-            if (options.restore !== false) {
-                stabilizeRestoredPosition(positionRecord);
-            }
             restorePositionRecord = null;
         }
     }

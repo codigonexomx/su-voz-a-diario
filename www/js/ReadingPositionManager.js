@@ -18,15 +18,21 @@
     function restoreWindowScroll(positionRecord) {
         if (!positionRecord) return;
 
-        const restore = () => window.scrollTo({
+        const hadNoSmoothScroll = document.documentElement.classList.contains('no-smooth-scroll');
+        if (!hadNoSmoothScroll) {
+            document.documentElement.classList.add('no-smooth-scroll');
+        }
+        window.scrollTo({
             left: positionRecord.scrollX,
             top: positionRecord.scrollY,
             behavior: 'auto'
         });
-        restore();
         requestAnimationFrame(() => {
-            restore();
-            requestAnimationFrame(restore);
+            requestAnimationFrame(() => {
+                if (!hadNoSmoothScroll) {
+                    document.documentElement.classList.remove('no-smooth-scroll');
+                }
+            });
         });
     }
 

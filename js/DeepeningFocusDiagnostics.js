@@ -28,8 +28,11 @@
         'focusout',
         'selectionchange'
     ];
+    const LAYOUT_CATEGORY = 'deepening-layout-lifecycle';
     const trace = [];
+    const layoutSnapshots = [];
     const listeners = [];
+    let layoutSequence = 0;
     const now = () => Math.round(performance.now() * 100) / 100;
     const eventPhaseLabels = {
         0: 'none',
@@ -108,15 +111,136 @@
     function viewportSummary() {
         const vv = window.visualViewport;
         return {
+            width: vv?.width || null,
+            height: vv?.height || null,
+            pageTop: vv?.pageTop || null,
+            offsetTop: vv?.offsetTop || null,
+            innerWidth: window.innerWidth,
             innerHeight: window.innerHeight,
+            documentElementClientHeight: document.documentElement.clientHeight,
             visualHeight: vv?.height || null,
             visualOffsetTop: vv?.offsetTop || null,
             visualPageTop: vv?.pageTop || null
         };
     }
 
+    function elementSnapshot(selector) {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+        const rect = element.getBoundingClientRect();
+        return {
+            selector,
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height
+        };
+    }
+
+    function computedHeight(selector) {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+        return window.getComputedStyle(element).height;
+    }
+
+    function cssVariable(element, name) {
+        if (!element) return null;
+        return window.getComputedStyle(element).getPropertyValue(name).trim() || null;
+    }
+
+    function activeElementSnapshot() {
+        const element = document.activeElement;
+        if (!element) return null;
+        return {
+            tagName: element.tagName || null,
+            className: typeof element.className === 'string' ? element.className : String(element.className || ''),
+            id: element.id || '',
+            role: element.getAttribute?.('role') || null,
+            isContentEditable: Boolean(element.isContentEditable),
+            description: describeElement(element)
+        };
+    }
+
+    function createLayoutSnapshot(originEvent, keyboardManager = {}) {
+        const root = document.getElementById('deepening-root');
+        const shell = document.querySelector('.deepening-shell');
+        const meditationDocument = document.querySelector('.deepening-meditation-document');
+        const readingDocument = document.querySelector('.deepening-reading-document');
+
+        return {
+            category: LAYOUT_CATEGORY,
+            sequence: ++layoutSequence,
+            timestamp: now(),
+            event: originEvent,
+            viewport: viewportSummary(),
+            keyboardManager: {
+                baseVisibleHeight: keyboardManager.baseVisibleHeight ?? null,
+                targetHeight: keyboardManager.targetHeight ?? null,
+                keyboardOpen: keyboardManager.keyboardOpen ?? null,
+                keyboardThreshold: keyboardManager.keyboardThreshold ?? null,
+                visibleHeight: keyboardManager.visibleHeight ?? null
+            },
+            cssVariables: {
+                deepeningShellHeight: cssVariable(root, '--deepening-shell-height'),
+                deepeningLayoutHeight: cssVariable(shell, '--deepening-layout-height')
+            },
+            computedStyles: {
+                rootHeight: computedHeight('#deepening-root'),
+                shellHeight: computedHeight('.deepening-shell')
+            },
+            globalScroll: {
+                windowScrollY: window.scrollY,
+                documentElementScrollTop: document.documentElement.scrollTop,
+                bodyScrollTop: document.body.scrollTop
+            },
+            rects: {
+                root: elementSnapshot('#deepening-root'),
+                shell: elementSnapshot('.deepening-shell'),
+                meditationDocument: elementSnapshot('.deepening-meditation-document'),
+                readingDocument: elementSnapshot('.deepening-reading-document')
+            },
+            internalScroll: {
+                meditationDocumentScrollTop: meditationDocument?.scrollTop ?? null,
+                readingDocumentScrollTop: readingDocument?.scrollTop ?? null
+            },
+            activeElement: activeElementSnapshot()
+        };
+    }
+
     function getTrace() {
         return trace.slice();
+    }
+
+    function getLayoutSnapshots() {
+        return layoutSnapshots.slice();
+    }
+
+    function getReadableLayoutSnapshots() {
+        return layoutSnapshots.map(snapshot => {
+            const km = snapshot.keyboardManager || {};
+            const viewport = snapshot.viewport || {};
+            const rects = snapshot.rects || {};
+            return [
+                `${snapshot.timestamp}ms`,
+                `${snapshot.category}#${snapshot.sequence}`,
+                `event=${snapshot.event}`,
+                `vv=${viewport.width || '-'}x${viewport.height || '-'}`,
+                `inner=${viewport.innerWidth}x${viewport.innerHeight}`,
+                `clientH=${viewport.documentElementClientHeight}`,
+                `keyboardOpen=${km.keyboardOpen}`,
+                `base=${km.baseVisibleHeight}`,
+                `target=${km.targetHeight}`,
+                `rootH=${snapshot.computedStyles?.rootHeight || '-'}`,
+                `shellH=${snapshot.computedStyles?.shellHeight || '-'}`,
+                `rootRectH=${rects.root?.height ?? '-'}`,
+                `shellRectH=${rects.shell?.height ?? '-'}`,
+                `meditationScroll=${snapshot.internalScroll?.meditationDocumentScrollTop}`,
+                `readingScroll=${snapshot.internalScroll?.readingDocumentScrollTop}`,
+                `active=${snapshot.activeElement?.description || '-'}`
+            ].join(' | ');
+        }).join('\n');
     }
 
     function getReadableTrace() {
@@ -155,6 +279,14 @@
             'data-deepening-focus-trace-text',
             getReadableTrace()
         );
+        document.documentElement.setAttribute(
+            'data-deepening-layout-lifecycle',
+            JSON.stringify(layoutSnapshots)
+        );
+        document.documentElement.setAttribute(
+            'data-deepening-layout-lifecycle-text',
+            getReadableLayoutSnapshots()
+        );
     }
 
     function log(name, detail = {}) {
@@ -173,6 +305,14 @@
         syncTraceAttributes();
         console.log('[DeepeningFocusDiagnostics]', entry);
         return entry;
+    }
+
+    function recordLayoutLifecycle(eventName, keyboardManager = {}) {
+        const snapshot = createLayoutSnapshot(eventName, keyboardManager);
+        layoutSnapshots.push(snapshot);
+        syncTraceAttributes();
+        console.log('[DeepeningFocusDiagnostics]', LAYOUT_CATEGORY, snapshot);
+        return snapshot;
     }
 
     function eventDetail(event, phase) {
@@ -214,6 +354,11 @@
     function installEventListeners() {
         EVENTS.forEach(type => {
             addListener(document, type, event => {
+                if (type === 'focus' || type === 'blur') {
+                    recordLayoutLifecycle(type, {
+                        keyboardThreshold: window.KeyboardManager?.KEYBOARD_THRESHOLD ?? null
+                    });
+                }
                 log(`${type}:capture`, eventDetail(event, 'capture'));
                 requestAnimationFrame(() => {
                     log(`${type}:after-frame`, {
@@ -237,6 +382,54 @@
                 log(`${type}:bubble`, eventDetail(event, 'bubble'));
             }, false);
         });
+
+        [
+            { target: document, type: 'visibilitychange' },
+            { target: window, type: 'pageshow' },
+            { target: window, type: 'pagehide' }
+        ].forEach(({ target, type }) => {
+            addListener(target, type, event => {
+                recordLayoutLifecycle(type, {
+                    keyboardThreshold: window.KeyboardManager?.KEYBOARD_THRESHOLD ?? null
+                });
+                log(`${type}:layout-lifecycle`, {
+                    type: event.type,
+                    target: describeElement(eventTarget(event)),
+                    currentTarget: describeElement(eventElement(event.currentTarget) || event.currentTarget),
+                    defaultPrevented: event.defaultPrevented,
+                    cancelable: event.cancelable
+                });
+            }, true);
+        });
+
+        const AppPlugin = window.Capacitor?.Plugins?.App;
+        if (AppPlugin?.addListener) {
+            try {
+                const listener = AppPlugin.addListener('resume', () => {
+                    recordLayoutLifecycle('capacitor:resume', {
+                        keyboardThreshold: window.KeyboardManager?.KEYBOARD_THRESHOLD ?? null
+                    });
+                    log('capacitor:resume');
+                });
+                if (listener?.remove) {
+                    listeners.push(() => listener.remove());
+                } else if (listener?.then) {
+                    listener.then(handle => {
+                        if (handle?.remove) {
+                            listeners.push(() => handle.remove());
+                        }
+                    }).catch(error => {
+                        log('capacitor:resume-listener-error', {
+                            message: error?.message || String(error)
+                        });
+                    });
+                }
+            } catch (error) {
+                log('capacitor:resume-listener-error', {
+                    message: error?.message || String(error)
+                });
+            }
+        }
     }
 
     function installCallHooks() {
@@ -325,13 +518,20 @@
 
     window.getDeepeningFocusTrace = getTrace;
     window.getDeepeningFocusTraceText = getReadableTrace;
+    window.getDeepeningLayoutLifecycle = getLayoutSnapshots;
+    window.getDeepeningLayoutLifecycleText = getReadableLayoutSnapshots;
 
     window.DeepeningFocusDiagnostics = {
         trace,
+        layoutSnapshots,
         dump: getTrace,
         text: getReadableTrace,
+        layout: getLayoutSnapshots,
+        layoutText: getReadableLayoutSnapshots,
+        recordLayoutLifecycle,
         clear: () => {
             trace.length = 0;
+            layoutSnapshots.length = 0;
             log('diagnostics:cleared');
         },
         stop: uninstall
