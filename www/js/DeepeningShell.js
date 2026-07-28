@@ -169,6 +169,92 @@
         }
     }
 
+    function showDeepeningMessage(message) {
+        if (window.App?.showToast) {
+            window.App.showToast(message);
+            return;
+        }
+        if (window.alert) {
+            window.alert(message);
+        }
+    }
+
+    function getCurrentMeditationDocument() {
+        return meditationDocument?.getCurrentDocument?.() || null;
+    }
+
+    function hasMeditationContent(documentModel) {
+        const sections = documentModel?.sections || {};
+        return ['dios', 'aprendizaje', 'respuesta', 'oracion'].some(key => {
+            return String(sections[key] || '').trim();
+        });
+    }
+
+    async function createMeditationPdf() {
+        const documentModel = getCurrentMeditationDocument();
+
+        if (!documentModel || !hasMeditationContent(documentModel)) {
+            showDeepeningMessage('Escribe tu meditación antes de generar el PDF');
+            return null;
+        }
+
+        if (!window.PdfExporter?.export) {
+            showDeepeningMessage('No se pudo preparar el exportador de PDF');
+            return null;
+        }
+
+        try {
+            return await window.PdfExporter.export(documentModel);
+        } catch (error) {
+            showDeepeningMessage('No se pudo generar el PDF');
+            return null;
+        }
+    }
+
+    async function saveMeditationPdf() {
+        const pdfResult = await createMeditationPdf();
+        if (!pdfResult) return;
+
+        if (!window.ShareService?.savePdf) {
+            showDeepeningMessage('No se pudo guardar el PDF');
+            return;
+        }
+
+        try {
+            await window.ShareService.savePdf(pdfResult.blob, pdfResult.fileName);
+            showDeepeningMessage('Meditación guardada en PDF');
+        } catch (error) {
+            showDeepeningMessage('No se pudo guardar el PDF');
+        }
+    }
+
+    async function shareMeditationPdf() {
+        const documentModel = getCurrentMeditationDocument();
+        const pdfResult = await createMeditationPdf();
+        if (!pdfResult) return;
+
+        if (!window.ShareService?.sharePdf) {
+            showDeepeningMessage('No se pudo compartir el PDF');
+            return;
+        }
+
+        try {
+            const reference = documentModel?.metadata?.reference || 'Su Voz Hoy';
+            const result = await window.ShareService.sharePdf(pdfResult.blob, pdfResult.fileName, {
+                title: reference,
+                text: `${reference} · Su Voz a Diario`,
+                dialogTitle: 'Compartir meditación'
+            });
+            if (result?.canceled) return;
+            showDeepeningMessage(result?.downloaded
+                ? 'Tu navegador descargó el PDF para compartirlo'
+                : 'Meditación lista para compartir');
+        } catch (error) {
+            if (window.ShareService?.isUserCancellation?.(error)) return;
+            showDeepeningMessage('No se pudo compartir el PDF');
+        }
+    }
+
     function getDocumentViewerFocusableElements() {
         if (!documentViewerOverlay) return [];
 
@@ -442,8 +528,12 @@
             onView: () => {
                 openDocumentViewer();
             },
-            onSave: () => {},
-            onShare: () => {}
+            onSave: () => {
+                saveMeditationPdf();
+            },
+            onShare: () => {
+                shareMeditationPdf();
+            }
         });
 
         targetRoot.querySelector('.deepening-shell')?.focus({ preventScroll: true });
