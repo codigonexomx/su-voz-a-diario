@@ -18,7 +18,11 @@
     function restoreWindowScroll(positionRecord) {
         if (!positionRecord) return;
 
-        const restore = () => window.scrollTo(positionRecord.scrollX, positionRecord.scrollY);
+        const restore = () => window.scrollTo({
+            left: positionRecord.scrollX,
+            top: positionRecord.scrollY,
+            behavior: 'auto'
+        });
         restore();
         requestAnimationFrame(() => {
             restore();

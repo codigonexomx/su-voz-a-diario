@@ -106,8 +106,45 @@
         });
     }
 
+    function nextFrame() {
+        return new Promise(resolve => requestAnimationFrame(resolve));
+    }
+
+    function blurActiveShellElement(targetRoot) {
+        const activeElement = document.activeElement;
+        if (activeElement instanceof HTMLElement && targetRoot?.contains(activeElement)) {
+            activeElement.blur();
+        }
+    }
+
+    function restoreWindowPosition(positionRecord) {
+        if (!positionRecord) return;
+        window.scrollTo({
+            left: positionRecord.scrollX,
+            top: positionRecord.scrollY,
+            behavior: 'auto'
+        });
+    }
+
+    function stabilizeRestoredPosition(positionRecord) {
+        if (!positionRecord) return;
+
+        restoreWindowPosition(positionRecord);
+        requestAnimationFrame(() => {
+            restoreWindowPosition(positionRecord);
+            requestAnimationFrame(() => {
+                restoreWindowPosition(positionRecord);
+            });
+        });
+    }
+
     function unlockBackground({ restoreFocus = true } = {}) {
         if (!backgroundState) return;
+
+        const positionRecord = {
+            scrollX: backgroundState.scrollX,
+            scrollY: backgroundState.scrollY
+        };
 
         backgroundState.backgroundElements.forEach(({ element, inert, inertAttribute, ariaHidden }) => {
             element.inert = inert;
@@ -127,12 +164,13 @@
         restoreStyle(document.body, backgroundState.bodyStyle);
         document.documentElement.classList.remove('deepening-shell-active');
         document.body.classList.remove('deepening-shell-active');
-        window.scrollTo(backgroundState.scrollX, backgroundState.scrollY);
+        restoreWindowPosition(positionRecord);
 
         if (restoreFocus && backgroundState.activeElement?.isConnected) {
             backgroundState.activeElement.focus({ preventScroll: true });
         }
 
+        stabilizeRestoredPosition(positionRecord);
         backgroundState = null;
     }
 
@@ -143,6 +181,9 @@
         try {
             await options.onAutoSave?.();
         } finally {
+            const positionRecord = restorePositionRecord;
+            blurActiveShellElement(targetRoot);
+            await nextFrame();
             keyboardManager?.destroy();
             keyboardManager = null;
             meditationDocument?.destroy();
@@ -159,6 +200,9 @@
             }
 
             unlockBackground({ restoreFocus: options.restore !== false });
+            if (options.restore !== false) {
+                stabilizeRestoredPosition(positionRecord);
+            }
             restorePositionRecord = null;
         }
     }
