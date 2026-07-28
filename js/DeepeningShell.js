@@ -8,6 +8,11 @@
     let readingDocument = null;
     let meditationDocument = null;
     let keyboardManager = null;
+    let meditationActionsPanel = null;
+    let documentViewerOverlay = null;
+    let documentViewer = null;
+    let documentViewerFocusReturnElement = null;
+    let documentViewerBackgroundState = [];
     let backgroundState = null;
     let releaseInstantScrollFrame = null;
     let releaseInstantScrollSecondFrame = null;
@@ -23,6 +28,17 @@
             <div class="deepening-shell" role="dialog" aria-modal="true" aria-label="Modo Profundizar" tabindex="-1">
                 <div class="deepening-reading-host" data-deepening-reading-host></div>
                 <div class="deepening-meditation-host" data-deepening-meditation-host></div>
+            </div>
+        `;
+    }
+
+    function renderDocumentViewerOverlay() {
+        return `
+            <div class="deepening-document-viewer-overlay" data-deepening-document-viewer-overlay role="dialog" aria-modal="true" aria-label="Documento de meditación" tabindex="-1">
+                <div class="deepening-document-viewer-topbar">
+                    <button class="deepening-document-viewer-close" type="button" data-deepening-document-viewer-close aria-label="Cerrar documento">×</button>
+                </div>
+                <div class="deepening-document-viewer-scroll" data-deepening-document-viewer-scroll></div>
             </div>
         `;
     }
@@ -153,6 +169,137 @@
         }
     }
 
+    function getDocumentViewerFocusableElements() {
+        if (!documentViewerOverlay) return [];
+
+        const focusableSelector = [
+            'a[href]',
+            'button:not([disabled])',
+            'textarea:not([disabled])',
+            'input:not([disabled])',
+            'select:not([disabled])',
+            '[tabindex]:not([tabindex="-1"])'
+        ].join(',');
+
+        return Array.from(documentViewerOverlay.querySelectorAll(focusableSelector)).filter(element => {
+            if (!(element instanceof HTMLElement)) return false;
+            const style = window.getComputedStyle(element);
+            return style.display !== 'none' && style.visibility !== 'hidden';
+        });
+    }
+
+    function restoreDocumentViewerBackground() {
+        documentViewerBackgroundState.forEach(({ element, inert, inertAttribute, ariaHidden }) => {
+            element.inert = inert;
+            if (inertAttribute) {
+                element.setAttribute('inert', '');
+            } else {
+                element.removeAttribute('inert');
+            }
+            if (ariaHidden === null) {
+                element.removeAttribute('aria-hidden');
+            } else {
+                element.setAttribute('aria-hidden', ariaHidden);
+            }
+        });
+        documentViewerBackgroundState = [];
+    }
+
+    function isolateDocumentViewerBackground(targetRoot) {
+        restoreDocumentViewerBackground();
+        documentViewerBackgroundState = Array.from(targetRoot.children)
+            .filter(element => element !== documentViewerOverlay)
+            .map(element => ({
+                element,
+                inert: element.inert,
+                inertAttribute: element.hasAttribute('inert'),
+                ariaHidden: element.getAttribute('aria-hidden')
+            }));
+
+        documentViewerBackgroundState.forEach(({ element }) => {
+            element.inert = true;
+            element.setAttribute('inert', '');
+            element.setAttribute('aria-hidden', 'true');
+        });
+    }
+
+    function handleDocumentViewerCloseClick() {
+        closeDocumentViewer();
+    }
+
+    function handleDocumentViewerKeydown(event) {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeDocumentViewer();
+            return;
+        }
+
+        if (event.key !== 'Tab') return;
+
+        const focusableElements = getDocumentViewerFocusableElements();
+        if (!focusableElements.length) {
+            event.preventDefault();
+            documentViewerOverlay?.focus?.({ preventScroll: true });
+            return;
+        }
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        const activeElement = document.activeElement;
+
+        if (event.shiftKey && (activeElement === firstElement || activeElement === documentViewerOverlay)) {
+            event.preventDefault();
+            lastElement.focus({ preventScroll: true });
+        } else if (!event.shiftKey && activeElement === lastElement) {
+            event.preventDefault();
+            firstElement.focus({ preventScroll: true });
+        } else if (!documentViewerOverlay?.contains(activeElement)) {
+            event.preventDefault();
+            firstElement.focus({ preventScroll: true });
+        }
+    }
+
+    function closeDocumentViewer(options = {}) {
+        if (!documentViewerOverlay) return;
+        const shouldRestoreFocus = options.restoreFocus !== false;
+        const focusReturnElement = documentViewerFocusReturnElement;
+        documentViewerOverlay
+            .querySelector('[data-deepening-document-viewer-close]')
+            ?.removeEventListener('click', handleDocumentViewerCloseClick);
+        documentViewerOverlay.removeEventListener('keydown', handleDocumentViewerKeydown);
+        documentViewerOverlay.remove();
+        documentViewerOverlay = null;
+        documentViewer = null;
+        restoreDocumentViewerBackground();
+        documentViewerFocusReturnElement = null;
+
+        if (shouldRestoreFocus && focusReturnElement?.isConnected) {
+            focusReturnElement.focus({ preventScroll: true });
+        }
+    }
+
+    function openDocumentViewer() {
+        const targetRoot = getRoot();
+        const documentModel = meditationDocument?.getCurrentDocument?.();
+        if (!targetRoot || !documentModel || !window.MeditationDocumentViewer) return null;
+
+        const focusReturnElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        closeDocumentViewer({ restoreFocus: false });
+        documentViewerFocusReturnElement = focusReturnElement;
+        targetRoot.insertAdjacentHTML('beforeend', renderDocumentViewerOverlay());
+        documentViewerOverlay = targetRoot.querySelector('[data-deepening-document-viewer-overlay]');
+        const scrollRoot = documentViewerOverlay?.querySelector('[data-deepening-document-viewer-scroll]');
+        documentViewer = window.MeditationDocumentViewer.create(scrollRoot);
+        documentViewer.render(documentModel);
+        isolateDocumentViewerBackground(targetRoot);
+        documentViewerOverlay
+            ?.querySelector('[data-deepening-document-viewer-close]')
+            ?.addEventListener('click', handleDocumentViewerCloseClick);
+        documentViewerOverlay?.addEventListener('keydown', handleDocumentViewerKeydown);
+        documentViewerOverlay?.focus?.({ preventScroll: true });
+        return documentViewerOverlay;
+    }
+
     function restoreWindowPosition(positionRecord) {
         if (!positionRecord) return;
         window.scrollTo({
@@ -211,6 +358,9 @@
             await nextFrame();
             keyboardManager?.destroy();
             keyboardManager = null;
+            meditationActionsPanel?.destroy();
+            meditationActionsPanel = null;
+            closeDocumentViewer();
             meditationDocument?.destroy();
             meditationDocument = null;
             readingDocument?.destroy();
@@ -234,6 +384,7 @@
         if (!targetRoot) return null;
 
         keyboardManager?.destroy();
+        meditationActionsPanel?.destroy();
         meditationDocument?.destroy();
         readingDocument?.destroy();
 
@@ -253,7 +404,10 @@
             currentVersion: options.currentVersion,
             versionSelectorHtml: options.versionSelectorHtml,
             getReadingHtml: options.getReadingHtml,
-            onVersionChange: options.onVersionChange,
+            onVersionChange: versionId => {
+                meditationDocument?.setDocumentMetadata?.({ version: versionId });
+                options.onVersionChange?.(versionId);
+            },
             onVoiceToggle: options.onVoiceToggle,
             onVoiceStop: options.onVoiceStop,
             getVoiceState: options.getVoiceState
@@ -263,6 +417,11 @@
             meditationHtml: options.meditationHtml,
             initialNote: options.initialNote,
             initialUIState: options.initialUIState,
+            documentMetadata: {
+                date: options.reading?.date || '',
+                reference: options.reading?.reference || '',
+                version: options.currentVersion || ''
+            },
             onAutoSave: options.onAutoSave,
             onClose: () => {
                 unmount({
@@ -279,12 +438,23 @@
         keyboardManager = window.KeyboardManager?.create();
         keyboardManager?.init(meditationRoot);
 
+        meditationActionsPanel = window.MeditationActionsPanel?.create(targetRoot, {
+            onView: () => {
+                openDocumentViewer();
+            },
+            onSave: () => {},
+            onShare: () => {}
+        });
+
         targetRoot.querySelector('.deepening-shell')?.focus({ preventScroll: true });
 
         return {
             root: targetRoot,
             readingDocument,
             meditationDocument,
+            meditationActionsPanel,
+            openDocumentViewer,
+            closeDocumentViewer,
             unmount: () => unmount({
                 restore: true,
                 onAutoSave: options.onAutoSave,
@@ -296,6 +466,8 @@
     window.DeepeningShell = {
         mount,
         unmount: () => unmount({ restore: true }),
+        openDocumentViewer,
+        closeDocumentViewer,
         isMounted: () => Boolean(readingDocument || meditationDocument),
         getReadingDocument: () => readingDocument,
         getMeditationDocument: () => meditationDocument
@@ -316,5 +488,9 @@
             currentVersion: 'rvr60',
             voiceControlHtml: '<span class="deepening-dev-chip deepening-dev-chip-muted">Lectura pausada</span>'
         });
+    };
+
+    window.suVozOpenMeditationDocumentViewer = function() {
+        return openDocumentViewer();
     };
 })();

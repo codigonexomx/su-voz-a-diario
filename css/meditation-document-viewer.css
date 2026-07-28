@@ -1,0 +1,150 @@
+/*
+  MeditationDocumentViewer
+  Documento editorial de solo lectura para futuras fases de Profundizar.
+*/
+
+.meditation-document-viewer {
+    width: min(100%, 720px);
+    margin: 0 auto;
+    padding: clamp(28px, 5vw, 54px);
+    box-sizing: border-box;
+    border: 1px solid rgba(184, 154, 99, 0.18);
+    border-radius: 24px;
+    background:
+        linear-gradient(rgba(184, 154, 99, 0.025) 1px, transparent 1px) 0 148px / 100% 34px,
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 46%),
+        #f8f4ec;
+    color: #2f261f;
+    box-shadow:
+        0 24px 72px rgba(42, 34, 24, 0.075),
+        inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    font-family: "Merriweather", Georgia, serif;
+}
+
+.deepening-document-viewer-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding:
+        calc(10px + env(safe-area-inset-top))
+        clamp(10px, 3vw, 22px)
+        calc(12px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    background: rgba(245, 241, 232, 0.92);
+    backdrop-filter: blur(7px) saturate(1.02);
+}
+
+.deepening-document-viewer-topbar {
+    display: flex;
+    justify-content: flex-end;
+    flex: 0 0 auto;
+    padding-bottom: 8px;
+}
+
+.deepening-document-viewer-close {
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(184, 154, 99, 0.16);
+    border-radius: 999px;
+    background: rgba(248, 244, 236, 0.74);
+    color: #2f261f;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1.45rem;
+    font-weight: 400;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.deepening-document-viewer-close:focus-visible {
+    outline: 2px solid rgba(49, 130, 206, 0.9);
+    outline-offset: 3px;
+}
+
+.deepening-document-viewer-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding: 0 0 clamp(12px, 3vh, 28px);
+    box-sizing: border-box;
+}
+
+.meditation-document-viewer-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid rgba(184, 154, 99, 0.18);
+}
+
+.meditation-document-viewer-logo {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border-radius: 12px;
+}
+
+.meditation-document-viewer-kicker {
+    margin: 0 0 4px;
+    color: #b89a63;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.meditation-document-viewer-meta {
+    display: grid;
+    gap: 4px;
+    padding: 18px 0 24px;
+    color: #7a6e63;
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.meditation-document-viewer-body {
+    display: grid;
+    gap: 24px;
+}
+
+.meditation-document-viewer-section {
+    display: grid;
+    gap: 10px;
+}
+
+.meditation-document-viewer-section h3 {
+    margin: 0;
+    color: #2f261f;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: clamp(1.45rem, 4vw, 1.9rem);
+    font-weight: 600;
+    line-height: 1.08;
+}
+
+.meditation-document-viewer-section-content {
+    min-height: 1.5em;
+    color: rgba(47, 38, 31, 0.82);
+    font-size: 1rem;
+    line-height: 1.78;
+    white-space: pre-wrap;
+}
+
+.meditation-document-viewer-footer {
+    margin-top: 34px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(184, 154, 99, 0.14);
+    color: rgba(122, 110, 99, 0.72);
+    font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-align: center;
+}

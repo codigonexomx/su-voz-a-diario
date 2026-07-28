@@ -72,6 +72,14 @@
         };
     }
 
+    function normalizeDocumentMetadata(metadata) {
+        return {
+            date: String(metadata?.date ?? ''),
+            reference: String(metadata?.reference ?? ''),
+            version: String(metadata?.version ?? '')
+        };
+    }
+
     function getStepField(stepId) {
         return STEP_FIELDS[stepId] || STEP_FIELDS.god;
     }
@@ -165,6 +173,7 @@
         let root = null;
         const initialNote = normalizeNote(options.initialNote);
         const initialUIState = options.initialUIState || {};
+        let documentMetadata = normalizeDocumentMetadata(options.documentMetadata);
         let activeStepId = STEPS.some(step => step.id === initialUIState.activeStepId)
             ? initialUIState.activeStepId
             : STEPS[0].id;
@@ -242,6 +251,20 @@
                 note[getStepField(step.id)] = editor?.innerText || '';
             });
             return note;
+        }
+
+        function setDocumentMetadata(metadata) {
+            documentMetadata = normalizeDocumentMetadata({
+                ...documentMetadata,
+                ...(metadata || {})
+            });
+        }
+
+        function getCurrentDocument() {
+            return window.DocumentFactory.create({
+                metadata: documentMetadata,
+                sections: getCurrentNote()
+            });
         }
 
         function getUIState() {
@@ -543,7 +566,9 @@
         return {
             mount,
             destroy,
-            getScrollElement: () => root
+            getScrollElement: () => root,
+            getCurrentDocument,
+            setDocumentMetadata
         };
     }
 
