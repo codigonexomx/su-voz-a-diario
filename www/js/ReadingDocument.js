@@ -211,6 +211,19 @@
             }
         }
 
+        function clearNonEditableSelection() {
+            const selection = window.getSelection?.();
+            if (!selection || selection.rangeCount === 0) return;
+
+            const anchor = selection.anchorNode;
+            const anchorElement = anchor?.nodeType === Node.ELEMENT_NODE
+                ? anchor
+                : anchor?.parentElement;
+
+            if (isEditableElement(anchorElement) || isEditableElement(document.activeElement)) return;
+            selection.removeAllRanges();
+        }
+
         function isEditableElement(element) {
             return Boolean(element?.closest?.('[contenteditable="true"], textarea, input'));
         }
@@ -302,6 +315,15 @@
         }
 
         function onPointerDown(event) {
+            const verseItem = getVerseItemFromEvent(event);
+            if (verseItem) {
+                event.preventDefault();
+                event.stopPropagation();
+                clearNonEditableSelection();
+                setActiveVerse(verseItem);
+                return;
+            }
+
             const versionButton = event.target.closest('[data-deepening-version]');
             if (!versionButton || !root?.contains(versionButton)) return;
 
@@ -317,7 +339,7 @@
             if (verseItem) {
                 event.preventDefault();
                 event.stopPropagation();
-                window.getSelection?.()?.removeAllRanges();
+                clearNonEditableSelection();
                 setActiveVerse(verseItem);
                 return;
             }
