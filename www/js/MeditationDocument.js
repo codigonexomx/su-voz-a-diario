@@ -144,6 +144,23 @@
         }
     }
 
+    function getCaretRect() {
+        const selection = window.getSelection?.();
+        if (!selection || selection.rangeCount === 0) return null;
+
+        const range = selection.getRangeAt(0).cloneRange();
+        range.collapse(false);
+        const rect = range.getBoundingClientRect();
+        if (rect && (rect.width || rect.height)) return rect;
+
+        const marker = document.createElement('span');
+        marker.textContent = '\u200b';
+        range.insertNode(marker);
+        const markerRect = marker.getBoundingClientRect();
+        marker.remove();
+        return markerRect;
+    }
+
     function create(options = {}) {
         let root = null;
         const initialNote = normalizeNote(options.initialNote);
@@ -153,6 +170,7 @@
             : STEPS[0].id;
         let pendingCaretRestore = initialUIState.caret || null;
         let autosaveTimer = null;
+        let caretScrollRafId = null;
         let lastSavedNoteSignature = noteSignature(initialNote);
         let lastSavedUIStateSignature = '';
 
@@ -269,6 +287,37 @@
             }, AUTOSAVE_DELAY);
         }
 
+        function ensureEditorCaretVisible(editor = getEditor(activeStepId)) {
+            if (!editor || document.activeElement !== editor) return;
+
+            const caretRect = getCaretRect();
+            if (!caretRect) return;
+
+            const editorRect = editor.getBoundingClientRect();
+            const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 24;
+            const bottomMargin = lineHeight * 2.4;
+            const topMargin = lineHeight;
+            const visibleBottom = editorRect.bottom - bottomMargin;
+            const visibleTop = editorRect.top + topMargin;
+
+            if (caretRect.bottom > visibleBottom) {
+                editor.scrollTop += caretRect.bottom - visibleBottom;
+            } else if (caretRect.top < visibleTop) {
+                editor.scrollTop -= visibleTop - caretRect.top;
+            }
+        }
+
+        function scheduleCaretVisibilityCheck(editor = getEditor(activeStepId)) {
+            if (caretScrollRafId !== null) {
+                cancelAnimationFrame(caretScrollRafId);
+            }
+
+            caretScrollRafId = requestAnimationFrame(() => {
+                caretScrollRafId = null;
+                ensureEditorCaretVisible(editor);
+            });
+        }
+
         function restoreUIState() {
             if (!root) return;
             if (typeof initialUIState.scrollTop === 'number') {
@@ -296,7 +345,9 @@
 
             if (keepWriting) {
                 requestAnimationFrame(() => {
-                    getEditor(activeStepId)?.focus({ preventScroll: true });
+                    const editor = getEditor(activeStepId);
+                    editor?.focus({ preventScroll: true });
+                    scheduleCaretVisibilityCheck(editor);
                 });
             }
             scheduleAutoSave();
@@ -312,6 +363,7 @@
                 event.preventDefault();
                 editor.focus({ preventScroll: true });
                 setCaretFromPoint(editor, event.clientX, event.clientY);
+                scheduleCaretVisibilityCheck(editor);
                 scheduleAutoSave();
                 return;
             }
@@ -344,23 +396,56 @@
         }
 
         function onInput(event) {
-            if (!event.target.closest('[data-deepening-editor]')) return;
+            const editor = event.target.closest('[data-deepening-editor]');
+            if (!editor) return;
+            scheduleCaretVisibilityCheck(editor);
             scheduleAutoSave();
+        }
+
+        function onBeforeInput(event) {
+            const editor = event.target.closest('[data-deepening-editor]');
+            if (!editor) return;
+            scheduleCaretVisibilityCheck(editor);
+        }
+
+        function onCompositionUpdate(event) {
+            const editor = event.target.closest('[data-deepening-editor]');
+            if (!editor) return;
+            scheduleCaretVisibilityCheck(editor);
+        }
+
+        function onCompositionEnd(event) {
+            const editor = event.target.closest('[data-deepening-editor]');
+            if (!editor) return;
+            scheduleCaretVisibilityCheck(editor);
+            scheduleAutoSave();
+        }
+
+        function onPaste(event) {
+            const editor = event.target.closest('[data-deepening-editor]');
+            if (!editor) return;
+            scheduleCaretVisibilityCheck(editor);
         }
 
         function onFocusIn(event) {
             const editor = event.target.closest('[data-deepening-editor]');
-            if (!editor || !pendingCaretRestore) return;
+            if (!editor) return;
+            scheduleCaretVisibilityCheck(editor);
+            if (!pendingCaretRestore) return;
             if (pendingCaretRestore.stepId !== activeStepId) return;
 
             const caret = pendingCaretRestore;
             pendingCaretRestore = null;
-            requestAnimationFrame(() => setCaretCharacterOffset(editor, caret.offset));
+            requestAnimationFrame(() => {
+                setCaretCharacterOffset(editor, caret.offset);
+                scheduleCaretVisibilityCheck(editor);
+            });
         }
 
         function onSelectionChange() {
             if (!root?.contains(document.activeElement)) return;
             if (!isEditorActive()) return;
+            scheduleCaretVisibilityCheck(document.activeElement);
             scheduleAutoSave();
         }
 
@@ -369,7 +454,11 @@
             root = target.querySelector('[data-deepening-meditation-document]');
             root?.addEventListener('pointerdown', onPointerDown);
             root?.addEventListener('click', onClick);
+            root?.addEventListener('beforeinput', onBeforeInput);
             root?.addEventListener('input', onInput);
+            root?.addEventListener('compositionupdate', onCompositionUpdate);
+            root?.addEventListener('compositionend', onCompositionEnd);
+            root?.addEventListener('paste', onPaste);
             root?.addEventListener('focusin', onFocusIn);
             root?.addEventListener('scroll', scheduleAutoSave, { passive: true });
             document.addEventListener('selectionchange', onSelectionChange);
@@ -380,10 +469,18 @@
         function destroy() {
             window.clearTimeout(autosaveTimer);
             autosaveTimer = null;
+            if (caretScrollRafId !== null) {
+                cancelAnimationFrame(caretScrollRafId);
+                caretScrollRafId = null;
+            }
             flushAutoSave(true);
             root?.removeEventListener('pointerdown', onPointerDown);
             root?.removeEventListener('click', onClick);
+            root?.removeEventListener('beforeinput', onBeforeInput);
             root?.removeEventListener('input', onInput);
+            root?.removeEventListener('compositionupdate', onCompositionUpdate);
+            root?.removeEventListener('compositionend', onCompositionEnd);
+            root?.removeEventListener('paste', onPaste);
             root?.removeEventListener('focusin', onFocusIn);
             root?.removeEventListener('scroll', scheduleAutoSave);
             document.removeEventListener('selectionchange', onSelectionChange);
