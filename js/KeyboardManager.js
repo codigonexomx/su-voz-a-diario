@@ -38,6 +38,11 @@
         let viewportRafId = null;
         let cursorRafId = null;
         let baseVisibleHeight = 0;
+        let keyboardDismissedForBackground = false;
+        let appPauseListener = null;
+        let appResumeListener = null;
+        let appLifecycleListenerPromises = [];
+        let usingCapacitorLifecycle = false;
 
         function getViewportHeight() {
             return visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
@@ -53,6 +58,122 @@
 
         function isEditable(element) {
             return Boolean(element?.closest?.('[contenteditable="true"], textarea, input'));
+        }
+
+        function isKeyboardEditor(element) {
+            if (!element || element.disabled || element.readOnly) return false;
+            if (element instanceof HTMLInputElement) return true;
+            if (element instanceof HTMLTextAreaElement) return true;
+            return Boolean(element.isContentEditable);
+        }
+
+        function getLifecycleSnapshotState() {
+            const visibleHeight = getViewportHeight();
+            const keyboardOpen = baseVisibleHeight - visibleHeight > KEYBOARD_THRESHOLD;
+            const targetHeight = Math.round(keyboardOpen ? visibleHeight : baseVisibleHeight);
+
+            return {
+                baseVisibleHeight,
+                targetHeight,
+                keyboardOpen,
+                visibleHeight
+            };
+        }
+
+        function resetBackgroundDismissFlag() {
+            keyboardDismissedForBackground = false;
+        }
+
+        function dismissKeyboardForBackground(reason) {
+            const active = document.activeElement;
+            const eventName = `dismissKeyboard:${reason}`;
+
+            if (!isKeyboardEditor(active)) {
+                keyboardDismissedForBackground = false;
+                recordLayoutLifecycle(eventName, getLifecycleSnapshotState());
+                return false;
+            }
+
+            if (keyboardDismissedForBackground) {
+                recordLayoutLifecycle(eventName, getLifecycleSnapshotState());
+                return false;
+            }
+
+            keyboardDismissedForBackground = true;
+            recordLayoutLifecycle(eventName, getLifecycleSnapshotState());
+
+            if (active === document.activeElement) {
+                active.blur();
+                return true;
+            }
+
+            return false;
+        }
+
+        function bindCapacitorLifecycle() {
+            const AppPlugin = window.Capacitor?.Plugins?.App;
+            if (!AppPlugin?.addListener) return false;
+
+            function trackAppListener(listener, assign) {
+                if (listener?.remove) {
+                    assign(listener);
+                    return;
+                }
+                if (listener?.then) {
+                    const listenerPromise = listener
+                        .then(nextListener => {
+                            assign(nextListener);
+                            return nextListener;
+                        })
+                        .catch(() => null);
+                    appLifecycleListenerPromises.push(listenerPromise);
+                }
+            }
+
+            usingCapacitorLifecycle = true;
+            const pauseListener = AppPlugin.addListener('pause', () => {
+                dismissKeyboardForBackground('pause');
+            });
+            const resumeListener = AppPlugin.addListener('resume', resetBackgroundDismissFlag);
+
+            trackAppListener(pauseListener, listener => {
+                appPauseListener = listener;
+            });
+            trackAppListener(resumeListener, listener => {
+                appResumeListener = listener;
+            });
+
+            return true;
+        }
+
+        function onVisibilityChange() {
+            if (document.visibilityState === 'hidden') {
+                dismissKeyboardForBackground('visibilitychange');
+            } else if (document.visibilityState === 'visible') {
+                resetBackgroundDismissFlag();
+            }
+        }
+
+        function bindBackgroundLifecycle() {
+            if (bindCapacitorLifecycle()) return;
+            document.addEventListener('visibilitychange', onVisibilityChange);
+        }
+
+        function unbindBackgroundLifecycle() {
+            if (usingCapacitorLifecycle) {
+                appPauseListener?.remove?.();
+                appResumeListener?.remove?.();
+                appPauseListener = null;
+                appResumeListener = null;
+                appLifecycleListenerPromises.forEach(listenerPromise => {
+                    listenerPromise.then(listener => listener?.remove?.()).catch(() => {});
+                });
+                appLifecycleListenerPromises = [];
+                usingCapacitorLifecycle = false;
+            } else {
+                document.removeEventListener('visibilitychange', onVisibilityChange);
+            }
+            keyboardDismissedForBackground = false;
         }
 
         function ensureCursorVisible() {
@@ -149,6 +270,7 @@
             visualViewport?.addEventListener('resize', scheduleViewportPosition);
             visualViewport?.addEventListener('scroll', scheduleViewportPosition);
             window.addEventListener('resize', scheduleViewportPosition);
+            bindBackgroundLifecycle();
             scheduleViewportPosition();
         }
 
@@ -167,6 +289,7 @@
             visualViewport?.removeEventListener('resize', scheduleViewportPosition);
             visualViewport?.removeEventListener('scroll', scheduleViewportPosition);
             window.removeEventListener('resize', scheduleViewportPosition);
+            unbindBackgroundLifecycle();
 
             rootElement?.style.setProperty('--deepening-shell-height', `${Math.round(baseVisibleHeight)}px`);
             shellElement?.style.removeProperty('--deepening-layout-height');
@@ -181,7 +304,8 @@
         return {
             init,
             destroy,
-            ensureCursorVisible
+            ensureCursorVisible,
+            dismissKeyboardForBackground
         };
     }
 
