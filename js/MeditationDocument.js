@@ -293,17 +293,17 @@
             const caretRect = getCaretRect();
             if (!caretRect) return;
 
-            const editorRect = editor.getBoundingClientRect();
+            const documentRect = root.getBoundingClientRect();
             const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 24;
             const bottomMargin = lineHeight * 2.4;
             const topMargin = lineHeight;
-            const visibleBottom = editorRect.bottom - bottomMargin;
-            const visibleTop = editorRect.top + topMargin;
+            const visibleBottom = documentRect.bottom - bottomMargin;
+            const visibleTop = documentRect.top + topMargin;
 
             if (caretRect.bottom > visibleBottom) {
-                editor.scrollTop += caretRect.bottom - visibleBottom;
+                root.scrollTop += caretRect.bottom - visibleBottom;
             } else if (caretRect.top < visibleTop) {
-                editor.scrollTop -= visibleTop - caretRect.top;
+                root.scrollTop -= visibleTop - caretRect.top;
             }
         }
 

@@ -554,8 +554,7 @@ body.deepening-shell-active > .bottom-nav {
 .deepening-writing-area {
     width: 100%;
     min-height: 96px;
-    max-height: min(38vh, 330px);
-    padding: 8px 0 calc(18px + 3.24em);
+    padding: 8px 0 18px;
     border: 0;
     background:
         linear-gradient(rgba(184, 154, 99, 0.04) 1px, transparent 1px)
@@ -566,14 +565,7 @@ body.deepening-shell-active > .bottom-nav {
     line-height: 1.62;
     white-space: pre-wrap;
     overflow-wrap: break-word;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-}
-
-.deepening-writing-area::-webkit-scrollbar {
-    display: none;
+    overflow: visible;
 }
 
 .deepening-writing-area:empty::before {
