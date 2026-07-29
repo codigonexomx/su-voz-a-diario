@@ -179,105 +179,6 @@
         }
     }
 
-    function removeExistingDeepeningToast() {
-        document.querySelector('.toast-message')?.remove();
-    }
-
-    function showSavedPdfMessage(fileName, savedFile) {
-        removeExistingDeepeningToast();
-
-        const toast = document.createElement('div');
-        toast.className = 'toast-message';
-        toast.style.pointerEvents = 'auto';
-        toast.style.borderRadius = '18px';
-        toast.style.padding = '14px 18px';
-
-        [
-            'Tu meditación se guardó correctamente como PDF.',
-            'Se almacenó en la carpeta Documentos de la aplicación.',
-            fileName
-        ].forEach(line => {
-            const row = document.createElement('div');
-            row.textContent = line;
-            toast.appendChild(row);
-        });
-
-        if (canOpenSavedPdf(savedFile)) {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.textContent = 'Ver PDF';
-            button.style.marginTop = '10px';
-            button.style.border = '1px solid rgba(255, 255, 255, 0.55)';
-            button.style.borderRadius = '999px';
-            button.style.background = 'rgba(255, 255, 255, 0.16)';
-            button.style.color = 'inherit';
-            button.style.font = 'inherit';
-            button.style.fontWeight = '700';
-            button.style.padding = '7px 14px';
-            button.addEventListener('click', () => {
-                openSavedPdf(savedFile.uri).catch(() => {});
-            });
-            toast.appendChild(button);
-        }
-
-        document.body.appendChild(toast);
-        setTimeout(() => toast.classList.add('show'), 10);
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => toast.remove(), 300);
-        }, 7000);
-    }
-
-    function getFileOpenPlugin() {
-        const plugins = window.Capacitor?.Plugins || {};
-        if (plugins.FileOpener?.open || plugins.FileOpener?.openFile) {
-            return plugins.FileOpener;
-        }
-        if (plugins.Browser?.open) {
-            return plugins.Browser;
-        }
-        if (plugins.AppLauncher?.openUrl) {
-            return plugins.AppLauncher;
-        }
-        return null;
-    }
-
-    function canOpenSavedPdf(savedFile) {
-        return Boolean(savedFile?.uri && getFileOpenPlugin());
-    }
-
-    async function openSavedPdf(uri) {
-        const plugin = getFileOpenPlugin();
-        if (!uri || !plugin) return false;
-
-        if (plugin.open) {
-            await plugin.open({
-                filePath: uri,
-                path: uri,
-                url: uri,
-                contentType: 'application/pdf'
-            });
-            return true;
-        }
-
-        if (plugin.openFile) {
-            await plugin.openFile({
-                path: uri,
-                filePath: uri,
-                mimeType: 'application/pdf',
-                contentType: 'application/pdf'
-            });
-            return true;
-        }
-
-        if (plugin.openUrl) {
-            await plugin.openUrl({ url: uri });
-            return true;
-        }
-
-        return false;
-    }
-
     function getCurrentMeditationDocument() {
         return meditationDocument?.getCurrentDocument?.() || null;
     }
@@ -307,23 +208,6 @@
         } catch (error) {
             showDeepeningMessage('No se pudo generar el PDF');
             return null;
-        }
-    }
-
-    async function saveMeditationPdf() {
-        const pdfResult = await createMeditationPdf();
-        if (!pdfResult) return;
-
-        if (!window.ShareService?.savePdf) {
-            showDeepeningMessage('No se pudo guardar el PDF');
-            return;
-        }
-
-        try {
-            const savedFile = await window.ShareService.savePdf(pdfResult.blob, pdfResult.fileName);
-            showSavedPdfMessage(pdfResult.fileName, savedFile);
-        } catch (error) {
-            showDeepeningMessage('No se pudo guardar el PDF');
         }
     }
 
@@ -626,9 +510,6 @@
         meditationActionsPanel = window.MeditationActionsPanel?.create(targetRoot, {
             onView: () => {
                 openDocumentViewer();
-            },
-            onSave: () => {
-                saveMeditationPdf();
             },
             onShare: () => {
                 shareMeditationPdf();

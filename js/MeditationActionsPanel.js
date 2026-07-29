@@ -11,17 +11,12 @@
         return `
             <section class="meditation-actions-panel" data-meditation-actions-panel data-state="collapsed" aria-label="Acciones de meditación">
                 <button class="meditation-actions-panel-tab" type="button" data-meditation-actions-tab aria-expanded="false" aria-label="Mostrar acciones de meditación">
-                    <span class="meditation-actions-panel-tab-line" aria-hidden="true"></span>
-                    <span class="meditation-actions-panel-tab-text">Mi meditación</span>
+                    <span class="meditation-actions-panel-tab-icon" aria-hidden="true">◀</span>
                 </button>
                 <div class="meditation-actions-panel-content" data-meditation-actions-content>
                     <button class="meditation-actions-panel-action" type="button" data-meditation-action="view">
                         <span aria-hidden="true">👁</span>
                         <span>Ver mi meditación</span>
-                    </button>
-                    <button class="meditation-actions-panel-action" type="button" data-meditation-action="save">
-                        <span aria-hidden="true">💾</span>
-                        <span>Guardar mi meditación</span>
                     </button>
                     <button class="meditation-actions-panel-action" type="button" data-meditation-action="share">
                         <span aria-hidden="true">↗</span>
@@ -42,8 +37,8 @@
         let contentAriaHidden = null;
         let actionButtons = [];
         let pointerId = null;
-        let startY = 0;
-        let currentY = 0;
+        let startX = 0;
+        let currentX = 0;
         let didDrag = false;
 
         function setState(nextState) {
@@ -57,6 +52,10 @@
                 'aria-label',
                 isExpanded ? 'Ocultar acciones de meditación' : 'Mostrar acciones de meditación'
             );
+            const tabIcon = tabElement.querySelector('.meditation-actions-panel-tab-icon');
+            if (tabIcon) {
+                tabIcon.textContent = isExpanded ? '▶' : '◀';
+            }
             if (contentElement) {
                 contentElement.inert = !isExpanded;
                 if (isExpanded) {
@@ -101,16 +100,16 @@
         function handlePointerDown(event) {
             if (!event.isPrimary) return;
             pointerId = event.pointerId;
-            startY = event.clientY;
-            currentY = startY;
+            startX = event.clientX;
+            currentX = startX;
             didDrag = false;
             tabElement?.setPointerCapture?.(pointerId);
         }
 
         function handlePointerMove(event) {
             if (pointerId !== event.pointerId) return;
-            currentY = event.clientY;
-            if (Math.abs(currentY - startY) > 6) {
+            currentX = event.clientX;
+            if (Math.abs(currentX - startX) > 6) {
                 didDrag = true;
             }
         }
@@ -118,12 +117,12 @@
         function finishPointer(event) {
             if (pointerId !== event.pointerId) return;
 
-            const deltaY = currentY - startY;
+            const deltaX = currentX - startX;
             tabElement?.releasePointerCapture?.(pointerId);
             pointerId = null;
 
-            if (Math.abs(deltaY) < DRAG_THRESHOLD) return;
-            if (deltaY < 0) {
+            if (Math.abs(deltaX) < DRAG_THRESHOLD) return;
+            if (deltaX < 0) {
                 expand();
             } else {
                 collapse();
@@ -137,8 +136,6 @@
             const action = actionButton.dataset.meditationAction;
             if (action === 'view') {
                 callbacks.onView?.();
-            } else if (action === 'save') {
-                callbacks.onSave?.();
             } else if (action === 'share') {
                 callbacks.onShare?.();
             }
