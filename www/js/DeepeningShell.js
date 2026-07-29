@@ -45,9 +45,8 @@
                 </div>
                 <div class="deepening-document-viewer-scroll" data-deepening-document-viewer-scroll>
                     ${isPdfPreview ? `
-                        <div class="deepening-document-viewer-pdf-frame">
+                        <div class="deepening-document-preview" data-deepening-document-preview>
                             <div class="deepening-document-viewer-loading" data-deepening-document-viewer-loading>Cargando vista previa del PDF...</div>
-                            <iframe class="deepening-document-viewer-pdf" data-deepening-document-viewer-pdf title="Vista previa del PDF de meditación"></iframe>
                         </div>
                     ` : ''}
                 </div>
@@ -197,6 +196,203 @@
         if (window.alert) {
             window.alert(message);
         }
+    }
+
+    function escapePreviewHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function formatPreviewDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(`${dateString}T00:00:00`);
+        if (Number.isNaN(date.getTime())) return String(dateString);
+        return date.toLocaleDateString('es-MX', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    }
+
+    function normalizePreviewDocument(documentModel = {}) {
+        const metadata = documentModel.metadata || {};
+        const sections = documentModel.sections || {};
+
+        return {
+            metadata: {
+                date: String(metadata.date || ''),
+                reference: String(metadata.reference || 'Meditación bíblica'),
+                version: String(metadata.version || '')
+            },
+            sections: {
+                dios: String(sections.dios || ''),
+                aprendizaje: String(sections.aprendizaje || ''),
+                respuesta: String(sections.respuesta || ''),
+                oracion: String(sections.oracion || '')
+            }
+        };
+    }
+
+    function wrapPreviewParagraph(paragraph, maxChars) {
+        const words = String(paragraph || '').trim().split(/\s+/).filter(Boolean);
+        if (!words.length) return [''];
+        const lines = [];
+        let currentLine = '';
+
+        words.forEach(word => {
+            const nextLine = currentLine ? `${currentLine} ${word}` : word;
+            if (nextLine.length <= maxChars || !currentLine) {
+                currentLine = nextLine;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        });
+
+        if (currentLine) lines.push(currentLine);
+        return lines;
+    }
+
+    function makePreviewLines(text, maxChars) {
+        const content = String(text || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim() || 'Sin contenido.';
+        const lines = [];
+        content.split('\n').forEach((paragraph, paragraphIndex, paragraphs) => {
+            wrapPreviewParagraph(paragraph, maxChars).forEach(line => {
+                lines.push({ text: line, gapAfter: false });
+            });
+            if (paragraphIndex < paragraphs.length - 1 && lines.length) {
+                lines[lines.length - 1].gapAfter = true;
+            }
+        });
+        return lines;
+    }
+
+    function takePreviewLines(lines, capacity) {
+        const chunk = [];
+        let used = 0;
+
+        while (lines.length && used < capacity) {
+            const nextLine = lines[0];
+            const lineUnits = nextLine.gapAfter ? 1.45 : 1;
+            if (used + lineUnits > capacity && chunk.length) break;
+            chunk.push(lines.shift());
+            used += lineUnits;
+        }
+
+        return chunk;
+    }
+
+    function renderPreviewLines(lines) {
+        return lines.map(line => `
+            <p class="deepening-document-preview-line${line.gapAfter ? ' has-gap' : ''}">${escapePreviewHtml(line.text) || '&nbsp;'}</p>
+        `).join('');
+    }
+
+    function renderPreviewHeader(documentModel) {
+        const metaLine = [
+            documentModel.metadata.version ? documentModel.metadata.version.toUpperCase() : '',
+            formatPreviewDate(documentModel.metadata.date)
+        ].filter(Boolean).join('  |  ');
+
+        return `
+            <header class="deepening-document-preview-header">
+                <div class="deepening-document-preview-brand">Su Voz Hoy</div>
+                ${metaLine ? `<div class="deepening-document-preview-meta">${escapePreviewHtml(metaLine)}</div>` : ''}
+                <div class="deepening-document-preview-label">PASAJE BÍBLICO</div>
+                <h2>${escapePreviewHtml(documentModel.metadata.reference)}</h2>
+            </header>
+        `;
+    }
+
+    function renderPreviewFooter(pageNumber, totalPages) {
+        return `
+            <footer class="deepening-document-preview-footer">
+                <span>Generado por Su Voz a Diario</span>
+                <span>Página ${pageNumber} de ${totalPages}</span>
+            </footer>
+        `;
+    }
+
+    function renderPreviewPage(documentModel, page, pageNumber, totalPages) {
+        let content = '';
+        if (page.type === 'columns') {
+            content = `
+                <section class="deepening-document-preview-columns">
+                    <div class="deepening-document-preview-column">
+                        <h3>${escapePreviewHtml(page.leftTitle)}</h3>
+                        ${renderPreviewLines(page.leftLines)}
+                    </div>
+                    <div class="deepening-document-preview-column">
+                        <h3>${escapePreviewHtml(page.rightTitle)}</h3>
+                        ${renderPreviewLines(page.rightLines)}
+                    </div>
+                </section>
+            `;
+        } else {
+            content = `
+                <section class="deepening-document-preview-section">
+                    <h3>${escapePreviewHtml(page.title)}</h3>
+                    ${renderPreviewLines(page.lines)}
+                </section>
+            `;
+        }
+
+        return `
+            <article class="deepening-document-preview-page" aria-label="Página ${pageNumber} de ${totalPages}">
+                ${renderPreviewHeader(documentModel)}
+                <div class="deepening-document-preview-body">${content}</div>
+                ${renderPreviewFooter(pageNumber, totalPages)}
+            </article>
+        `;
+    }
+
+    function buildPreviewPages(documentModel) {
+        const pages = [];
+        const leftLines = makePreviewLines(documentModel.sections.dios, 36);
+        const rightLines = makePreviewLines(documentModel.sections.aprendizaje, 36);
+        let firstColumnPage = true;
+
+        while (leftLines.length || rightLines.length || firstColumnPage) {
+            pages.push({
+                type: 'columns',
+                leftTitle: firstColumnPage ? '¿Cómo es Dios?' : '¿Cómo es Dios? (cont.)',
+                rightTitle: firstColumnPage ? 'Enseñanza' : 'Enseñanza (cont.)',
+                leftLines: takePreviewLines(leftLines, 27),
+                rightLines: takePreviewLines(rightLines, 27)
+            });
+            firstColumnPage = false;
+        }
+
+        [
+            ['Aplicación', documentModel.sections.respuesta],
+            ['Oración', documentModel.sections.oracion]
+        ].forEach(([title, text]) => {
+            const lines = makePreviewLines(text, 76);
+            let firstPage = true;
+            while (lines.length || firstPage) {
+                pages.push({
+                    type: 'section',
+                    title: firstPage ? title : `${title} (cont.)`,
+                    lines: takePreviewLines(lines, 31)
+                });
+                firstPage = false;
+            }
+        });
+
+        return pages;
+    }
+
+    function renderPdfPreview(documentModel) {
+        const normalizedDocument = normalizePreviewDocument(documentModel);
+        const pages = buildPreviewPages(normalizedDocument);
+        const totalPages = pages.length;
+        return pages.map((page, index) => {
+            return renderPreviewPage(normalizedDocument, page, index + 1, totalPages);
+        }).join('');
     }
 
     function getCurrentMeditationDocument() {
@@ -411,27 +607,21 @@
     function openPdfDocumentViewer(pdfResult, documentModel) {
         const targetRoot = getRoot();
         if (!targetRoot || !pdfResult?.blob || !pdfResult?.fileName) return null;
-        if (!window.URL?.createObjectURL) {
-            showDeepeningMessage('No se pudo preparar la vista previa del PDF');
-            return null;
-        }
 
         const focusReturnElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         closeDocumentViewer({ restoreFocus: false });
         documentViewerFocusReturnElement = focusReturnElement;
         documentViewerPdfResult = pdfResult;
         documentViewerPdfDocument = documentModel || getCurrentMeditationDocument();
-        documentViewerPdfUrl = URL.createObjectURL(pdfResult.blob);
 
         targetRoot.insertAdjacentHTML('beforeend', renderDocumentViewerOverlay({ type: 'pdf' }));
         documentViewerOverlay = targetRoot.querySelector('[data-deepening-document-viewer-overlay]');
-        const pdfPreview = documentViewerOverlay?.querySelector('[data-deepening-document-viewer-pdf]');
-        if (pdfPreview) {
-            pdfPreview.addEventListener('load', () => {
-                const loadingElement = documentViewerOverlay?.querySelector('[data-deepening-document-viewer-loading]');
-                loadingElement?.setAttribute('hidden', '');
-            }, { once: true });
-            pdfPreview.src = documentViewerPdfUrl;
+        const previewRoot = documentViewerOverlay?.querySelector('[data-deepening-document-preview]');
+        if (previewRoot) {
+            previewRoot.insertAdjacentHTML('beforeend', renderPdfPreview(documentViewerPdfDocument));
+            previewRoot
+                .querySelector('[data-deepening-document-viewer-loading]')
+                ?.setAttribute('hidden', '');
         }
 
         documentViewerShareHandler = () => {
