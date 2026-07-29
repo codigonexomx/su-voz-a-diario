@@ -172,6 +172,7 @@
     function create(options = {}) {
         let root = null;
         const initialNote = normalizeNote(options.initialNote);
+        const currentNote = normalizeNote(initialNote);
         const initialUIState = options.initialUIState || {};
         let documentMetadata = normalizeDocumentMetadata(options.documentMetadata);
         let activeStepId = STEPS.some(step => step.id === initialUIState.activeStepId)
@@ -211,17 +212,18 @@
                         <h2>${escapeHtml(step.label)}</h2>
                         <p>${escapeHtml(step.intro)}</p>
                         ${step.questions.map(question => `<p>${escapeHtml(question)}</p>`).join('')}
-                        <div
-                            class="deepening-writing-area"
-                            role="textbox"
-                            contenteditable="true"
-                            aria-multiline="true"
-                            data-deepening-editor
-                            data-placeholder="Escribe despacio. Una frase honesta es suficiente."
-                            aria-label="Respuesta de meditacion: ${escapeHtml(step.label)}"
-                        >${editorHtml(initialNote[getStepField(step.id)])}</div>
                     </section>
                 `).join('')}
+
+                <div
+                    class="deepening-writing-area"
+                    role="textbox"
+                    contenteditable="true"
+                    aria-multiline="true"
+                    data-deepening-editor
+                    data-placeholder="Escribe despacio. Una frase honesta es suficiente."
+                    aria-label="Respuesta de meditacion: ${escapeHtml(STEPS.find(step => step.id === activeStepId)?.label || STEPS[0].label)}"
+                >${editorHtml(currentNote[getStepField(activeStepId)])}</div>
             `;
         }
 
@@ -241,16 +243,12 @@
         }
 
         function getEditor(stepId = activeStepId) {
-            return root?.querySelector(`[data-step-panel="${stepId}"] [data-deepening-editor]`) || null;
+            return root?.querySelector('[data-deepening-editor]') || null;
         }
 
         function getCurrentNote() {
-            const note = normalizeNote(initialNote);
-            STEPS.forEach(step => {
-                const editor = getEditor(step.id);
-                note[getStepField(step.id)] = editor?.innerText || '';
-            });
-            return note;
+            commitActiveEditor();
+            return normalizeNote(currentNote);
         }
 
         function setDocumentMetadata(metadata) {
@@ -394,7 +392,22 @@
             lastSavedUIStateSignature = uiStateSignature(getUIState());
         }
 
-        function setActiveStep(stepId, keepWriting = false) {
+        function commitActiveEditor() {
+            const editor = getEditor();
+            if (!editor) return;
+            currentNote[getStepField(activeStepId)] = editor.innerText || '';
+        }
+
+        function setActiveStep(stepId) {
+            if (!STEPS.some(step => step.id === stepId)) return;
+            if (stepId === activeStepId) {
+                scheduleAutoSave();
+                return;
+            }
+
+            const editor = getEditor();
+            const wasEditorActive = document.activeElement === editor;
+            commitActiveEditor();
             activeStepId = stepId;
             root?.querySelectorAll('.deepening-step').forEach(step => {
                 const isActive = step.getAttribute('data-step') === activeStepId;
@@ -410,12 +423,19 @@
                 panel.hidden = panel.getAttribute('data-step-panel') !== activeStepId;
             });
 
-            if (keepWriting) {
-                requestAnimationFrame(() => {
-                    const editor = getEditor(activeStepId);
-                    editor?.focus({ preventScroll: true });
+            if (editor) {
+                const activeStep = STEPS.find(step => step.id === activeStepId) || STEPS[0];
+                editor.setAttribute('aria-label', `Respuesta de meditacion: ${activeStep.label}`);
+                editor.innerHTML = editorHtml(currentNote[getStepField(activeStepId)]);
+                if (wasEditorActive) {
+                    const selection = window.getSelection?.();
+                    const range = document.createRange();
+                    range.selectNodeContents(editor);
+                    range.collapse(false);
+                    selection?.removeAllRanges();
+                    selection?.addRange(range);
                     scheduleCaretVisibilityCheck(editor);
-                });
+                }
             }
             scheduleAutoSave();
         }
@@ -442,7 +462,7 @@
             if (!stepId) return;
 
             event.preventDefault();
-            setActiveStep(stepId, true);
+            setActiveStep(stepId);
         }
 
         function onClick(event) {
@@ -458,13 +478,14 @@
 
             const stepId = step.getAttribute('data-step');
             if (stepId) {
-                setActiveStep(stepId, isEditorActive());
+                setActiveStep(stepId);
             }
         }
 
         function onInput(event) {
             const editor = event.target.closest('[data-deepening-editor]');
             if (!editor) return;
+            currentNote[getStepField(activeStepId)] = editor.innerText || '';
             scheduleCaretVisibilityCheck(editor);
             requestAnimationFrame(updateScrollCueAvailability);
             scheduleAutoSave();

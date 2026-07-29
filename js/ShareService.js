@@ -106,9 +106,8 @@
         const Filesystem = getPlugin('Filesystem');
 
         if (isNativePlatform() && Share?.share && Filesystem?.writeFile && Filesystem?.getUri) {
-            const file = await writeNativeFile(blob, fileName, 'CACHE');
-
             try {
+                const file = await writeNativeFile(blob, fileName, 'CACHE');
                 await Share.share({
                     title: options.title || 'Su Voz Hoy',
                     text: options.text || 'Mi meditacion de Su Voz a Diario',
@@ -124,11 +123,6 @@
                     };
                 }
                 throw error;
-            } finally {
-                await Filesystem.deleteFile?.({
-                    path: file.path,
-                    directory: file.directory
-                }).catch?.(() => {});
             }
 
             return {

@@ -1,4 +1,4 @@
-const APP_VERSION = 'v141';
+const APP_VERSION = 'v147';
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -8,7 +8,7 @@ const STATIC_ASSETS = [
   './index.html',
   './manifest.json?v=122',
   './css/styles.css?v=116',
-  './css/deepening-shell.css?v=24',
+  './css/deepening-shell.css?v=25',
   './css/meditation-document-viewer.css?v=5',
   './css/meditation-actions-panel.css?v=2',
   './js/app.js?v=119',
@@ -17,13 +17,13 @@ const STATIC_ASSETS = [
   './js/DocumentFactory.js?v=1',
   './js/DocumentExporter.js?v=1',
   './js/PdfDocumentBuilder.js?v=4',
-  './js/PdfExporter.js?v=2',
-  './js/ShareService.js?v=2',
+  './js/PdfExporter.js?v=3',
+  './js/ShareService.js?v=5',
   './js/MeditationDocumentViewer.js?v=2',
   './js/MeditationActionsPanel.js?v=5',
-  './js/MeditationDocument.js?v=5',
+  './js/MeditationDocument.js?v=6',
   './js/KeyboardManager.js?v=10',
-  './js/DeepeningShell.js?v=28',
+  './js/DeepeningShell.js?v=31',
   './js/core/constants.js',
   './js/core/defaults.js',
   './js/bible/bibleModel.js',
@@ -55,6 +55,7 @@ const STATIC_ASSETS = [
   './icons/icon-180.png',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './icons/icon-pdf.png',
   './icons/splash.png'
 ];
 
@@ -63,7 +64,7 @@ const REQUIRED_ASSETS = new Set([
   './index.html',
   './manifest.json?v=122',
   './css/styles.css?v=116',
-  './css/deepening-shell.css?v=24',
+  './css/deepening-shell.css?v=25',
   './css/meditation-document-viewer.css?v=5',
   './css/meditation-actions-panel.css?v=2',
   './js/app.js?v=119',
@@ -72,13 +73,13 @@ const REQUIRED_ASSETS = new Set([
   './js/DocumentFactory.js?v=1',
   './js/DocumentExporter.js?v=1',
   './js/PdfDocumentBuilder.js?v=4',
-  './js/PdfExporter.js?v=2',
-  './js/ShareService.js?v=2',
+  './js/PdfExporter.js?v=3',
+  './js/ShareService.js?v=5',
   './js/MeditationDocumentViewer.js?v=2',
   './js/MeditationActionsPanel.js?v=5',
-  './js/MeditationDocument.js?v=5',
+  './js/MeditationDocument.js?v=6',
   './js/KeyboardManager.js?v=10',
-  './js/DeepeningShell.js?v=28'
+  './js/DeepeningShell.js?v=31'
 ]);
 
 // Firebase compat en Service Worker.

@@ -3,7 +3,7 @@
  * Genera PDFs vectoriales a partir de MeditationDocumentData.
  */
 (function() {
-    const DEFAULT_LOGO_PATH = './icons/icon-512.png';
+    const DEFAULT_LOGO_PATH = './icons/icon-pdf.png';
 
     function sanitizeFilePart(value) {
         return String(value || '')
