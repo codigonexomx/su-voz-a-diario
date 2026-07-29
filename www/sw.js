@@ -1,4 +1,4 @@
-const APP_VERSION = 'v134';
+const APP_VERSION = 'v136';
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -16,14 +16,14 @@ const STATIC_ASSETS = [
   './js/ReadingDocument.js?v=4',
   './js/DocumentFactory.js?v=1',
   './js/DocumentExporter.js?v=1',
-  './js/PdfDocumentBuilder.js?v=3',
+  './js/PdfDocumentBuilder.js?v=4',
   './js/PdfExporter.js?v=2',
   './js/ShareService.js?v=2',
   './js/MeditationDocumentViewer.js?v=2',
   './js/MeditationActionsPanel.js?v=3',
   './js/MeditationDocument.js?v=5',
   './js/KeyboardManager.js?v=10',
-  './js/DeepeningShell.js?v=23',
+  './js/DeepeningShell.js?v=24',
   './js/core/constants.js',
   './js/core/defaults.js',
   './js/bible/bibleModel.js',
@@ -71,14 +71,14 @@ const REQUIRED_ASSETS = new Set([
   './js/ReadingDocument.js?v=4',
   './js/DocumentFactory.js?v=1',
   './js/DocumentExporter.js?v=1',
-  './js/PdfDocumentBuilder.js?v=3',
+  './js/PdfDocumentBuilder.js?v=4',
   './js/PdfExporter.js?v=2',
   './js/ShareService.js?v=2',
   './js/MeditationDocumentViewer.js?v=2',
   './js/MeditationActionsPanel.js?v=3',
   './js/MeditationDocument.js?v=5',
   './js/KeyboardManager.js?v=10',
-  './js/DeepeningShell.js?v=23'
+  './js/DeepeningShell.js?v=24'
 ]);
 
 // Firebase compat en Service Worker.

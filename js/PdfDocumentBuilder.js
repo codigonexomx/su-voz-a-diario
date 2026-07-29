@@ -167,12 +167,16 @@
 
         function renderTwoColumnBlock(documentModel) {
             const columnGap = 30;
+            const columnInnerPadding = 8;
             const dividerX = margin + usableWidth / 2;
             const columnWidth = (usableWidth - columnGap) / 2;
             const leftX = margin;
             const rightX = dividerX + columnGap / 2;
-            let leftLines = makeLines(documentModel.sections.dios, columnWidth);
-            let rightLines = makeLines(documentModel.sections.aprendizaje, columnWidth);
+            const leftTextX = leftX;
+            const rightTextX = rightX + columnInnerPadding;
+            const columnTextWidth = columnWidth - columnInnerPadding;
+            let leftLines = makeLines(documentModel.sections.dios, columnTextWidth);
+            let rightLines = makeLines(documentModel.sections.aprendizaje, columnTextWidth);
             let firstPage = true;
 
             while (leftLines.length || rightLines.length || firstPage) {
@@ -188,13 +192,13 @@
 
                 while (leftLines.length && leftY + lineHeight <= contentBottom) {
                     const line = leftLines.shift();
-                    drawLine(line, leftX, leftY);
+                    drawLine(line, leftTextX, leftY);
                     leftY += lineHeight + line.gapAfter;
                 }
 
                 while (rightLines.length && rightY + lineHeight <= contentBottom) {
                     const line = rightLines.shift();
-                    drawLine(line, rightX, rightY);
+                    drawLine(line, rightTextX, rightY);
                     rightY += lineHeight + line.gapAfter;
                 }
 
@@ -221,7 +225,8 @@
             doc.text(title, margin, y);
             y += 22;
 
-            const lines = makeLines(text, usableWidth);
+            const fullWidth = pageWidth - margin * 2;
+            const lines = makeLines(text, fullWidth);
             while (lines.length) {
                 ensureSpace(documentModel, lineHeight + 2);
                 const line = lines.shift();
