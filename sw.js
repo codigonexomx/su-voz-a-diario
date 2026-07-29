@@ -1,4 +1,4 @@
-const APP_VERSION = 'v138';
+const APP_VERSION = 'v140';
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -9,7 +9,7 @@ const STATIC_ASSETS = [
   './manifest.json?v=122',
   './css/styles.css?v=116',
   './css/deepening-shell.css?v=24',
-  './css/meditation-document-viewer.css?v=2',
+  './css/meditation-document-viewer.css?v=4',
   './css/meditation-actions-panel.css?v=2',
   './js/app.js?v=119',
   './js/ReadingPositionManager.js?v=1',
@@ -23,7 +23,7 @@ const STATIC_ASSETS = [
   './js/MeditationActionsPanel.js?v=5',
   './js/MeditationDocument.js?v=5',
   './js/KeyboardManager.js?v=10',
-  './js/DeepeningShell.js?v=25',
+  './js/DeepeningShell.js?v=27',
   './js/core/constants.js',
   './js/core/defaults.js',
   './js/bible/bibleModel.js',
@@ -64,7 +64,7 @@ const REQUIRED_ASSETS = new Set([
   './manifest.json?v=122',
   './css/styles.css?v=116',
   './css/deepening-shell.css?v=24',
-  './css/meditation-document-viewer.css?v=2',
+  './css/meditation-document-viewer.css?v=4',
   './css/meditation-actions-panel.css?v=2',
   './js/app.js?v=119',
   './js/ReadingPositionManager.js?v=1',
@@ -78,7 +78,7 @@ const REQUIRED_ASSETS = new Set([
   './js/MeditationActionsPanel.js?v=5',
   './js/MeditationDocument.js?v=5',
   './js/KeyboardManager.js?v=10',
-  './js/DeepeningShell.js?v=25'
+  './js/DeepeningShell.js?v=27'
 ]);
 
 // Firebase compat en Service Worker.

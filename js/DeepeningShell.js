@@ -13,6 +13,10 @@
     let documentViewer = null;
     let documentViewerFocusReturnElement = null;
     let documentViewerBackgroundState = [];
+    let documentViewerPdfResult = null;
+    let documentViewerPdfDocument = null;
+    let documentViewerPdfUrl = null;
+    let documentViewerShareHandler = null;
     let backgroundState = null;
     let releaseInstantScrollFrame = null;
     let releaseInstantScrollSecondFrame = null;
@@ -32,13 +36,29 @@
         `;
     }
 
-    function renderDocumentViewerOverlay() {
+    function renderDocumentViewerOverlay(options = {}) {
+        const isPdfPreview = options.type === 'pdf';
         return `
-            <div class="deepening-document-viewer-overlay" data-deepening-document-viewer-overlay role="dialog" aria-modal="true" aria-label="Documento de meditación" tabindex="-1">
+            <div class="deepening-document-viewer-overlay${isPdfPreview ? ' is-pdf-preview' : ''}" data-deepening-document-viewer-overlay role="dialog" aria-modal="true" aria-label="${isPdfPreview ? 'Vista previa del PDF' : 'Documento de meditación'}" tabindex="-1">
                 <div class="deepening-document-viewer-topbar">
                     <button class="deepening-document-viewer-close" type="button" data-deepening-document-viewer-close aria-label="Cerrar documento">×</button>
                 </div>
-                <div class="deepening-document-viewer-scroll" data-deepening-document-viewer-scroll></div>
+                <div class="deepening-document-viewer-scroll" data-deepening-document-viewer-scroll>
+                    ${isPdfPreview ? `
+                        <div class="deepening-document-viewer-pdf-frame">
+                            <div class="deepening-document-viewer-loading" data-deepening-document-viewer-loading>Cargando vista previa del PDF...</div>
+                            <iframe class="deepening-document-viewer-pdf" data-deepening-document-viewer-pdf title="Vista previa del PDF de meditación"></iframe>
+                        </div>
+                    ` : ''}
+                </div>
+                ${isPdfPreview ? `
+                    <div class="deepening-document-viewer-actions" data-deepening-document-viewer-actions>
+                        <button class="deepening-document-viewer-share" type="button" data-deepening-document-viewer-share>
+                            <span aria-hidden="true">📤</span>
+                            <span>Compartir PDF</span>
+                        </button>
+                    </div>
+                ` : ''}
             </div>
         `;
     }
@@ -211,11 +231,7 @@
         }
     }
 
-    async function shareMeditationPdf() {
-        const documentModel = getCurrentMeditationDocument();
-        const pdfResult = await createMeditationPdf();
-        if (!pdfResult) return;
-
+    async function sharePdfResult(pdfResult, documentModel) {
         if (!window.ShareService?.sharePdf) {
             showDeepeningMessage('No se pudo compartir el PDF');
             return;
@@ -236,6 +252,13 @@
             if (window.ShareService?.isUserCancellation?.(error)) return;
             showDeepeningMessage('No se pudo compartir el PDF');
         }
+    }
+
+    async function shareMeditationPdf() {
+        const documentModel = getCurrentMeditationDocument();
+        const pdfResult = await createMeditationPdf();
+        if (!pdfResult) return;
+        openPdfDocumentViewer(pdfResult, documentModel);
     }
 
     function getDocumentViewerFocusableElements() {
@@ -296,6 +319,21 @@
         closeDocumentViewer();
     }
 
+    function clearDocumentViewerPdfState() {
+        if (documentViewerShareHandler && documentViewerOverlay) {
+            documentViewerOverlay
+                .querySelector('[data-deepening-document-viewer-share]')
+                ?.removeEventListener('click', documentViewerShareHandler);
+        }
+        documentViewerShareHandler = null;
+        documentViewerPdfResult = null;
+        documentViewerPdfDocument = null;
+        if (documentViewerPdfUrl) {
+            URL.revokeObjectURL(documentViewerPdfUrl);
+            documentViewerPdfUrl = null;
+        }
+    }
+
     function handleDocumentViewerKeydown(event) {
         if (event.key === 'Escape') {
             event.preventDefault();
@@ -335,6 +373,7 @@
         documentViewerOverlay
             .querySelector('[data-deepening-document-viewer-close]')
             ?.removeEventListener('click', handleDocumentViewerCloseClick);
+        clearDocumentViewerPdfState();
         documentViewerOverlay.removeEventListener('keydown', handleDocumentViewerKeydown);
         documentViewerOverlay.remove();
         documentViewerOverlay = null;
@@ -364,6 +403,48 @@
         documentViewerOverlay
             ?.querySelector('[data-deepening-document-viewer-close]')
             ?.addEventListener('click', handleDocumentViewerCloseClick);
+        documentViewerOverlay?.addEventListener('keydown', handleDocumentViewerKeydown);
+        documentViewerOverlay?.focus?.({ preventScroll: true });
+        return documentViewerOverlay;
+    }
+
+    function openPdfDocumentViewer(pdfResult, documentModel) {
+        const targetRoot = getRoot();
+        if (!targetRoot || !pdfResult?.blob || !pdfResult?.fileName) return null;
+        if (!window.URL?.createObjectURL) {
+            showDeepeningMessage('No se pudo preparar la vista previa del PDF');
+            return null;
+        }
+
+        const focusReturnElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        closeDocumentViewer({ restoreFocus: false });
+        documentViewerFocusReturnElement = focusReturnElement;
+        documentViewerPdfResult = pdfResult;
+        documentViewerPdfDocument = documentModel || getCurrentMeditationDocument();
+        documentViewerPdfUrl = URL.createObjectURL(pdfResult.blob);
+
+        targetRoot.insertAdjacentHTML('beforeend', renderDocumentViewerOverlay({ type: 'pdf' }));
+        documentViewerOverlay = targetRoot.querySelector('[data-deepening-document-viewer-overlay]');
+        const pdfPreview = documentViewerOverlay?.querySelector('[data-deepening-document-viewer-pdf]');
+        if (pdfPreview) {
+            pdfPreview.addEventListener('load', () => {
+                const loadingElement = documentViewerOverlay?.querySelector('[data-deepening-document-viewer-loading]');
+                loadingElement?.setAttribute('hidden', '');
+            }, { once: true });
+            pdfPreview.src = documentViewerPdfUrl;
+        }
+
+        documentViewerShareHandler = () => {
+            sharePdfResult(documentViewerPdfResult, documentViewerPdfDocument);
+        };
+
+        isolateDocumentViewerBackground(targetRoot);
+        documentViewerOverlay
+            ?.querySelector('[data-deepening-document-viewer-close]')
+            ?.addEventListener('click', handleDocumentViewerCloseClick);
+        documentViewerOverlay
+            ?.querySelector('[data-deepening-document-viewer-share]')
+            ?.addEventListener('click', documentViewerShareHandler);
         documentViewerOverlay?.addEventListener('keydown', handleDocumentViewerKeydown);
         documentViewerOverlay?.focus?.({ preventScroll: true });
         return documentViewerOverlay;
