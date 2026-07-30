@@ -642,6 +642,7 @@ this.bindStrongNativeLongPress();
 this.bindHeaderControlsToggle();
 this.bindKeyboardViewportFix();
 this.bindBottomNavStateGuard();
+this.installScrollDiagnostics();
 this.setupAndroidBackButton();
 this.setupNativePushActionListeners();
 	this.bindCommunityDraftLifecycle();
@@ -6488,6 +6489,99 @@ closeTransientBibleUI: function() {
         '.bible-picker-sheet, #bible-version-picker-sheet, .bible-reading-settings-panel'
     ).forEach(element => element.remove());
 },
+
+getScrollDiagnosticSnapshot: function(label, extra = {}) {
+    return {
+        label,
+        fromView: this._scrollDiagnosticFromView || null,
+        currentView: this.currentView,
+        hash: window.location.hash,
+        scrollY: window.scrollY || window.pageYOffset || 0,
+        documentElementScrollTop: document.documentElement.scrollTop,
+        bodyScrollTop: document.body.scrollTop,
+        contentScrollTop: this.$content?.scrollTop ?? null,
+        selectedBibleBook: this.selectedBibleBook || null,
+        selectedBibleChapter: this.selectedBibleChapter || null,
+        bibleRestoreScrollPending: this.bibleRestoreScrollPending === true,
+        bibleSuppressScrollSave: this.bibleSuppressScrollSave === true,
+        bibleLastLocation: this.getBibleLastLocation?.() || null,
+        calendarScrollTop: this.calendarScrollTop,
+        calendarInitialized: this.calendarInitialized === true,
+        timestamp: Math.round(performance.now() * 100) / 100,
+        ...extra
+    };
+},
+
+logScrollDiagnostic: function(label, extra = {}) {
+    const payload = this.getScrollDiagnosticSnapshot(label, extra);
+    console.log('[ScrollTrace]\n' + JSON.stringify(payload, null, 2));
+},
+
+installScrollDiagnostics: function() {
+    if (this._scrollDiagnosticsInstalled) return;
+    this._scrollDiagnosticsInstalled = true;
+
+    const app = this;
+    const originalWindowScrollTo = window.scrollTo.bind(window);
+    const originalWindowScrollBy = window.scrollBy.bind(window);
+    const originalScrollIntoView = Element.prototype.scrollIntoView;
+    const originalElementScroll = Element.prototype.scroll;
+
+    const describeTarget = (target) => {
+        if (!target) return null;
+        if (target === window) return 'window';
+        if (target === document) return 'document';
+        if (target === document.documentElement) return 'html';
+        if (target === document.body) return 'body';
+        const tag = target.tagName ? target.tagName.toLowerCase() : 'unknown';
+        const id = target.id ? `#${target.id}` : '';
+        const classes = target.classList?.length
+            ? `.${Array.from(target.classList).slice(0, 4).join('.')}`
+            : '';
+        return `${tag}${id}${classes}`;
+    };
+
+    const normalizeScrollArgs = (args) => {
+        const first = args[0];
+        if (first && typeof first === 'object') return { ...first };
+        return {
+            left: first,
+            top: args[1]
+        };
+    };
+
+    const logMove = (kind, target, args) => {
+        const options = normalizeScrollArgs(args);
+        app.logScrollDiagnostic(kind, {
+            target: describeTarget(target),
+            args: options,
+            stack: new Error().stack
+                ?.split('\n')
+                .slice(2, 10)
+                .map(line => line.trim()) || []
+        });
+    };
+
+    window.scrollTo = function(...args) {
+        logMove('window.scrollTo', window, args);
+        return originalWindowScrollTo(...args);
+    };
+
+    window.scrollBy = function(...args) {
+        logMove('window.scrollBy', window, args);
+        return originalWindowScrollBy(...args);
+    };
+
+    Element.prototype.scrollIntoView = function(...args) {
+        logMove('Element.scrollIntoView', this, args);
+        return originalScrollIntoView.apply(this, args);
+    };
+
+    Element.prototype.scroll = function(...args) {
+        logMove('Element.scroll', this, args);
+        return originalElementScroll.apply(this, args);
+    };
+},
     
     navigate: function(view, param = null) {
         let path = `#${view}`;
@@ -6504,17 +6598,24 @@ closeTransientBibleUI: function() {
     const view = parts[0];
     const param = parts[1] || null;
     const oldView = this.currentView;
-
-    this.closeTransientBibleUI();
+    this._scrollDiagnosticFromView = oldView;
+    this.logScrollDiagnostic('handleRoute:start', { toView: view, param });
 
     if (oldView === 'home' && view !== 'home') {
         this.stopDailyReadingVoice(true);
     }
 
     if (oldView === 'bible-reading' && view !== 'bible-reading') {
+        if (this._bibleScrollSaveTimer) {
+            clearTimeout(this._bibleScrollSaveTimer);
+            this._bibleScrollSaveTimer = null;
+        }
         this.saveBibleReadingScrollPosition();
+        this.bibleSuppressScrollSave = true;
         this.stopBibleChapterVoice(true);
     }
+
+    this.closeTransientBibleUI();
 
     // ✅ GUARDAR SCROLL AL SALIR DE COMUNIDAD
     if (this.currentView === 'community' && view !== 'community') {
@@ -6534,6 +6635,7 @@ if (view !== 'settings' && oldView !== 'settings') {
 
 this.currentView = view;
 this.updateNavUI();
+this.logScrollDiagnostic('handleRoute:after-currentView-set', { oldView, toView: view });
     
     document.querySelectorAll('.version-btn').forEach(btn => {
         const isActive = btn.getAttribute('data-version') === this.currentVersion;
@@ -6550,13 +6652,18 @@ this.updateNavUI();
         this.homeViewingDate = this.getTodayDateStr();
     }
     await this.renderHome();
-	} else if (view === 'bible') {
-	    if (this.shouldAutoRestoreBibleReading(oldView) && this.restoreBibleLastLocation()) {
-	        this.currentView = 'bible-reading';
-	        this.bibleRestoreScrollPending = true;
-            this.bibleSuppressScrollSave = true;
-	        this.updateNavUI();
-	        await this.renderBibleReading();
+		} else if (view === 'bible') {
+		    if (this.shouldAutoRestoreBibleReading(oldView) && this.restoreBibleLastLocation()) {
+		        if (oldView === 'calendar') {
+		            document.documentElement.classList.add('no-smooth-scroll');
+		            document.body.classList.add('no-smooth-scroll');
+		            this.bibleNoSmoothRestoreFromCalendar = true;
+		        }
+		        this.currentView = 'bible-reading';
+		        this.bibleRestoreScrollPending = true;
+	            this.bibleSuppressScrollSave = true;
+		        this.updateNavUI();
+		        await this.renderBibleReading();
 	    } else {
 	        this.renderBible();
 	    }
@@ -6607,7 +6714,7 @@ this.updateNavUI();
     await this.renderCommunity({
         targetPostId: notificationPostId,
         highlightTarget: Boolean(notificationPostId),
-        restoreSavedScroll: !notificationPostId
+        resetScrollTop: oldView !== 'community' && !notificationPostId
     });
     await this.markCommunityAsSeen();
 } else if (view === 'stats') {
@@ -6631,6 +6738,7 @@ this.updateNavUI();
 }
 
 this.scheduleBottomNavStateCheck();
+this.logScrollDiagnostic('handleRoute:end', { oldView, toView: view });
 },
     
 updateNavUI: function() {
@@ -7872,6 +7980,7 @@ this.rerenderCurrentReadingView(dateStr, true);
 scrollWindowInstantly: function(top = 0) {
     const html = document.documentElement;
     const targetTop = Math.max(0, top);
+    this.logScrollDiagnostic('scrollWindowInstantly:start', { targetTop });
 
     html.classList.add('no-smooth-scroll');
     document.body.classList.add('no-smooth-scroll');
@@ -7903,9 +8012,15 @@ resetReadingScrollPosition: function() {
 
     saveCalendarScroll: function() {
     this.calendarScrollTop = window.scrollY || window.pageYOffset || 0;
+    this.logScrollDiagnostic('saveCalendarScroll', {
+        savedCalendarScrollTop: this.calendarScrollTop
+    });
 },
 
 restoreCalendarPosition: function() {
+    this.logScrollDiagnostic('restoreCalendarPosition:called');
+    if (this.currentView !== 'calendar') return;
+
     const calendarCards = Array.from(this.$content.querySelectorAll('.calendar-day[data-calendar-date]'));
     if (!calendarCards.length) return;
 
@@ -7922,11 +8037,15 @@ restoreCalendarPosition: function() {
         }, calendarCards[0]);
 
     if (this.calendarInitialized) {
+        this.logScrollDiagnostic('restoreCalendarPosition:initialized-scroll', {
+            targetTop: this.calendarScrollTop || 0
+        });
         this.scrollWindowInstantly(this.calendarScrollTop || 0);
         return;
     }
 
     const top = targetCard.getBoundingClientRect().top + window.scrollY - 130;
+    this.logScrollDiagnostic('restoreCalendarPosition:first-scroll', { targetTop: top });
     this.scrollWindowInstantly(top);
 
     this.calendarInitialized = true;
@@ -8916,6 +9035,11 @@ navigateToVerse: function(apiBookId, chapter, verse) {
 },
 
 scrollToTargetVerse: function() {
+    this.logScrollDiagnostic('scrollToTargetVerse:called', {
+        targetVerse: this.targetVerse,
+        targetVerseStart: this.targetVerseStart,
+        targetVerseEnd: this.targetVerseEnd
+    });
     let start = this.targetVerseStart || this.targetVerse;
     let end = this.targetVerseEnd || this.targetVerse;
 
@@ -9123,33 +9247,45 @@ shouldAutoRestoreBibleReading: function(oldView) {
     return oldView !== 'bible-reading' && Boolean(this.getBibleLastLocation());
 },
 
-restoreBibleReadingScrollPosition: function() {
-    const location = this.getBibleLastLocation();
+	restoreBibleReadingScrollPosition: function() {
+	    this.logScrollDiagnostic('restoreBibleReadingScrollPosition:called');
+	    const location = this.getBibleLastLocation();
+	    const releaseCalendarNoSmooth = () => {
+	        if (!this.bibleNoSmoothRestoreFromCalendar) return;
+	        this.bibleNoSmoothRestoreFromCalendar = false;
+	        document.documentElement.classList.remove('no-smooth-scroll');
+	        document.body.classList.remove('no-smooth-scroll');
+	    };
 
-    if (
-        !location ||
-        location.bookId !== this.selectedBibleBook ||
-        Number(location.chapter) !== Number(this.selectedBibleChapter) ||
-        String(location.versionId || RV1909_VERSION_ID) !== String(this.currentBibleVersion || RV1909_VERSION_ID)
-    ) {
-        this.bibleSuppressScrollSave = false;
-        return;
-    }
+	    if (
+	        !location ||
+	        location.bookId !== this.selectedBibleBook ||
+	        Number(location.chapter) !== Number(this.selectedBibleChapter) ||
+	        String(location.versionId || RV1909_VERSION_ID) !== String(this.currentBibleVersion || RV1909_VERSION_ID)
+	    ) {
+	        this.bibleSuppressScrollSave = false;
+	        releaseCalendarNoSmooth();
+	        return;
+	    }
 
     const scrollY = Math.max(0, Number(location.scrollY) || 0);
+    this.logScrollDiagnostic('restoreBibleReadingScrollPosition:target', { targetTop: scrollY });
 
     this.bibleSuppressScrollSave = true;
     requestAnimationFrame(() => {
+        this.logScrollDiagnostic('restoreBibleReadingScrollPosition:first-frame', { targetTop: scrollY });
         window.scrollTo({ top: scrollY, behavior: 'auto' });
         requestAnimationFrame(() => {
-            window.scrollTo({ top: scrollY, behavior: 'auto' });
-            setTimeout(() => {
-                this.bibleSuppressScrollSave = false;
-                this.saveBibleReadingScrollPosition();
-            }, 120);
-        });
-    });
-},
+            this.logScrollDiagnostic('restoreBibleReadingScrollPosition:second-frame', { targetTop: scrollY });
+	            window.scrollTo({ top: scrollY, behavior: 'auto' });
+	            setTimeout(() => {
+	                this.bibleSuppressScrollSave = false;
+	                this.saveBibleReadingScrollPosition();
+	                releaseCalendarNoSmooth();
+	            }, 120);
+	        });
+	    });
+	},
 
 renderBible: function() {
     const book = this.selectedBibleBook
@@ -10784,8 +10920,10 @@ renderCalendarBookSection: function(group, readDateSet, todayStr) {
     this.$content.innerHTML = html;
 
     requestAnimationFrame(() => {
-    this.restoreCalendarPosition();
-});
+        if (this.currentView === 'calendar') {
+            this.restoreCalendarPosition();
+        }
+    });
 },
 
 renderCommunityLoadError: function(error) {
@@ -11211,6 +11349,9 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
         this.communityTargetReplyId = null;
     } else if (viewportAnchor) {
         this.restoreCommunityViewportAnchor(viewportAnchor);
+    } else if (options.resetScrollTop === true) {
+        this.communityScrollTop = 0;
+        this.scrollWindowInstantly(0);
     } else if (options.restoreSavedScroll === true) {
         this.restoreCommunityScrollPosition();
     }
