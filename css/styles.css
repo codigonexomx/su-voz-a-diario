@@ -4064,12 +4064,9 @@ body.dark-mode .community-empty-icon {
     display: flex;
     flex-direction: column;
     gap: 14px;
-    max-width: 1040px;
+    width: 100%;
+    max-width: 100%;
     margin-inline: auto;
-}
-
-.container:has(.stats-container) {
-    max-width: 1080px;
 }
 
 .stats-hero-card,
