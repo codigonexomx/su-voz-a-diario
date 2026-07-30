@@ -6,7 +6,7 @@
     const STEPS = [
         {
             id: 'god',
-            label: '¿Como es Dios?',
+            label: 'Cómo es Dios',
             intro: 'Mira primero a Dios antes de mirarte a ti.',
             questions: [
                 '¿Qué revela este pasaje acerca de Dios?',
@@ -26,7 +26,7 @@
         },
         {
             id: 'application',
-            label: 'Aplicacion',
+            label: 'Aplicación',
             intro: 'Deja que la Palabra ilumine tu vida de hoy.',
             questions: [
                 '¿Cómo se relaciona este pasaje con tu vida actual?',
@@ -36,7 +36,7 @@
         },
         {
             id: 'prayer',
-            label: 'Oracion',
+            label: 'Oración',
             intro: 'Responde a Dios desde lo que has visto en su Palabra.',
             questions: [
                 '¿Qué puedes agradecerle a Dios?',
@@ -188,7 +188,7 @@
 
         function renderDefaultContent() {
             return `
-                <nav class="deepening-step-list" aria-label="Pasos de meditacion">
+                <nav class="deepening-step-list" aria-label="Pasos de meditación">
                     ${STEPS.map((step, index) => `
                         <button
                             class="deepening-step${step.id === activeStepId ? ' is-active' : ''}"
@@ -221,15 +221,15 @@
                     contenteditable="true"
                     aria-multiline="true"
                     data-deepening-editor
-                    data-placeholder="Escribe despacio. Una frase honesta es suficiente."
-                    aria-label="Respuesta de meditacion: ${escapeHtml(STEPS.find(step => step.id === activeStepId)?.label || STEPS[0].label)}"
+                    data-placeholder="Escribe aquí"
+                    aria-label="Respuesta de meditación: ${escapeHtml(STEPS.find(step => step.id === activeStepId)?.label || STEPS[0].label)}"
                 >${editorHtml(currentNote[getStepField(activeStepId)])}</div>
             `;
         }
 
         function render() {
             return `
-                <section class="deepening-meditation-panel deepening-meditation-document" aria-label="Cuaderno de meditacion" data-deepening-meditation-document>
+                <section class="deepening-meditation-panel deepening-meditation-document" aria-label="Cuaderno de meditación" data-deepening-meditation-document>
                     <header class="deepening-meditation-header">
                         <div class="deepening-meditation-grabber" aria-hidden="true"></div>
                         <div class="deepening-meditation-title">Medita la Palabra</div>
@@ -425,7 +425,7 @@
 
             if (editor) {
                 const activeStep = STEPS.find(step => step.id === activeStepId) || STEPS[0];
-                editor.setAttribute('aria-label', `Respuesta de meditacion: ${activeStep.label}`);
+                editor.setAttribute('aria-label', `Respuesta de meditación: ${activeStep.label}`);
                 editor.innerHTML = editorHtml(currentNote[getStepField(activeStepId)]);
                 if (wasEditorActive) {
                     const selection = window.getSelection?.();

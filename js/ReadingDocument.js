@@ -95,7 +95,7 @@
             const reference = escapeHtml(reading.reference || '');
 
             return `
-                <section class="deepening-bible-panel deepening-reading-document" aria-label="Lectura biblica en modo Profundizar" data-deepening-reading-document>
+                <section class="deepening-bible-panel deepening-reading-document" aria-label="Lectura bíblica en modo Profundizar" data-deepening-reading-document>
                     <div class="deepening-reading-toolbar">
                         <div class="deepening-reading-toolbar-main">
                             ${reference ? `<div class="deepening-reading-reference">${reference}</div>` : ''}

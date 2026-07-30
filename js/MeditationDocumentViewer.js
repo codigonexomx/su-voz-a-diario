@@ -4,7 +4,7 @@
  */
 (function() {
     const SECTION_LABELS = {
-        dios: 'Cómo es Dios',
+        dios: '¿Cómo es Dios?',
         aprendizaje: 'Enseñanza',
         respuesta: 'Aplicación',
         oracion: 'Oración'
