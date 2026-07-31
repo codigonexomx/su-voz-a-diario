@@ -3315,6 +3315,7 @@ syncAppBadge: function(count) {
             if (session) {
                 session.notes = noteObj;
                 session.updatedAt = Date.now();
+                this.attachMeditationMetadataSync(session);
                 MeditationSessionStorage.save(session);
             }
         }
@@ -3553,6 +3554,7 @@ syncAppBadge: function(count) {
                         references: refs
                     };
                     
+                    this.attachMeditationMetadataSync(session);
                     MeditationSessionStorage.save(session);
                     MeditationSessionUIStateStorage.save(sessionId, uiState);
                     console.log(`[App] Migrada sesión: ${dateStr} -> ${sessionId}`);
@@ -3578,6 +3580,10 @@ syncAppBadge: function(count) {
             } else {
                 this.sessionOverrideBibleVersion = null;
             }
+
+            this.resolveMeditationMetadata(session, { persist: true }).catch(error => {
+                console.warn('[MeditationMetadata] No se pudo normalizar la meditación abierta:', error);
+            });
         }
         this.activeNoteField = null;
     },
@@ -3630,6 +3636,7 @@ syncAppBadge: function(count) {
                 notes: { dios: '', aprendizaje: '', respuesta: '', oracion: '' },
                 references: {}
             };
+            this.attachMeditationMetadataSync(session);
             MeditationSessionStorage.save(session);
             MeditationSessionUIStateStorage.save(newId, { pinnedReferences: {} });
             this.openMeditationSession(newId);
@@ -3755,6 +3762,7 @@ syncAppBadge: function(count) {
             if (session) {
                 session.status = 'archived';
                 session.updatedAt = Date.now();
+                this.attachMeditationMetadataSync(session);
                 MeditationSessionStorage.save(session);
                 
                 this.openNoteDate = null;
@@ -14654,6 +14662,12 @@ if (pdfBtn) {
 	    }
 
 	    const reading = await this.getReadingByDate(date);
+	    if (this.currentMeditationSessionId) {
+	        const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
+	        if (session) {
+	            await this.resolveMeditationMetadata(session, { persist: true, reading });
+	        }
+	    }
 	    this.openDeepeningShell(reading);
 	    return;
 	}
@@ -14665,6 +14679,7 @@ if (completeSessionBtn) {
             session.status = 'completed';
             session.completedAt = Date.now();
             session.updatedAt = Date.now();
+            this.attachMeditationMetadataSync(session);
             MeditationSessionStorage.save(session);
             this.showToast('Meditación marcada como completada');
             if (completeSessionBtn.closest('.sliding-notebook-panel')) {
@@ -15230,6 +15245,132 @@ document.addEventListener('keydown', (e) => {
             .replace(/(\d)-(\d)/g, '$1–$2');
     },
 
+    normalizeMeditationMetadata: function(metadata = {}) {
+        const normalized = {};
+        const stringFields = ['bookId', 'bookName', 'translation', 'readingId'];
+        stringFields.forEach(field => {
+            const value = String(metadata?.[field] || '').trim();
+            if (value) normalized[field] = value;
+        });
+
+        const numberFields = ['chapter', 'startVerse', 'endVerse', 'createdAt', 'updatedAt'];
+        numberFields.forEach(field => {
+            const value = Number(metadata?.[field]);
+            if (Number.isFinite(value) && value > 0) normalized[field] = value;
+        });
+
+        return normalized;
+    },
+
+    parseReferenceRange: function(reference) {
+        const text = String(reference || '').trim();
+        if (!text) return {};
+
+        const chapterMatch = text.match(/(\d+)\s*:\s*(\d+)(?:\s*[-–]\s*(\d+))?/);
+        if (chapterMatch) {
+            const chapter = Number(chapterMatch[1]);
+            const startVerse = Number(chapterMatch[2]);
+            const endVerse = Number(chapterMatch[3] || chapterMatch[2]);
+
+            return {
+                ...(Number.isFinite(chapter) ? { chapter } : {}),
+                ...(Number.isFinite(startVerse) ? { startVerse } : {}),
+                ...(Number.isFinite(endVerse) ? { endVerse } : {})
+            };
+        }
+
+        const simpleChapterMatch = text.match(/\b(\d+)\b/);
+        const chapter = Number(simpleChapterMatch?.[1]);
+        return Number.isFinite(chapter) ? { chapter } : {};
+    },
+
+    buildMeditationMetadataCandidate: function(session = {}, reading = null) {
+        const existing = this.normalizeMeditationMetadata(session.metadata);
+        const metadata = { ...existing };
+
+        const readingId = String(session.readingId || reading?.date || existing.readingId || '').trim();
+        if (readingId) metadata.readingId = readingId;
+
+        const translation = String(session.bibleVersion || existing.translation || '').trim().toLowerCase();
+        if (translation) metadata.translation = translation;
+
+        const createdAt = Number(session.createdAt || existing.createdAt);
+        if (Number.isFinite(createdAt) && createdAt > 0) metadata.createdAt = createdAt;
+
+        const updatedAt = Number(session.updatedAt || existing.updatedAt || session.createdAt || existing.createdAt);
+        if (Number.isFinite(updatedAt) && updatedAt > 0) metadata.updatedAt = updatedAt;
+
+        const sessionBookId = this.normalizeMeditationBookId(session.bookId || existing.bookId);
+        const readingBookId = this.normalizeMeditationBookId(reading?.bookId);
+        const book = this.bibleBooks.find(item => item.id === sessionBookId)
+            || this.bibleBooks.find(item => item.id === readingBookId)
+            || (reading?.reference ? (() => {
+                const derived = findBookByReference(reading.reference, this.bibleBooks);
+                return derived ? { id: derived.id, name: derived.nombre } : null;
+            })() : null);
+
+        if (book?.id) metadata.bookId = book.id;
+        if (book?.name) metadata.bookName = book.name;
+
+        const parsedRange = this.parseReferenceRange(reading?.reference);
+        const chapter = Number(session.chapter || existing.chapter || reading?.chapter || parsedRange.chapter);
+        if (Number.isFinite(chapter) && chapter > 0) metadata.chapter = chapter;
+
+        const startVerse = Number(session.verseStart || existing.startVerse || reading?.verse || reading?.verseStart || parsedRange.startVerse);
+        if (Number.isFinite(startVerse) && startVerse > 0) metadata.startVerse = startVerse;
+
+        const endVerse = Number(session.verseEnd || existing.endVerse || reading?.verseEnd || parsedRange.endVerse);
+        if (Number.isFinite(endVerse) && endVerse > 0) metadata.endVerse = endVerse;
+
+        return metadata;
+    },
+
+    hasCompleteMeditationMetadata: function(session = {}) {
+        const metadata = this.normalizeMeditationMetadata(session.metadata);
+        return Boolean(
+            metadata.readingId &&
+            metadata.translation &&
+            metadata.createdAt &&
+            metadata.updatedAt &&
+            metadata.bookId &&
+            metadata.bookName &&
+            metadata.chapter
+        );
+    },
+
+    metadataEqual: function(a = {}, b = {}) {
+        return JSON.stringify(this.normalizeMeditationMetadata(a)) === JSON.stringify(this.normalizeMeditationMetadata(b));
+    },
+
+    resolveMeditationMetadata: async function(session, options = {}) {
+        const { persist = false, reading = null } = options;
+        if (!session) return {};
+
+        let sourceReading = reading;
+        if (!sourceReading && !this.hasCompleteMeditationMetadata(session)) {
+            const readingId = session.metadata?.readingId || session.readingId;
+            sourceReading = await this.getMeditationReading(readingId);
+        }
+
+        const metadata = this.buildMeditationMetadataCandidate(session, sourceReading);
+        if (persist && !this.metadataEqual(session.metadata, metadata)) {
+            session.metadata = metadata;
+            MeditationSessionStorage.save(session);
+        }
+
+        return metadata;
+    },
+
+    resolveMeditationMetadataSync: function(session, reading = null) {
+        return this.buildMeditationMetadataCandidate(session, reading);
+    },
+
+    attachMeditationMetadataSync: function(session, reading = null) {
+        if (!session) return session;
+        session.metadata = this.resolveMeditationMetadataSync(session, reading);
+        return session;
+    },
+
     normalizeMeditationBookId: function(bookId) {
         const normalized = String(bookId || '').trim().toLowerCase();
         const aliases = {
@@ -15277,19 +15418,6 @@ document.addEventListener('keydown', (e) => {
         return aliases[normalized] || normalized;
     },
 
-    getBookFromMeditationData: function(session = {}, reading = null) {
-        const sessionBookId = this.normalizeMeditationBookId(session.bookId);
-        const readingBookId = this.normalizeMeditationBookId(reading?.bookId);
-        const directBook = this.bibleBooks.find(book => book.id === sessionBookId);
-        if (directBook) return directBook;
-        if (readingBookId) {
-            const readingBook = this.bibleBooks.find(book => book.id === readingBookId);
-            if (readingBook) return readingBook;
-        }
-        const derived = findBookByReference(reading?.reference || '', this.bibleBooks);
-        return derived ? { id: derived.id, name: derived.nombre, chapters: derived.capitulosTotales } : null;
-    },
-
     getMeditationReading: async function(readingId) {
         const key = String(readingId || '');
         if (!key) return null;
@@ -15307,22 +15435,24 @@ document.addEventListener('keydown', (e) => {
             : MeditationSessionStorage.get(sessionOrEntry?.id);
         if (!session) return null;
 
+        const metadata = await this.resolveMeditationMetadata(session, { persist: true });
         const excerpt = this.getMeditationExcerpt(session.notes);
         const hasContent = Boolean(excerpt);
-        const reading = await this.getMeditationReading(session.readingId);
-        const book = this.getBookFromMeditationData(session, reading);
-        const chapter = Number(session.chapter || reading?.chapter || getChapterFromReading(reading)) || null;
-        const verseStart = Number(session.verseStart || reading?.verse || reading?.verseStart) || null;
-        const verseEnd = Number(session.verseEnd || reading?.verseEnd) || null;
+        const book = metadata.bookName
+            ? { id: metadata.bookId || '', name: metadata.bookName, chapters: 0 }
+            : null;
+        const chapter = Number(metadata.chapter) || null;
+        const verseStart = Number(metadata.startVerse) || null;
+        const verseEnd = Number(metadata.endVerse) || null;
         const hasDirectReference = Boolean(book && chapter);
-        const version = this.getReliableMeditationVersion(session.bibleVersion);
+        const version = this.getReliableMeditationVersion(metadata.translation || session.bibleVersion);
         const status = this.getMeditationStatusMeta(session.status);
-        const readingDate = /^\d{4}-\d{2}-\d{2}$/.test(String(session.readingId || ''))
-            ? session.readingId
-            : reading?.date || '';
+        const readingDate = /^\d{4}-\d{2}-\d{2}$/.test(String(metadata.readingId || session.readingId || ''))
+            ? (metadata.readingId || session.readingId)
+            : '';
         const reference = hasDirectReference
             ? this.formatLibraryReference(`${book.name} ${chapter}${verseStart ? `:${verseStart}${verseEnd && verseEnd !== verseStart ? `–${verseEnd}` : ''}` : ''}`)
-            : this.formatLibraryReference(reading?.reference || 'Meditación del día');
+            : 'Meditación del día';
 
         return {
             id: session.id,
@@ -15330,8 +15460,8 @@ document.addEventListener('keydown', (e) => {
             reference,
             readingDate,
             readingDateLabel: this.formatLibraryDate(readingDate) || 'Fecha no disponible',
-            updatedAt: Number(session.updatedAt || session.createdAt || 0),
-            createdAt: Number(session.createdAt || 0),
+            updatedAt: Number(metadata.updatedAt || session.updatedAt || session.createdAt || 0),
+            createdAt: Number(metadata.createdAt || session.createdAt || 0),
             completedAt: Number(session.completedAt || 0),
             versionId: version.id,
             versionLabel: version.label,
@@ -15696,6 +15826,7 @@ document.addEventListener('keydown', (e) => {
             return;
         }
 
+        await this.resolveMeditationMetadata(session, { persist: true, reading });
         this.libraryEditorSessionId = sessionId;
         document.body.classList.add('meditation-library-editor-open');
         this.openSlidingNotebook(reading);
@@ -15748,6 +15879,7 @@ document.addEventListener('keydown', (e) => {
 
         session.status = 'archived';
         session.updatedAt = Date.now();
+        this.attachMeditationMetadataSync(session);
         MeditationSessionStorage.save(session);
         this.showToast('Meditación archivada');
         history.pushState(null, '', '#meditations-history');
@@ -15760,6 +15892,7 @@ document.addEventListener('keydown', (e) => {
 
         session.status = session.completedAt ? 'completed' : 'draft';
         session.updatedAt = Date.now();
+        this.attachMeditationMetadataSync(session);
         MeditationSessionStorage.save(session);
         this.showToast('Meditación restaurada');
         history.pushState(null, '', '#meditations-history');
@@ -16069,6 +16202,7 @@ App.saveDevotionalReferences = function(dateStr) {
     if (session) {
         session.references = this.devotionalReferences;
         session.updatedAt = Date.now();
+        this.attachMeditationMetadataSync(session);
         MeditationSessionStorage.save(session);
     }
 };

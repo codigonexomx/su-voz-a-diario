@@ -100,6 +100,7 @@ export const MeditationLibrary = {
             completedAt: session.completedAt,
             title: session.title,
             snippet: this.generateSnippet(session),
+            metadata: session.metadata || null,
             searchText: searchText
         };
 

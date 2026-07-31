@@ -50,7 +50,8 @@ export const MeditationSessionStorage = {
             bookId: session.bookId,
             chapter: session.chapter,
             verseStart: session.verseStart,
-            verseEnd: session.verseEnd
+            verseEnd: session.verseEnd,
+            metadata: session.metadata || null
         };
         
         if (existingIdx >= 0) {
