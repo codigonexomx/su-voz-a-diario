@@ -15211,17 +15211,78 @@ document.addEventListener('keydown', (e) => {
         return String(value || '')
             .replace(/<[^>]*>/g, ' ')
             .replace(/&nbsp;/gi, ' ')
+            .replace(/[ \t]*[\r\n]+[ \t]*/g, ' ')
+            .replace(/\s+([,.;:!?])/g, '$1')
             .replace(/\s+/g, ' ')
             .trim();
     },
 
-    getMeditationExcerpt: function(notes = {}) {
-        const fields = ['dios', 'aprendizaje', 'respuesta', 'oracion'];
-        for (const field of fields) {
-            const text = this.cleanMeditationText(notes[field]);
-            if (text) return text;
+    getMeditationNoteFields: function(notes = {}) {
+        return ['dios', 'aprendizaje', 'respuesta', 'oracion']
+            .map(field => this.cleanMeditationText(notes[field]))
+            .filter(Boolean);
+    },
+
+    polishMeditationExcerpt: function(text, maxLength = 230) {
+        const clean = this.cleanMeditationText(text)
+            .replace(/^[“"'\s]+|[”"'\s]+$/g, '')
+            .replace(/\s*[-–—]\s*$/g, '')
+            .trim();
+
+        if (clean.length <= maxLength) return clean;
+
+        const sentenceEnd = Math.max(
+            clean.lastIndexOf('.', maxLength),
+            clean.lastIndexOf('?', maxLength),
+            clean.lastIndexOf('!', maxLength)
+        );
+
+        if (sentenceEnd >= Math.floor(maxLength * 0.58)) {
+            return clean.slice(0, sentenceEnd + 1).trim();
         }
-        return '';
+
+        const softBreak = Math.max(
+            clean.lastIndexOf(';', maxLength),
+            clean.lastIndexOf(',', maxLength)
+        );
+        const wordBreak = clean.lastIndexOf(' ', maxLength);
+        const cutAt = softBreak >= Math.floor(maxLength * 0.7) ? softBreak : wordBreak;
+        const excerpt = clean.slice(0, cutAt > 0 ? cutAt : maxLength)
+            .replace(/[,\s;:]+$/g, '')
+            .trim();
+
+        return excerpt ? `${excerpt}...` : '';
+    },
+
+    getMeditationExcerpt: function(notes = {}) {
+        return this.polishMeditationExcerpt(this.getMeditationNoteFields(notes)[0] || '');
+    },
+
+    getMeditationWordCount: function(notes = {}) {
+        return this.getMeditationNoteFields(notes)
+            .join(' ')
+            .split(/\s+/)
+            .filter(word => /[\p{L}\p{N}]/u.test(word))
+            .length;
+    },
+
+    getMeditationReadingTimeLabel: function(wordCount) {
+        if (!wordCount) return '';
+        const minutes = Math.max(1, Math.ceil(wordCount / 180));
+        return `${minutes} min de lectura`;
+    },
+
+    formatMeditationTimestamp: function(timestamp) {
+        const value = Number(timestamp || 0);
+        if (!Number.isFinite(value) || value <= 0) return '';
+        const normalized = value < 10000000000 ? value * 1000 : value;
+        const date = new Date(normalized);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleDateString('es-MX', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
     },
 
     formatLibraryDate: function(dateStr, options = { day: 'numeric', month: 'long', year: 'numeric' }) {
@@ -15239,9 +15300,14 @@ document.addEventListener('keydown', (e) => {
     },
 
     formatLibraryReference: function(reference) {
-        const clean = String(reference || '').replace(/\s+/g, ' ').trim();
+        const clean = String(reference || '')
+            .replace(/\s+/g, ' ')
+            .replace(/\s*:\s*/g, ':')
+            .replace(/\s*[-–]\s*/g, '–')
+            .trim();
         return clean
             .replace(/^Salmos\b/i, 'Salmo')
+            .replace(/\b(\d+):(\d+)–\1:(\d+)\b/g, '$1:$2–$3')
             .replace(/(\d)-(\d)/g, '$1–$2');
     },
 
@@ -15447,6 +15513,7 @@ document.addEventListener('keydown', (e) => {
         const hasDirectReference = Boolean(book && chapter);
         const version = this.getReliableMeditationVersion(metadata.translation || session.bibleVersion);
         const status = this.getMeditationStatusMeta(session.status);
+        const wordCount = this.getMeditationWordCount(session.notes);
         const readingDate = /^\d{4}-\d{2}-\d{2}$/.test(String(metadata.readingId || session.readingId || ''))
             ? (metadata.readingId || session.readingId)
             : '';
@@ -15468,6 +15535,11 @@ document.addEventListener('keydown', (e) => {
             statusId: status.id,
             statusLabel: status.label,
             excerpt,
+            wordCount,
+            wordCountLabel: wordCount ? `${wordCount} palabra${wordCount === 1 ? '' : 's'}` : '',
+            readingTimeLabel: this.getMeditationReadingTimeLabel(wordCount),
+            createdAtLabel: this.formatMeditationTimestamp(metadata.createdAt || session.createdAt),
+            updatedAtLabel: this.formatMeditationTimestamp(metadata.updatedAt || session.updatedAt || session.createdAt),
             hasContent,
             bookId: book?.id || '',
             bookName: book?.name || '',
@@ -15489,6 +15561,18 @@ document.addEventListener('keydown', (e) => {
                 book?.name
             ].filter(Boolean).join(' '))
         };
+    },
+
+    getMeditationDetailFacts: function(model) {
+        const facts = [];
+        if (model.createdAtLabel) facts.push(`Creada el ${model.createdAtLabel}`);
+        if (model.updatedAtLabel && model.updatedAtLabel !== model.createdAtLabel) {
+            facts.push(`Editada el ${model.updatedAtLabel}`);
+        }
+        if (model.versionLabel) facts.push(model.versionLabel);
+        if (model.wordCountLabel) facts.push(model.wordCountLabel);
+        if (model.readingTimeLabel) facts.push(model.readingTimeLabel);
+        return facts;
     },
 
     normalizeLibrarySearchText: function(value) {
@@ -15775,6 +15859,7 @@ document.addEventListener('keydown', (e) => {
         const model = await this.getMeditationDisplayModel(session);
         const actionLabel = model.statusId === 'archived' ? 'Restaurar' : 'Archivar';
         const actionName = model.statusId === 'archived' ? 'restore-library-meditation' : 'archive-library-meditation';
+        const detailFacts = this.getMeditationDetailFacts(model);
         const sectionsHtml = model.hasContent
             ? this.renderMeditationDetailSections(model)
             : `
@@ -15794,20 +15879,26 @@ document.addEventListener('keydown', (e) => {
                         <h2 id="meditation-detail-title">${this.escapeHtml(model.reference)}</h2>
                         <div class="meditation-detail-meta">
                             <span>${this.escapeHtml(model.readingDateLabel)}</span>
-                            ${model.versionLabel ? `<span>${this.escapeHtml(model.versionLabel)}</span>` : ''}
                             <span class="meditation-library-card-status" data-status="${this.escapeHtml(model.statusId)}">${this.escapeHtml(model.statusLabel)}</span>
                         </div>
-                    </div>
-                    <div class="meditation-detail-actions" aria-label="Acciones de meditación">
-                        <button type="button" data-action="edit-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Editar</button>
-                        <button type="button" data-action="share-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Compartir</button>
-                        <button type="button" data-action="${actionName}" data-session-id="${this.escapeHtml(model.id)}">${actionLabel}</button>
                     </div>
                 </header>
 
                 <div class="meditation-detail-paper">
                     ${sectionsHtml}
                 </div>
+
+                ${detailFacts.length ? `
+                    <ul class="meditation-detail-facts" aria-label="Información de la meditación">
+                        ${detailFacts.map(fact => `<li>${this.escapeHtml(fact)}</li>`).join('')}
+                    </ul>
+                ` : ''}
+
+                <footer class="meditation-detail-actions" aria-label="Acciones de meditación">
+                    <button type="button" data-action="edit-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Editar</button>
+                    <button type="button" data-action="share-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Compartir</button>
+                    <button type="button" data-action="${actionName}" data-session-id="${this.escapeHtml(model.id)}">${actionLabel}</button>
+                </footer>
             </article>
         `;
     },
