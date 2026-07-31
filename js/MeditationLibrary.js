@@ -91,6 +91,7 @@ export const MeditationLibrary = {
             id: session.id,
             readingId: session.readingId,
             status: session.status,
+            favorite: session.favorite === true,
             bibleVersion: session.bibleVersion,
             bookId: session.bookId,
             chapter: session.chapter,
@@ -119,10 +120,15 @@ export const MeditationLibrary = {
     filter: function(results, filters) {
         if (!filters) return results;
         let filtered = results;
-        if (filters.status && filters.status !== 'all') {
-            filtered = filtered.filter(entry => entry.status === filters.status);
+        if (filters.collection === 'favorites') {
+            filtered = filtered.filter(entry => entry.favorite === true && entry.status !== 'archived');
+        } else if (filters.collection === 'archived') {
+            filtered = filtered.filter(entry => entry.status === 'archived');
         } else if (filters.status === 'all') {
             filtered = filtered.filter(entry => entry.status !== 'archived');
+        }
+        if (filters.status && filters.status !== 'all') {
+            filtered = filtered.filter(entry => entry.status === filters.status);
         }
         if (filters.version && filters.version !== 'all') {
             filtered = filtered.filter(entry => entry.bibleVersion === filters.version);

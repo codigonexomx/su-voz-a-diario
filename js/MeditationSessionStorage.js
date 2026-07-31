@@ -45,6 +45,7 @@ export const MeditationSessionStorage = {
             updatedAt: session.updatedAt,
             completedAt: session.completedAt,
             status: session.status,
+            favorite: session.favorite === true,
             title: session.title,
             bibleVersion: session.bibleVersion,
             bookId: session.bookId,

@@ -12183,6 +12183,7 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     width: min(100%, 1040px);
     margin: 0 auto;
     padding: 8px 0 28px;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .meditation-detail-view {
@@ -12234,6 +12235,7 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     display: grid;
     gap: 12px;
     margin: 0 0 20px;
+    animation: meditation-library-soft-enter 0.18s ease both;
 }
 
 .meditation-library-search {
@@ -12247,6 +12249,7 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     background: var(--surface-color);
     color: var(--text-muted);
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.035);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
 .meditation-library-search input {
@@ -12286,6 +12289,7 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     border-radius: 12px;
     background: var(--surface-color);
     color: var(--text-muted);
+    transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
 }
 
 .meditation-library-select-wrap span {
@@ -12302,6 +12306,11 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     background: transparent;
     color: var(--text-main);
     font: 700 0.94rem var(--font-ui);
+}
+
+.meditation-library-results {
+    min-height: 220px;
+    contain: layout;
 }
 
 .meditation-library-count {
@@ -12331,26 +12340,52 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     color: var(--text-main);
     text-align: left;
     cursor: pointer;
+    touch-action: manipulation;
     box-shadow: 0 12px 30px rgba(15, 23, 42, 0.045);
-    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
 .meditation-library-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-2px) scale(1.002);
     border-color: rgba(49, 130, 206, 0.32);
     box-shadow: 0 18px 38px rgba(15, 23, 42, 0.075);
 }
 
 .meditation-library-card:active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.995);
+    border-color: rgba(49, 130, 206, 0.24);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.055);
 }
 
 .meditation-library-card-reference {
+    min-width: 0;
     color: var(--primary);
     font-family: var(--font-reading);
     font-size: clamp(1.36rem, 4vw, 1.9rem);
     font-weight: 700;
     line-height: 1.12;
+}
+
+.meditation-library-card-head {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.meditation-library-favorite-mark {
+    flex: 0 0 auto;
+    margin-top: 2px;
+    padding: 3px 8px;
+    border: 1px solid rgba(171, 131, 66, 0.22);
+    border-radius: 999px;
+    background: rgba(171, 131, 66, 0.075);
+    color: #8a6531;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .meditation-library-card-meta,
@@ -12408,12 +12443,15 @@ body.dark-mode .strong-verse-chip { background: #111827; }
 }
 
 .meditation-library-state {
-    padding: clamp(26px, 6vw, 52px);
+    max-width: 760px;
+    margin: 0 auto;
+    padding: clamp(34px, 7vw, 64px);
     border: 1px solid var(--border-color);
     border-radius: 18px;
     background: var(--surface-color);
     text-align: center;
     box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+    animation: meditation-library-soft-enter 0.18s ease both;
 }
 
 .meditation-library-state h2,
@@ -12450,6 +12488,19 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     color: var(--text-main);
     font-weight: 800;
     cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+.meditation-detail-back:hover,
+.meditation-detail-actions button:hover {
+    border-color: rgba(49, 130, 206, 0.32);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.055);
+}
+
+.meditation-detail-back:active,
+.meditation-detail-actions button:active {
+    transform: scale(0.98);
 }
 
 .meditation-detail-meta {
@@ -12474,12 +12525,20 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     color: var(--text-main);
     font-weight: 800;
     cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
 }
 
 .meditation-detail-actions button:first-child {
     border-color: var(--accent);
     background: var(--accent);
     color: #fff;
+}
+
+.meditation-detail-actions button[aria-pressed="true"] {
+    border-color: rgba(171, 131, 66, 0.3);
+    background: rgba(171, 131, 66, 0.09);
+    color: #7a5728;
 }
 
 .meditation-detail-paper {
@@ -12490,6 +12549,7 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     border-radius: 18px;
     background: var(--surface-color);
     box-shadow: 0 18px 48px rgba(15, 23, 42, 0.05);
+    animation: meditation-library-soft-enter 0.2s ease both;
 }
 
 .meditation-detail-section + .meditation-detail-section {
@@ -12558,6 +12618,12 @@ body.dark-mode .strong-verse-chip { background: #111827; }
     font-size: 1.35rem;
     line-height: 1;
     cursor: pointer;
+    touch-action: manipulation;
+    transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+}
+
+.sliding-notebook-close:active {
+    transform: scale(0.96);
 }
 
 body.dark-mode .meditation-library-hero,
@@ -12576,6 +12642,13 @@ body.dark-mode .meditation-detail-actions button {
 
 body.dark-mode .meditation-library-card-status[data-status="completed"] {
     color: #80d8a2;
+}
+
+body.dark-mode .meditation-library-favorite-mark,
+body.dark-mode .meditation-detail-actions button[aria-pressed="true"] {
+    border-color: rgba(245, 195, 107, 0.28);
+    background: rgba(245, 195, 107, 0.11);
+    color: #f3d49a;
 }
 
 body.dark-mode .sliding-notebook-close {
@@ -12625,6 +12698,10 @@ body.dark-mode .sliding-notebook-close {
         padding: 20px;
     }
 
+    .meditation-library-card-head {
+        align-items: flex-start;
+    }
+
     .meditation-detail-facts {
         display: grid;
         gap: 7px;
@@ -12647,10 +12724,25 @@ body.dark-mode .sliding-notebook-close {
     }
 }
 
+@keyframes meditation-library-soft-enter {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .meditation-library-card,
     .meditation-library-search,
     .meditation-library-select-wrap,
+    .meditation-library-toolbar,
+    .meditation-library-state,
+    .meditation-detail-paper,
     .meditation-detail-view {
         animation: none;
         transition: none;

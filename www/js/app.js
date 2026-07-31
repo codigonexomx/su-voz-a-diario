@@ -606,6 +606,8 @@ _authInitPromise: null,
     libraryReadingCache: {},
     libraryEditorSessionId: null,
     libraryScrollTop: 0,
+    libraryLastFiltersHtml: '',
+    libraryLastResultsHtml: '',
     
     // ========================================
     // INICIALIZACIÓN
@@ -3544,6 +3546,7 @@ syncAppBadge: function(count) {
                         updatedAt: noteObj._lastEditedAt || Date.now(),
                         completedAt: null,
                         status: 'draft',
+                        favorite: false,
                         title: `Meditación ${dateStr}`,
                         bibleVersion: this.currentBibleVersion || 'rv1909',
                         bookId: null,
@@ -3627,6 +3630,7 @@ syncAppBadge: function(count) {
                 updatedAt: Date.now(),
                 completedAt: null,
                 status: 'draft',
+                favorite: false,
                 title: title,
                 bibleVersion: this.currentBibleVersion || 'rv1909',
                 bookId: bookId,
@@ -13346,6 +13350,10 @@ document.addEventListener('input', (e) => {
 });
 
 document.addEventListener('change', (e) => {
+    if (e.target.id === 'library-filter-collection') {
+        if (this.libraryState) this.libraryState.filters.collection = e.target.value;
+        this.updateLibraryResults();
+    }
     if (e.target.id === 'library-filter-status') {
         if (this.libraryState) this.libraryState.filters.status = e.target.value;
         this.updateLibraryResults();
@@ -14747,6 +14755,15 @@ if (libraryShareBtn) {
     return;
 }
 
+const libraryFavoriteBtn = e.target.closest('[data-action="toggle-library-favorite"]');
+if (libraryFavoriteBtn) {
+    const sessionId = libraryFavoriteBtn.getAttribute('data-session-id');
+    if (sessionId) {
+        await this.toggleMeditationFavorite(sessionId);
+    }
+    return;
+}
+
 const libraryArchiveBtn = e.target.closest('[data-action="archive-library-meditation"]');
 if (libraryArchiveBtn) {
     const sessionId = libraryArchiveBtn.getAttribute('data-session-id');
@@ -15166,12 +15183,21 @@ document.addEventListener('keydown', (e) => {
         if (!this.libraryState) {
             this.libraryState = {
                 query: '',
-                filters: { status: 'all', version: 'all', bookId: 'all' },
+                filters: { collection: 'all', status: 'all', version: 'all', bookId: 'all' },
                 sortBy: 'recent',
                 limit: 30
             };
         }
+        this.libraryState.filters = {
+            collection: 'all',
+            status: 'all',
+            version: 'all',
+            bookId: 'all',
+            ...(this.libraryState.filters || {})
+        };
 
+        this.libraryLastFiltersHtml = '';
+        this.libraryLastResultsHtml = '';
         setTimeout(() => this.updateLibraryResults(), 0);
 
         return `
@@ -15534,6 +15560,7 @@ document.addEventListener('keydown', (e) => {
             versionLabel: version.label,
             statusId: status.id,
             statusLabel: status.label,
+            favorite: session.favorite === true,
             excerpt,
             wordCount,
             wordCountLabel: wordCount ? `${wordCount} palabra${wordCount === 1 ? '' : 's'}` : '',
@@ -15599,7 +15626,7 @@ document.addEventListener('keydown', (e) => {
         const books = new Map();
 
         models.forEach(model => {
-            statuses.set(model.statusId, model.statusLabel);
+            if (model.statusId !== 'archived') statuses.set(model.statusId, model.statusLabel);
             if (model.versionId && model.versionLabel) versions.set(model.versionId, model.versionLabel);
             if (model.bookId && model.bookName) books.set(model.bookId, model.bookName);
         });
@@ -15607,7 +15634,9 @@ document.addEventListener('keydown', (e) => {
         return {
             statuses: Array.from(statuses, ([id, label]) => ({ id, label })),
             versions: Array.from(versions, ([id, label]) => ({ id, label })),
-            books: Array.from(books, ([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label, 'es'))
+            books: Array.from(books, ([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label, 'es')),
+            hasFavorites: models.some(model => model.favorite && model.statusId !== 'archived'),
+            hasArchived: models.some(model => model.statusId === 'archived')
         };
     },
 
@@ -15616,6 +15645,17 @@ document.addEventListener('keydown', (e) => {
         const statusIds = new Set(options.statuses.map(option => option.id));
         const versionIds = new Set(options.versions.map(option => option.id));
         const bookIds = new Set(options.books.map(option => option.id));
+        const collectionIds = new Set(['all', 'favorites', 'archived']);
+
+        if (!this.libraryState.filters) {
+            this.libraryState.filters = { collection: 'all', status: 'all', version: 'all', bookId: 'all' };
+        }
+        if (!collectionIds.has(this.libraryState.filters.collection)) {
+            this.libraryState.filters.collection = 'all';
+        }
+        if (this.libraryState.filters.collection === 'archived') {
+            this.libraryState.filters.status = 'all';
+        }
 
         if (this.libraryState.filters.status !== 'all' && !statusIds.has(this.libraryState.filters.status)) {
             this.libraryState.filters.status = 'all';
@@ -15643,6 +15683,12 @@ document.addEventListener('keydown', (e) => {
 
         if (state.filters?.status && state.filters.status !== 'all') {
             results = results.filter(model => model.statusId === state.filters.status);
+        }
+
+        if (state.filters?.collection === 'favorites') {
+            results = results.filter(model => model.favorite && model.statusId !== 'archived');
+        } else if (state.filters?.collection === 'archived') {
+            results = results.filter(model => model.statusId === 'archived');
         } else {
             results = results.filter(model => model.statusId !== 'archived');
         }
@@ -15676,8 +15722,18 @@ document.addEventListener('keydown', (e) => {
         const state = this.libraryState;
         const controls = [];
 
-        const hasArchived = options.statuses.some(option => option.id === 'archived');
-        if (options.statuses.length > 1 || hasArchived) {
+        controls.push(`
+            <label class="meditation-library-select-wrap">
+                <span>Vista</span>
+                <select id="library-filter-collection" aria-label="Mostrar meditaciones">
+                    <option value="all"${state.filters.collection === 'all' ? ' selected' : ''}>Todas</option>
+                    <option value="favorites"${state.filters.collection === 'favorites' ? ' selected' : ''}>Favoritas</option>
+                    <option value="archived"${state.filters.collection === 'archived' ? ' selected' : ''}>Archivadas</option>
+                </select>
+            </label>
+        `);
+
+        if (state.filters.collection !== 'archived' && options.statuses.length > 1) {
             controls.push(`
                 <label class="meditation-library-select-wrap">
                     <span>Estado</span>
@@ -15730,6 +15786,85 @@ document.addEventListener('keydown', (e) => {
         return controls.join('');
     },
 
+    updateMeditationLibraryFilters: function(filtersContainer, html) {
+        if (!filtersContainer || this.libraryLastFiltersHtml === html) return;
+
+        const activeElementId = document.activeElement?.id || '';
+        filtersContainer.innerHTML = html;
+        this.libraryLastFiltersHtml = html;
+
+        if (activeElementId && activeElementId.startsWith('library-')) {
+            requestAnimationFrame(() => {
+                document.getElementById(activeElementId)?.focus({ preventScroll: true });
+            });
+        }
+    },
+
+    updateMeditationLibraryContainer: function(container, html) {
+        if (!container || this.libraryLastResultsHtml === html) return;
+        container.innerHTML = html;
+        this.libraryLastResultsHtml = html;
+    },
+
+    renderMeditationLibraryState: function({ id, kicker, title, body }) {
+        return `
+            <section class="meditation-library-state" aria-labelledby="${this.escapeHtml(id)}">
+                <p class="meditation-library-state-kicker">${this.escapeHtml(kicker)}</p>
+                <h3 id="${this.escapeHtml(id)}">${this.escapeHtml(title)}</h3>
+                <p>${this.escapeHtml(body)}</p>
+            </section>
+        `;
+    },
+
+    getMeditationLibraryNoResultsCopy: function() {
+        const state = this.libraryState || {};
+        const hasQuery = Boolean(String(state.query || '').trim());
+        const filters = state.filters || {};
+
+        if (filters.status === 'archived' && !hasQuery && filters.version === 'all' && filters.bookId === 'all') {
+            return {
+                id: 'library-no-archived-title',
+                kicker: 'Archivadas',
+                title: 'No hay meditaciones archivadas.',
+                body: 'Cuando archives una meditación, aparecerá aquí con calma y sin mezclarse con tu biblioteca principal.'
+            };
+        }
+
+        if (filters.collection === 'archived' && !hasQuery && filters.version === 'all' && filters.bookId === 'all') {
+            return {
+                id: 'library-no-archived-title',
+                kicker: 'Archivadas',
+                title: 'No hay meditaciones archivadas.',
+                body: 'Cuando archives una meditación, aparecerá aquí con calma y sin mezclarse con tu biblioteca principal.'
+            };
+        }
+
+        if (filters.collection === 'favorites' && !hasQuery && filters.status === 'all' && filters.version === 'all' && filters.bookId === 'all') {
+            return {
+                id: 'library-no-favorites-title',
+                kicker: 'Favoritas',
+                title: 'Todavía no hay meditaciones favoritas.',
+                body: 'Marca como favorita una meditación importante para encontrarla aquí más rápido.'
+            };
+        }
+
+        if (hasQuery) {
+            return {
+                id: 'library-search-empty-title',
+                kicker: 'Sin coincidencias',
+                title: 'No encontré una meditación con esa búsqueda.',
+                body: 'Prueba con otra palabra, una referencia bíblica o limpia los filtros activos.'
+            };
+        }
+
+        return {
+            id: 'library-no-results-title',
+            kicker: 'Sin resultados',
+            title: 'No hay meditaciones con esos filtros.',
+            body: 'Ajusta el estado, la versión o el libro para volver a explorar tu biblioteca.'
+        };
+    },
+
     renderMeditationCard: function(model) {
         const metaParts = [
             model.readingDateLabel,
@@ -15738,13 +15873,16 @@ document.addEventListener('keydown', (e) => {
 
         return `
             <button
-                class="meditation-library-card"
+                class="meditation-library-card${model.favorite ? ' is-favorite' : ''}"
                 type="button"
                 data-action="open-meditation-detail"
                 data-session-id="${this.escapeHtml(model.id)}"
-                aria-label="Abrir meditación de ${this.escapeHtml(model.reference)}"
+                aria-label="Abrir meditación de ${this.escapeHtml(model.reference)}${model.favorite ? ', favorita' : ''}"
             >
-                <span class="meditation-library-card-reference">${this.escapeHtml(model.reference)}</span>
+                <span class="meditation-library-card-head">
+                    <span class="meditation-library-card-reference">${this.escapeHtml(model.reference)}</span>
+                    ${model.favorite ? '<span class="meditation-library-favorite-mark" aria-label="Favorita">Favorita</span>' : ''}
+                </span>
                 <span class="meditation-library-card-meta">${this.escapeHtml(metaParts.join(' · '))}</span>
                 <span class="meditation-library-card-status" data-status="${this.escapeHtml(model.statusId)}">${this.escapeHtml(model.statusLabel)}</span>
                 <span class="meditation-library-card-excerpt">“${this.escapeHtml(model.excerpt)}”</span>
@@ -15768,20 +15906,17 @@ document.addEventListener('keydown', (e) => {
 
         if (!hasMeditations) {
             if (toolbar) toolbar.hidden = true;
-            container.innerHTML = `
-                <section class="meditation-library-state" aria-labelledby="library-empty-title">
-                    <p class="meditation-library-state-kicker">Todavía no hay meditaciones guardadas</p>
-                    <h3 id="library-empty-title">Tu biblioteca está esperando sus primeras páginas.</h3>
-                    <p>Cuando escribas una meditación, aparecerá aquí para que puedas volver a leerla con calma.</p>
-                </section>
-            `;
+            this.updateMeditationLibraryContainer(container, this.renderMeditationLibraryState({
+                id: 'library-empty-title',
+                kicker: 'Todavía no hay meditaciones guardadas',
+                title: 'Tu biblioteca está esperando sus primeras páginas.',
+                body: 'Cuando escribas una meditación, aparecerá aquí para que puedas volver a leerla con calma.'
+            }));
             return;
         }
 
         if (toolbar) toolbar.hidden = false;
-        if (filtersContainer) {
-            filtersContainer.innerHTML = this.renderMeditationLibraryFilters(allModels, options);
-        }
+        this.updateMeditationLibraryFilters(filtersContainer, this.renderMeditationLibraryFilters(allModels, options));
 
         const results = this.applyMeditationLibraryFilters(allModels);
         if (announcer) {
@@ -15789,18 +15924,12 @@ document.addEventListener('keydown', (e) => {
         }
 
         if (results.length === 0) {
-            container.innerHTML = `
-                <section class="meditation-library-state" aria-labelledby="library-no-results-title">
-                    <p class="meditation-library-state-kicker">Sin resultados</p>
-                    <h3 id="library-no-results-title">No encontré una meditación con esos criterios.</h3>
-                    <p>Prueba con otra palabra, estado, versión o libro.</p>
-                </section>
-            `;
+            this.updateMeditationLibraryContainer(container, this.renderMeditationLibraryState(this.getMeditationLibraryNoResultsCopy()));
             return;
         }
 
         const paginatedResults = results.slice(0, this.libraryState.limit);
-        container.innerHTML = `
+        this.updateMeditationLibraryContainer(container, `
             <div class="meditation-library-count">${results.length} meditación${results.length === 1 ? '' : 'es'}</div>
             <div class="meditation-library-grid">
                 ${paginatedResults.map(model => this.renderMeditationCard(model)).join('')}
@@ -15810,7 +15939,7 @@ document.addEventListener('keydown', (e) => {
                     <button class="btn-secondary" data-action="library-load-more">Mostrar más (${results.length - this.libraryState.limit})</button>
                 </div>
             ` : ''}
-        `;
+        `);
 
         if (this.libraryScrollTop > 0) {
             const scrollTop = this.libraryScrollTop;
@@ -15859,6 +15988,7 @@ document.addEventListener('keydown', (e) => {
         const model = await this.getMeditationDisplayModel(session);
         const actionLabel = model.statusId === 'archived' ? 'Restaurar' : 'Archivar';
         const actionName = model.statusId === 'archived' ? 'restore-library-meditation' : 'archive-library-meditation';
+        const favoriteActionLabel = model.favorite ? 'Quitar de favoritos' : 'Agregar a favoritos';
         const detailFacts = this.getMeditationDetailFacts(model);
         const sectionsHtml = model.hasContent
             ? this.renderMeditationDetailSections(model)
@@ -15897,6 +16027,12 @@ document.addEventListener('keydown', (e) => {
                 <footer class="meditation-detail-actions" aria-label="Acciones de meditación">
                     <button type="button" data-action="edit-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Editar</button>
                     <button type="button" data-action="share-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Compartir</button>
+                    <button
+                        type="button"
+                        data-action="toggle-library-favorite"
+                        data-session-id="${this.escapeHtml(model.id)}"
+                        aria-pressed="${model.favorite ? 'true' : 'false'}"
+                    >${favoriteActionLabel}</button>
                     <button type="button" data-action="${actionName}" data-session-id="${this.escapeHtml(model.id)}">${actionLabel}</button>
                 </footer>
             </article>
@@ -15961,6 +16097,30 @@ document.addEventListener('keydown', (e) => {
             this.openNoteDate = previousOpenDate;
             this.sessionOverrideBibleVersion = previousOverride;
         }
+    },
+
+    updateMeditationFavoriteActionUI: function(session) {
+        const button = Array.from(document.querySelectorAll('[data-action="toggle-library-favorite"]'))
+            .find(item => item.getAttribute('data-session-id') === session.id);
+        if (!button) return;
+
+        const isFavorite = session.favorite === true;
+        button.textContent = isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos';
+        button.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+    },
+
+    toggleMeditationFavorite: async function(sessionId) {
+        const session = MeditationSessionStorage.get(sessionId);
+        if (!session) {
+            this.showToast('No se encontró la meditación');
+            return;
+        }
+
+        session.favorite = session.favorite !== true;
+        MeditationSessionStorage.save(session);
+        this.updateMeditationFavoriteActionUI(session);
+        this.libraryLastResultsHtml = '';
+        this.showToast(session.favorite ? 'Meditación agregada a favoritas' : 'Meditación quitada de favoritas');
     },
 
     archiveMeditationFromLibrary: async function(sessionId) {
