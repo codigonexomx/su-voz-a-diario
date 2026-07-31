@@ -600,9 +600,12 @@ _pendingPushHash: null,
 themeListenerReady: false,
 _selectionPanelEventsBound: false,
 _authInitPromise: null,
-_authListenerReady: false,
-_lastAuthError: null,
-slidingNotebookPanel: null,
+	_authListenerReady: false,
+	_lastAuthError: null,
+	slidingNotebookPanel: null,
+    libraryReadingCache: {},
+    libraryEditorSessionId: null,
+    libraryScrollTop: 0,
     
     // ========================================
     // INICIALIZACIÓN
@@ -770,6 +773,19 @@ console.log('[App] Inicialización completada');
             this.updateCommunityDraftState({ formOpen: false }, { immediate: true });
             this.handleRoute().catch(error => {
                 console.error('[Android Back] Error cerrando formulario de comunidad:', error);
+            });
+            return;
+        }
+
+        if (this.libraryEditorSessionId) {
+            this.closeMeditationLibraryEditor();
+            return;
+        }
+
+        if (this.currentView === 'meditations-history' && window.location.hash.split('/')[1]) {
+            history.pushState(null, '', '#meditations-history');
+            this.handleRoute().catch(error => {
+                console.error('[Android Back] Error volviendo a Biblioteca:', error);
             });
             return;
         }
@@ -3489,7 +3505,7 @@ syncAppBadge: function(count) {
 
                 <div class="note-actions devotional-actions">
                     <button class="btn-secondary" data-action="complete-session" data-date="${reading.date}">✅ Marcar como completada</button>
-                    <button class="btn-secondary" data-action="delete-note" data-date="${reading.date}">🗑️ Borrar reflexión</button>
+                    <button class="btn-secondary" data-action="delete-note" data-date="${reading.date}">Archivar meditación</button>
                 </div>
             </div>
         `;
@@ -3631,6 +3647,7 @@ syncAppBadge: function(count) {
                 <header class="sliding-notebook-header">
                     <div class="sliding-notebook-grab-handle" aria-hidden="true"></div>
                     <div class="sliding-notebook-title">Mi meditación</div>
+                    <button class="sliding-notebook-close" type="button" data-action="close-sliding-notebook" aria-label="Cerrar editor de meditación">×</button>
                 </header>
 
                 <div class="sliding-notebook-body"></div>
@@ -3745,7 +3762,7 @@ syncAppBadge: function(count) {
                 this.sessionOverrideBibleVersion = null;
                 this.activeNoteField = null;
                 
-                this.showToast('Reflexión archivada');
+                this.showToast('Meditación archivada');
             }
         }
     },
@@ -5294,7 +5311,7 @@ roundRect: function(ctx, x, y, width, height, radius) {
     addSectionTitle('Mi oración');
     addParagraph(note.oracion);
 
-    doc.save(`reflexion-${dateStr}.pdf`);
+    doc.save(`meditacion-${dateStr}.pdf`);
     this.showToast('Se abrió el PDF para descargar');
     },
 
@@ -6505,6 +6522,8 @@ closeTransientBibleUI: function() {
     const param = parts[1] || null;
     const oldView = this.currentView;
 
+    this.closeTransientBibleUI();
+
     if (oldView === 'home' && view !== 'home') {
         this.stopDailyReadingVoice(true);
     }
@@ -6519,8 +6538,6 @@ closeTransientBibleUI: function() {
         this.stopBibleChapterVoice(true);
     }
 
-    this.closeTransientBibleUI();
-
     // ✅ GUARDAR SCROLL AL SALIR DE COMUNIDAD
     if (this.currentView === 'community' && view !== 'community') {
     this.saveCommunityScrollPosition();
@@ -6528,6 +6545,13 @@ closeTransientBibleUI: function() {
     }
     
 this.hideSelectionPanel();
+
+if (
+    this.libraryEditorSessionId &&
+    (view !== 'meditations-history' || (param && param !== this.libraryEditorSessionId))
+) {
+    this.closeMeditationLibraryEditor({ refreshDetail: false });
+}
 
 if (this.currentView === 'calendar' && view !== 'calendar') {
     this.saveCalendarScroll();
@@ -6588,7 +6612,11 @@ this.updateNavUI();
 	    }
 	    await this.renderBibleReading();
 } else if (view === 'meditations-history') {
-    this.$content.innerHTML = this.renderMeditationsHistory();
+    if (param) {
+        await this.renderMeditationDetail(param);
+    } else {
+        this.$content.innerHTML = this.renderMeditationsHistory();
+    }
 } else if (view === 'meditation-timeline') {
     this.$content.innerHTML = '<div id="timeline-container"></div>';
     MeditationTimeline.renderTimeline('timeline-container');
@@ -14662,17 +14690,84 @@ if (deleteNoteBtn) {
     return;
 }
 
+const closeSlidingNotebookBtn = e.target.closest('[data-action="close-sliding-notebook"]');
+if (closeSlidingNotebookBtn) {
+    this.closeMeditationLibraryEditor();
+    return;
+}
+
+const libraryBackBtn = e.target.closest('[data-action="library-back"]');
+if (libraryBackBtn) {
+    history.pushState(null, '', '#meditations-history');
+    await this.handleRoute();
+    return;
+}
+
+const libraryCardBtn = e.target.closest('[data-action="open-meditation-detail"]');
+if (libraryCardBtn) {
+    const sessionId = libraryCardBtn.getAttribute('data-session-id');
+    if (sessionId) {
+        this.libraryScrollTop = window.scrollY || window.pageYOffset || 0;
+        history.pushState(null, '', `#meditations-history/${encodeURIComponent(sessionId)}`);
+        await this.handleRoute();
+    }
+    return;
+}
+
+const libraryEditBtn = e.target.closest('[data-action="edit-library-meditation"]');
+if (libraryEditBtn) {
+    const sessionId = libraryEditBtn.getAttribute('data-session-id');
+    if (sessionId) {
+        await this.openMeditationLibraryEditor(sessionId);
+    }
+    return;
+}
+
+const libraryShareBtn = e.target.closest('[data-action="share-library-meditation"]');
+if (libraryShareBtn) {
+    const sessionId = libraryShareBtn.getAttribute('data-session-id');
+    if (sessionId) {
+        await this.shareMeditationFromLibrary(sessionId);
+    }
+    return;
+}
+
+const libraryArchiveBtn = e.target.closest('[data-action="archive-library-meditation"]');
+if (libraryArchiveBtn) {
+    const sessionId = libraryArchiveBtn.getAttribute('data-session-id');
+    if (sessionId) {
+        await this.archiveMeditationFromLibrary(sessionId);
+    }
+    return;
+}
+
+const libraryRestoreBtn = e.target.closest('[data-action="restore-library-meditation"]');
+if (libraryRestoreBtn) {
+    const sessionId = libraryRestoreBtn.getAttribute('data-session-id');
+    if (sessionId) {
+        await this.restoreMeditationFromLibrary(sessionId);
+    }
+    return;
+}
+
 const openLibrarySessionBtn = e.target.closest('[data-action="open-library-session"]');
 if (openLibrarySessionBtn) {
+    const sessionId = openLibrarySessionBtn.getAttribute('data-session-id');
     const readingId = openLibrarySessionBtn.getAttribute('data-reading-id');
-    this.homeViewingDate = readingId;
-    history.pushState(null, '', '#home');
-    await this.handleRoute();
-    if (this.openNoteDate !== readingId || !this.currentMeditationSessionId) {
-        this.toggleNote(readingId);
+    if (sessionId) {
+        history.pushState(null, '', `#meditations-history/${encodeURIComponent(sessionId)}`);
+        await this.handleRoute();
+        return;
     }
-    const reading = await this.getReadingByDate(readingId);
-    this.openSlidingNotebook(reading);
+    if (!readingId) return;
+    const sessionMeta = MeditationSessionStorage.getAllMetadata().find(m => m.readingId === readingId);
+    if (sessionMeta?.id) {
+        history.pushState(null, '', `#meditations-history/${encodeURIComponent(sessionMeta.id)}`);
+        await this.handleRoute();
+        return;
+    }
+    history.pushState(null, '', '#meditations-history');
+    await this.handleRoute();
     return;
 }
 
@@ -15053,139 +15148,622 @@ document.addEventListener('keydown', (e) => {
 },
 
     renderMeditationsHistory: function() {
-        // Inicializar estado si no existe
         if (!this.libraryState) {
             this.libraryState = {
                 query: '',
                 filters: { status: 'all', version: 'all', bookId: 'all' },
-                sortBy: 'updated-desc',
-                limit: 50
+                sortBy: 'recent',
+                limit: 30
             };
         }
-        
-        // El render inicial carga la estructura. La lista de resultados se actualizará mediante JS.
+
         setTimeout(() => this.updateLibraryResults(), 0);
-        
-        let booksOptions = '<option value="all">Todos los Libros</option>';
-        if (this.bibleBooks) {
-            Object.values(this.bibleBooks).forEach(b => {
-                booksOptions += `<option value="${b.id}">${b.nombre}</option>`;
-            });
-        }
-        
-        let versionsOptions = '<option value="all">Todas las Versiones</option>';
-        const allMetadata = MeditationSessionStorage.getAllMetadata();
-        const uniqueVersions = [...new Set(allMetadata.map(m => m.bibleVersion).filter(Boolean))];
-        uniqueVersions.forEach(v => {
-            versionsOptions += `<option value="${v}">${v.toUpperCase()}</option>`;
-        });
-        
+
         return `
-            <div class="view-header library-header">
-                <h2>Biblioteca de Meditaciones</h2>
-            </div>
-            
-            <div class="library-controls">
-                <div class="library-search-bar">
-                    <input type="search" id="library-search-input" class="library-input" placeholder="Buscar por título, texto o referencia..." value="${this.libraryState.query}">
+            <section class="meditation-library-view" aria-labelledby="meditation-library-title">
+                <header class="meditation-library-hero">
+                    <p class="meditation-library-kicker">Tus meditaciones</p>
+                    <h2 id="meditation-library-title">Biblioteca</h2>
+                    <p>Un lugar para volver con calma a lo que Dios te ha mostrado en Su Palabra.</p>
+                </header>
+
+                <div class="meditation-library-toolbar" id="meditation-library-toolbar" hidden>
+                    <label class="meditation-library-search">
+                        <span class="sr-only">Buscar meditaciones</span>
+                        <span aria-hidden="true">⌕</span>
+                        <input type="search" id="library-search-input" placeholder="Buscar en tus meditaciones" value="${this.escapeHtml(this.libraryState.query)}">
+                    </label>
+                    <div class="meditation-library-filters" id="meditation-library-filters"></div>
                 </div>
-                
-                <div class="library-filters">
-                    <select id="library-filter-status" class="library-select" aria-label="Filtrar por estado">
-                        <option value="all">Todos los estados</option>
-                        <option value="draft">En curso</option>
-                        <option value="completed">Completadas</option>
-                        <option value="archived">Archivadas</option>
-                    </select>
-                    
-                    <select id="library-filter-version" class="library-select" aria-label="Filtrar por versión">
-                        ${versionsOptions}
-                    </select>
-                    
-                    <select id="library-filter-book" class="library-select" aria-label="Filtrar por libro bíblico">
-                        ${booksOptions}
-                    </select>
-                    
-                    <select id="library-sort" class="library-select" aria-label="Ordenar resultados">
-                        <option value="updated-desc">Última modificación</option>
-                        <option value="created-desc">Fecha de creación</option>
-                        <option value="completed-desc">Fecha de finalización</option>
-                        <option value="biblical-asc">Orden Bíblico</option>
-                    </select>
+
+                <div aria-live="polite" class="sr-only" id="library-a11y-announcer"></div>
+
+                <div class="meditation-library-results" id="library-results-container">
+                    <div class="meditation-library-loading">Preparando tu biblioteca...</div>
                 </div>
-            </div>
-            
-            <div aria-live="polite" class="sr-only" id="library-a11y-announcer"></div>
-            
-            <div class="meditations-history-list" id="library-results-container">
-                <div class="library-loading">Cargando biblioteca...</div>
-            </div>
+            </section>
         `;
     },
-    
-    updateLibraryResults: function() {
-        if (this.currentView !== 'meditations-history') return;
-        
+
+    getMeditationStatusMeta: function(status) {
+        const normalized = String(status || 'draft').trim().toLowerCase();
+        if (normalized === 'completed') return { id: 'completed', label: 'Completada' };
+        if (normalized === 'archived') return { id: 'archived', label: 'Archivada' };
+        return { id: 'draft', label: 'En curso' };
+    },
+
+    cleanMeditationText: function(value) {
+        return String(value || '')
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    },
+
+    getMeditationExcerpt: function(notes = {}) {
+        const fields = ['dios', 'aprendizaje', 'respuesta', 'oracion'];
+        for (const field of fields) {
+            const text = this.cleanMeditationText(notes[field]);
+            if (text) return text;
+        }
+        return '';
+    },
+
+    formatLibraryDate: function(dateStr, options = { day: 'numeric', month: 'long', year: 'numeric' }) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateStr || ''))) return '';
+        const date = new Date(`${dateStr}T12:00:00`);
+        if (Number.isNaN(date.getTime())) return '';
+        return date.toLocaleDateString('es-MX', options);
+    },
+
+    getReliableMeditationVersion: function(versionId) {
+        const normalized = String(versionId || '').trim().toLowerCase();
+        const enabledVersions = new Set(['rvr60', 'ntv', 'tla', 'rv1909']);
+        if (!enabledVersions.has(normalized)) return { id: '', label: '' };
+        return { id: normalized, label: this.getBibleVersionLabel(normalized) };
+    },
+
+    formatLibraryReference: function(reference) {
+        const clean = String(reference || '').replace(/\s+/g, ' ').trim();
+        return clean
+            .replace(/^Salmos\b/i, 'Salmo')
+            .replace(/(\d)-(\d)/g, '$1–$2');
+    },
+
+    normalizeMeditationBookId: function(bookId) {
+        const normalized = String(bookId || '').trim().toLowerCase();
+        const aliases = {
+            deut: 'deu',
+            josh: 'jos',
+            judg: 'jdg',
+            ruth: 'rut',
+            '1sam': '1sa',
+            '2sam': '2sa',
+            '1kgs': '1ki',
+            '2kgs': '2ki',
+            '1chron': '1ch',
+            '2chron': '2ch',
+            eccles: 'ecc',
+            song: 'sng',
+            ezek: 'ezk',
+            joel: 'jol',
+            obad: 'oba',
+            jonah: 'jon',
+            zeph: 'zep',
+            zech: 'zec',
+            matt: 'mat',
+            mark: 'mrk',
+            luke: 'luk',
+            john: 'jhn',
+            acts: 'act',
+            '1cor': '1co',
+            '2cor': '2co',
+            phil: 'php',
+            '1thess': '1th',
+            '2thess': '2th',
+            '1tim': '1ti',
+            '2tim': '2ti',
+            philem: 'phm',
+            '1pet': '1pe',
+            '2pet': '2pe',
+            '1john': '1jn',
+            '2john': '2jn',
+            '3john': '3jn',
+            jude: 'jud',
+            ps: 'psa',
+            prov: 'pro',
+            rev: 'rev'
+        };
+        return aliases[normalized] || normalized;
+    },
+
+    getBookFromMeditationData: function(session = {}, reading = null) {
+        const sessionBookId = this.normalizeMeditationBookId(session.bookId);
+        const readingBookId = this.normalizeMeditationBookId(reading?.bookId);
+        const directBook = this.bibleBooks.find(book => book.id === sessionBookId);
+        if (directBook) return directBook;
+        if (readingBookId) {
+            const readingBook = this.bibleBooks.find(book => book.id === readingBookId);
+            if (readingBook) return readingBook;
+        }
+        const derived = findBookByReference(reading?.reference || '', this.bibleBooks);
+        return derived ? { id: derived.id, name: derived.nombre, chapters: derived.capitulosTotales } : null;
+    },
+
+    getMeditationReading: async function(readingId) {
+        const key = String(readingId || '');
+        if (!key) return null;
+        if (Object.prototype.hasOwnProperty.call(this.libraryReadingCache, key)) {
+            return this.libraryReadingCache[key];
+        }
+        const reading = await this.getReadingByDate(key);
+        this.libraryReadingCache[key] = reading || null;
+        return reading || null;
+    },
+
+    getMeditationDisplayModel: async function(sessionOrEntry) {
+        const session = sessionOrEntry?.notes
+            ? sessionOrEntry
+            : MeditationSessionStorage.get(sessionOrEntry?.id);
+        if (!session) return null;
+
+        const excerpt = this.getMeditationExcerpt(session.notes);
+        const hasContent = Boolean(excerpt);
+        const reading = await this.getMeditationReading(session.readingId);
+        const book = this.getBookFromMeditationData(session, reading);
+        const chapter = Number(session.chapter || reading?.chapter || getChapterFromReading(reading)) || null;
+        const verseStart = Number(session.verseStart || reading?.verse || reading?.verseStart) || null;
+        const verseEnd = Number(session.verseEnd || reading?.verseEnd) || null;
+        const hasDirectReference = Boolean(book && chapter);
+        const version = this.getReliableMeditationVersion(session.bibleVersion);
+        const status = this.getMeditationStatusMeta(session.status);
+        const readingDate = /^\d{4}-\d{2}-\d{2}$/.test(String(session.readingId || ''))
+            ? session.readingId
+            : reading?.date || '';
+        const reference = hasDirectReference
+            ? this.formatLibraryReference(`${book.name} ${chapter}${verseStart ? `:${verseStart}${verseEnd && verseEnd !== verseStart ? `–${verseEnd}` : ''}` : ''}`)
+            : this.formatLibraryReference(reading?.reference || 'Meditación del día');
+
+        return {
+            id: session.id,
+            readingId: session.readingId,
+            reference,
+            readingDate,
+            readingDateLabel: this.formatLibraryDate(readingDate) || 'Fecha no disponible',
+            updatedAt: Number(session.updatedAt || session.createdAt || 0),
+            createdAt: Number(session.createdAt || 0),
+            completedAt: Number(session.completedAt || 0),
+            versionId: version.id,
+            versionLabel: version.label,
+            statusId: status.id,
+            statusLabel: status.label,
+            excerpt,
+            hasContent,
+            bookId: book?.id || '',
+            bookName: book?.name || '',
+            chapter,
+            verseStart,
+            verseEnd,
+            notes: {
+                dios: this.cleanMeditationText(session.notes?.dios),
+                aprendizaje: this.cleanMeditationText(session.notes?.aprendizaje),
+                respuesta: this.cleanMeditationText(session.notes?.respuesta),
+                oracion: this.cleanMeditationText(session.notes?.oracion)
+            },
+            searchText: this.normalizeLibrarySearchText([
+                reference,
+                this.formatLibraryDate(readingDate),
+                version.label,
+                status.label,
+                excerpt,
+                book?.name
+            ].filter(Boolean).join(' '))
+        };
+    },
+
+    normalizeLibrarySearchText: function(value) {
+        return String(value || '').toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^\w\s]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    },
+
+    getMeditationLibraryModels: async function() {
+        const entries = MeditationLibrary.getAll();
+        const models = [];
+        for (const entry of entries) {
+            const model = await this.getMeditationDisplayModel(entry);
+            if (model?.hasContent) models.push(model);
+        }
+        return models;
+    },
+
+    getLibraryFilterOptions: function(models) {
+        const statuses = new Map();
+        const versions = new Map();
+        const books = new Map();
+
+        models.forEach(model => {
+            statuses.set(model.statusId, model.statusLabel);
+            if (model.versionId && model.versionLabel) versions.set(model.versionId, model.versionLabel);
+            if (model.bookId && model.bookName) books.set(model.bookId, model.bookName);
+        });
+
+        return {
+            statuses: Array.from(statuses, ([id, label]) => ({ id, label })),
+            versions: Array.from(versions, ([id, label]) => ({ id, label })),
+            books: Array.from(books, ([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label, 'es'))
+        };
+    },
+
+    normalizeLibraryStateForOptions: function(options, totalModels) {
+        if (!this.libraryState) return;
+        const statusIds = new Set(options.statuses.map(option => option.id));
+        const versionIds = new Set(options.versions.map(option => option.id));
+        const bookIds = new Set(options.books.map(option => option.id));
+
+        if (this.libraryState.filters.status !== 'all' && !statusIds.has(this.libraryState.filters.status)) {
+            this.libraryState.filters.status = 'all';
+        }
+        if (options.versions.length <= 1 || (this.libraryState.filters.version !== 'all' && !versionIds.has(this.libraryState.filters.version))) {
+            this.libraryState.filters.version = 'all';
+        }
+        if (options.books.length <= 1 || (this.libraryState.filters.bookId !== 'all' && !bookIds.has(this.libraryState.filters.bookId))) {
+            this.libraryState.filters.bookId = 'all';
+        }
+        if (totalModels <= 1) {
+            this.libraryState.sortBy = 'recent';
+        }
+    },
+
+    applyMeditationLibraryFilters: function(models) {
+        const state = this.libraryState || {};
+        let results = [...models];
+        const normalizedQuery = this.normalizeLibrarySearchText(state.query);
+
+        if (normalizedQuery) {
+            const terms = normalizedQuery.split(' ');
+            results = results.filter(model => terms.every(term => model.searchText.includes(term)));
+        }
+
+        if (state.filters?.status && state.filters.status !== 'all') {
+            results = results.filter(model => model.statusId === state.filters.status);
+        } else {
+            results = results.filter(model => model.statusId !== 'archived');
+        }
+
+        if (state.filters?.version && state.filters.version !== 'all') {
+            results = results.filter(model => model.versionId === state.filters.version);
+        }
+
+        if (state.filters?.bookId && state.filters.bookId !== 'all') {
+            results = results.filter(model => model.bookId === state.filters.bookId);
+        }
+
+        const bookOrder = new Map(this.bibleBooks.map((book, index) => [book.id, index]));
+        const sortBy = state.sortBy || 'recent';
+        results.sort((a, b) => {
+            if (sortBy === 'oldest') return (a.createdAt || 0) - (b.createdAt || 0);
+            if (sortBy === 'edited') return (b.updatedAt || 0) - (a.updatedAt || 0);
+            if (sortBy === 'biblical') {
+                const bookDelta = (bookOrder.get(a.bookId) ?? 999) - (bookOrder.get(b.bookId) ?? 999);
+                if (bookDelta !== 0) return bookDelta;
+                if ((a.chapter || 0) !== (b.chapter || 0)) return (a.chapter || 0) - (b.chapter || 0);
+                return (a.verseStart || 0) - (b.verseStart || 0);
+            }
+            return String(b.readingDate || '').localeCompare(String(a.readingDate || '')) || (b.updatedAt || 0) - (a.updatedAt || 0);
+        });
+
+        return results;
+    },
+
+    renderMeditationLibraryFilters: function(models, options) {
+        const state = this.libraryState;
+        const controls = [];
+
+        const hasArchived = options.statuses.some(option => option.id === 'archived');
+        if (options.statuses.length > 1 || hasArchived) {
+            controls.push(`
+                <label class="meditation-library-select-wrap">
+                    <span>Estado</span>
+                    <select id="library-filter-status" aria-label="Filtrar meditaciones por estado">
+                        <option value="all"${state.filters.status === 'all' ? ' selected' : ''}>Todas</option>
+                        ${options.statuses.map(option => `<option value="${this.escapeHtml(option.id)}"${state.filters.status === option.id ? ' selected' : ''}>${this.escapeHtml(option.label)}</option>`).join('')}
+                    </select>
+                </label>
+            `);
+        }
+
+        if (options.versions.length > 1) {
+            controls.push(`
+                <label class="meditation-library-select-wrap">
+                    <span>Versión</span>
+                    <select id="library-filter-version" aria-label="Filtrar meditaciones por versión bíblica">
+                        <option value="all"${state.filters.version === 'all' ? ' selected' : ''}>Todas</option>
+                        ${options.versions.map(option => `<option value="${this.escapeHtml(option.id)}"${state.filters.version === option.id ? ' selected' : ''}>${this.escapeHtml(option.label)}</option>`).join('')}
+                    </select>
+                </label>
+            `);
+        }
+
+        if (options.books.length > 1) {
+            controls.push(`
+                <label class="meditation-library-select-wrap">
+                    <span>Libro</span>
+                    <select id="library-filter-book" aria-label="Filtrar meditaciones por libro bíblico">
+                        <option value="all"${state.filters.bookId === 'all' ? ' selected' : ''}>Todos</option>
+                        ${options.books.map(option => `<option value="${this.escapeHtml(option.id)}"${state.filters.bookId === option.id ? ' selected' : ''}>${this.escapeHtml(option.label)}</option>`).join('')}
+                    </select>
+                </label>
+            `);
+        }
+
+        if (models.length > 1) {
+            controls.push(`
+                <label class="meditation-library-select-wrap">
+                    <span>Orden</span>
+                    <select id="library-sort" aria-label="Ordenar meditaciones">
+                        <option value="recent"${state.sortBy === 'recent' ? ' selected' : ''}>Más recientes</option>
+                        <option value="oldest"${state.sortBy === 'oldest' ? ' selected' : ''}>Más antiguas</option>
+                        <option value="edited"${state.sortBy === 'edited' ? ' selected' : ''}>Última edición</option>
+                        <option value="biblical"${state.sortBy === 'biblical' ? ' selected' : ''}>Orden bíblico</option>
+                    </select>
+                </label>
+            `);
+        }
+
+        return controls.join('');
+    },
+
+    renderMeditationCard: function(model) {
+        const metaParts = [
+            model.readingDateLabel,
+            model.versionLabel
+        ].filter(Boolean);
+
+        return `
+            <button
+                class="meditation-library-card"
+                type="button"
+                data-action="open-meditation-detail"
+                data-session-id="${this.escapeHtml(model.id)}"
+                aria-label="Abrir meditación de ${this.escapeHtml(model.reference)}"
+            >
+                <span class="meditation-library-card-reference">${this.escapeHtml(model.reference)}</span>
+                <span class="meditation-library-card-meta">${this.escapeHtml(metaParts.join(' · '))}</span>
+                <span class="meditation-library-card-status" data-status="${this.escapeHtml(model.statusId)}">${this.escapeHtml(model.statusLabel)}</span>
+                <span class="meditation-library-card-excerpt">“${this.escapeHtml(model.excerpt)}”</span>
+            </button>
+        `;
+    },
+
+    updateLibraryResults: async function() {
+        if (this.currentView !== 'meditations-history' || window.location.hash.split('/')[1]) return;
+
         const container = document.getElementById('library-results-container');
+        const toolbar = document.getElementById('meditation-library-toolbar');
+        const filtersContainer = document.getElementById('meditation-library-filters');
         const announcer = document.getElementById('library-a11y-announcer');
         if (!container) return;
-        
-        const results = MeditationLibrary.search(
-            this.libraryState.query,
-            this.libraryState.filters,
-            this.libraryState.sortBy
-        );
-        
+
+        const allModels = await this.getMeditationLibraryModels();
+        const options = this.getLibraryFilterOptions(allModels);
+        const hasMeditations = allModels.length > 0;
+        this.normalizeLibraryStateForOptions(options, allModels.length);
+
+        if (!hasMeditations) {
+            if (toolbar) toolbar.hidden = true;
+            container.innerHTML = `
+                <section class="meditation-library-state" aria-labelledby="library-empty-title">
+                    <p class="meditation-library-state-kicker">Todavía no hay meditaciones guardadas</p>
+                    <h3 id="library-empty-title">Tu biblioteca está esperando sus primeras páginas.</h3>
+                    <p>Cuando escribas una meditación, aparecerá aquí para que puedas volver a leerla con calma.</p>
+                </section>
+            `;
+            return;
+        }
+
+        if (toolbar) toolbar.hidden = false;
+        if (filtersContainer) {
+            filtersContainer.innerHTML = this.renderMeditationLibraryFilters(allModels, options);
+        }
+
+        const results = this.applyMeditationLibraryFilters(allModels);
         if (announcer) {
             announcer.textContent = `Se encontraron ${results.length} meditaciones`;
         }
-        
+
         if (results.length === 0) {
-            container.innerHTML = `<div class="empty-state">No se encontraron resultados que coincidan con tu búsqueda.</div>`;
+            container.innerHTML = `
+                <section class="meditation-library-state" aria-labelledby="library-no-results-title">
+                    <p class="meditation-library-state-kicker">Sin resultados</p>
+                    <h3 id="library-no-results-title">No encontré una meditación con esos criterios.</h3>
+                    <p>Prueba con otra palabra, estado, versión o libro.</p>
+                </section>
+            `;
             return;
         }
-        
-        // Paginación simple / recorte para performance
+
         const paginatedResults = results.slice(0, this.libraryState.limit);
-        
-        let html = '';
-        paginatedResults.forEach(m => {
-            const dateStr = new Date(m.createdAt).toLocaleDateString();
-            const isCompleted = m.status === 'completed';
-            const isArchived = m.status === 'archived';
-            
-            let statusLabel = isCompleted ? '✅ Completada' : '✍️ En curso';
-            if (isArchived) statusLabel = '📦 Archivada';
-            
-            html += `
-                <div class="meditation-history-card">
-                    <div class="meditation-history-card-header">
-                        <h3>${m.title}</h3>
-                        <span class="meditation-status ${isArchived ? 'status-archived' : (isCompleted ? 'status-completed' : 'status-draft')}">
-                            ${statusLabel}
-                        </span>
-                    </div>
-                    <div class="meditation-history-card-meta">
-                        <span>📅 ${dateStr}</span>
-                        <span>📖 ${m.bibleVersion.toUpperCase()}</span>
-                    </div>
-                    ${m.snippet ? `<div class="meditation-history-card-snippet">${m.snippet}</div>` : ''}
-                    <div class="meditation-history-card-actions">
-                        <button class="btn-primary" data-action="open-library-session" data-reading-id="${m.readingId}">Abrir</button>
-                    </div>
+        container.innerHTML = `
+            <div class="meditation-library-count">${results.length} meditación${results.length === 1 ? '' : 'es'}</div>
+            <div class="meditation-library-grid">
+                ${paginatedResults.map(model => this.renderMeditationCard(model)).join('')}
+            </div>
+            ${results.length > this.libraryState.limit ? `
+                <div class="library-load-more meditation-library-load-more">
+                    <button class="btn-secondary" data-action="library-load-more">Mostrar más (${results.length - this.libraryState.limit})</button>
                 </div>
-            `;
-        });
-        
-        if (results.length > this.libraryState.limit) {
-            html += `
-                <div class="library-load-more">
-                    <button class="btn-secondary" data-action="library-load-more">Cargar más resultados (${results.length - this.libraryState.limit} restantes)</button>
-                </div>
-            `;
+            ` : ''}
+        `;
+
+        if (this.libraryScrollTop > 0) {
+            const scrollTop = this.libraryScrollTop;
+            this.libraryScrollTop = 0;
+            requestAnimationFrame(() => window.scrollTo(0, scrollTop));
         }
-        
-        container.innerHTML = html;
+    },
+
+    renderMeditationDetailSections: function(model) {
+        const sections = [
+            { key: 'dios', title: 'Cómo es Dios' },
+            { key: 'aprendizaje', title: 'Enseñanza' },
+            { key: 'respuesta', title: 'Aplicación' },
+            { key: 'oracion', title: 'Oración' }
+        ];
+
+        return sections
+            .filter(section => model.notes[section.key])
+            .map(section => `
+                <section class="meditation-detail-section">
+                    <h3>${this.escapeHtml(section.title)}</h3>
+                    <p>${this.escapeHtml(model.notes[section.key])}</p>
+                </section>
+            `)
+            .join('');
+    },
+
+    renderMeditationDetail: async function(sessionId) {
+        const decodedSessionId = decodeURIComponent(String(sessionId || ''));
+        const session = MeditationSessionStorage.get(decodedSessionId);
+
+        if (!session) {
+            this.$content.innerHTML = `
+                <section class="meditation-detail-view meditation-detail-missing">
+                    <button class="meditation-detail-back" type="button" data-action="library-back" aria-label="Volver a Biblioteca">← Biblioteca</button>
+                    <div class="meditation-library-state">
+                        <p class="meditation-library-state-kicker">No disponible</p>
+                        <h2>No encontré esta meditación.</h2>
+                        <p>Puede haberse archivado o eliminado de este dispositivo.</p>
+                    </div>
+                </section>
+            `;
+            return;
+        }
+
+        const model = await this.getMeditationDisplayModel(session);
+        const actionLabel = model.statusId === 'archived' ? 'Restaurar' : 'Archivar';
+        const actionName = model.statusId === 'archived' ? 'restore-library-meditation' : 'archive-library-meditation';
+        const sectionsHtml = model.hasContent
+            ? this.renderMeditationDetailSections(model)
+            : `
+                <section class="meditation-library-state">
+                    <p class="meditation-library-state-kicker">Sin contenido</p>
+                    <h2>Esta meditación todavía no tiene texto guardado.</h2>
+                    <p>Puedes editarla para continuar escribiendo.</p>
+                </section>
+            `;
+
+        this.$content.innerHTML = `
+            <article class="meditation-detail-view" aria-labelledby="meditation-detail-title">
+                <header class="meditation-detail-header">
+                    <button class="meditation-detail-back" type="button" data-action="library-back" aria-label="Volver a Biblioteca">← Biblioteca</button>
+                    <div class="meditation-detail-title-block">
+                        <p class="meditation-library-kicker">Meditación</p>
+                        <h2 id="meditation-detail-title">${this.escapeHtml(model.reference)}</h2>
+                        <div class="meditation-detail-meta">
+                            <span>${this.escapeHtml(model.readingDateLabel)}</span>
+                            ${model.versionLabel ? `<span>${this.escapeHtml(model.versionLabel)}</span>` : ''}
+                            <span class="meditation-library-card-status" data-status="${this.escapeHtml(model.statusId)}">${this.escapeHtml(model.statusLabel)}</span>
+                        </div>
+                    </div>
+                    <div class="meditation-detail-actions" aria-label="Acciones de meditación">
+                        <button type="button" data-action="edit-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Editar</button>
+                        <button type="button" data-action="share-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Compartir</button>
+                        <button type="button" data-action="${actionName}" data-session-id="${this.escapeHtml(model.id)}">${actionLabel}</button>
+                    </div>
+                </header>
+
+                <div class="meditation-detail-paper">
+                    ${sectionsHtml}
+                </div>
+            </article>
+        `;
+    },
+
+    openMeditationLibraryEditor: async function(sessionId) {
+        const session = MeditationSessionStorage.get(sessionId);
+        if (!session) {
+            this.showToast('No se encontró la meditación');
+            return;
+        }
+
+        this.openMeditationSession(sessionId);
+        const reading = await this.getReadingByDate(session.readingId);
+        if (!reading) {
+            this.showToast('No se pudo cargar la lectura de esta meditación');
+            return;
+        }
+
+        this.libraryEditorSessionId = sessionId;
+        document.body.classList.add('meditation-library-editor-open');
+        this.openSlidingNotebook(reading);
+    },
+
+    closeMeditationLibraryEditor: function(options = {}) {
+        const { refreshDetail = true } = options;
+        const sessionId = this.libraryEditorSessionId;
+        this.closeSlidingNotebook();
+        this.libraryEditorSessionId = null;
+        document.body.classList.remove('meditation-library-editor-open');
+
+        if (
+            refreshDetail &&
+            sessionId &&
+            this.currentView === 'meditations-history' &&
+            decodeURIComponent(window.location.hash.split('/')[1] || '') === sessionId
+        ) {
+            this.renderMeditationDetail(sessionId).catch(error => {
+                console.error('[Library] Error actualizando detalle:', error);
+            });
+        }
+    },
+
+    shareMeditationFromLibrary: async function(sessionId) {
+        const previousSessionId = this.currentMeditationSessionId;
+        const previousOpenDate = this.openNoteDate;
+        const previousOverride = this.sessionOverrideBibleVersion;
+        const session = MeditationSessionStorage.get(sessionId);
+
+        if (!session) {
+            this.showToast('No se encontró la meditación');
+            return;
+        }
+
+        try {
+            this.openMeditationSession(sessionId);
+            await this.exportReflectionPDF(session.readingId);
+        } finally {
+            this.currentMeditationSessionId = previousSessionId;
+            this.openNoteDate = previousOpenDate;
+            this.sessionOverrideBibleVersion = previousOverride;
+        }
+    },
+
+    archiveMeditationFromLibrary: async function(sessionId) {
+        const session = MeditationSessionStorage.get(sessionId);
+        if (!session) return;
+        if (!confirm('¿Quieres archivar esta meditación? Podrás verla de nuevo desde el filtro Archivadas.')) return;
+
+        session.status = 'archived';
+        session.updatedAt = Date.now();
+        MeditationSessionStorage.save(session);
+        this.showToast('Meditación archivada');
+        history.pushState(null, '', '#meditations-history');
+        await this.handleRoute();
+    },
+
+    restoreMeditationFromLibrary: async function(sessionId) {
+        const session = MeditationSessionStorage.get(sessionId);
+        if (!session) return;
+
+        session.status = session.completedAt ? 'completed' : 'draft';
+        session.updatedAt = Date.now();
+        MeditationSessionStorage.save(session);
+        this.showToast('Meditación restaurada');
+        history.pushState(null, '', '#meditations-history');
+        await this.handleRoute();
     },
     
     initTheme: function() {
