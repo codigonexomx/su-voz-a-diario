@@ -16274,6 +16274,9 @@ document.addEventListener('keydown', (e) => {
         this.libraryEditorSessionId = sessionId;
         document.body.classList.add('meditation-library-editor-open');
         this.openSlidingNotebook(reading);
+        requestAnimationFrame(() => {
+            window.NotebookGestureController?.setState?.(window.NotebookGestureController.STATES.EXPANDED);
+        });
     },
 
     closeMeditationLibraryEditor: function(options = {}) {
