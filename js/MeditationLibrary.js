@@ -124,6 +124,8 @@ export const MeditationLibrary = {
             filtered = filtered.filter(entry => entry.favorite === true && entry.status !== 'archived');
         } else if (filters.collection === 'archived') {
             filtered = filtered.filter(entry => entry.status === 'archived');
+        } else if (filters.collection === 'books') {
+            filtered = filtered.filter(entry => entry.status !== 'archived');
         } else if (filters.status === 'all') {
             filtered = filtered.filter(entry => entry.status !== 'archived');
         }
@@ -135,6 +137,9 @@ export const MeditationLibrary = {
         }
         if (filters.bookId && filters.bookId !== 'all') {
             filtered = filtered.filter(entry => entry.bookId === filters.bookId);
+        }
+        if (filters.collection === 'books' && filters.selectedBookId) {
+            filtered = filtered.filter(entry => entry.bookId === filters.selectedBookId);
         }
         return filtered;
     },
