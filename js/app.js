@@ -3699,8 +3699,17 @@ syncAppBadge: function(count) {
 
         if (!header || !body) return;
 
+        const isLibraryEditor = document.body.classList.contains('meditation-library-editor-open');
+        const previousBodyScrollTop = isLibraryEditor ? body.scrollTop : 0;
         body.innerHTML = this.renderDevotionalGuide(reading);
         document.body.classList.add('deepening-mode');
+
+        if (isLibraryEditor) {
+            panel.style.transform = 'translateY(0)';
+            panel.style.transition = '';
+            body.scrollTop = previousBodyScrollTop;
+            return;
+        }
 
         if (window.NotebookGestureController) {
             window.NotebookGestureController.init(panel, header);
@@ -3774,6 +3783,15 @@ syncAppBadge: function(count) {
     },
 
     closeSlidingNotebook: function() {
+        if (document.body.classList.contains('meditation-library-editor-open')) {
+            const panel = document.querySelector('.sliding-notebook-panel');
+            if (panel) {
+                panel.style.transform = 'translateY(100%)';
+            }
+            document.body.classList.remove('deepening-mode');
+            return;
+        }
+
         if (window.NotebookGestureController) {
             window.NotebookGestureController.hide();
         }
@@ -16274,9 +16292,6 @@ document.addEventListener('keydown', (e) => {
         this.libraryEditorSessionId = sessionId;
         document.body.classList.add('meditation-library-editor-open');
         this.openSlidingNotebook(reading);
-        requestAnimationFrame(() => {
-            window.NotebookGestureController?.setState?.(window.NotebookGestureController.STATES.EXPANDED);
-        });
     },
 
     closeMeditationLibraryEditor: function(options = {}) {

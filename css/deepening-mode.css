@@ -501,6 +501,7 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-step-labe
 
 body.meditation-library-editor-open .sliding-notebook-body .devotional-step-card {
     display: grid;
+    grid-template-rows: auto 3.3em 8.4em auto auto;
     gap: 10px;
 }
 
@@ -514,6 +515,9 @@ body.meditation-library-editor-open .sliding-notebook-body .note-title {
 body.meditation-library-editor-open .sliding-notebook-body .devotional-step-context {
     margin: 0;
     max-width: 58ch;
+    min-height: 3.3em;
+    max-height: 3.3em;
+    overflow-y: auto;
     font-size: clamp(0.95rem, 2.4vw, 1.02rem);
     line-height: 1.58;
     color: rgba(45, 38, 30, 0.74);
@@ -522,8 +526,11 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-step-cont
 body.meditation-library-editor-open .sliding-notebook-body .devotional-question-list {
     margin: 2px 0 clamp(8px, 2vh, 16px);
     margin: 2px 0 clamp(8px, 2dvh, 16px);
+    min-height: 8.4em;
+    max-height: 8.4em;
     display: grid;
     gap: 6px;
+    overflow-y: auto;
 }
 
 body.meditation-library-editor-open .sliding-notebook-body .devotional-question-list li {
@@ -534,6 +541,8 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-question-
 }
 
 body.meditation-library-editor-open .sliding-notebook-body .note-textarea {
+    height: clamp(220px, 32vh, 380px);
+    height: clamp(220px, 32dvh, 380px);
     min-height: clamp(220px, 32vh, 380px);
     min-height: clamp(220px, 32dvh, 380px);
     max-height: min(46vh, 430px);
@@ -545,6 +554,7 @@ body.meditation-library-editor-open .sliding-notebook-body .note-textarea {
     color: #1f1a15;
     caret-color: var(--accent);
     overflow-y: auto;
+    resize: none;
     -webkit-overflow-scrolling: touch;
     scroll-margin-bottom: calc(120px + env(safe-area-inset-bottom));
 }
@@ -628,6 +638,8 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-nav-btn-p
     }
 
     body.meditation-library-editor-open .sliding-notebook-body .note-textarea {
+        height: clamp(190px, 34vh, 310px);
+        height: clamp(190px, 34dvh, 310px);
         min-height: clamp(190px, 34vh, 310px);
         min-height: clamp(190px, 34dvh, 310px);
         max-height: 44vh;
@@ -657,9 +669,15 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-nav-btn-p
         gap: 12px;
     }
 
+    body.meditation-library-editor-open .sliding-notebook-body .devotional-step-card {
+        grid-template-rows: auto 3.3em 5.5em auto auto;
+    }
+
     body.meditation-library-editor-open .sliding-notebook-body .devotional-question-list {
         gap: 4px;
         margin-bottom: 6px;
+        min-height: 5.5em;
+        max-height: 5.5em;
     }
 
     body.meditation-library-editor-open .sliding-notebook-body .devotional-question-list li {
@@ -668,6 +686,8 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-nav-btn-p
     }
 
     body.meditation-library-editor-open .sliding-notebook-body .note-textarea {
+        height: max(160px, 32vh);
+        height: max(160px, 32dvh);
         min-height: max(160px, 32vh);
         min-height: max(160px, 32dvh);
         max-height: 40vh;
