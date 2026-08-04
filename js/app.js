@@ -8,7 +8,6 @@ import {
 
 import { NotebookAnalytics } from './NotebookAnalytics.js';
 import { MeditationLibrary } from './MeditationLibrary.js';
-import { MeditationTimeline } from './MeditationTimeline.js';
 import { NotebookStorage } from './NotebookStorage.js';
 import { NotebookUIStateStorage } from './NotebookUIStateStorage.js';
 import { MeditationSessionStorage } from './MeditationSessionStorage.js';
@@ -6668,9 +6667,6 @@ this.updateNavUI();
     } else {
         this.$content.innerHTML = this.renderMeditationsHistory();
     }
-} else if (view === 'meditation-timeline') {
-    this.$content.innerHTML = '<div id="timeline-container"></div>';
-    MeditationTimeline.renderTimeline('timeline-container');
 } else if (view === 'calendar') {
     this.renderCalendar();
 } else if (view === 'community') {
@@ -13392,7 +13388,14 @@ document.addEventListener('change', (e) => {
     if (e.target.id === 'library-filter-collection') {
         if (this.libraryState) {
             this.libraryState.filters.collection = e.target.value;
+        }
+        this.updateLibraryResults();
+    }
+    if (e.target.id === 'library-explore-by') {
+        if (this.libraryState) {
+            this.libraryState.exploreBy = e.target.value;
             this.libraryState.filters.selectedBookId = '';
+            this.libraryState.limit = 30;
             if (e.target.value === 'books') {
                 this.libraryState.filters.bookId = 'all';
             }
@@ -14788,7 +14791,7 @@ if (libraryBookBtn) {
     const bookId = libraryBookBtn.getAttribute('data-book-id');
     if (bookId && this.libraryState) {
         this.libraryBookScrollTop = window.scrollY || window.pageYOffset || 0;
-        this.libraryState.filters.collection = 'books';
+        this.libraryState.exploreBy = 'books';
         this.libraryState.filters.selectedBookId = bookId;
         this.libraryState.limit = 30;
         await this.updateLibraryResults();
@@ -14855,27 +14858,6 @@ if (libraryRestoreBtn) {
     if (sessionId) {
         await this.restoreMeditationFromLibrary(sessionId);
     }
-    return;
-}
-
-const openLibrarySessionBtn = e.target.closest('[data-action="open-library-session"]');
-if (openLibrarySessionBtn) {
-    const sessionId = openLibrarySessionBtn.getAttribute('data-session-id');
-    const readingId = openLibrarySessionBtn.getAttribute('data-reading-id');
-    if (sessionId) {
-        history.pushState(null, '', `#meditations-history/${encodeURIComponent(sessionId)}`);
-        await this.handleRoute();
-        return;
-    }
-    if (!readingId) return;
-    const sessionMeta = MeditationSessionStorage.getAllMetadata().find(m => m.readingId === readingId);
-    if (sessionMeta?.id) {
-        history.pushState(null, '', `#meditations-history/${encodeURIComponent(sessionMeta.id)}`);
-        await this.handleRoute();
-        return;
-    }
-    history.pushState(null, '', '#meditations-history');
-    await this.handleRoute();
     return;
 }
 
@@ -15260,10 +15242,12 @@ document.addEventListener('keydown', (e) => {
             this.libraryState = {
                 query: '',
                 filters: { collection: 'all', status: 'all', version: 'all', bookId: 'all', selectedBookId: '' },
+                exploreBy: 'list',
                 sortBy: 'recent',
                 limit: 30
             };
         }
+        this.libraryState.exploreBy = this.libraryState.exploreBy || 'list';
         this.libraryState.filters = {
             collection: 'all',
             status: 'all',
@@ -15771,7 +15755,8 @@ document.addEventListener('keydown', (e) => {
         const statusIds = new Set(options.statuses.map(option => option.id));
         const versionIds = new Set(options.versions.map(option => option.id));
         const bookIds = new Set(options.books.map(option => option.id));
-        const collectionIds = new Set(['all', 'favorites', 'archived', 'books']);
+        const collectionIds = new Set(['all', 'favorites', 'archived']);
+        const explorationIds = new Set(['list', 'books', 'timeline']);
 
         if (!this.libraryState.filters) {
             this.libraryState.filters = { collection: 'all', status: 'all', version: 'all', bookId: 'all' };
@@ -15779,10 +15764,13 @@ document.addEventListener('keydown', (e) => {
         if (!collectionIds.has(this.libraryState.filters.collection)) {
             this.libraryState.filters.collection = 'all';
         }
+        if (!explorationIds.has(this.libraryState.exploreBy)) {
+            this.libraryState.exploreBy = 'list';
+        }
         if (this.libraryState.filters.collection === 'archived') {
             this.libraryState.filters.status = 'all';
         }
-        if (this.libraryState.filters.collection !== 'books') {
+        if (this.libraryState.exploreBy !== 'books') {
             this.libraryState.filters.selectedBookId = '';
         }
 
@@ -15833,7 +15821,7 @@ document.addEventListener('keydown', (e) => {
             results = results.filter(model => model.bookId === state.filters.bookId);
         }
 
-        if (state.filters?.collection === 'books' && state.filters.selectedBookId) {
+        if (state.exploreBy === 'books' && state.filters?.selectedBookId) {
             results = results.filter(model => model.bookId === state.filters.selectedBookId);
         }
 
@@ -15856,7 +15844,7 @@ document.addEventListener('keydown', (e) => {
 
     getMeditationBookIndexModels: function(models) {
         const state = this.libraryState || {};
-        let results = [...models].filter(model => model.statusId !== 'archived');
+        let results = [...models];
         const normalizedQuery = this.normalizeLibrarySearchText(state.query);
 
         if (normalizedQuery) {
@@ -15869,6 +15857,14 @@ document.addEventListener('keydown', (e) => {
 
         if (state.filters?.status && state.filters.status !== 'all') {
             results = results.filter(model => model.statusId === state.filters.status);
+        }
+
+        if (state.filters?.collection === 'favorites') {
+            results = results.filter(model => model.favorite && model.statusId !== 'archived');
+        } else if (state.filters?.collection === 'archived') {
+            results = results.filter(model => model.statusId === 'archived');
+        } else {
+            results = results.filter(model => model.statusId !== 'archived');
         }
 
         if (state.filters?.version && state.filters.version !== 'all') {
@@ -15890,12 +15886,22 @@ document.addEventListener('keydown', (e) => {
 
         controls.push(`
             <label class="meditation-library-select-wrap">
-                <span>Vista</span>
+                <span>Mostrar</span>
                 <select id="library-filter-collection" aria-label="Mostrar meditaciones">
                     <option value="all"${state.filters.collection === 'all' ? ' selected' : ''}>Todas</option>
                     <option value="favorites"${state.filters.collection === 'favorites' ? ' selected' : ''}>Favoritas</option>
                     <option value="archived"${state.filters.collection === 'archived' ? ' selected' : ''}>Archivadas</option>
-                    <option value="books"${state.filters.collection === 'books' ? ' selected' : ''}>Libros Bíblicos</option>
+                </select>
+            </label>
+        `);
+
+        controls.push(`
+            <label class="meditation-library-select-wrap">
+                <span>Explorar por</span>
+                <select id="library-explore-by" aria-label="Explorar meditaciones por">
+                    <option value="list"${state.exploreBy === 'list' ? ' selected' : ''}>Lista</option>
+                    <option value="books"${state.exploreBy === 'books' ? ' selected' : ''}>Libros Bíblicos</option>
+                    <option value="timeline"${state.exploreBy === 'timeline' ? ' selected' : ''}>Cronología</option>
                 </select>
             </label>
         `);
@@ -15924,7 +15930,7 @@ document.addEventListener('keydown', (e) => {
             `);
         }
 
-        if (state.filters.collection !== 'books' && options.books.length > 1) {
+        if (state.exploreBy !== 'books' && options.books.length > 1) {
             controls.push(`
                 <label class="meditation-library-select-wrap">
                     <span>Libro</span>
@@ -15936,7 +15942,7 @@ document.addEventListener('keydown', (e) => {
             `);
         }
 
-        if (models.length > 1) {
+        if (state.exploreBy !== 'timeline' && models.length > 1) {
             controls.push(`
                 <label class="meditation-library-select-wrap">
                     <span>Orden</span>
@@ -15983,6 +15989,102 @@ document.addEventListener('keydown', (e) => {
                     <h3>${this.escapeHtml(book.name)}</h3>
                     <p>${count} meditación${count === 1 ? '' : 'es'}</p>
                 </div>
+            </div>
+        `;
+    },
+
+    getMeditationTimelineCategory: function(timestamp) {
+        const value = Number(timestamp || 0);
+        if (!Number.isFinite(value) || value <= 0) return 'undated';
+
+        const now = new Date();
+        const date = new Date(value < 10000000000 ? value * 1000 : value);
+        if (Number.isNaN(date.getTime())) return 'undated';
+
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+
+        const thisWeekStart = new Date(today);
+        thisWeekStart.setDate(today.getDate() - today.getDay());
+        const lastWeekStart = new Date(thisWeekStart);
+        lastWeekStart.setDate(thisWeekStart.getDate() - 7);
+
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const thisYearStart = new Date(now.getFullYear(), 0, 1);
+
+        if (date >= today) return 'today';
+        if (date >= yesterday) return 'yesterday';
+        if (date >= thisWeekStart) return 'this-week';
+        if (date >= lastWeekStart) return 'last-week';
+        if (date >= thisMonthStart) return 'this-month';
+        if (date >= thisYearStart) return `month-${date.getFullYear()}-${date.getMonth()}`;
+        return `year-${date.getFullYear()}`;
+    },
+
+    getMeditationTimelineLabel: function(categoryId, firstModel) {
+        if (categoryId === 'today') return 'Hoy';
+        if (categoryId === 'yesterday') return 'Ayer';
+        if (categoryId === 'this-week') return 'Esta semana';
+        if (categoryId === 'last-week') return 'La semana pasada';
+        if (categoryId === 'this-month') return 'Este mes';
+        if (categoryId === 'undated') return 'Sin fecha';
+
+        const timestamp = Number(firstModel?.updatedAt || firstModel?.createdAt || 0);
+        const date = new Date(timestamp < 10000000000 ? timestamp * 1000 : timestamp);
+        if (categoryId.startsWith('month-') && !Number.isNaN(date.getTime())) {
+            return date.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+        }
+        if (categoryId.startsWith('year-')) {
+            return categoryId.replace('year-', '');
+        }
+        return 'Anteriormente';
+    },
+
+    getMeditationTimelineGroups: function(models) {
+        const byCategory = new Map();
+        const sorted = [...models].sort((a, b) => {
+            const aTime = Number(a.updatedAt || a.createdAt || 0);
+            const bTime = Number(b.updatedAt || b.createdAt || 0);
+            return bTime - aTime;
+        });
+
+        sorted.forEach(model => {
+            const category = this.getMeditationTimelineCategory(model.updatedAt || model.createdAt);
+            if (!byCategory.has(category)) {
+                byCategory.set(category, []);
+            }
+            byCategory.get(category).push(model);
+        });
+
+        return Array.from(byCategory.entries()).map(([id, items]) => ({
+            id,
+            label: this.getMeditationTimelineLabel(id, items[0]),
+            items
+        }));
+    },
+
+    renderMeditationTimeline: function(models) {
+        const groups = this.getMeditationTimelineGroups(models);
+        return `
+            <div class="meditation-library-count">${models.length} meditación${models.length === 1 ? '' : 'es'} en cronología</div>
+            <div class="meditation-library-timeline" aria-label="Cronología de meditaciones">
+                ${groups.map(group => `
+                    <section class="meditation-library-timeline-group" aria-labelledby="library-timeline-${this.escapeHtml(group.id)}">
+                        <div class="meditation-library-timeline-head">
+                            <h3 id="library-timeline-${this.escapeHtml(group.id)}">${this.escapeHtml(group.label)}</h3>
+                            <span>${group.items.length} meditación${group.items.length === 1 ? '' : 'es'}</span>
+                        </div>
+                        <div class="meditation-library-timeline-items">
+                            ${group.items.map(model => `
+                                <div class="meditation-library-timeline-item">
+                                    <span class="meditation-library-timeline-dot" aria-hidden="true"></span>
+                                    ${this.renderMeditationCard(model)}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </section>
+                `).join('')}
             </div>
         `;
     },
@@ -16049,12 +16151,21 @@ document.addEventListener('keydown', (e) => {
             };
         }
 
-        if (filters.collection === 'books' && filters.selectedBookId) {
+        if (state.exploreBy === 'books' && filters.selectedBookId) {
             return {
                 id: 'library-book-empty-title',
                 kicker: 'Libro bíblico',
                 title: hasQuery ? 'No encontré coincidencias en este libro.' : 'No hay meditaciones visibles en este libro.',
                 body: hasQuery ? 'Prueba con otra palabra o limpia los filtros activos.' : 'Ajusta los filtros para volver a ver sus meditaciones.'
+            };
+        }
+
+        if (state.exploreBy === 'timeline' && !hasQuery) {
+            return {
+                id: 'library-timeline-empty-title',
+                kicker: 'Cronología',
+                title: 'No hay meditaciones visibles en esta cronología.',
+                body: 'Ajusta lo que quieres mostrar para volver a recorrer tus meditaciones en el tiempo.'
             };
         }
 
@@ -16133,7 +16244,7 @@ document.addEventListener('keydown', (e) => {
             announcer.textContent = `Se encontraron ${results.length} meditaciones`;
         }
 
-        if (this.libraryState.filters.collection === 'books' && !this.libraryState.filters.selectedBookId) {
+        if (this.libraryState.exploreBy === 'books' && !this.libraryState.filters.selectedBookId) {
             const bookIndex = this.getMeditationBookIndex(this.getMeditationBookIndexModels(allModels));
             if (announcer) {
                 announcer.textContent = `Se encontraron ${bookIndex.length} libros con meditaciones`;
@@ -16156,10 +16267,20 @@ document.addEventListener('keydown', (e) => {
             return;
         }
 
-        const bookIndex = this.libraryState.filters.collection === 'books'
+        if (this.libraryState.exploreBy === 'timeline') {
+            this.updateMeditationLibraryContainer(container, this.renderMeditationTimeline(results));
+            if (this.libraryScrollTop > 0) {
+                const scrollTop = this.libraryScrollTop;
+                this.libraryScrollTop = 0;
+                requestAnimationFrame(() => window.scrollTo(0, scrollTop));
+            }
+            return;
+        }
+
+        const bookIndex = this.libraryState.exploreBy === 'books'
             ? this.getMeditationBookIndex(this.getMeditationBookIndexModels(allModels))
             : [];
-        const selectedBook = this.libraryState.filters.collection === 'books'
+        const selectedBook = this.libraryState.exploreBy === 'books'
             ? this.getLibrarySelectedBook(bookIndex)
             : null;
         const paginatedResults = results.slice(0, this.libraryState.limit);
