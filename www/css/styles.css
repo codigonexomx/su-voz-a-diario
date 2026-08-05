@@ -673,7 +673,7 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .reading-card .section-t
     font-family: var(--font-reading);
     font-size: 2rem;
     font-weight: 700;
-    color: var(--primary);
+    color: #1f365d;
     margin-bottom: 24px;
     text-align: center;
     line-height: 1.2;
