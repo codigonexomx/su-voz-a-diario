@@ -7530,6 +7530,11 @@ body.selection-panel-open {
     vertical-align: super;
 }
 
+.reading-card .verse-number {
+    color: #b58a4b;
+    font-size: 1em;
+}
+
 .verse-text-content {
     font-weight: normal;
 }
