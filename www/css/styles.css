@@ -111,9 +111,10 @@ body {
 
 .app-header-main h1 {
     font-size: 1.25rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: var(--primary);
+    font-family: var(--font-reading);
+    font-weight: 700;
+    letter-spacing: 0;
+    color: #2d3748;
     margin: 0;
     white-space: nowrap;
 }
@@ -125,20 +126,24 @@ body {
     width: 34px;
     height: 34px;
     border: none;
-    background: transparent;
-    color: var(--text-main);
+    background: #1f365d;
+    color: #ffffff;
     font-size: 20px;
-    border-radius: 10px;
+    border-radius: 999px;
+    box-shadow:
+        0 8px 18px rgba(31, 54, 93, 0.24),
+        inset 0 0 0 1px rgba(181, 138, 75, 0.58),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18);
     cursor: pointer;
     flex-shrink: 0;
 }
 
 .header-left-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: #1f365d;
 }
 
 body.dark-mode .header-left-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: #1f365d;
 }
 
 .header-left-btn:active {
@@ -152,19 +157,23 @@ body.dark-mode .header-left-btn:hover {
     width: 34px;
     height: 34px;
     border: none;
-    background: transparent;
-    color: var(--text-main);
-    border-radius: 10px;
+    background: rgba(45, 55, 72, 0.06);
+    color: #2d3748;
+    border-radius: 999px;
+    box-shadow:
+        0 8px 18px rgba(45, 55, 72, 0.10),
+        inset 0 0 0 1px rgba(181, 138, 75, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.74);
     cursor: pointer;
     flex-shrink: 0;
 }
 
 .header-settings-btn:hover {
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(45, 55, 72, 0.06);
 }
 
 body.dark-mode .header-settings-btn:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(45, 55, 72, 0.06);
 }
 
 .header-settings-btn:active {
