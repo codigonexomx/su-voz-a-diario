@@ -310,10 +310,6 @@ body.su-voz-hoy-background {
     pointer-events: none;
 }
 
-.home-hero-art[hidden] {
-    display: none !important;
-}
-
 .home-hero-art img {
     display: block;
     width: 100%;

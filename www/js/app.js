@@ -6244,29 +6244,6 @@ expandSelectionPanelForNote: function(expand = true) {
     }
 },
 
-syncHomeHeroArt: function(isVisible) {
-    let art = document.getElementById('home-hero-art');
-
-    if (!art) {
-        art = document.createElement('div');
-        art.id = 'home-hero-art';
-        art.className = 'home-hero-art';
-        art.setAttribute('aria-hidden', 'true');
-
-        const img = document.createElement('img');
-        img.src = 'imagendefondo.png';
-        img.alt = '';
-        img.decoding = 'async';
-        img.loading = 'eager';
-        art.appendChild(img);
-
-        document.body.insertBefore(art, document.body.firstChild);
-    }
-
-    art.hidden = !isVisible;
-    document.body.classList.toggle('su-voz-hoy-background', isVisible);
-},
-
 renderViewHeader: function(title, subtitle = '', meta = '') {
     return `
         <section class="view-hero">
@@ -6636,7 +6613,7 @@ if (view !== 'settings' && oldView !== 'settings') {
 
 this.currentView = view;
 this.$content.classList.toggle('su-voz-hoy-view', view === 'home');
-this.syncHomeHeroArt(view === 'home');
+document.body.classList.toggle('su-voz-hoy-background', view === 'home');
 this.updateNavUI();
     
     document.querySelectorAll('.version-btn').forEach(btn => {
@@ -8074,6 +8051,9 @@ restoreCalendarPosition: function() {
         const readingLabel = isRealToday ? 'Su voz hoy' : 'Su voz este día';
 
         this.$content.innerHTML = `
+            <div class="home-hero-art">
+                <img src="imagendefondo.png" alt="" aria-hidden="true">
+            </div>
 
             ${this.renderViewHeader(
                 'Lectura bíblica del día',
@@ -8203,6 +8183,11 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
             : '📖 Su voz este día';
         
         this.$content.innerHTML = `
+    ${isHome ? `
+    <div class="home-hero-art">
+        <img src="imagendefondo.png" alt="" aria-hidden="true">
+    </div>
+    ` : ''}
 
     ${isHome ? this.renderViewHeader(
         'Lectura bíblica del día',
