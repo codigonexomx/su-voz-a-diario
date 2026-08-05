@@ -8383,14 +8383,20 @@ body.light-mode .selection-sheet-handle {
 }
 
 .capitulo-leido {
-    background: rgba(49, 130, 206, 0.12);
-    color: var(--accent);
+    background: rgba(45, 55, 72, 0.06);
+    color: rgba(45, 55, 72, 0.48);
 }
 
 .capitulo-pendiente {
     background: transparent;
-    color: var(--text-muted);
-    opacity: 0.45;
+    color: #b58a4b;
+    opacity: 1;
+}
+
+.capitulo-actual {
+    background: #1f365d;
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(31, 54, 93, 0.22);
 }
 
 /* Barra de progreso */
@@ -8430,12 +8436,13 @@ body.light-mode .selection-sheet-handle {
 }
 
 .dark-mode .capitulo-leido {
-    background: rgba(96, 165, 250, 0.15);
-    color: var(--accent);
+    background: rgba(45, 55, 72, 0.06);
+    color: rgba(45, 55, 72, 0.48);
 }
 
 .dark-mode .capitulo-pendiente {
-    opacity: 0.3;
+    color: #b58a4b;
+    opacity: 1;
 }
 
 /* ======================================== */

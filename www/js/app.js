@@ -1364,6 +1364,7 @@ getProgresoLibroVisual: function(dateStr = this.getHomeViewingDate(), reading = 
     const total = progreso.total;
     const leidos = progreso.leidos.length;
     const ultimoLeido = leidos > 0 ? Math.max(...progreso.leidos) : 0;
+    const capituloActual = getChapterFromReading(reading);
     
     // Crear visualización de los capítulos como un scroll horizontal
     let html = '<div class="pergamino-libro">';
@@ -1396,7 +1397,8 @@ getProgresoLibroVisual: function(dateStr = this.getHomeViewingDate(), reading = 
     
     for (let i = startChapter; i <= endChapter; i++) {
         const leido = progreso.leidos.includes(i);
-        const clase = leido ? 'capitulo-leido' : 'capitulo-pendiente';
+        const esActual = i === capituloActual;
+        const clase = esActual ? 'capitulo-actual' : (leido ? 'capitulo-leido' : 'capitulo-pendiente');
         const titulo = leido ? `Capítulo ${i} - Meditado ✓` : `Capítulo ${i} - Pendiente`;
         
         html += `<span class="pergamino-capitulo ${clase}" title="${titulo}">${i}</span>`;
