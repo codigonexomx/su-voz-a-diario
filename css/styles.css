@@ -450,7 +450,7 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .perg
 }
 
 .reading-card {
-    background: #F0ECE4;
+    background: #FFFDF8;
     border-radius: var(--border-radius);
     padding: 20px 16px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
