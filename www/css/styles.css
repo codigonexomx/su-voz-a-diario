@@ -305,17 +305,17 @@ body.su-voz-hoy-background::before {
     top: 0;
     left: 0;
     right: 0;
-    height: min(1120px, 100vh);
+    height: min(920px, 82vh);
     z-index: 0;
     pointer-events: none;
     background-color: #fbf6ed;
     background-image:
-        linear-gradient(180deg, rgba(251, 246, 237, 0.03) 0%, rgba(251, 246, 237, 0.18) 46%, #fbf6ed 100%),
-        linear-gradient(90deg, rgba(251, 246, 237, 0.6) 0%, rgba(251, 246, 237, 0.2) 42%, rgba(251, 246, 237, 0.04) 72%),
+        linear-gradient(180deg, rgba(251, 246, 237, 0) 0%, rgba(251, 246, 237, 0.04) 48%, #fbf6ed 100%),
+        linear-gradient(90deg, rgba(251, 246, 237, 0.34) 0%, rgba(251, 246, 237, 0.1) 42%, rgba(251, 246, 237, 0) 72%),
         url("../imagendefondo.png");
     background-repeat: no-repeat;
     background-position: center top, center top, right top;
-    background-size: 100% 100%, 100% 100%, 100vw auto;
+    background-size: 100% 100%, 100% 100%, auto 100%;
 }
 
 body.su-voz-hoy-background::after {
@@ -496,8 +496,8 @@ body.dark-mode.su-voz-hoy-background {
 body.dark-mode.su-voz-hoy-background::before {
     background-color: #12100d;
     background-image:
-        linear-gradient(180deg, rgba(18, 16, 13, 0.1) 0%, rgba(18, 16, 13, 0.42) 52%, #12100d 100%),
-        linear-gradient(90deg, rgba(18, 16, 13, 0.66) 0%, rgba(18, 16, 13, 0.24) 44%, rgba(18, 16, 13, 0.08) 74%),
+        linear-gradient(180deg, rgba(18, 16, 13, 0.04) 0%, rgba(18, 16, 13, 0.28) 52%, #12100d 100%),
+        linear-gradient(90deg, rgba(18, 16, 13, 0.52) 0%, rgba(18, 16, 13, 0.18) 44%, rgba(18, 16, 13, 0.02) 74%),
         url("../imagendefondo.png");
 }
 
@@ -512,28 +512,28 @@ body.dark-mode.su-voz-hoy-background .app-header::before {
 
 @media (max-width: 430px) {
     body.su-voz-hoy-background::before {
-        height: min(1120px, 100vh);
+        height: min(840px, 78vh);
         background-position: center top, center top, right top;
-        background-size: 100% 100%, 100% 100%, 100vw auto;
+        background-size: 100% 100%, 100% 100%, auto 100%;
     }
 
     body.su-voz-hoy-background::after {
-        top: min(560px, 54vh);
+        top: min(540px, 50vh);
     }
 }
 
 @media (max-width: 360px) {
     body.su-voz-hoy-background::before {
         background-position: center top, center top, right top;
-        background-size: 100% 100%, 100% 100%, 100vw auto;
+        background-size: 100% 100%, 100% 100%, auto 100%;
     }
 }
 
 @media (min-width: 760px) {
     body.su-voz-hoy-background::before {
-        height: min(1120px, 100vh);
+        height: min(920px, 82vh);
         background-position: center top, center top, right top;
-        background-size: 100% 100%, 100% 100%, min(100vw, 852px) auto;
+        background-size: 100% 100%, 100% 100%, auto 100%;
     }
 
     body.su-voz-hoy-background::after {
