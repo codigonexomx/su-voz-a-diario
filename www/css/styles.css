@@ -340,13 +340,7 @@ body.su-voz-hoy-background {
     inset: 0;
     z-index: 2;
     pointer-events: none;
-    background:
-        linear-gradient(90deg,
-            rgba(251, 246, 237, 0.96) 0%,
-            rgba(251, 246, 237, 0.90) 32%,
-            rgba(251, 246, 237, 0.48) 54%,
-            rgba(251, 246, 237, 0.08) 78%,
-            rgba(251, 246, 237, 0) 100%);
+    background: transparent;
 }
 
 .home-hero-art::after {
@@ -357,7 +351,7 @@ body.su-voz-hoy-background {
     bottom: 0;
     height: 42%;
     pointer-events: none;
-    background: linear-gradient(180deg, rgba(251, 246, 237, 0), #fbf6ed 78%, #fbf6ed 100%);
+    background: transparent;
 }
 
 #app-content.su-voz-hoy-view {
@@ -424,6 +418,10 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero p {
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .progreso-libro-card,
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .reading-card {
+    margin-top: -118px;
+}
+
+body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .pergamino-libro {
     margin-top: -118px;
 }
 
