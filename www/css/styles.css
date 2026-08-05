@@ -407,9 +407,18 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
     white-space: pre-line;
 }
 
+body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2::after {
+    content: "";
+    display: block;
+    width: 50%;
+    height: 1px;
+    margin-top: 12px;
+    background: linear-gradient(90deg, #b58a4b 0%, rgba(181, 138, 75, 0.44) 62%, rgba(181, 138, 75, 0) 100%);
+}
+
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero p {
     max-width: 315px;
-    margin-top: 18px;
+    margin-top: 12px;
     white-space: pre-line;
 }
 
