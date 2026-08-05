@@ -8345,7 +8345,7 @@ body.light-mode .selection-sheet-handle {
 .pergamino-titulo {
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--text-muted);
+    color: #2d3748;
     margin-bottom: 1px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
@@ -8353,10 +8353,10 @@ body.light-mode .selection-sheet-handle {
 
 .pergamino-subtitulo {
     font-size: 0.8rem;
-    color: var(--text-muted);
+    color: #4a5568;
     margin-bottom: 0;
     font-weight: 500;
-    opacity: 0.8;
+    opacity: 1;
 }
 
 /* Capítulos */
