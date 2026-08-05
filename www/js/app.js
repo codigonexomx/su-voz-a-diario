@@ -6612,6 +6612,8 @@ if (view !== 'settings' && oldView !== 'settings') {
 }
 
 this.currentView = view;
+this.$content.classList.toggle('su-voz-hoy-view', view === 'home');
+document.body.classList.toggle('su-voz-hoy-background', view === 'home');
 this.updateNavUI();
     
     document.querySelectorAll('.version-btn').forEach(btn => {
