@@ -398,17 +398,17 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero-meta {
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero-kicker {
-    background: transparent;
-    padding: 0;
+    display: none;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
     max-width: 330px;
+    margin-top: 10px;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero p {
     max-width: 315px;
-    margin-top: 22px;
+    margin-top: 18px;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .progreso-libro-card,
