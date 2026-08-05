@@ -493,7 +493,10 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .perg
     letter-spacing: 0.025em;
     line-height: 1;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+    box-shadow:
+        0 8px 16px rgba(31, 54, 93, 0.10),
+        0 2px 4px rgba(31, 54, 93, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
     transition:
         color 0.18s ease,
         background-color 0.18s ease,
@@ -522,7 +525,8 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .perg
     border-color: #b58a4b;
     background: #1f365d;
     box-shadow:
-        0 5px 14px rgba(31, 54, 93, 0.18),
+        0 10px 18px rgba(31, 54, 93, 0.26),
+        0 3px 6px rgba(31, 54, 93, 0.16),
         inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
