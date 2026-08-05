@@ -8056,8 +8056,8 @@ restoreCalendarPosition: function() {
                     <img src="imagendefondo.png" alt="" aria-hidden="true">
                 </div>
                 ${this.renderViewHeader(
-                    'Lectura bíblica del día',
-                    'Un momento diario para escuchar, meditar y responder a la Palabra.',
+                    'Lectura bíblica\ndel día',
+                    'Un momento a diario para escuchar,\nmeditar y responder a la Palabra.',
                     dateFormatted.toUpperCase()
                 )}
             </section>
@@ -8190,8 +8190,8 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
             <img src="imagendefondo.png" alt="" aria-hidden="true">
         </div>
         ${this.renderViewHeader(
-            'Lectura bíblica del día',
-            'Un momento diario para escuchar, meditar y responder a la Palabra.',
+                'Lectura bíblica\ndel día',
+                'Un momento a diario para escuchar,\nmeditar y responder a la Palabra.',
             dateFormatted.toUpperCase()
         )}
     </section>
