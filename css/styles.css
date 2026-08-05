@@ -483,10 +483,10 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .perg
     min-width: 0;
     min-height: 44px;
     padding: 9px 12px;
-    border: 1px solid #d8dee8;
+    border: 1px solid rgba(31, 54, 93, 0.16);
     border-radius: 999px;
-    background: #F0ECE4;
-    color: #667085;
+    background: #F2EDE8;
+    color: #1f365d;
     font-family: var(--font-ui);
     font-size: 0.79rem;
     font-weight: 750;
@@ -503,9 +503,9 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .perg
 }
 
 .reading-version-pill:hover {
-    color: #2563a8;
-    border-color: rgba(49, 130, 206, 0.42);
-    background: #f8fbff;
+    color: #1f365d;
+    border-color: rgba(181, 138, 75, 0.42);
+    background: #F2EDE8;
 }
 
 .reading-version-pill:active {
@@ -518,12 +518,12 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .perg
 }
 
 .reading-version-pill.active {
-    color: #1f6fb2;
-    border-color: rgba(49, 130, 206, 0.58);
-    background: linear-gradient(180deg, #f5faff 0%, #edf6ff 100%);
+    color: #b58a4b;
+    border-color: #b58a4b;
+    background: #1f365d;
     box-shadow:
-        0 5px 14px rgba(49, 130, 206, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.92);
+        0 5px 14px rgba(31, 54, 93, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .reading-version-icon {
