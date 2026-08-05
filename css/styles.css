@@ -307,7 +307,7 @@ body.su-voz-hoy-background {
     min-height: 400px;
     margin-top: calc((56px + env(safe-area-inset-top)) * -1);
     margin-left: -50vw;
-    margin-bottom: 0;
+    margin-bottom: 12px;
     overflow: hidden;
 }
 
@@ -342,10 +342,10 @@ body.su-voz-hoy-background {
     pointer-events: none;
     background:
         linear-gradient(90deg,
-            rgba(251, 246, 237, 0.58) 0%,
-            rgba(251, 246, 237, 0.54) 32%,
-            rgba(251, 246, 237, 0.29) 54%,
-            rgba(251, 246, 237, 0.05) 78%,
+            rgba(251, 246, 237, 0.96) 0%,
+            rgba(251, 246, 237, 0.90) 32%,
+            rgba(251, 246, 237, 0.48) 54%,
+            rgba(251, 246, 237, 0.08) 78%,
             rgba(251, 246, 237, 0) 100%);
 }
 
@@ -386,7 +386,7 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
     box-shadow: none;
     max-width: 600px;
     margin: 0 auto;
-    padding: calc(56px + env(safe-area-inset-top) + 38px) 20px 0;
+    padding: calc(56px + env(safe-area-inset-top) + 54px) 20px 0;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero::after {
@@ -398,31 +398,22 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero-meta {
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero-kicker {
-    display: none;
+    background: transparent;
+    padding: 0;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
     max-width: 330px;
 }
 
-body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2::after {
-    content: "";
-    display: block;
-    width: 70px;
-    height: 2px;
-    margin-top: 22px;
-    background: #b58a4b;
-}
-
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero p {
     max-width: 315px;
-    margin-top: 24px;
-    line-height: 1.7;
+    margin-top: 22px;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .progreso-libro-card,
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .reading-card {
-    margin-top: -22px;
+    margin-top: 0;
 }
 
 .date-badge {
@@ -573,26 +564,26 @@ body.dark-mode.su-voz-hoy-background .app-header::before {
 @media (max-width: 430px) {
     .home-hero-stage {
         min-height: 400px;
-        margin-bottom: 0;
+        margin-bottom: 10px;
     }
 
     .home-hero-stage::before {
         background:
             linear-gradient(90deg,
-                rgba(251, 246, 237, 0.60) 0%,
-                rgba(251, 246, 237, 0.55) 38%,
-                rgba(251, 246, 237, 0.31) 61%,
-                rgba(251, 246, 237, 0.06) 84%,
+                rgba(251, 246, 237, 0.98) 0%,
+                rgba(251, 246, 237, 0.92) 38%,
+                rgba(251, 246, 237, 0.52) 61%,
+                rgba(251, 246, 237, 0.10) 84%,
                 rgba(251, 246, 237, 0) 100%);
     }
 
     .home-hero-art img {
-        width: 118%;
-        transform: translate(-13%, -4%);
+        width: 112%;
+        transform: translate(-8%, -4%);
     }
 
     body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
-        padding: calc(56px + env(safe-area-inset-top) + 34px) 30px 0;
+        padding: calc(56px + env(safe-area-inset-top) + 50px) 30px 0;
     }
 
     body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
@@ -606,8 +597,8 @@ body.dark-mode.su-voz-hoy-background .app-header::before {
 
 @media (max-width: 360px) {
     .home-hero-art img {
-        width: 124%;
-        transform: translate(-17%, -3%);
+        width: 118%;
+        transform: translate(-12%, -3%);
     }
 
     body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
