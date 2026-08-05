@@ -1413,7 +1413,7 @@ getProgresoLibroVisual: function(dateStr = this.getHomeViewingDate(), reading = 
             <div class="pergamino-barra-fondo">
                 <div class="pergamino-barra-lleno" style="width:${porcentaje}%"></div>
             </div>
-            <div class="pergamino-porcentaje">${porcentaje}% completado</div>
+            <div class="pergamino-porcentaje"><span class="pergamino-porcentaje-numero">${porcentaje}%</span> <span class="pergamino-porcentaje-texto">completado</span></div>
         </div>
     `;
     
