@@ -8286,11 +8286,67 @@ body.light-mode .selection-sheet-handle {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+.pergamino-encabezado {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.pergamino-icono-libro,
+.pergamino-marcador {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.pergamino-icono-libro {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: #1f365d;
+    color: #ffffff;
+}
+
+.pergamino-icono-libro svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.pergamino-texto {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.pergamino-marcador {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: rgba(45, 55, 72, 0.06);
+    color: rgba(45, 55, 72, 0.48);
+}
+
+.pergamino-marcador svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 .pergamino-titulo {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-muted);
-    margin-bottom: 2px;
+    margin-bottom: 1px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
@@ -8298,7 +8354,7 @@ body.light-mode .selection-sheet-handle {
 .pergamino-subtitulo {
     font-size: 0.8rem;
     color: var(--text-muted);
-    margin-bottom: 10px;
+    margin-bottom: 0;
     font-weight: 500;
     opacity: 0.8;
 }

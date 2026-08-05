@@ -1367,14 +1367,31 @@ getProgresoLibroVisual: function(dateStr = this.getHomeViewingDate(), reading = 
     
     // Crear visualización de los capítulos como un scroll horizontal
     let html = '<div class="pergamino-libro">';
-    html += `<div class="pergamino-titulo">📖 ${progreso.libroNombre}</div>`;
 
     // Subtítulo adaptado para rangos de lectura (ej. Salmos 100-150)
     let subtituloText = `Capítulo ${ultimoLeido || startChapter} de ${endChapter}`;
     if (startChapter > 1) {
-        subtituloText += ` (${leidos} de ${total} meditados)`;
+        subtituloText += ` (${leidos} de ${total} meditaciones)`;
     }
-    html += `<div class="pergamino-subtitulo">${subtituloText}</div>`;
+    html += `
+        <div class="pergamino-encabezado">
+            <div class="pergamino-icono-libro" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M4 5.5c0-.8.7-1.5 1.5-1.5H10c1.1 0 2 .9 2 2v14c0-1.1-.9-2-2-2H5.5C4.7 18 4 17.3 4 16.5v-11Z"></path>
+                    <path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H14c-1.1 0-2 .9-2 2v14c0-1.1.9-2 2-2h4.5c.8 0 1.5-.7 1.5-1.5v-11Z"></path>
+                </svg>
+            </div>
+            <div class="pergamino-texto">
+                <div class="pergamino-titulo">${progreso.libroNombre}</div>
+                <div class="pergamino-subtitulo">${subtituloText}</div>
+            </div>
+            <div class="pergamino-marcador" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M7 4.75C7 3.78 7.78 3 8.75 3h6.5C16.22 3 17 3.78 17 4.75V21l-5-3-5 3V4.75Z"></path>
+                </svg>
+            </div>
+        </div>
+    `;
     html += '<div class="pergamino-capitulos">';
     
     for (let i = startChapter; i <= endChapter; i++) {
