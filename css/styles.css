@@ -304,31 +304,20 @@ body.su-voz-hoy-background {
     top: 0;
     left: 50%;
     width: 100vw;
-    min-height: 560px;
+    min-height: 410px;
     margin-top: calc((56px + env(safe-area-inset-top)) * -1);
     margin-left: -50vw;
-    margin-bottom: 42px;
-    overflow: visible;
-    pointer-events: none;
-}
-
-.home-hero-copy {
-    position: relative;
-    z-index: 2;
-    width: min(50%, 300px);
-    max-width: 50%;
-    margin-left: max(12px, calc((100vw - 600px) / 2 + 12px));
-    padding-top: calc(56px + env(safe-area-inset-top) + 64px);
-    pointer-events: auto;
+    margin-bottom: 18px;
+    overflow: hidden;
 }
 
 .home-hero-art {
     position: absolute;
     top: 0;
-    right: min(-56px, calc((100vw - 600px) / 2 - 132px));
-    width: min(56vw, 500px);
-    min-width: 300px;
-    height: 500px;
+    right: max(-78px, calc((100vw - 600px) / 2 - 112px));
+    width: min(78vw, 560px);
+    min-width: 420px;
+    height: 430px;
     overflow: hidden;
     z-index: 1;
     pointer-events: none;
@@ -339,7 +328,7 @@ body.su-voz-hoy-background {
     width: 100%;
     height: auto;
     max-width: none;
-    transform: translateX(8%);
+    transform: translateX(5%);
     user-select: none;
     -webkit-user-drag: none;
 }
@@ -374,11 +363,14 @@ body.su-voz-hoy-background .app-header::before {
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
+    position: relative;
+    z-index: 2;
     border-color: transparent;
     background: transparent;
     box-shadow: none;
-    margin: 0;
-    padding: 0;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: calc(56px + env(safe-area-inset-top) + 54px) 20px 0;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero::after {
@@ -395,12 +387,12 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero-kicker {
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
-    max-width: 100%;
+    max-width: 330px;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero p {
-    max-width: 260px;
-    margin-top: 24px;
+    max-width: 315px;
+    margin-top: 22px;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .progreso-libro-card,
@@ -555,41 +547,49 @@ body.dark-mode.su-voz-hoy-background .app-header::before {
 
 @media (max-width: 430px) {
     .home-hero-stage {
-        min-height: 540px;
-        margin-bottom: 46px;
-    }
-
-    .home-hero-copy {
-        width: min(51%, 220px);
-        max-width: 51%;
-        margin-left: 30px;
-        padding-top: calc(56px + env(safe-area-inset-top) + 56px);
+        min-height: 408px;
+        margin-bottom: 14px;
     }
 
     .home-hero-art {
         top: 0;
-        right: -150px;
-        width: 340px;
+        right: -128px;
+        width: 390px;
         min-width: 0;
-        height: 500px;
+        height: 410px;
     }
 
     .home-hero-art img {
-        transform: translateX(0);
+        transform: translateX(3%);
+    }
+
+    body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
+        padding: calc(56px + env(safe-area-inset-top) + 50px) 30px 0;
+    }
+
+    body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
+        max-width: 285px;
+    }
+
+    body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero p {
+        max-width: 300px;
     }
 }
 
 @media (max-width: 360px) {
-    .home-hero-copy {
-        width: 50%;
-        max-width: 50%;
-        margin-left: 24px;
-    }
-
     .home-hero-art {
         top: 0;
-        right: -166px;
-        width: 330px;
+        right: -142px;
+        width: 380px;
+    }
+
+    body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
+        max-width: 265px;
     }
 }
 

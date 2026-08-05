@@ -8052,16 +8052,14 @@ restoreCalendarPosition: function() {
 
         this.$content.innerHTML = `
             <section class="home-hero-stage">
-                <div class="home-hero-copy">
-                    ${this.renderViewHeader(
-                        'Lectura bíblica del día',
-                        'Un momento diario para escuchar, meditar y responder a la Palabra.',
-                        dateFormatted.toUpperCase()
-                    )}
-                </div>
                 <div class="home-hero-art">
                     <img src="imagendefondo.png" alt="" aria-hidden="true">
                 </div>
+                ${this.renderViewHeader(
+                    'Lectura bíblica del día',
+                    'Un momento diario para escuchar, meditar y responder a la Palabra.',
+                    dateFormatted.toUpperCase()
+                )}
             </section>
 
             <!-- 📜 PERGAMINO DE PROGRESO (SOLO HOY) -->
@@ -8188,16 +8186,14 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
         this.$content.innerHTML = `
     ${isHome ? `
     <section class="home-hero-stage">
-        <div class="home-hero-copy">
-            ${this.renderViewHeader(
-                'Lectura bíblica del día',
-                'Un momento diario para escuchar, meditar y responder a la Palabra.',
-                dateFormatted.toUpperCase()
-            )}
-        </div>
         <div class="home-hero-art">
             <img src="imagendefondo.png" alt="" aria-hidden="true">
         </div>
+        ${this.renderViewHeader(
+            'Lectura bíblica del día',
+            'Un momento diario para escuchar, meditar y responder a la Palabra.',
+            dateFormatted.toUpperCase()
+        )}
     </section>
     ` : `
         <div class="reading-date-header">${dateFormatted.toUpperCase()}</div>
