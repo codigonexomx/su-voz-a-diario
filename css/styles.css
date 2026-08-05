@@ -579,13 +579,7 @@ body.dark-mode.su-voz-hoy-background .app-header::before {
     }
 
     .home-hero-stage::before {
-        background:
-            linear-gradient(90deg,
-                rgba(251, 246, 237, 0.98) 0%,
-                rgba(251, 246, 237, 0.92) 38%,
-                rgba(251, 246, 237, 0.52) 61%,
-                rgba(251, 246, 237, 0.10) 84%,
-                rgba(251, 246, 237, 0) 100%);
+        background: transparent;
     }
 
     .home-hero-art img {
