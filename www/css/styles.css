@@ -299,14 +299,38 @@ body.su-voz-hoy-background {
     background-color: #fbf6ed;
 }
 
+.home-hero-stage {
+    position: relative;
+    top: 0;
+    left: 50%;
+    width: 100vw;
+    min-height: 560px;
+    margin-top: calc((56px + env(safe-area-inset-top)) * -1);
+    margin-left: -50vw;
+    margin-bottom: 42px;
+    overflow: visible;
+    pointer-events: none;
+}
+
+.home-hero-copy {
+    position: relative;
+    z-index: 2;
+    width: min(50%, 300px);
+    max-width: 50%;
+    margin-left: max(12px, calc((100vw - 600px) / 2 + 12px));
+    padding-top: calc(56px + env(safe-area-inset-top) + 64px);
+    pointer-events: auto;
+}
+
 .home-hero-art {
     position: absolute;
     top: 0;
-    right: 0;
-    width: min(100vw, 852px);
-    height: min(720px, 72vh);
+    right: min(-56px, calc((100vw - 600px) / 2 - 132px));
+    width: min(56vw, 500px);
+    min-width: 300px;
+    height: 500px;
     overflow: hidden;
-    z-index: 0;
+    z-index: 1;
     pointer-events: none;
 }
 
@@ -315,6 +339,7 @@ body.su-voz-hoy-background {
     width: 100%;
     height: auto;
     max-width: none;
+    transform: translateX(8%);
     user-select: none;
     -webkit-user-drag: none;
 }
@@ -334,6 +359,7 @@ body.su-voz-hoy-background {
     position: relative;
     isolation: isolate;
     z-index: 1;
+    padding-top: 0;
 }
 
 body.su-voz-hoy-background .app-header {
@@ -351,10 +377,35 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
     border-color: transparent;
     background: transparent;
     box-shadow: none;
+    margin: 0;
+    padding: 0;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero::after {
     display: none;
+}
+
+body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero-meta {
+    color: #b58a4b;
+}
+
+body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero-kicker {
+    background: transparent;
+    padding: 0;
+}
+
+body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
+    max-width: 100%;
+}
+
+body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero p {
+    max-width: 260px;
+    margin-top: 24px;
+}
+
+body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .progreso-libro-card,
+body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .reading-card {
+    margin-top: 0;
 }
 
 .date-badge {
@@ -503,18 +554,42 @@ body.dark-mode.su-voz-hoy-background .app-header::before {
 }
 
 @media (max-width: 430px) {
+    .home-hero-stage {
+        min-height: 540px;
+        margin-bottom: 46px;
+    }
+
+    .home-hero-copy {
+        width: min(51%, 220px);
+        max-width: 51%;
+        margin-left: 30px;
+        padding-top: calc(56px + env(safe-area-inset-top) + 56px);
+    }
+
     .home-hero-art {
         top: 0;
-        right: 0;
-        width: 100vw;
+        right: -150px;
+        width: 340px;
+        min-width: 0;
+        height: 500px;
+    }
+
+    .home-hero-art img {
+        transform: translateX(0);
     }
 }
 
 @media (max-width: 360px) {
+    .home-hero-copy {
+        width: 50%;
+        max-width: 50%;
+        margin-left: 24px;
+    }
+
     .home-hero-art {
         top: 0;
-        right: 0;
-        width: 106vw;
+        right: -166px;
+        width: 330px;
     }
 }
 
