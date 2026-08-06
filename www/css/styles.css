@@ -176,6 +176,36 @@ body.dark-mode .header-settings-btn:hover {
     background: rgba(45, 55, 72, 0.06);
 }
 
+body.dark-mode .header-left-btn {
+    background: #FFFDF8;
+    color: #1f365d;
+    box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.24),
+        inset 0 0 0 1px #ffffff,
+        inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+body.dark-mode .app-header-main h1 {
+    color: #FFFDF8;
+}
+
+body.dark-mode .header-settings-btn {
+    background: #1f365d;
+    color: #FFFDF8;
+    box-shadow:
+        0 8px 18px rgba(0, 0, 0, 0.24),
+        inset 0 0 0 1px #ffffff,
+        inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .header-left-btn:hover {
+    background: #FFFDF8;
+}
+
+body.dark-mode .header-settings-btn:hover {
+    background: #1f365d;
+}
+
 .header-settings-btn:active {
     transform: scale(0.95);
 }
