@@ -487,6 +487,10 @@ body.dark-mode.su-voz-hoy-background #app-content.su-voz-hoy-view .reading-card 
     background: #2B2B33;
 }
 
+body.dark-mode.su-voz-hoy-background #app-content.su-voz-hoy-view .reading-reference {
+    color: #ffffff;
+}
+
 .date-badge {
     display: inline-block;
     background-color: var(--accent);
