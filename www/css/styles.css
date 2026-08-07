@@ -8549,7 +8549,7 @@ body.light-mode .selection-sheet-handle {
 }
 
 .dark-mode .pergamino-subtitulo {
-    color: #515059;
+    color: #8D8C92;
 }
 
 .dark-mode .pergamino-marcador,
@@ -8567,6 +8567,10 @@ body.light-mode .selection-sheet-handle {
 
 .dark-mode .pergamino-barra-lleno {
     background: #242944;
+}
+
+.dark-mode .pergamino-porcentaje-texto {
+    color: #8D8C92;
 }
 
 .dark-mode .capitulo-pendiente {
