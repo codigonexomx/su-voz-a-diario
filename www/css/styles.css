@@ -8538,9 +8538,14 @@ body.light-mode .selection-sheet-handle {
     border-color: var(--border-color);
 }
 
+.dark-mode .pergamino-icono-libro,
+.dark-mode .capitulo-actual {
+    background: #242944;
+}
+
 .dark-mode .capitulo-leido {
     background: rgba(45, 55, 72, 0.06);
-    color: rgba(45, 55, 72, 0.48);
+    color: #ffffff;
 }
 
 .dark-mode .capitulo-pendiente {
