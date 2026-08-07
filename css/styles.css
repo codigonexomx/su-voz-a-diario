@@ -603,22 +603,22 @@ body.dark-mode.su-voz-hoy-background #app-content.su-voz-hoy-view .reading-card 
 }
 
 body.dark-mode .reading-version-pill {
-    color: #aab4c3;
-    border-color: #303744;
-    background: rgba(9, 12, 18, 0.72);
+    color: #595A59;
+    border-color: #C4C5C6;
+    background: #C4C5C6;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
 body.dark-mode .reading-version-pill:hover {
-    color: #bfdbfe;
-    border-color: rgba(96, 165, 250, 0.46);
-    background: rgba(30, 64, 106, 0.22);
+    color: #595A59;
+    border-color: #C4C5C6;
+    background: #C4C5C6;
 }
 
 body.dark-mode .reading-version-pill.active {
-    color: #bfdbfe;
-    border-color: rgba(96, 165, 250, 0.7);
-    background: linear-gradient(180deg, rgba(37, 99, 165, 0.3), rgba(30, 64, 110, 0.2));
+    color: #b58a4b;
+    border-color: #b58a4b;
+    background: #242944;
     box-shadow:
         0 7px 20px rgba(0, 0, 0, 0.24),
         0 0 0 1px rgba(96, 165, 250, 0.04),
