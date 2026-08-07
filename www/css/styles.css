@@ -8543,8 +8543,16 @@ body.light-mode .selection-sheet-handle {
     background: #242944;
 }
 
+.dark-mode .pergamino-subtitulo {
+    color: #515059;
+}
+
+.dark-mode .pergamino-marcador,
 .dark-mode .capitulo-leido {
-    background: rgba(45, 55, 72, 0.06);
+    background: #515059;
+}
+
+.dark-mode .capitulo-leido {
     color: #ffffff;
 }
 
