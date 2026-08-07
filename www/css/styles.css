@@ -373,6 +373,18 @@ body.su-voz-hoy-background {
     -webkit-user-drag: none;
 }
 
+.home-hero-art img.home-hero-art-dark {
+    display: none;
+}
+
+body.dark-mode.su-voz-hoy-background .home-hero-art img.home-hero-art-light {
+    display: none;
+}
+
+body.dark-mode.su-voz-hoy-background .home-hero-art img.home-hero-art-dark {
+    display: block;
+}
+
 .home-hero-stage::before {
     content: "";
     position: absolute;

@@ -8072,7 +8072,8 @@ restoreCalendarPosition: function() {
         this.$content.innerHTML = `
             <section class="home-hero-stage">
                 <div class="home-hero-art">
-                    <img src="imagendefondo.png" alt="" aria-hidden="true">
+                    <img class="home-hero-art-light" src="imagendefondo.png" alt="" aria-hidden="true">
+                    <img class="home-hero-art-dark" src="imagen%20modo%20oscuro.png" alt="" aria-hidden="true">
                 </div>
                 ${this.renderViewHeader(
                     'Lectura bíblica\ndel día',
@@ -8206,7 +8207,8 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
     ${isHome ? `
     <section class="home-hero-stage">
         <div class="home-hero-art">
-            <img src="imagendefondo.png" alt="" aria-hidden="true">
+            <img class="home-hero-art-light" src="imagendefondo.png" alt="" aria-hidden="true">
+            <img class="home-hero-art-dark" src="imagen%20modo%20oscuro.png" alt="" aria-hidden="true">
         </div>
         ${this.renderViewHeader(
                 'Lectura bíblica\ndel día',
