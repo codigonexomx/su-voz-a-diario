@@ -8530,7 +8530,7 @@ body.light-mode .selection-sheet-handle {
 /* ======================================== */
 
 .dark-mode .pergamino-libro {
-    background: var(--surface-color);
+    background: #393A45;
     border-color: var(--border-color);
 }
 
