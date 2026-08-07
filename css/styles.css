@@ -8543,6 +8543,11 @@ body.light-mode .selection-sheet-handle {
     background: #242944;
 }
 
+.dark-mode .pergamino-titulo,
+.dark-mode .pergamino-marcador {
+    color: #ffffff;
+}
+
 .dark-mode .pergamino-subtitulo {
     color: #515059;
 }
@@ -8554,6 +8559,14 @@ body.light-mode .selection-sheet-handle {
 
 .dark-mode .capitulo-leido {
     color: #ffffff;
+}
+
+.dark-mode .pergamino-barra-fondo {
+    background: #515059;
+}
+
+.dark-mode .pergamino-barra-lleno {
+    background: #242944;
 }
 
 .dark-mode .capitulo-pendiente {
