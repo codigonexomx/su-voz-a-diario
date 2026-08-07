@@ -479,6 +479,10 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .perg
     margin-top: -118px;
 }
 
+body.dark-mode.su-voz-hoy-background #app-content.su-voz-hoy-view .home-hero-stage + .pergamino-libro {
+    background: #393A45;
+}
+
 .date-badge {
     display: inline-block;
     background-color: var(--accent);
