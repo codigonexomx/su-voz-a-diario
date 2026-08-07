@@ -7597,6 +7597,10 @@ body.selection-panel-open {
     color: #1f365d;
 }
 
+body.dark-mode .reading-card .verse-text-content {
+    color: #ffffff;
+}
+
 /* Versículo seleccionado - ESTILO PROFESIONAL */
 .verse-selected {
     background-color: transparent !important;
