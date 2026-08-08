@@ -6630,10 +6630,11 @@ if (view !== 'settings' && oldView !== 'settings') {
     this.previousView = oldView;
 }
 
-this.currentView = view;
-this.$content.classList.toggle('su-voz-hoy-view', view === 'home');
-document.body.classList.toggle('su-voz-hoy-background', view === 'home');
-this.updateNavUI();
+	this.currentView = view;
+	const usesSuVozHoyLayout = view === 'home' || view === 'reading';
+	this.$content.classList.toggle('su-voz-hoy-view', usesSuVozHoyLayout);
+	document.body.classList.toggle('su-voz-hoy-background', usesSuVozHoyLayout);
+	this.updateNavUI();
     
     document.querySelectorAll('.version-btn').forEach(btn => {
         const isActive = btn.getAttribute('data-version') === this.currentVersion;
