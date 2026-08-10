@@ -1027,5 +1027,215 @@
     "bookId": "psa",
     "month": "2026-08",
     "file": "data/readings/2026-08.json"
+  },
+  {
+    "date": "2026-09-01",
+    "reference": "1 Samuel 1:1-18",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-02",
+    "reference": "1 Samuel 1:19-28",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-03",
+    "reference": "1 Samuel 2:1-11",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-04",
+    "reference": "1 Samuel 2:12-26",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-05",
+    "reference": "1 Samuel 2:27-36",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-06",
+    "reference": "1 Samuel 3:1-18",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-07",
+    "reference": "1 Samuel 3:19-4:11",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-08",
+    "reference": "1 Samuel 4:12-22",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-09",
+    "reference": "1 Samuel 5:1-12",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-10",
+    "reference": "1 Samuel 6:1-7:2",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-11",
+    "reference": "1 Samuel 7:3-17",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-12",
+    "reference": "1 Samuel 8:1-22",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-13",
+    "reference": "1 Samuel 9:1-14",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-14",
+    "reference": "1 Samuel 9:15-27",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-15",
+    "reference": "1 Samuel 10:1-16",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-16",
+    "reference": "1 Samuel 10:17-27",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-17",
+    "reference": "1 Samuel 11:1-15",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-18",
+    "reference": "1 Samuel 12:1-18",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-19",
+    "reference": "1 Samuel 12:19-13:7",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-20",
+    "reference": "1 Samuel 13:8-23",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-21",
+    "reference": "1 Samuel 14:1-23",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-22",
+    "reference": "1 Samuel 14:24-42",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-23",
+    "reference": "1 Samuel 14:43-52",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-24",
+    "reference": "1 Samuel 15:1-16",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-25",
+    "reference": "1 Samuel 15:17-35",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-26",
+    "reference": "1 Samuel 16:1-13",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-27",
+    "reference": "1 Samuel 16:14-23",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-28",
+    "reference": "1 Samuel 17:1-16",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-29",
+    "reference": "1 Samuel 17:17-30",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
+  },
+  {
+    "date": "2026-09-30",
+    "reference": "1 Samuel 17:31-49",
+    "bookId": "1sa",
+    "month": "2026-09",
+    "file": "data/readings/2026-09.json"
   }
 ]

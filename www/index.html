@@ -51,7 +51,7 @@
 
     <title>Su voz a diario</title>
 
-    <link rel="manifest" href="./manifest.json?v=156">
+    <link rel="manifest" href="./manifest.json?v=157">
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
     <link rel="apple-touch-startup-image" href="./icons/splash%202.png">
     <link rel="apple-touch-startup-image" href="./icons/splash%202.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
@@ -66,11 +66,11 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
     <link rel="preload" as="image" href="./icons/splash%202.png">
-    <link rel="stylesheet" href="./css/styles.css?v=156">
-    <link rel="stylesheet" href="./css/deepening-mode.css?v=156">
-    <link rel="stylesheet" href="./css/deepening-shell.css?v=156">
-    <link rel="stylesheet" href="./css/meditation-document-viewer.css?v=156">
-    <link rel="stylesheet" href="./css/meditation-actions-panel.css?v=156">
+    <link rel="stylesheet" href="./css/styles.css?v=157">
+    <link rel="stylesheet" href="./css/deepening-mode.css?v=157">
+    <link rel="stylesheet" href="./css/deepening-shell.css?v=157">
+    <link rel="stylesheet" href="./css/meditation-document-viewer.css?v=157">
+    <link rel="stylesheet" href="./css/meditation-actions-panel.css?v=157">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -653,21 +653,21 @@
 })();
 </script>
 
-<script src="js/NotebookGestureController.js?v=156"></script>
-<script src="js/DeepeningFocusDiagnostics.js?v=156"></script>
-<script src="js/ReadingPositionManager.js?v=156"></script>
-<script src="js/ReadingDocument.js?v=156"></script>
-<script src="js/DocumentFactory.js?v=156"></script>
-<script src="js/DocumentExporter.js?v=156"></script>
-<script src="js/PdfDocumentBuilder.js?v=156"></script>
-<script src="js/PdfExporter.js?v=156"></script>
-<script src="js/ShareService.js?v=156"></script>
-<script src="js/MeditationDocumentViewer.js?v=156"></script>
-<script src="js/MeditationActionsPanel.js?v=156"></script>
-<script src="js/MeditationDocument.js?v=156"></script>
-<script src="js/KeyboardManager.js?v=156"></script>
-<script src="js/DeepeningShell.js?v=156"></script>
-<script type="module" src="js/app.js?v=156"></script>
+<script src="js/NotebookGestureController.js?v=157"></script>
+<script src="js/DeepeningFocusDiagnostics.js?v=157"></script>
+<script src="js/ReadingPositionManager.js?v=157"></script>
+<script src="js/ReadingDocument.js?v=157"></script>
+<script src="js/DocumentFactory.js?v=157"></script>
+<script src="js/DocumentExporter.js?v=157"></script>
+<script src="js/PdfDocumentBuilder.js?v=157"></script>
+<script src="js/PdfExporter.js?v=157"></script>
+<script src="js/ShareService.js?v=157"></script>
+<script src="js/MeditationDocumentViewer.js?v=157"></script>
+<script src="js/MeditationActionsPanel.js?v=157"></script>
+<script src="js/MeditationDocument.js?v=157"></script>
+<script src="js/KeyboardManager.js?v=157"></script>
+<script src="js/DeepeningShell.js?v=157"></script>
+<script type="module" src="js/app.js?v=157"></script>
 
 <script>
 (function () {
@@ -688,7 +688,7 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const appVersion = '156';
+                const appVersion = "157";
                 const versionKey = 'su-voz-app-version';
                 const reloadKey = `su-voz-update-reloaded-${appVersion}`;
                 const currentCacheNames = new Set([
@@ -750,7 +750,7 @@
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=156', {
+                const registration = await navigator.serviceWorker.register('./sw.js?v=157', {
                     scope: './',
                     updateViaCache: 'none'
                 });
