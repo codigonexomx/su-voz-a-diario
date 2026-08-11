@@ -9833,7 +9833,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     background-color: #1B1F2A;
     background-image: url('../media/imagen hero.png');
     background-size: cover;
-    background-position: right 85%;
+    background-position: right 100%;
     background-repeat: no-repeat;
 
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
@@ -10349,7 +10349,7 @@ body.dark-mode .bible-testament-tabs {
         min-height: 380px;
         background-color: #1B1F2A;
         background-image: url('../media/imagen hero.png');
-        background-position: right 10% 85%;
+        background-position: right 10% 100%;
     }
 
     .bible-library-hero h2 {
