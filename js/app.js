@@ -9334,7 +9334,7 @@ renderBible: function() {
             <div class="bible-library-hero">
                 <div class="bible-library-kicker">${this.escapeHtml(this.getBibleVersionLabel(this.currentBibleVersion))}</div>
                 <h2>Biblia</h2>
-                <p>Lee, busca y profundiza en la Palabra.</p>
+                <p>Lee, busca y profundiza<br>en la Palabra.</p>
 
                 <div class="bible-library-actions">
                     <button

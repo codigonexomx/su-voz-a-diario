@@ -9864,7 +9864,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     margin: 0;
     color: #fdfbf7;
     font-family: "Cormorant Garamond", "Merriweather", Georgia, serif;
-    font-size: 2.8rem;
+    font-size: 3.4rem;
     font-weight: 600;
     letter-spacing: 0;
     line-height: 1.1;
@@ -10353,7 +10353,7 @@ body.dark-mode .bible-testament-tabs {
     }
 
     .bible-library-hero h2 {
-        font-size: 2.4rem;
+        font-size: 2.8rem;
     }
 
     .bible-library-actions {
