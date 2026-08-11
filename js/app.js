@@ -9342,8 +9342,16 @@ renderBible: function() {
                         type="button"
                         data-action="open-bible-continue"
                     >
-                        <span>Continuar leyendo</span>
-                        <small>${this.escapeHtml(continueLabel)}</small>
+                        <div class="bible-action-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+                        </div>
+                        <div class="bible-action-content">
+                            <div class="bible-action-title">
+                                <span>Continuar leyendo</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </div>
+                            <small>${this.escapeHtml(continueLabel)}</small>
+                        </div>
                     </button>
 
                     <button
@@ -9351,8 +9359,16 @@ renderBible: function() {
                         type="button"
                         data-action="open-today-reading"
                     >
-                        <span>Lectura de hoy</span>
-                        <small>${this.escapeHtml(todayLabel)}</small>
+                        <div class="bible-action-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /><path d="M8 18h.01" /><path d="M12 18h.01" /><path d="M16 18h.01" /></svg>
+                        </div>
+                        <div class="bible-action-content">
+                            <div class="bible-action-title">
+                                <span>Lectura de hoy</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </div>
+                            <small>${this.escapeHtml(todayLabel)}</small>
+                        </div>
                     </button>
                 </div>
             </div>

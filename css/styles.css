@@ -9822,20 +9822,25 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-library-hero {
     position: relative;
-    padding: 24px 22px;
-    border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 320px;
+    padding: 28px 24px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 
     background-color: #0b0d14;
     background-image:
-        linear-gradient(90deg, rgba(11, 13, 20, 0.98) 0%, rgba(11, 13, 20, 0.85) 55%, transparent 100%),
+        linear-gradient(90deg, rgba(11, 13, 20, 0.98) 0%, rgba(11, 13, 20, 0.85) 45%, rgba(11, 13, 20, 0) 100%),
         url('../media/imagen hero.png');
     background-size: cover;
-    background-position: right center;
+    background-position: center right;
     background-repeat: no-repeat;
 
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
     text-align: left;
+    margin-bottom: 24px;
 }
 
 .bible-library-kicker {
@@ -9843,101 +9848,143 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     align-items: center;
     width: fit-content;
 
-    margin-bottom: 8px;
-    padding: 4px 10px;
+    margin-bottom: 12px;
+    padding: 6px 12px;
 
     border-radius: 999px;
-    background: rgba(229, 192, 123, 0.12);
+    background: rgba(229, 192, 123, 0.15);
     color: #e5c07b;
-    border: 1px solid rgba(229, 192, 123, 0.2);
+    border: 1px solid rgba(229, 192, 123, 0.25);
 
-    font-size: 0.72rem;
-    font-weight: 850;
-    letter-spacing: 0.1em;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
 }
 
 .bible-library-hero h2 {
     margin: 0;
     color: #fdfbf7;
-    font-size: 2.1rem;
-    font-weight: 900;
-    letter-spacing: -0.01em;
-    line-height: 1.05;
+    font-family: "Cormorant Garamond", "Merriweather", Georgia, serif;
+    font-size: 2.8rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.1;
 }
 
 .bible-library-hero p {
-    max-width: 24rem;
+    max-width: 22rem;
     margin: 8px 0 0;
 
     color: #b0aba5;
     font-size: 0.95rem;
-    font-weight: 500;
-    line-height: 1.4;
+    font-weight: 400;
+    line-height: 1.5;
 }
 
 .bible-library-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    grid-template-columns: 1fr;
     gap: 12px;
-    margin-top: 18px;
+    margin-top: 32px;
+    width: 100%;
+    max-width: 320px;
 }
 
 .bible-library-action-btn {
-    min-height: 56px;
-    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 64px;
+    padding: 14px 16px;
 
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
 
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(25, 30, 45, 0.5);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     color: #fdfbf7;
 
     font-family: var(--font-ui);
-    font-size: 0.92rem;
-    font-weight: 800;
     cursor: pointer;
 
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     transition: all 0.2s ease;
+    text-align: left;
 }
 
 .bible-library-action-btn:hover,
 .bible-library-action-btn:active {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(35, 42, 60, 0.6);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
-.bible-library-action-btn span,
-.bible-library-action-btn small {
-    display: block;
+.bible-action-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fdfbf7;
+    flex-shrink: 0;
+}
+
+.bible-action-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.bible-action-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.bible-action-title span {
     overflow: hidden;
-    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.bible-action-title .chevron {
+    opacity: 0.7;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
 .bible-library-action-btn small {
-    margin-top: 3px;
+    display: block;
+    margin-top: 2px;
     color: #b0aba5;
-    font-size: 0.72rem;
-    font-weight: 650;
-    opacity: 0.85;
+    font-size: 0.8rem;
+    font-weight: 500;
+    opacity: 0.9;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .bible-library-action-btn.primary {
-    background: #e5c07b;
-    border-color: #e5c07b;
+    background: linear-gradient(135deg, #e5c07b 0%, #d4af6a 100%);
+    border-color: transparent;
     color: #0b0d14;
-    box-shadow: 0 8px 24px rgba(229, 192, 123, 0.25);
+    box-shadow: 0 8px 24px rgba(229, 192, 123, 0.2);
 }
 
 .bible-library-action-btn.primary:hover,
 .bible-library-action-btn.primary:active {
-    background: #f0c982;
-    border-color: #f0c982;
+    background: linear-gradient(135deg, #f0c982 0%, #e0bc75 100%);
+}
+
+.bible-library-action-btn.primary .bible-action-icon {
+    background: rgba(11, 13, 20, 0.15);
+    color: #0b0d14;
 }
 
 .bible-library-action-btn.primary small {
@@ -10300,24 +10347,27 @@ body.dark-mode .bible-testament-tabs {
     }
 
     .bible-library-hero {
-        padding: 20px 16px;
-        border-radius: 18px;
+        padding: 24px 20px;
+        min-height: 380px;
         background-image:
-            linear-gradient(90deg, rgba(11, 13, 20, 0.98) 0%, rgba(11, 13, 20, 0.92) 75%, transparent 100%),
+            linear-gradient(90deg, rgba(11, 13, 20, 0.98) 0%, rgba(11, 13, 20, 0.9) 65%, rgba(11, 13, 20, 0.2) 100%),
             url('../media/imagen hero.png');
+        background-position: right 10% center;
     }
 
     .bible-library-hero h2 {
-        font-size: 1.85rem;
+        font-size: 2.4rem;
     }
 
     .bible-library-actions {
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 12px;
+        max-width: 100%;
+        margin-top: 24px;
     }
 
     .bible-library-action-btn {
-        min-height: 52px;
+        min-height: 60px;
     }
 
     .bible-quick-actions {
