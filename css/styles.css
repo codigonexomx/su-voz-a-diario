@@ -10136,7 +10136,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-explore-head {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(150px, 220px);
+    grid-template-columns: minmax(0, 1fr) minmax(180px, 260px);
     align-items: center;
     gap: 12px;
     padding: 2px 2px 0;
@@ -10164,26 +10164,27 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     padding: 4px;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--surface-color) 88%, var(--bg-color));
+    border: none;
+    background: transparent;
 }
 
 .bible-testament-tab {
-    min-height: 32px;
-    border: 0;
-    border-radius: 9px;
-    background: transparent;
-    color: var(--text-muted);
-    font-size: 0.78rem;
-    font-weight: 850;
+    min-height: 38px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: #F4F1EE;
+    color: #80858E;
+    font-size: 0.8rem;
+    font-weight: 800;
     cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .bible-testament-tab.active {
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 6px 14px rgba(49, 130, 206, 0.18);
+    background: #E5DBC8;
+    color: #252833;
+    border: 2px solid #BA9F71;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .bible-library-section {
