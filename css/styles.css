@@ -9899,10 +9899,10 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
 
-    background: rgba(25, 30, 45, 0.5);
+    background: #252933;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    color: #fdfbf7;
+    color: #C6A273;
 
     font-family: var(--font-ui);
     cursor: pointer;
@@ -9914,7 +9914,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-library-action-btn:hover,
 .bible-library-action-btn:active {
-    background: rgba(35, 42, 60, 0.6);
+    background: #2f3441;
     border-color: rgba(255, 255, 255, 0.15);
 }
 
@@ -9925,8 +9925,8 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    color: #fdfbf7;
+    background: rgba(198, 162, 115, 0.15);
+    color: #C6A273;
     flex-shrink: 0;
 }
 
@@ -9959,7 +9959,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 .bible-library-action-btn small {
     display: block;
     margin-top: 2px;
-    color: #b0aba5;
+    color: rgba(198, 162, 115, 0.85);
     font-size: 0.8rem;
     font-weight: 500;
     opacity: 0.9;
