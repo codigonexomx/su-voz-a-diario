@@ -9375,20 +9375,52 @@ renderBible: function() {
 
             <section class="bible-quick-actions" aria-label="Acciones rápidas de Biblia">
                 <button class="bible-quick-action" type="button" data-action="open-bible-search">
-                    <span class="bible-quick-action-icon" aria-hidden="true">⌕</span>
-                    <span>Buscar en la Biblia</span>
+                    <div class="bible-quick-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </div>
+                    <div class="bible-quick-text">
+                        <span class="bq-title">Buscar en la Biblia</span>
+                        <span class="bq-subtitle">Encuentra pasajes rápidamente.</span>
+                    </div>
+                    <div class="bible-quick-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 </button>
                 <button class="bible-quick-action" type="button" data-action="focus-bible-explore">
-                    <span class="bible-quick-action-icon" aria-hidden="true">☰</span>
-                    <span>Explorar libros</span>
+                    <div class="bible-quick-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </div>
+                    <div class="bible-quick-text">
+                        <span class="bq-title">Explorar libros</span>
+                        <span class="bq-subtitle">Descubre cada libro de la Biblia.</span>
+                    </div>
+                    <div class="bible-quick-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 </button>
                 <button class="bible-quick-action" type="button" data-action="open-bible-memory" data-memory="notes">
-                    <span class="bible-quick-action-icon" aria-hidden="true">✎</span>
-                    <span>Notas</span>
+                    <div class="bible-quick-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                    </div>
+                    <div class="bible-quick-text">
+                        <span class="bq-title">Notas</span>
+                        <span class="bq-subtitle">Escribe y organiza tus pensamientos.</span>
+                    </div>
+                    <div class="bible-quick-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 </button>
                 <button class="bible-quick-action" type="button" data-action="open-bible-memory" data-memory="highlights">
-                    <span class="bible-quick-action-icon" aria-hidden="true">▧</span>
-                    <span>Resaltados</span>
+                    <div class="bible-quick-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <div class="bible-quick-text">
+                        <span class="bq-title">Resaltados</span>
+                        <span class="bq-subtitle">Revisa y gestiona tus resaltados.</span>
+                    </div>
+                    <div class="bible-quick-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 </button>
             </section>
 
