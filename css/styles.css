@@ -10144,7 +10144,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-explore-head span {
     display: block;
-    color: var(--text-muted);
+    color: #BA9F71;
     font-size: 0.72rem;
     font-weight: 850;
     letter-spacing: 0.06em;
@@ -10153,7 +10153,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-explore-head h3 {
     margin: 2px 0 0;
-    color: var(--primary);
+    color: #252833;
     font-size: 1.08rem;
     font-weight: 850;
     letter-spacing: 0;
