@@ -9818,6 +9818,34 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+.bible-library-view::before {
+    content: '';
+    position: absolute;
+    top: -100vh;
+    left: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    height: calc(100vh + 400px);
+    background: #1F242E;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.bible-library-view::after {
+    content: '';
+    position: absolute;
+    top: 400px;
+    bottom: -2000px;
+    left: 50%;
+    width: 100vw;
+    margin-left: -50vw;
+    background: #E8E8E7;
+    z-index: -2;
+    pointer-events: none;
 }
 
 .bible-library-hero {
@@ -10367,6 +10395,14 @@ body.dark-mode .bible-testament-tabs {
 @media (max-width: 480px) {
     .bible-library-view {
         gap: 11px;
+    }
+
+    .bible-library-view::before {
+        height: calc(100vh + 450px);
+    }
+    
+    .bible-library-view::after {
+        top: 450px;
     }
 
     .bible-library-hero {
