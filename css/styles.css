@@ -9969,24 +9969,24 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 }
 
 .bible-library-action-btn.primary {
-    background: linear-gradient(135deg, #e5c07b 0%, #d4af6a 100%);
+    background: #90754C;
     border-color: transparent;
-    color: #0b0d14;
-    box-shadow: 0 8px 24px rgba(229, 192, 123, 0.2);
+    color: #ffffff;
+    box-shadow: 0 8px 24px rgba(144, 117, 76, 0.3);
 }
 
 .bible-library-action-btn.primary:hover,
 .bible-library-action-btn.primary:active {
-    background: linear-gradient(135deg, #f0c982 0%, #e0bc75 100%);
+    background: #9f8255;
 }
 
 .bible-library-action-btn.primary .bible-action-icon {
-    background: rgba(11, 13, 20, 0.15);
-    color: #0b0d14;
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
 }
 
 .bible-library-action-btn.primary small {
-    color: rgba(11, 13, 20, 0.75);
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .bible-quick-actions {
