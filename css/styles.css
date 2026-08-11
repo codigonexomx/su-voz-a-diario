@@ -9907,15 +9907,28 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     font-family: var(--font-ui);
     cursor: pointer;
 
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    transition: all 0.2s ease;
+    box-shadow: 
+        0 8px 16px rgba(0, 0, 0, 0.4), 
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.15),
+        inset 0 -3px 0 rgba(0, 0, 0, 0.5);
+    transition: all 0.1s ease;
     text-align: left;
 }
 
-.bible-library-action-btn:hover,
+.bible-library-action-btn:hover {
+    background: #2f3441;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
 .bible-library-action-btn:active {
     background: #2f3441;
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.1);
+    transform: translateY(2px);
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3), 
+        inset 0 1px 1px rgba(255, 255, 255, 0.05),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.5);
 }
 
 .bible-action-icon {
@@ -9970,14 +9983,26 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-library-action-btn.primary {
     background: #90754C;
-    border-color: transparent;
+    border-color: rgba(255, 255, 255, 0.15);
+    border-bottom-color: rgba(0, 0, 0, 0.2);
     color: #ffffff;
-    box-shadow: 0 8px 24px rgba(144, 117, 76, 0.3);
+    box-shadow: 
+        0 8px 16px rgba(0, 0, 0, 0.3),
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4),
+        inset 0 -3px 0 rgba(90, 65, 35, 0.6);
 }
 
-.bible-library-action-btn.primary:hover,
+.bible-library-action-btn.primary:hover {
+    background: #9f8255;
+}
+
 .bible-library-action-btn.primary:active {
     background: #9f8255;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(255, 255, 255, 0.2),
+        inset 0 -1px 0 rgba(90, 65, 35, 0.6);
 }
 
 .bible-library-action-btn.primary .bible-action-icon {
