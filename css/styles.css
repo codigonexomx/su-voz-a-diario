@@ -9829,7 +9829,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     left: 50%;
     width: 100vw;
     margin-left: -50vw;
-    height: calc(100vh + 400px);
+    height: calc(100vh + 300px); /* Ajustado a la base de los botones */
     background: #1F242E;
     z-index: -1;
     pointer-events: none;
@@ -9838,7 +9838,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 .bible-library-view::after {
     content: '';
     position: absolute;
-    top: 400px;
+    top: 300px; /* Alineado al filo de abajo del botón */
     bottom: -2000px;
     left: 50%;
     width: 100vw;
@@ -10398,11 +10398,11 @@ body.dark-mode .bible-testament-tabs {
     }
 
     .bible-library-view::before {
-        height: calc(100vh + 450px);
+        height: calc(100vh + 356px); /* Ajustado a la base de los botones en móvil */
     }
     
     .bible-library-view::after {
-        top: 450px;
+        top: 356px; /* Alineado al filo de abajo del botón en móvil */
     }
 
     .bible-library-hero {
