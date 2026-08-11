@@ -322,14 +322,6 @@ export class RemoteBibleProvider {
     }
 
     async requestOperation(operation, payload) {
-        if (!this.isOnline()) {
-            throw new BibleProviderError(
-                BIBLE_ERROR_CODES.OFFLINE,
-                'No hay conexión a internet para consultar esta Biblia.',
-                { operation, versionId: payload.versionId }
-            );
-        }
-
         const clientMethodNames = {
             versions: 'getVersions',
             books: 'getBooks',

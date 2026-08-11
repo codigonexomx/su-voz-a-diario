@@ -10434,7 +10434,7 @@ renderBibleReading: async function() {
             this.bibleSuppressScrollSave = false;
         }
     } catch (error) {
-        const isOffline = error?.code === 'BIBLE_OFFLINE' || navigator.onLine === false;
+        const isOffline = error?.code === 'BIBLE_OFFLINE';
 
         console.error('[renderBibleReading] Excepción capturada al cargar capítulo:', {
             error,
