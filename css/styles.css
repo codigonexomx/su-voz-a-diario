@@ -9830,10 +9830,10 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.05);
 
-    background-color: #0b0d14;
+    background-color: #1B1F2A;
     background-image: url('../media/imagen hero.png');
     background-size: cover;
-    background-position: center right;
+    background-position: right 85%;
     background-repeat: no-repeat;
 
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3);
@@ -10347,8 +10347,9 @@ body.dark-mode .bible-testament-tabs {
     .bible-library-hero {
         padding: 24px 20px;
         min-height: 380px;
+        background-color: #1B1F2A;
         background-image: url('../media/imagen hero.png');
-        background-position: right 10% center;
+        background-position: right 10% 85%;
     }
 
     .bible-library-hero h2 {
