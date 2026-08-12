@@ -10053,6 +10053,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     background: #F9F7F7;
     border-radius: 16px;
     padding: 14px 12px;
+    min-height: 76px;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -10249,6 +10250,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-library-book {
     padding: 14px 12px;
+    min-height: 76px;
 
     display: grid;
     grid-template-columns: 44px 1fr 24px;
@@ -10519,6 +10521,7 @@ body.dark-mode .bible-testament-tabs {
 
     .bible-quick-action {
         padding: 12px 10px;
+        min-height: 66px;
     }
 
     .bible-quick-icon-box {
@@ -10552,6 +10555,7 @@ body.dark-mode .bible-testament-tabs {
 
     .bible-library-book {
         padding: 12px 10px;
+        min-height: 66px;
         border-radius: 14px;
         grid-template-columns: 38px 1fr 20px;
         gap: 10px;
