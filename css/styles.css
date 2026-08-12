@@ -10343,9 +10343,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     border-radius: 20px;
     border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-color));
 
-    background:
-        radial-gradient(circle at 95% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 30%),
-        var(--surface-color);
+    background: #F9F7F6;
 
     box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
 }
