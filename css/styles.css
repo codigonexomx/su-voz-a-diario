@@ -10257,18 +10257,18 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     justify-content: space-between;
     gap: 8px;
 
-    border: 1px solid var(--border-color);
+    border: 1px solid transparent;
     border-radius: 12px;
 
-    background: var(--surface-color);
-    color: var(--text-main);
+    background: #F9F7F7;
+    color: #252833;
 
     text-align: left;
     font-family: var(--font-ui);
     cursor: pointer;
 
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.035);
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
+    transition: all 0.18s ease;
 }
 
 .bible-library-book:active {
@@ -10277,12 +10277,13 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-library-book.is-selected,
 .bible-library-book:hover {
-    border-color: color-mix(in srgb, var(--accent) 45%, var(--border-color));
-    box-shadow: 0 12px 26px rgba(49, 130, 206, 0.13);
+    border-color: #BA9F71;
+    box-shadow: 0 8px 24px rgba(186, 159, 113, 0.25);
+    transform: translateY(-2px);
 }
 
 .bible-library-book-name {
-    color: var(--primary);
+    color: #252833;
     font-size: 0.92rem;
     font-weight: 850;
     line-height: 1.18;
@@ -10290,10 +10291,11 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 }
 
 .bible-library-book-meta {
-    color: var(--text-muted);
+    color: #252833;
     font-size: 0.74rem;
     font-weight: 750;
     letter-spacing: 0.02em;
+    opacity: 0.75;
 }
 
 .bible-chapter-panel {
