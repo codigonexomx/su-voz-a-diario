@@ -10473,8 +10473,10 @@ body.dark-mode .bible-chapter-pill {
 }
 
 body.dark-mode .bible-library-book-name,
-body.dark-mode .bq-title {
-    color: #F8FAFC;
+body.dark-mode .bq-title,
+body.dark-mode .bible-explore-head h3,
+body.dark-mode .bible-chapter-panel-header h3 {
+    color: #ffffff;
 }
 
 body.dark-mode .bible-library-book-meta,
