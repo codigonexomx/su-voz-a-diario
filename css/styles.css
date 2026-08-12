@@ -10506,11 +10506,16 @@ body.dark-mode .bible-testament-tab {
     color: #94A3B8;
 }
 
-body.dark-mode .bible-testament-tab.active,
 body.dark-mode .bible-chapter-pill:hover,
 body.dark-mode .bible-chapter-pill:active {
     background: var(--accent);
     color: #ffffff;
+}
+
+body.dark-mode .bible-testament-tab.active {
+    background: #3C301F;
+    color: #ffffff;
+    border-color: #654C2C;
 }
 
 body.dark-mode .bible-testament-tabs {
