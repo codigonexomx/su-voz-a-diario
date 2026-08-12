@@ -10166,24 +10166,28 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     border: none;
     background: #F4F1EE;
     border-radius: 9999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
 }
 
 .bible-testament-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     min-height: 44px;
     border: 2px solid transparent;
     border-radius: 9999px;
     background: transparent;
     color: #80858E;
-    font-size: 0.8rem;
+    font-size: 0.72rem;
     font-weight: 800;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
 .bible-testament-tab.active {
-    background: #E5DBC8;
+    background: linear-gradient(135deg, #EBE3D5 0%, #E0D3BC 100%);
     color: #252833;
-    border: 2px solid #BA9F71;
+    border: 2px solid #D4B886;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -10228,6 +10232,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     background: #F4F1EE;
     border-radius: 9999px;
     padding: 0 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05), 0 2px 4px rgba(0, 0, 0, 0.03);
 }
 
 .bible-library-book-count span {
