@@ -9313,10 +9313,31 @@ renderBible: function() {
     const renderBookSection = (title, books) => `
         <section class="bible-library-section">
             <div class="bible-library-section-header">
-                <div>
-                    <h3>${title}</h3>
+                <div class="bible-testament-tabs" role="tablist" aria-label="Testamento">
+                    <button
+                        class="bible-testament-tab ${activeTestament === 'old' ? 'active' : ''}"
+                        type="button"
+                        data-action="set-bible-testament"
+                        data-testament="old"
+                        role="tab"
+                        aria-selected="${activeTestament === 'old' ? 'true' : 'false'}"
+                    >
+                        Antiguo Testamento
+                    </button>
+                    <button
+                        class="bible-testament-tab ${activeTestament === 'new' ? 'active' : ''}"
+                        type="button"
+                        data-action="set-bible-testament"
+                        data-testament="new"
+                        role="tab"
+                        aria-selected="${activeTestament === 'new' ? 'true' : 'false'}"
+                    >
+                        Nuevo Testamento
+                    </button>
                 </div>
-                <span>${books.length} libros</span>
+                <div class="bible-library-book-count">
+                    <span>${books.length} libros</span>
+                </div>
             </div>
 
             <div class="bible-library-grid">
@@ -9466,28 +9487,6 @@ renderBible: function() {
                         <div>
                             <span>Explorar</span>
                             <h3>Explorar la Biblia</h3>
-                        </div>
-                        <div class="bible-testament-tabs" role="tablist" aria-label="Testamento">
-                            <button
-                                class="bible-testament-tab ${activeTestament === 'old' ? 'active' : ''}"
-                                type="button"
-                                data-action="set-bible-testament"
-                                data-testament="old"
-                                role="tab"
-                                aria-selected="${activeTestament === 'old' ? 'true' : 'false'}"
-                            >
-                                Antiguo
-                            </button>
-                            <button
-                                class="bible-testament-tab ${activeTestament === 'new' ? 'active' : ''}"
-                                type="button"
-                                data-action="set-bible-testament"
-                                data-testament="new"
-                                role="tab"
-                                aria-selected="${activeTestament === 'new' ? 'true' : 'false'}"
-                            >
-                                Nuevo
-                            </button>
                         </div>
                     </div>
                     ${renderBookSection(activeTestament === 'old' ? 'Antiguo Testamento' : 'Nuevo Testamento', visibleBooks)}
