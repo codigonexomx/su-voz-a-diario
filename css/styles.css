@@ -10506,6 +10506,11 @@ body.dark-mode .bible-testament-tabs {
     border-color: rgba(255, 255, 255, 0.08);
 }
 
+body.dark-mode .bible-library-view::before,
+body.dark-mode .bible-library-view::after {
+    background: #020813;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     .bible-library-view {
