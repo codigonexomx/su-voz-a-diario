@@ -10460,9 +10460,38 @@ body.dark-mode .bible-chapter-pill {
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
-body.dark-mode .bible-quick-action-icon {
-    background: rgba(96, 165, 250, 0.12);
-    color: #93c5fd;
+body.dark-mode .bible-library-book-name,
+body.dark-mode .bq-title {
+    color: #F8FAFC;
+}
+
+body.dark-mode .bible-library-book-meta,
+body.dark-mode .bq-subtitle {
+    color: #94A3B8;
+}
+
+body.dark-mode .bible-quick-icon-box,
+body.dark-mode .bible-book-icon-box {
+    background: rgba(186, 159, 113, 0.12);
+    color: #BA9F71;
+}
+
+body.dark-mode .bible-library-book.is-selected .bible-book-icon-box,
+body.dark-mode .bible-library-book:hover .bible-book-icon-box {
+    background: #BA9F71;
+    color: #0F1115;
+}
+
+body.dark-mode .bible-library-book-count {
+    background: rgba(186, 159, 113, 0.12);
+}
+
+body.dark-mode .bible-library-book-count span {
+    color: #BA9F71;
+}
+
+body.dark-mode .bible-testament-tab {
+    color: #94A3B8;
 }
 
 body.dark-mode .bible-testament-tab.active,
