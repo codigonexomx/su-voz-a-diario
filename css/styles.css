@@ -10451,6 +10451,13 @@ body.dark-mode .bible-chapter-pill {
 
 /* Hero ya es oscuro por diseño, no requiere override de background aquí */
 
+body.dark-mode .bible-library-kicker,
+body.dark-mode .bible-library-action-btn,
+body.dark-mode .bible-action-title,
+body.dark-mode .bible-library-action-btn small {
+    color: #68512F;
+}
+
 body.dark-mode .bible-library-book,
 body.dark-mode .bible-quick-action,
 body.dark-mode .bible-chapter-panel,
