@@ -10162,17 +10162,18 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 .bible-testament-tabs {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    gap: 0;
     padding: 4px;
     border: none;
-    background: transparent;
+    background: #F4F1EE;
+    border-radius: 9999px;
 }
 
 .bible-testament-tab {
-    min-height: 38px;
+    min-height: 44px;
     border: 2px solid transparent;
-    border-radius: 12px;
-    background: #F4F1EE;
+    border-radius: 9999px;
+    background: transparent;
     color: #80858E;
     font-size: 0.8rem;
     font-weight: 800;
