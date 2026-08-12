@@ -10462,12 +10462,13 @@ body.dark-mode .bible-library-action-btn small {
     color: #ffffff;
 }
 
+body.dark-mode .bible-library-action-btn:not(.primary),
 body.dark-mode .bible-library-book,
 body.dark-mode .bible-quick-action,
 body.dark-mode .bible-chapter-panel,
 body.dark-mode .bible-chapter-panel-close,
 body.dark-mode .bible-chapter-pill {
-    background: rgba(15, 17, 21, 0.98);
+    background: #131720;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
 }
 
