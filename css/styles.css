@@ -10431,8 +10431,8 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 .bible-chapter-pill:hover,
 .bible-chapter-pill:active {
-    border-color: var(--accent);
-    background: var(--accent);
+    border-color: #9C8157;
+    background: #9C8157;
     color: #ffffff;
 }
 
@@ -10508,7 +10508,7 @@ body.dark-mode .bible-testament-tab {
 
 body.dark-mode .bible-chapter-pill:hover,
 body.dark-mode .bible-chapter-pill:active {
-    background: var(--accent);
+    background: #9C8157;
     color: #ffffff;
 }
 
