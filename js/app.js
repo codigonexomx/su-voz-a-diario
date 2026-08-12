@@ -9307,13 +9307,18 @@ renderBible: function() {
             data-book-id="${item.id}"
         >
             <div class="bible-book-icon-box">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
                     ${bibleIcons[item.id] || '<circle cx="12" cy="12" r="10"/>'}
                 </svg>
             </div>
             <div class="bible-book-info">
                 <span class="bible-library-book-name">${this.escapeHtml(item.name)}</span>
                 <span class="bible-library-book-meta">${item.chapters} cap.</span>
+            </div>
+            <div class="bible-book-chevron">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
             </div>
         </button>
     `;
