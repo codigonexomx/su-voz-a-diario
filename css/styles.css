@@ -10251,11 +10251,10 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     min-height: 58px;
     padding: 11px 12px;
 
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    align-items: center;
+    gap: 12px;
 
     border: 1px solid transparent;
     border-radius: 12px;
@@ -10280,6 +10279,30 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     border-color: #BA9F71;
     box-shadow: 0 8px 24px rgba(186, 159, 113, 0.25);
     transform: translateY(-2px);
+}
+
+.bible-book-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #EBE3D5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #BA9F71;
+    transition: all 0.18s ease;
+}
+
+.bible-library-book.is-selected .bible-book-icon-box,
+.bible-library-book:hover .bible-book-icon-box {
+    background: #BA9F71;
+    color: #F9F7F7;
+}
+
+.bible-book-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .bible-library-book-name {

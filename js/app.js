@@ -7,6 +7,7 @@ import {
 } from './utils/dates.js';
 
 import { NotebookAnalytics } from './NotebookAnalytics.js';
+import { bibleIcons } from './utils/bibleIcons.js';
 import { MeditationLibrary } from './MeditationLibrary.js';
 import { NotebookStorage } from './NotebookStorage.js';
 import { NotebookUIStateStorage } from './NotebookUIStateStorage.js';
@@ -9305,8 +9306,15 @@ renderBible: function() {
             data-action="open-bible-book"
             data-book-id="${item.id}"
         >
-            <span class="bible-library-book-name">${this.escapeHtml(item.name)}</span>
-            <span class="bible-library-book-meta">${item.chapters} cap.</span>
+            <div class="bible-book-icon-box">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    ${bibleIcons[item.id] || '<circle cx="12" cy="12" r="10"/>'}
+                </svg>
+            </div>
+            <div class="bible-book-info">
+                <span class="bible-library-book-name">${this.escapeHtml(item.name)}</span>
+                <span class="bible-library-book-meta">${item.chapters} cap.</span>
+            </div>
         </button>
     `;
 
