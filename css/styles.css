@@ -9025,8 +9025,8 @@ body.dark-mode .view-hero {
 }
 
 .bible-reader-icon-btn {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
 
     display: inline-flex;
     align-items: center;
@@ -9038,7 +9038,7 @@ body.dark-mode .view-hero {
     background: #FDFDFD;
     color: #535558;
 
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     font-weight: 800;
     cursor: pointer;
 
@@ -9047,7 +9047,7 @@ body.dark-mode .view-hero {
 
 .bible-reader-title-btn {
     min-width: 0;
-    height: 44px;
+    height: 56px;
 
     display: flex;
     flex-direction: column;
@@ -9093,15 +9093,16 @@ body.dark-mode .view-hero {
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    font-size: 0.98rem;
-    font-weight: 850;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    font-weight: 700;
     letter-spacing: 0;
     color: #535558;
 }
 
 .bible-reader-chapter {
-    font-size: 0.74rem;
-    font-weight: 750;
+    font-size: 0.85rem;
+    font-weight: 800;
     color: #535558;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -9109,12 +9110,12 @@ body.dark-mode .view-hero {
 
 .bible-reader-subbar {
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) 38px;
+    grid-template-columns: 46px minmax(0, 1fr) 46px;
     align-items: center;
     gap: 6px;
 
     width: min(100%, 420px);
-    min-height: 42px;
+    min-height: 52px;
     margin: 0 auto;
     padding: 4px;
 
@@ -9127,8 +9128,8 @@ body.dark-mode .view-hero {
 }
 
 .bible-reader-nav-btn {
-    width: 34px;
-    height: 34px;
+    width: 42px;
+    height: 42px;
     padding: 0;
 
     display: inline-flex;
@@ -9141,7 +9142,7 @@ body.dark-mode .view-hero {
     background: var(--surface-color);
     color: #535558;
 
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     font-weight: 600;
     line-height: 1;
     cursor: pointer;
@@ -9447,14 +9448,14 @@ body.bible-version-picker-open .bottom-nav {
 
 .bible-reader-version-chip {
     min-width: 0;
-    min-height: 28px;
+    min-height: 36px;
     border: 0;
     border-radius: 999px;
     background: transparent;
     color: #535558;
     cursor: pointer;
     font-family: var(--font-ui);
-    font-size: 0.68rem;
+    font-size: 0.78rem;
     font-weight: 900;
     letter-spacing: 0.02em;
     transition: transform 0.15s ease, background 0.16s ease, color 0.16s ease, opacity 0.16s ease;
