@@ -9015,7 +9015,7 @@ body.dark-mode .view-hero {
     margin: -4px -2px 0;
     padding: 8px;
 
-    background: color-mix(in srgb, var(--bg-color) 92%, transparent);
+    background: color-mix(in srgb, #FDFDFC 92%, transparent);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
 
