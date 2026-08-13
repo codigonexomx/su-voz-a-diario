@@ -9008,7 +9008,7 @@ body.dark-mode .view-hero {
 
 .bible-reader-topbar {
     display: grid;
-    grid-template-columns: 42px 1fr 42px;
+    grid-template-columns: 50px 1fr 50px;
     align-items: center;
     gap: 10px;
 
@@ -9047,7 +9047,9 @@ body.dark-mode .view-hero {
 
 .bible-reader-title-btn {
     min-width: 0;
-    height: 56px;
+    height: auto;
+    min-height: 64px;
+    padding: 6px 0;
 
     display: flex;
     flex-direction: column;
@@ -9094,7 +9096,7 @@ body.dark-mode .view-hero {
     white-space: nowrap;
 
     font-family: 'Cormorant Garamond', serif;
-    font-size: 1.25rem;
+    font-size: 1.85rem;
     font-weight: 700;
     letter-spacing: 0;
     color: #535558;
