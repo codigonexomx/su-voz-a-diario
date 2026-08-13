@@ -9266,9 +9266,9 @@ body.bible-version-picker-open .bottom-nav {
     min-height: 38px;
     margin: 0 0 14px;
     padding: 4px;
-    border-color: color-mix(in srgb, var(--accent) 14%, var(--border-color));
+    border-color: transparent;
     border-radius: 13px;
-    background: color-mix(in srgb, var(--accent) 6%, var(--bg-color));
+    background: transparent;
     box-shadow: none;
 }
 
@@ -9278,7 +9278,7 @@ body.bible-version-picker-open .bottom-nav {
     padding: 0 12px;
     background: transparent;
     box-shadow: none;
-    color: var(--text-main);
+    color: #B39163;
     font-size: 0.84rem;
     font-weight: 750;
 }
@@ -9286,6 +9286,7 @@ body.bible-version-picker-open .bottom-nav {
 .bible-reader-content .daily-reading-voice-stop {
     width: 32px;
     height: 32px;
+    color: #B39163;
 }
 
 .bible-reader-content .verse-container {
@@ -9668,7 +9669,8 @@ body.dark-mode .bible-reader-content .daily-reading-voice {
     border-color: rgba(147, 197, 253, 0.16);
 }
 
-body.dark-mode .bible-reader-content .daily-reading-voice-main {
+body.dark-mode .bible-reader-content .daily-reading-voice-main,
+body.dark-mode .bible-reader-content .daily-reading-voice-stop {
     background: transparent;
     color: #e5e7eb;
     box-shadow: none;
