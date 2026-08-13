@@ -8993,6 +8993,8 @@ body.dark-mode .view-hero {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    background: #FDFDFD;
+    min-height: 100vh;
 }
 
 .bible-reader-fixed-header {
@@ -13645,3 +13647,4 @@ body.dark-mode .sliding-notebook-close {
         transition: none;
     }
 }
+body.dark-mode .bible-reader-view { background: transparent; }
