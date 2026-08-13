@@ -9250,7 +9250,7 @@ body.bible-version-picker-open .bottom-nav {
 }
 
 .bible-reader-content .reading-text {
-    background: var(--surface-color);
+    background: #FCFAF8;
     border: 1px solid var(--border-color);
     border-radius: 18px;
     padding: 16px 18px 18px;
