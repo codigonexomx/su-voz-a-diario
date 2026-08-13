@@ -9036,7 +9036,7 @@ body.dark-mode .view-hero {
     border-radius: 12px;
 
     background: #FDFDFD;
-    color: var(--text-main);
+    color: #535558;
 
     font-size: 1.1rem;
     font-weight: 800;
@@ -9061,7 +9061,7 @@ body.dark-mode .view-hero {
     background:
         linear-gradient(180deg, color-mix(in srgb, var(--accent) 11%, var(--surface-color)), var(--surface-color));
 
-    color: var(--text-main);
+    color: #535558;
     cursor: pointer;
 
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
@@ -9096,13 +9096,13 @@ body.dark-mode .view-hero {
     font-size: 0.98rem;
     font-weight: 850;
     letter-spacing: 0;
-    color: var(--primary);
+    color: #535558;
 }
 
 .bible-reader-chapter {
     font-size: 0.74rem;
     font-weight: 750;
-    color: var(--text-muted);
+    color: #535558;
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
@@ -9139,7 +9139,7 @@ body.dark-mode .view-hero {
     border-radius: 999px;
 
     background: var(--surface-color);
-    color: var(--primary);
+    color: #535558;
 
     font-size: 1.5rem;
     font-weight: 600;
@@ -9328,7 +9328,7 @@ body.bible-version-picker-open .bottom-nav {
 }
 
 .bible-reader-content .verse-text {
-    color: var(--text-main);
+    color: #535558;
 }
 
 .bible-reader-text-small .bible-reader-content .verse-item {
@@ -9450,7 +9450,7 @@ body.bible-version-picker-open .bottom-nav {
     border: 0;
     border-radius: 999px;
     background: transparent;
-    color: var(--text-muted);
+    color: #535558;
     cursor: pointer;
     font-family: var(--font-ui);
     font-size: 0.68rem;
@@ -9467,6 +9467,25 @@ body.bible-version-picker-open .bottom-nav {
     background: #BE9C6B;
     color: #fff;
     box-shadow: 0 8px 18px rgba(190, 156, 107, 0.22);
+}
+
+body.dark-mode .bible-reader-version-chip.is-loading {
+    opacity: 0.85;
+}
+
+body.dark-mode .bible-reader-icon-btn,
+body.dark-mode .bible-reader-title-btn,
+body.dark-mode .bible-reader-content .verse-text {
+    color: var(--text-main);
+}
+
+body.dark-mode .bible-reader-book {
+    color: var(--primary);
+}
+
+body.dark-mode .bible-reader-chapter,
+body.dark-mode .bible-reader-version-chip {
+    color: var(--text-muted);
 }
 
 .bible-reader-version-chip.is-loading {
