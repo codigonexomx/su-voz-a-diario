@@ -9076,6 +9076,10 @@ body.dark-mode .view-hero {
     width: 100%;
 }
 
+.bible-reader-book-btn {
+    background: #FCFCFA;
+}
+
 .bible-reader-chapter-btn {
     padding: 0 12px;
 }
@@ -9433,7 +9437,7 @@ body.bible-version-picker-open .bottom-nav {
     gap: 3px;
     padding: 3px;
     border-radius: 999px;
-    background: color-mix(in srgb, var(--accent) 7%, transparent);
+    background: #FCFCFA;
 }
 
 .bible-reader-version-chip {
