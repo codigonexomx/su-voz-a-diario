@@ -9310,18 +9310,19 @@ body.bible-version-picker-open .bottom-nav {
     align-items: center;
     justify-content: center;
 
-    min-width: 20px;
-    height: 20px;
+    min-width: 26px;
+    height: 26px;
     margin-right: 7px;
     transform: translateY(-1px);
 
     border-radius: 999px;
+    border: 1px solid #E7E0D0;
 
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    color: var(--accent);
+    background: #F8F5ED;
+    color: #7E5214;
 
     font-family: var(--font-ui);
-    font-size: 0.64rem;
+    font-size: 0.8rem;
     font-weight: 850;
     line-height: 1;
 }
@@ -9657,6 +9658,7 @@ body.dark-mode .bible-reader-content .daily-reading-voice-main {
 body.dark-mode .bible-reader-content .verse-number {
     background: rgba(96, 165, 250, 0.14);
     color: #93c5fd;
+    border-color: transparent;
 }
 
 body.dark-mode .bible-reader-context-bar,
