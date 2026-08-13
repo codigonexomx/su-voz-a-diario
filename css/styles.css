@@ -13674,3 +13674,35 @@ body.dark-mode .sliding-notebook-close {
     }
 }
 body.dark-mode .bible-reader-view { background: transparent; }
+
+/* =========================================================
+   ENRICHED BIBLE METADATA
+   ========================================================= */
+
+.bible-reader-subtitle {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #B39163;
+    text-align: center;
+    margin: 24px 0 12px 0;
+    padding: 0 20px;
+    line-height: 1.3;
+}
+
+.bible-reader-footnote-marker,
+.bible-reader-crossref-marker {
+    color: #B39163;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 0 2px;
+}
+
+body.dark-mode .bible-reader-subtitle {
+    color: #E2DCD0;
+}
+
+body.dark-mode .bible-reader-footnote-marker,
+body.dark-mode .bible-reader-crossref-marker {
+    color: #E2DCD0;
+}

@@ -180,7 +180,21 @@ const tokenizedText = window.App?.tokenizeVerseText(
     strongTokens
 ) || safeText;
 
+                let extraHtml = '';
+                if (verse.subtitle) {
+                    extraHtml += `<h3 class="bible-reader-subtitle">${escapeBibleHtml(verse.subtitle)}</h3>`;
+                }
+
+                let finalTokenizedText = tokenizedText;
+                if (verse.footnotes && verse.footnotes.length > 0) {
+                    finalTokenizedText += verse.footnotes.map((fn, idx) => ` <span class="bible-reader-footnote-marker" title="${escapeBibleHtml(fn)}"><sup>[${idx + 1}]</sup></span>`).join('');
+                }
+                if (verse.crossReferences && verse.crossReferences.length > 0) {
+                    finalTokenizedText += verse.crossReferences.map((ref) => ` <span class="bible-reader-crossref-marker" title="${escapeBibleHtml(ref)}"><sup>📖</sup></span>`).join('');
+                }
+
                 return `
+                    ${extraHtml}
                     <p
                         class="verse-item verse-selectable"
                         data-verse-number="${verseNumber}"
@@ -188,7 +202,7 @@ const tokenizedText = window.App?.tokenizeVerseText(
                         data-verse-full="${safeText}"
                     >
                         <span class="verse-number" data-verse-number="${verseNumber}">${verseNumber}</span>
-<span class="verse-text">${tokenizedText}</span>
+<span class="verse-text">${finalTokenizedText}</span>
                     </p>
                 `;
             }).join('')}

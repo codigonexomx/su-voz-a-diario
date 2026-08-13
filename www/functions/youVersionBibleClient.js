@@ -1,5 +1,7 @@
 "use strict";
 
+const cheerio = require("cheerio");
+
 const YOU_VERSION_BASE_URL = "https://api.youversion.com/v1";
 const YOU_VERSION_APP_KEY_HEADER = "X-YVP-App-Key";
 
@@ -291,17 +293,50 @@ function extractPassageVerses(content) {
 
   for (const [index, marker] of markers.entries()) {
     const nextMarker = markers[index + 1];
+    
+    let precedingHtml = "";
+    if (index === 0) {
+      precedingHtml = html.slice(0, marker.start);
+    }
+    
     const verseHtml = html.slice(
       marker.end,
       nextMarker?.start ?? html.length
     );
-    const text = htmlToPlainText(removeVisualVerseLabels(verseHtml));
+    
+    const $pre = cheerio.load(precedingHtml, null, false);
+    const $verse = cheerio.load(verseHtml, null, false);
+    
+    const subtitles = [];
+    $pre('.s, .s1, .s2, .s3, .heading').each((i, el) => subtitles.push($pre(el).text().trim()));
+    $verse('.s, .s1, .s2, .s3, .heading').each((i, el) => {
+       subtitles.push($verse(el).text().trim());
+       $verse(el).remove();
+    });
+    
+    const footnotes = [];
+    $verse('.f, .note, .footnote').each((i, el) => {
+       footnotes.push($verse(el).text().trim());
+       $verse(el).remove();
+    });
+    
+    const crossReferences = [];
+    $verse('.r, .x, .crossreference').each((i, el) => {
+       crossReferences.push($verse(el).text().trim());
+       $verse(el).remove();
+    });
+    
+    const cleanVerseHtml = $verse.html();
+    const text = htmlToPlainText(removeVisualVerseLabels(cleanVerseHtml));
 
     if (text) {
       verses.push({
         number: marker.number,
         text,
         reference: "",
+        subtitle: subtitles.filter(Boolean).join(" - "),
+        footnotes: footnotes.filter(Boolean),
+        crossReferences: crossReferences.filter(Boolean)
       });
     }
   }
