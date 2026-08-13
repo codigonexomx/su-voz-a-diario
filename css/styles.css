@@ -9379,13 +9379,13 @@ body.bible-version-picker-open .bottom-nav {
     grid-template-columns: repeat(3, minmax(48px, 1fr));
     gap: 4px;
     padding: 5px;
-    border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border-color));
+    border: 0;
     border-radius: 18px;
-    background: color-mix(in srgb, var(--surface-color) 94%, transparent);
-    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.16);
+    background: transparent;
+    box-shadow: none;
     transform: translateX(-50%);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
 }
 
 .bible-reader-context-bar.has-audio-stop {
@@ -9403,7 +9403,7 @@ body.bible-version-picker-open .bottom-nav {
     border: 0;
     border-radius: 13px;
     background: transparent;
-    color: var(--text-muted);
+    color: #B39163;
     font-family: var(--font-ui);
     font-size: 0.68rem;
     font-weight: 850;
@@ -9417,8 +9417,8 @@ body.bible-version-picker-open .bottom-nav {
 
 .bible-reader-tool.is-active,
 .bible-reader-tool:hover {
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    color: var(--accent);
+    background: color-mix(in srgb, #B39163 12%, transparent);
+    color: #B39163;
 }
 
 .bible-reader-tool-icon {
