@@ -9030,7 +9030,7 @@ body.dark-mode .view-hero {
     align-items: center;
     justify-content: center;
 
-    border: 1px solid var(--border-color);
+    border: 1px solid #E2DCD0;
     border-radius: 12px;
 
     background: #FDFDFD;
@@ -9053,7 +9053,7 @@ body.dark-mode .view-hero {
     justify-content: center;
     gap: 2px;
 
-    border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border-color));
+    border: 1px solid #E2DCD0;
     border-radius: 13px;
 
     background:
@@ -9461,9 +9461,9 @@ body.bible-version-picker-open .bottom-nav {
 }
 
 .bible-reader-version-chip.is-active {
-    background: var(--accent);
+    background: #BE9C6B;
     color: #fff;
-    box-shadow: 0 8px 18px rgba(49, 130, 206, 0.22);
+    box-shadow: 0 8px 18px rgba(190, 156, 107, 0.22);
 }
 
 .bible-reader-version-chip.is-loading {
