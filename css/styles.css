@@ -9033,7 +9033,7 @@ body.dark-mode .view-hero {
     border: 1px solid var(--border-color);
     border-radius: 12px;
 
-    background: var(--surface-color);
+    background: #FDFDFD;
     color: var(--text-main);
 
     font-size: 1.1rem;
@@ -9081,6 +9081,7 @@ body.dark-mode .view-hero {
 }
 
 .bible-reader-chapter-btn {
+    background: #FDFDFD;
     padding: 0 12px;
 }
 
