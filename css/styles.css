@@ -9641,35 +9641,33 @@ body.dark-mode .bible-reader-nav-btn {
 }
 
 body.dark-mode .bible-reader-subbar {
-    background: rgba(15, 17, 21, 0.72);
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow:
-        0 10px 24px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    background: #0a1118;
+    border-color: rgba(255, 255, 255, 0.04);
+    box-shadow: none;
 }
 
 body.dark-mode .bible-reader-nav-btn {
-    color: #dbeafe;
+    color: #b39163;
 }
 
 body.dark-mode .bible-reader-title-btn {
-    background:
-        linear-gradient(180deg, rgba(96, 165, 250, 0.16), rgba(15, 17, 21, 0.98));
-    border-color: rgba(96, 165, 250, 0.28);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    background: transparent;
+    color: #d9b87c;
+    border-color: rgba(217, 184, 124, 0.3);
+    box-shadow: none;
 }
 
 body.dark-mode .bible-reader-content .reading-text {
-    background: rgba(15, 17, 21, 0.98);
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow:
-        0 14px 34px rgba(0, 0, 0, 0.34),
-        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: #e2dcd0;
 }
 
 body.dark-mode .bible-reader-content .daily-reading-voice {
-    background: rgba(147, 197, 253, 0.07);
-    border-color: rgba(147, 197, 253, 0.16);
+    background: transparent;
+    border-color: transparent;
+    color: #b39163;
 }
 
 body.dark-mode .bible-reader-content .daily-reading-voice-main,
@@ -9680,31 +9678,55 @@ body.dark-mode .bible-reader-content .daily-reading-voice-stop {
 }
 
 body.dark-mode .bible-reader-content .verse-number {
-    background: rgba(96, 165, 250, 0.14);
-    color: #93c5fd;
-    border-color: transparent;
+    background: #0a1118;
+    color: #d9b87c;
+    border: 1px solid #b39163;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.dark-mode .bible-reader-content .verse-item {
+    border-left: 1px dotted #36414e;
+    padding-left: 16px;
+    margin-left: 12px;
 }
 
 body.dark-mode .bible-reader-context-bar,
 body.dark-mode .bible-reading-settings-panel {
-    background: rgba(15, 17, 21, 0.94);
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 20px 46px rgba(0, 0, 0, 0.42);
+    background: rgba(10, 17, 24, 0.85);
+    backdrop-filter: blur(12px);
+    border-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+body.dark-mode .bible-reader-tool {
+    color: #b39163;
 }
 
 body.dark-mode .bible-reader-tool.is-active,
 body.dark-mode .bible-reader-tool:hover {
-    background: rgba(96, 165, 250, 0.14);
-    color: #93c5fd;
+    background: transparent;
+    color: #fce8b8;
 }
 
 body.dark-mode .bible-reader-version-switcher {
-    background: rgba(96, 165, 250, 0.08);
+    background: transparent;
+}
+
+body.dark-mode .bible-reader-version-chip {
+    color: #6c7a89;
+    background: transparent;
+    border: none;
 }
 
 body.dark-mode .bible-reader-version-chip.is-active {
-    background: #2563eb;
-    color: #eff6ff;
+    background: #d2b176;
+    color: #000;
+    font-weight: 600;
 }
 
 body.dark-mode .bible-reading-settings-close,
@@ -13673,7 +13695,7 @@ body.dark-mode .sliding-notebook-close {
         transition: none;
     }
 }
-body.dark-mode .bible-reader-view { background: transparent; }
+body.dark-mode .bible-reader-view { background: #0a1118; }
 
 /* =========================================================
    ENRICHED BIBLE METADATA
