@@ -13732,3 +13732,35 @@ body.dark-mode .bible-reader-footnote-marker,
 body.dark-mode .bible-reader-crossref-marker {
     color: #E2DCD0;
 }
+.bible-reader-reference-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(184, 134, 11, 0.1);
+    color: var(--n-golden);
+    border: 1px solid rgba(184, 134, 11, 0.3);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    margin-left: 6px;
+    vertical-align: middle;
+    transition: all 0.2s ease;
+}
+
+.bible-reader-reference-btn:hover {
+    background: rgba(184, 134, 11, 0.2);
+}
+
+
+/* Custom NBLA Blue for Light Mode */
+body:not(.dark-mode) .bible-reader-content .verse-text,
+body:not(.dark-mode) .bible-reader-content .verse-number,
+body:not(.dark-mode) .bible-reader-subtitle,
+body:not(.dark-mode) .bible-reader-version-chip,
+body:not(.dark-mode) .bible-reader-title-btn,
+body:not(.dark-mode) .bible-reader-title-btn .bible-reader-book,
+body:not(.dark-mode) .bible-reader-title-btn .bible-reader-chapter {
+    color: #25365A !important;
+}

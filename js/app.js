@@ -186,11 +186,13 @@ const tokenizedText = window.App?.tokenizeVerseText(
                 }
 
                 let finalTokenizedText = tokenizedText;
-                if (verse.footnotes && verse.footnotes.length > 0) {
-                    finalTokenizedText += verse.footnotes.map((fn, idx) => ` <span class="bible-reader-footnote-marker" title="${escapeBibleHtml(fn)}"><sup>[${idx + 1}]</sup></span>`).join('');
-                }
-                if (verse.crossReferences && verse.crossReferences.length > 0) {
-                    finalTokenizedText += verse.crossReferences.map((ref) => ` <span class="bible-reader-crossref-marker" title="${escapeBibleHtml(ref)}"><sup>📖</sup></span>`).join('');
+                const totalRefs = (verse.footnotes?.length || 0) + (verse.crossReferences?.length || 0);
+                if (totalRefs > 0) {
+                    const refsData = encodeURIComponent(JSON.stringify({
+                        f: verse.footnotes || [],
+                        c: verse.crossReferences || []
+                    }));
+                    finalTokenizedText += ` <button type="button" class="bible-reader-reference-btn" data-refs="${refsData}" onclick="App.openReferencePanel(event, this)">📝 Ver Referencias (${totalRefs})</button>`;
                 }
 
                 return `
@@ -17533,3 +17535,78 @@ App.closeReferencePreview = function() {
         if (typeof NotebookDiagnostics !== 'undefined') NotebookDiagnostics.trackListener(-2);
     }
 };
+
+App.openReferencePanel = function(e, btn) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const refsDataStr = btn.getAttribute('data-refs');
+    if (!refsDataStr) return;
+    
+    try {
+        const refsData = JSON.parse(decodeURIComponent(refsDataStr));
+        const bodyEl = document.getElementById('referenceViewBody');
+        const quoteEl = document.getElementById('referenceViewQuoted');
+        const panel = document.getElementById('referenceViewPanel');
+        
+        if (!bodyEl || !panel) return;
+        
+        // Contextual quote
+        const verseItem = btn.closest('.verse-selectable');
+        if (verseItem) {
+            const verseNumber = verseItem.querySelector('.verse-number')?.textContent || '';
+            const verseText = verseItem.querySelector('.verse-text')?.textContent || '';
+            quoteEl.innerHTML = `<strong>Versículo ${verseNumber}:</strong><br><small>${verseText.replace(/📝 Ver Referencias.*/, '').trim()}</small>`;
+        }
+        
+        let html = '';
+        if (refsData.f && refsData.f.length > 0) {
+            html += `<h4 style="margin-top:0; color:var(--text-color); font-size:14px; font-weight:bold;">Notas</h4>`;
+            html += `<ul style="list-style:none; padding:0; margin-bottom:16px;">`;
+            refsData.f.forEach(f => {
+                html += `<li style="margin-bottom:8px; font-size:14px; line-height:1.5;">${f}</li>`;
+            });
+            html += `</ul>`;
+        }
+        if (refsData.c && refsData.c.length > 0) {
+            html += `<h4 style="margin-top:0; color:var(--text-color); font-size:14px; font-weight:bold;">Referencias Cruzadas</h4>`;
+            html += `<ul style="list-style:none; padding:0;">`;
+            refsData.c.forEach(c => {
+                html += `<li style="margin-bottom:8px; font-size:14px; line-height:1.5;">${c}</li>`;
+            });
+            html += `</ul>`;
+        }
+        
+        bodyEl.innerHTML = html;
+        
+        // Show panel
+        panel.classList.add('visible');
+        document.body.classList.add('selection-panel-open');
+    } catch(err) {
+        console.error('Error parseando referencias', err);
+    }
+};
+
+// Listeners for closing the reference panel
+document.addEventListener('DOMContentLoaded', () => {
+    const closeReferenceBtn = document.getElementById('closeReferenceViewPanel');
+    const referenceBackdrop = document.getElementById('referenceViewBackdrop');
+    const panel = document.getElementById('referenceViewPanel');
+    
+    const closePanel = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (panel) {
+            panel.classList.remove('visible');
+            setTimeout(() => {
+                document.body.classList.remove('selection-panel-open');
+            }, 300); // match transition duration
+        }
+    };
+    
+    if (closeReferenceBtn) closeReferenceBtn.addEventListener('click', closePanel);
+    if (referenceBackdrop) referenceBackdrop.addEventListener('click', closePanel);
+});
