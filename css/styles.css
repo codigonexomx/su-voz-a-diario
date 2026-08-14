@@ -13950,3 +13950,103 @@ body:not(.dark-mode) .bible-search-back {
         font-size: 0.82rem !important;
     }
 }
+
+/* Premium Compact Bible Reference Badge (Cajita con número) */
+.bible-ref-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    margin-left: 5px;
+    margin-right: 2px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 900;
+    line-height: 1;
+    vertical-align: super;
+    cursor: pointer;
+    border: 1px solid rgba(184, 134, 11, 0.45);
+    background: rgba(184, 134, 11, 0.12);
+    color: #b8860b;
+    transition: all 0.18s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.bible-ref-badge:hover,
+.bible-ref-badge:active {
+    background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+    color: #ffffff !important;
+    border-color: #b8860b !important;
+    transform: scale(1.12);
+    box-shadow: 0 3px 10px rgba(184, 134, 11, 0.35);
+}
+
+body.dark-mode .bible-ref-badge {
+    background: rgba(212, 175, 55, 0.18);
+    color: #f1c40f;
+    border-color: rgba(212, 175, 55, 0.45);
+}
+
+body.dark-mode .bible-ref-badge:hover,
+body.dark-mode .bible-ref-badge:active {
+    background: linear-gradient(135deg, #f1c40f, #b8860b) !important;
+    color: #111827 !important;
+}
+
+/* Premium Floating Globito / Popover Bubble */
+.bible-ref-bubble {
+    position: absolute;
+    z-index: 10000;
+    max-width: 320px;
+    width: calc(100vw - 32px);
+    background: var(--surface-color, #ffffff);
+    border: 1px solid rgba(184, 134, 11, 0.45);
+    border-radius: 16px;
+    padding: 14px 16px 10px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(184, 134, 11, 0.15);
+    animation: bubblePop 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    color: var(--text-main);
+}
+
+@keyframes bubblePop {
+    from {
+        opacity: 0;
+        transform: scale(0.88) translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.bible-ref-bubble-close {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.18s ease;
+}
+
+.bible-ref-bubble-close:hover {
+    background: rgba(184, 134, 11, 0.15);
+    color: #b8860b;
+}
+
+body.dark-mode .bible-ref-bubble {
+    background: #1a1e26;
+    border-color: rgba(212, 175, 55, 0.45);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.6);
+}

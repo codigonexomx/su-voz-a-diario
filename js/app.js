@@ -192,7 +192,7 @@ const tokenizedText = window.App?.tokenizeVerseText(
                         f: verse.footnotes || [],
                         c: verse.crossReferences || []
                     }));
-                    finalTokenizedText += ` <button type="button" class="bible-reader-reference-btn" data-refs="${refsData}" onclick="App.openReferencePanel(event, this)">📝 Ver Referencias (${totalRefs})</button>`;
+                    finalTokenizedText += `<button type="button" class="bible-ref-badge" data-refs="${refsData}" onclick="App.toggleReferenceBubble(event, this)" title="Ver nota">${totalRefs}</button>`;
                 }
 
                 return `
@@ -17565,57 +17565,89 @@ function formatBibleFootnote(noteStr) {
     `;
 }
 
-App.openReferencePanel = function(e, btn) {
+App.toggleReferenceBubble = function(e, btn) {
     if (e) {
         e.preventDefault();
         e.stopPropagation();
     }
+
+    // Dismiss existing bubble if open
+    const existingBubble = document.getElementById('bible-ref-bubble');
+    if (existingBubble) {
+        const activeBtn = existingBubble._activeBtn;
+        existingBubble.remove();
+        if (activeBtn === btn) return; // Toggle behavior on same badge click
+    }
+
     const refsDataStr = btn.getAttribute('data-refs');
     if (!refsDataStr) return;
-    
+
     try {
         const refsData = JSON.parse(decodeURIComponent(refsDataStr));
-        const bodyEl = document.getElementById('referenceViewBody');
-        const quoteEl = document.getElementById('referenceViewQuoted');
-        const panel = document.getElementById('referenceViewPanel');
-        
-        if (!bodyEl || !panel) return;
-        
-        // Contextual quote
-        const verseItem = btn.closest('.verse-selectable');
-        if (verseItem) {
-            const verseNumber = verseItem.querySelector('.verse-number')?.textContent || '';
-            const verseText = verseItem.querySelector('.verse-text')?.textContent || '';
-            quoteEl.innerHTML = `<strong>Versículo ${verseNumber}:</strong><br><small>${verseText.replace(/📝 Ver Referencias.*/, '').trim()}</small>`;
-        }
         
         let html = '';
         if (refsData.f && refsData.f.length > 0) {
-            html += `<h4 style="margin-top:0; color:var(--text-main); font-size:14px; font-weight:bold; margin-bottom:12px;">Notas y Explicaciones de Traducción</h4>`;
-            html += `<div style="margin-bottom:16px;">`;
             refsData.f.forEach(f => {
                 html += formatBibleFootnote(f);
             });
-            html += `</div>`;
         }
         if (refsData.c && refsData.c.length > 0) {
-            html += `<h4 style="margin-top:0; color:var(--text-main); font-size:14px; font-weight:bold; margin-bottom:12px;">Referencias Cruzadas</h4>`;
-            html += `<div style="margin-bottom:16px;">`;
             refsData.c.forEach(c => {
-                html += `<div style="background:color-mix(in srgb, var(--bg-color) 70%, var(--surface-color)); border:1px solid var(--border-color); border-radius:12px; padding:11px 14px; margin-bottom:8px; font-size:13.5px;">${c}</div>`;
+                html += `<div style="background:color-mix(in srgb, var(--bg-color) 70%, var(--surface-color)); border:1px solid var(--border-color); border-radius:10px; padding:8px 11px; margin-bottom:6px; font-size:13px;">📌 ${c}</div>`;
             });
-            html += `</div>`;
         }
-        
-        bodyEl.innerHTML = html;
-        
-        // Show panel
-        panel.classList.add('visible');
-        document.body.classList.add('selection-panel-open');
+
+        if (!html) return;
+
+        const bubble = document.createElement('div');
+        bubble.id = 'bible-ref-bubble';
+        bubble.className = 'bible-ref-bubble';
+        bubble._activeBtn = btn;
+
+        bubble.innerHTML = `
+            <button class="bible-ref-bubble-close" type="button" aria-label="Cerrar" onclick="document.getElementById('bible-ref-bubble')?.remove()">×</button>
+            <div class="bible-ref-bubble-content">${html}</div>
+        `;
+
+        document.body.appendChild(bubble);
+
+        // Position bubble smartly relative to button
+        const rect = btn.getBoundingClientRect();
+        const scrollX = window.scrollX || window.pageXOffset;
+        const scrollY = window.scrollY || window.pageYOffset;
+        const bubbleWidth = Math.min(320, window.innerWidth - 32);
+
+        let left = rect.left + scrollX + (rect.width / 2) - (bubbleWidth / 2);
+        left = Math.max(16, Math.min(left, window.innerWidth - bubbleWidth - 16));
+
+        let top = rect.top + scrollY - bubble.offsetHeight - 12;
+        if (rect.top - bubble.offsetHeight - 12 < 50) {
+            top = rect.bottom + scrollY + 12;
+        }
+
+        bubble.style.left = `${left}px`;
+        bubble.style.top = `${top}px`;
+
+        // Click outside handler
+        const dismissHandler = (evt) => {
+            if (!bubble.contains(evt.target) && evt.target !== btn) {
+                bubble.remove();
+                document.removeEventListener('click', dismissHandler, true);
+                document.removeEventListener('touchstart', dismissHandler, true);
+            }
+        };
+
+        setTimeout(() => {
+            document.addEventListener('click', dismissHandler, true);
+            document.addEventListener('touchstart', dismissHandler, true);
+        }, 50);
+
     } catch(err) {
-        console.error('Error parseando referencias', err);
+        console.error('Error mostrando globito de referencia', err);
     }
 };
+
+App.openReferencePanel = App.toggleReferenceBubble;
 
 // Listeners for closing the reference panel
 document.addEventListener('DOMContentLoaded', () => {
