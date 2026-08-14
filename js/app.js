@@ -17536,6 +17536,35 @@ App.closeReferencePreview = function() {
     }
 };
 
+function formatBibleFootnote(noteStr) {
+    if (!noteStr || typeof noteStr !== 'string') return noteStr || '';
+
+    let text = noteStr.trim();
+    
+    // Extract verse reference prefix if present (e.g., "9:10 ")
+    let refPrefix = '';
+    const refMatch = text.match(/^(\d+:\d+)\s*/);
+    if (refMatch) {
+        refPrefix = `<strong style="color:var(--text-main); font-weight:800; font-size:13px; margin-right:6px;">Versículo ${refMatch[1]}:</strong>`;
+        text = text.slice(refMatch[0].length);
+    }
+
+    // Replace abbreviations with elegant, high-clarity badges
+    text = text.replace(/\bLit\.,?\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(184,134,11,0.15); color:#b8860b; border:1px solid rgba(184,134,11,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">📜 Trad. Literal</span> ');
+    text = text.replace(/\bGr\.,?\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(49,130,206,0.15); color:#3182ce; border:1px solid rgba(49,130,206,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">🏛️ Texto Griego Original</span> ');
+    text = text.replace(/\bHeb\.,?\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(217,119,6,0.15); color:#d97706; border:1px solid rgba(217,119,6,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">📜 Texto Hebreo Original</span> ');
+    text = text.replace(/\bO,\s*/g, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(39,174,96,0.15); color:#27ae60; border:1px solid rgba(39,174,96,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">💡 Trad. Alternativa</span> ');
+    text = text.replace(/\b(Algunos|Muchos)\s+(mss|manuscritos)\.?:?\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(142,68,173,0.15); color:#8e44ad; border:1px solid rgba(142,68,173,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">📜 Manuscritos Antiguos</span> ');
+    text = text.replace(/\bVar\.\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(230,126,34,0.15); color:#e67e22; border:1px solid rgba(230,126,34,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">🔄 Variante</span> ');
+
+    return `
+        <div style="background:color-mix(in srgb, var(--bg-color) 70%, var(--surface-color)); border:1px solid var(--border-color); border-radius:12px; padding:11px 14px; margin-bottom:10px; line-height:1.55; font-size:13.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+            ${refPrefix}
+            <span>${text}</span>
+        </div>
+    `;
+}
+
 App.openReferencePanel = function(e, btn) {
     if (e) {
         e.preventDefault();
@@ -17562,20 +17591,20 @@ App.openReferencePanel = function(e, btn) {
         
         let html = '';
         if (refsData.f && refsData.f.length > 0) {
-            html += `<h4 style="margin-top:0; color:var(--text-color); font-size:14px; font-weight:bold;">Notas</h4>`;
-            html += `<ul style="list-style:none; padding:0; margin-bottom:16px;">`;
+            html += `<h4 style="margin-top:0; color:var(--text-main); font-size:14px; font-weight:bold; margin-bottom:12px;">Notas y Explicaciones de Traducción</h4>`;
+            html += `<div style="margin-bottom:16px;">`;
             refsData.f.forEach(f => {
-                html += `<li style="margin-bottom:8px; font-size:14px; line-height:1.5;">${f}</li>`;
+                html += formatBibleFootnote(f);
             });
-            html += `</ul>`;
+            html += `</div>`;
         }
         if (refsData.c && refsData.c.length > 0) {
-            html += `<h4 style="margin-top:0; color:var(--text-color); font-size:14px; font-weight:bold;">Referencias Cruzadas</h4>`;
-            html += `<ul style="list-style:none; padding:0;">`;
+            html += `<h4 style="margin-top:0; color:var(--text-main); font-size:14px; font-weight:bold; margin-bottom:12px;">Referencias Cruzadas</h4>`;
+            html += `<div style="margin-bottom:16px;">`;
             refsData.c.forEach(c => {
-                html += `<li style="margin-bottom:8px; font-size:14px; line-height:1.5;">${c}</li>`;
+                html += `<div style="background:color-mix(in srgb, var(--bg-color) 70%, var(--surface-color)); border:1px solid var(--border-color); border-radius:12px; padding:11px 14px; margin-bottom:8px; font-size:13.5px;">${c}</div>`;
             });
-            html += `</ul>`;
+            html += `</div>`;
         }
         
         bodyEl.innerHTML = html;
