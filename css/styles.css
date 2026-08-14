@@ -9648,6 +9648,7 @@ body.dark-mode .bible-reader-subbar {
 
 body.dark-mode .bible-reader-nav-btn {
     color: #b39163;
+    border: 1px solid rgba(179, 145, 99, 0.4);
 }
 
 body.dark-mode .bible-reader-title-btn {
@@ -9671,9 +9672,11 @@ body.dark-mode .bible-reader-content .daily-reading-voice {
 }
 
 body.dark-mode .bible-reader-content .daily-reading-voice-main,
-body.dark-mode .bible-reader-content .daily-reading-voice-stop {
+body.dark-mode .bible-reader-content .daily-reading-voice-stop,
+body.dark-mode .bible-reader-content .daily-reading-voice svg {
     background: transparent;
-    color: #e5e7eb;
+    color: #b39163;
+    fill: #b39163;
     box-shadow: none;
 }
 
@@ -9715,6 +9718,7 @@ body.dark-mode .bible-reader-tool:hover {
 
 body.dark-mode .bible-reader-version-switcher {
     background: transparent;
+    border: 1px solid rgba(179, 145, 99, 0.4);
 }
 
 body.dark-mode .bible-reader-version-chip {
