@@ -13754,13 +13754,123 @@ body.dark-mode .bible-reader-crossref-marker {
 }
 
 
-/* Custom NBLA Blue for Light Mode */
+/* Custom NBLA Blue (#25365A) & Gold (#B8860B) Theme for All Bible Windows, Modals & Pickers */
+
+/* Light Mode Text & Titles in Bible Views & Modals */
 body:not(.dark-mode) .bible-reader-content .verse-text,
 body:not(.dark-mode) .bible-reader-content .verse-number,
 body:not(.dark-mode) .bible-reader-subtitle,
 body:not(.dark-mode) .bible-reader-version-chip,
 body:not(.dark-mode) .bible-reader-title-btn,
 body:not(.dark-mode) .bible-reader-title-btn .bible-reader-book,
-body:not(.dark-mode) .bible-reader-title-btn .bible-reader-chapter {
+body:not(.dark-mode) .bible-reader-title-btn .bible-reader-chapter,
+body:not(.dark-mode) .bible-picker-head h2,
+body:not(.dark-mode) .bible-picker-head p,
+body:not(.dark-mode) .bible-picker-section-head strong,
+body:not(.dark-mode) .bible-picker-book-abbr,
+body:not(.dark-mode) .bible-picker-book-name,
+body:not(.dark-mode) .version-picker-sheet h2,
+body:not(.dark-mode) .version-picker-option-btn,
+body:not(.dark-mode) .bible-search-hero h2,
+body:not(.dark-mode) .bible-search-topline span,
+body:not(.dark-mode) .bible-search-placeholder h3,
+body:not(.dark-mode) .bible-search-result-reference,
+body:not(.dark-mode) .bible-reading-settings-panel h3,
+body:not(.dark-mode) .bible-reading-settings-label {
     color: #25365A !important;
+}
+
+/* Gold Accents & Highlights for Bible Pickers, Chapters, Books, Tabs, Search & Settings */
+
+/* 1. Tabs (Old / New Testament) */
+.bible-picker-tab.active {
+    background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(184, 134, 11, 0.4) !important;
+}
+
+/* 2. Active Book Item */
+.bible-picker-book.is-active {
+    border-color: #b8860b !important;
+    background: rgba(184, 134, 11, 0.12) !important;
+    color: #b8860b !important;
+    box-shadow: 0 4px 14px rgba(184, 134, 11, 0.25) !important;
+}
+.bible-picker-book.is-active .bible-picker-book-abbr,
+.bible-picker-book.is-active .bible-picker-book-name {
+    color: #b8860b !important;
+}
+
+/* 3. Active Chapter Item */
+.bible-picker-chapter.is-active {
+    background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+    border-color: #b8860b !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(184, 134, 11, 0.4) !important;
+}
+
+/* 4. Hovers for Books, Chapters, Back Button */
+.bible-picker-chapter:hover,
+.bible-picker-book:hover,
+.bible-picker-back:hover {
+    border-color: #b8860b !important;
+}
+
+/* 5. Version Chips & Version Picker Options */
+.bible-reader-version-chip.is-active {
+    background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+    border-color: #b8860b !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.35) !important;
+}
+
+.version-picker-option-btn.is-active {
+    border-color: #b8860b !important;
+    background: rgba(184, 134, 11, 0.12) !important;
+    color: #b8860b !important;
+}
+
+.version-option-check {
+    color: #b8860b !important;
+}
+
+/* 6. Bible Search View */
+.bible-search-modern .bible-search-input:focus,
+.bible-search-input:focus {
+    border-color: #b8860b !important;
+    box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.2) !important;
+}
+
+.bible-search-modern .bible-filter-btn.active,
+.bible-filter-btn.active {
+    background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+    border-color: #b8860b !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.35) !important;
+}
+
+.bible-search-modern .search-highlight,
+.search-highlight {
+    background: rgba(184, 134, 11, 0.22) !important;
+    color: #b8860b !important;
+    font-weight: 700 !important;
+}
+
+.bible-search-suggestion.active {
+    background: rgba(184, 134, 11, 0.15) !important;
+    border-color: #b8860b !important;
+    color: #b8860b !important;
+}
+
+/* 7. Settings Panel Active State */
+.verse-text-size-btn.is-active,
+.spacing-option-btn.is-active {
+    background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+    border-color: #b8860b !important;
+    color: #ffffff !important;
+}
+
+/* Scrollbars for Bible Pickers */
+.bible-picker-layout::-webkit-scrollbar-thumb {
+    background: rgba(184, 134, 11, 0.4) !important;
 }
