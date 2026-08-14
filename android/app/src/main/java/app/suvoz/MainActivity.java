@@ -1,6 +1,7 @@
 package app.suvoz;
 
 import android.os.Bundle;
+import androidx.activity.EdgeToEdge;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
@@ -9,8 +10,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ImageSaverPlugin.class);
+        EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
-        WindowCompat.enableEdgeToEdge(getWindow());
         configureSystemBars();
     }
 
@@ -19,7 +20,9 @@ public class MainActivity extends BridgeActivity {
             getWindow(),
             getWindow().getDecorView()
         );
-        controller.setAppearanceLightStatusBars(true);
-        controller.setAppearanceLightNavigationBars(true);
+        if (controller != null) {
+            controller.setAppearanceLightStatusBars(true);
+            controller.setAppearanceLightNavigationBars(true);
+        }
     }
 }
