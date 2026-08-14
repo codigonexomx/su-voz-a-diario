@@ -9778,11 +9778,12 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     }
 
     .bible-reader-book {
-        font-size: 0.94rem;
+        font-size: 1.45rem;
+        font-weight: 800;
     }
 
     .bible-reader-chapter {
-        font-size: 0.68rem;
+        font-size: 0.8rem;
     }
 
     .bible-reader-subbar {
@@ -13937,4 +13938,15 @@ body:not(.dark-mode) .bible-search-back {
 /* Scrollbars for Bible Pickers */
 .bible-picker-layout::-webkit-scrollbar-thumb {
     background: rgba(184, 134, 11, 0.4) !important;
+}
+
+/* Prominent Mobile Typography for Bible Book Title */
+@media (max-width: 768px) {
+    .bible-reader-book {
+        font-size: 1.45rem !important;
+        font-weight: 800 !important;
+    }
+    .bible-reader-chapter {
+        font-size: 0.82rem !important;
+    }
 }
