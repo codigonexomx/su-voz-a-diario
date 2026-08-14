@@ -154,6 +154,9 @@ function validateVerse(verse, bookName, chapter) {
       "verse.reference",
       { max: 150 }
     ),
+    ...(verse.subtitle && { subtitle: verse.subtitle }),
+    ...(Array.isArray(verse.footnotes) && verse.footnotes.length > 0 && { footnotes: verse.footnotes }),
+    ...(Array.isArray(verse.crossReferences) && verse.crossReferences.length > 0 && { crossReferences: verse.crossReferences })
   };
 }
 
