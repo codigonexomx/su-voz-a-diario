@@ -13835,10 +13835,70 @@ body:not(.dark-mode) .bible-reading-settings-label {
 }
 
 /* 6. Bible Search View */
+body:not(.dark-mode) .bible-search-input,
+body:not(.dark-mode) .bible-search-result-text,
+body:not(.dark-mode) .bible-search-back {
+    color: #25365A !important;
+}
+
+.bible-search-back {
+    border: 1px solid rgba(184, 134, 11, 0.4) !important;
+    background: rgba(184, 134, 11, 0.08) !important;
+    transition: all 0.2s ease !important;
+}
+
+.bible-search-back:hover {
+    background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+    color: #ffffff !important;
+    border-color: #b8860b !important;
+}
+
+.bible-search-topline span {
+    background: rgba(184, 134, 11, 0.12) !important;
+    color: #b8860b !important;
+    border: 1px solid rgba(184, 134, 11, 0.3) !important;
+}
+
+.bible-search-modern .bible-search-icon,
+.bible-search-icon {
+    background: rgba(184, 134, 11, 0.14) !important;
+    color: #b8860b !important;
+    border: 1px solid rgba(184, 134, 11, 0.25) !important;
+}
+
+.bible-search-input-icon {
+    color: #b8860b !important;
+}
+
+.bible-search-modern .bible-search-input,
+.bible-search-input {
+    border: 1px solid rgba(184, 134, 11, 0.35) !important;
+}
+
 .bible-search-modern .bible-search-input:focus,
 .bible-search-input:focus {
     border-color: #b8860b !important;
     box-shadow: 0 0 0 3px rgba(184, 134, 11, 0.2) !important;
+}
+
+.bible-search-modern .bible-search-placeholder {
+    border: 1px dashed rgba(184, 134, 11, 0.35) !important;
+}
+
+.bible-search-modern .suggestion-tag,
+.suggestion-tag {
+    border: 1px solid rgba(184, 134, 11, 0.35) !important;
+    background: rgba(184, 134, 11, 0.08) !important;
+    color: #b8860b !important;
+    transition: all 0.2s ease !important;
+}
+
+.bible-search-modern .suggestion-tag:hover,
+.suggestion-tag:hover {
+    background: linear-gradient(135deg, #d4af37, #b8860b) !important;
+    color: #ffffff !important;
+    border-color: #b8860b !important;
+    box-shadow: 0 4px 12px rgba(184, 134, 11, 0.3) !important;
 }
 
 .bible-search-modern .bible-filter-btn.active,
@@ -13859,6 +13919,10 @@ body:not(.dark-mode) .bible-reading-settings-label {
 .bible-search-suggestion.active {
     background: rgba(184, 134, 11, 0.15) !important;
     border-color: #b8860b !important;
+    color: #b8860b !important;
+}
+
+.bible-search-result-open {
     color: #b8860b !important;
 }
 
