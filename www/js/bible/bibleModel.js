@@ -20,11 +20,21 @@ function normalizePositiveInteger(value, fieldName) {
     return normalized;
 }
 
-export function createBibleVerse({ number, text, reference = '' } = {}) {
+export function createBibleVerse({ 
+    number, 
+    text, 
+    reference = '', 
+    subtitle = '', 
+    footnotes = [], 
+    crossReferences = [] 
+} = {}) {
     return Object.freeze({
         number: normalizePositiveInteger(number, 'número de versículo'),
         text: String(text || ''),
-        reference: String(reference || '').trim()
+        reference: String(reference || '').trim(),
+        subtitle: String(subtitle || '').trim(),
+        footnotes: Object.freeze(Array.isArray(footnotes) ? [...footnotes] : []),
+        crossReferences: Object.freeze(Array.isArray(crossReferences) ? [...crossReferences] : [])
     });
 }
 

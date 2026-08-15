@@ -7,6 +7,7 @@ import {
 } from './utils/dates.js';
 
 import { NotebookAnalytics } from './NotebookAnalytics.js';
+import { bibleIcons } from './utils/bibleIcons.js';
 import { MeditationLibrary } from './MeditationLibrary.js';
 import { NotebookStorage } from './NotebookStorage.js';
 import { NotebookUIStateStorage } from './NotebookUIStateStorage.js';
@@ -179,7 +180,23 @@ const tokenizedText = window.App?.tokenizeVerseText(
     strongTokens
 ) || safeText;
 
+                let extraHtml = '';
+                if (verse.subtitle) {
+                    extraHtml += `<h3 class="bible-reader-subtitle">${escapeBibleHtml(verse.subtitle)}</h3>`;
+                }
+
+                let finalTokenizedText = tokenizedText;
+                const totalRefs = (verse.footnotes?.length || 0) + (verse.crossReferences?.length || 0);
+                if (totalRefs > 0) {
+                    const refsData = encodeURIComponent(JSON.stringify({
+                        f: verse.footnotes || [],
+                        c: verse.crossReferences || []
+                    }));
+                    finalTokenizedText += `<button type="button" class="bible-ref-badge" data-refs="${refsData}" onclick="App.toggleReferenceBubble(event, this)" title="Ver nota">${totalRefs}</button>`;
+                }
+
                 return `
+                    ${extraHtml}
                     <p
                         class="verse-item verse-selectable"
                         data-verse-number="${verseNumber}"
@@ -187,7 +204,7 @@ const tokenizedText = window.App?.tokenizeVerseText(
                         data-verse-full="${safeText}"
                     >
                         <span class="verse-number" data-verse-number="${verseNumber}">${verseNumber}</span>
-<span class="verse-text">${tokenizedText}</span>
+<span class="verse-text">${finalTokenizedText}</span>
                     </p>
                 `;
             }).join('')}
@@ -9305,18 +9322,51 @@ renderBible: function() {
             data-action="open-bible-book"
             data-book-id="${item.id}"
         >
-            <span class="bible-library-book-name">${this.escapeHtml(item.name)}</span>
-            <span class="bible-library-book-meta">${item.chapters} cap.</span>
+            <div class="bible-book-icon-box">
+                <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                    ${bibleIcons[item.id] || '<circle cx="12" cy="12" r="10"/>'}
+                </svg>
+            </div>
+            <div class="bible-book-info">
+                <span class="bible-library-book-name">${this.escapeHtml(item.name)}</span>
+                <span class="bible-library-book-meta">${item.chapters} cap.</span>
+            </div>
+            <div class="bible-book-chevron">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </div>
         </button>
     `;
 
     const renderBookSection = (title, books) => `
         <section class="bible-library-section">
             <div class="bible-library-section-header">
-                <div>
-                    <h3>${title}</h3>
+                <div class="bible-testament-tabs" role="tablist" aria-label="Testamento">
+                    <button
+                        class="bible-testament-tab ${activeTestament === 'old' ? 'active' : ''}"
+                        type="button"
+                        data-action="set-bible-testament"
+                        data-testament="old"
+                        role="tab"
+                        aria-selected="${activeTestament === 'old' ? 'true' : 'false'}"
+                    >
+                        Antiguo Testamento
+                    </button>
+                    <button
+                        class="bible-testament-tab ${activeTestament === 'new' ? 'active' : ''}"
+                        type="button"
+                        data-action="set-bible-testament"
+                        data-testament="new"
+                        role="tab"
+                        aria-selected="${activeTestament === 'new' ? 'true' : 'false'}"
+                    >
+                        Nuevo Testamento
+                    </button>
                 </div>
-                <span>${books.length} libros</span>
+                <div class="bible-library-book-count">
+                    <span>${books.length} libros</span>
+                </div>
             </div>
 
             <div class="bible-library-grid">
@@ -9334,7 +9384,7 @@ renderBible: function() {
             <div class="bible-library-hero">
                 <div class="bible-library-kicker">${this.escapeHtml(this.getBibleVersionLabel(this.currentBibleVersion))}</div>
                 <h2>Biblia</h2>
-                <p>Lee, busca y profundiza en la Palabra.</p>
+                <p>Lee, busca y profundiza<br>en la Palabra.</p>
 
                 <div class="bible-library-actions">
                     <button
@@ -9342,8 +9392,16 @@ renderBible: function() {
                         type="button"
                         data-action="open-bible-continue"
                     >
-                        <span>Continuar leyendo</span>
-                        <small>${this.escapeHtml(continueLabel)}</small>
+                        <div class="bible-action-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                        </div>
+                        <div class="bible-action-content">
+                            <div class="bible-action-title">
+                                <span>Continuar leyendo</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </div>
+                            <small>${this.escapeHtml(continueLabel)}</small>
+                        </div>
                     </button>
 
                     <button
@@ -9351,28 +9409,68 @@ renderBible: function() {
                         type="button"
                         data-action="open-today-reading"
                     >
-                        <span>Lectura de hoy</span>
-                        <small>${this.escapeHtml(todayLabel)}</small>
+                        <div class="bible-action-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2" /><line x1="16" x2="16" y1="2" y2="6" /><line x1="8" x2="8" y1="2" y2="6" /><line x1="3" x2="21" y1="10" y2="10" /><path d="M8 14h.01" /><path d="M12 14h.01" /><path d="M16 14h.01" /><path d="M8 18h.01" /><path d="M12 18h.01" /><path d="M16 18h.01" /></svg>
+                        </div>
+                        <div class="bible-action-content">
+                            <div class="bible-action-title">
+                                <span>Lectura de hoy</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="chevron"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                            </div>
+                            <small>${this.escapeHtml(todayLabel)}</small>
+                        </div>
                     </button>
                 </div>
             </div>
 
             <section class="bible-quick-actions" aria-label="Acciones rápidas de Biblia">
                 <button class="bible-quick-action" type="button" data-action="open-bible-search">
-                    <span class="bible-quick-action-icon" aria-hidden="true">⌕</span>
-                    <span>Buscar en la Biblia</span>
+                    <div class="bible-quick-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    </div>
+                    <div class="bible-quick-text">
+                        <span class="bq-title">Buscar en la Biblia</span>
+                        <span class="bq-subtitle">Encuentra pasajes rápidamente.</span>
+                    </div>
+                    <div class="bible-quick-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 </button>
                 <button class="bible-quick-action" type="button" data-action="focus-bible-explore">
-                    <span class="bible-quick-action-icon" aria-hidden="true">☰</span>
-                    <span>Explorar libros</span>
+                    <div class="bible-quick-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
+                    </div>
+                    <div class="bible-quick-text">
+                        <span class="bq-title">Explorar libros</span>
+                        <span class="bq-subtitle">Descubre cada libro de la Biblia.</span>
+                    </div>
+                    <div class="bible-quick-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 </button>
                 <button class="bible-quick-action" type="button" data-action="open-bible-memory" data-memory="notes">
-                    <span class="bible-quick-action-icon" aria-hidden="true">✎</span>
-                    <span>Notas</span>
+                    <div class="bible-quick-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+                    </div>
+                    <div class="bible-quick-text">
+                        <span class="bq-title">Notas</span>
+                        <span class="bq-subtitle">Escribe y organiza tus pensamientos.</span>
+                    </div>
+                    <div class="bible-quick-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 </button>
                 <button class="bible-quick-action" type="button" data-action="open-bible-memory" data-memory="highlights">
-                    <span class="bible-quick-action-icon" aria-hidden="true">▧</span>
-                    <span>Resaltados</span>
+                    <div class="bible-quick-icon-box">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+                    </div>
+                    <div class="bible-quick-text">
+                        <span class="bq-title">Resaltados</span>
+                        <span class="bq-subtitle">Revisa y gestiona tus resaltados.</span>
+                    </div>
+                    <div class="bible-quick-chevron">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
                 </button>
             </section>
 
@@ -9418,28 +9516,6 @@ renderBible: function() {
                         <div>
                             <span>Explorar</span>
                             <h3>Explorar la Biblia</h3>
-                        </div>
-                        <div class="bible-testament-tabs" role="tablist" aria-label="Testamento">
-                            <button
-                                class="bible-testament-tab ${activeTestament === 'old' ? 'active' : ''}"
-                                type="button"
-                                data-action="set-bible-testament"
-                                data-testament="old"
-                                role="tab"
-                                aria-selected="${activeTestament === 'old' ? 'true' : 'false'}"
-                            >
-                                Antiguo
-                            </button>
-                            <button
-                                class="bible-testament-tab ${activeTestament === 'new' ? 'active' : ''}"
-                                type="button"
-                                data-action="set-bible-testament"
-                                data-testament="new"
-                                role="tab"
-                                aria-selected="${activeTestament === 'new' ? 'true' : 'false'}"
-                            >
-                                Nuevo
-                            </button>
                         </div>
                     </div>
                     ${renderBookSection(activeTestament === 'old' ? 'Antiguo Testamento' : 'Nuevo Testamento', visibleBooks)}
@@ -10872,52 +10948,221 @@ renderCalendarBookSection: function(group, readDateSet, todayStr) {
     `;
 },
 
-   renderCalendar: function() {
-    const calendarReadings = this.getCalendarReadings();
-
-    if (calendarReadings.length === 0) {
-        this.$content.innerHTML = `<div class="empty-state">📅 No hay lecturas disponibles.</div>`;
-        return;
-    }
-
-    const todayStr = this.getTodayDateStr();
-    const readDates = this.getReadDates();
-    const readDateSet = new Set(readDates);
-    const groups = this.getCalendarBookGroups(calendarReadings);
-    const totalRead = calendarReadings.filter(item => readDateSet.has(item.date)).length;
-    const totalAvailable = calendarReadings.length;
-    const totalPercentage = totalAvailable > 0 ? Math.round((totalRead / totalAvailable) * 100) : 0;
-
-    let html = `
-    ${this.renderViewHeader(
-        'Camino de lectura',
-        'Avanza por libros bíblicos y vuelve a cada lectura guardada.'
-    )}
-    ${this.renderCalendarBookSelector(groups, readDateSet, todayStr)}
-    ${this.renderCalendarFilters()}
-    <section class="calendar-overview">
-        <div>
-            <span>Plan completo</span>
-            <strong>${totalPercentage}%</strong>
-        </div>
-        <div class="calendar-overview-stats">
-            <span>${totalAvailable} lecturas</span>
-            <span>${totalRead} completadas</span>
-            <span>${groups.length} ${groups.length === 1 ? 'libro' : 'libros'}</span>
-        </div>
-    </section>
-    <div class="calendar-book-list">
-        ${groups.map(group => this.renderCalendarBookSection(group, readDateSet, todayStr)).join('')}
-    </div>
-`;
-    this.$content.innerHTML = html;
-
-    requestAnimationFrame(() => {
-        if (this.currentView === 'calendar') {
-            this.restoreCalendarPosition();
+    getCalendarV2ActiveMonth: function() {
+        const todayStr = this.getTodayDateStr();
+        if (!this.calendarV2ActiveMonth) {
+            this.calendarV2ActiveMonth = todayStr.slice(0, 7);
         }
-    });
-},
+        return this.calendarV2ActiveMonth;
+    },
+
+    getCalendarV2SelectedDate: function() {
+        const todayStr = this.getTodayDateStr();
+        const activeMonth = this.getCalendarV2ActiveMonth();
+        
+        if (this.calendarV2SelectedDate && this.calendarV2SelectedDate.startsWith(`${activeMonth}-`)) {
+            return this.calendarV2SelectedDate;
+        }
+        
+        if (todayStr.startsWith(`${activeMonth}-`)) {
+            this.calendarV2SelectedDate = todayStr;
+        } else {
+            this.calendarV2SelectedDate = `${activeMonth}-01`;
+        }
+        return this.calendarV2SelectedDate;
+    },
+
+    getCalendarV2MonthGrid: function(monthStr) {
+        const [year, month] = monthStr.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const firstDay = new Date(year, month - 1, 1).getDay();
+        
+        const todayStr = this.getTodayDateStr();
+        const readDates = new Set(this.getReadDates());
+        const planReadings = this.getCalendarReadings()
+            .filter(reading => reading.date.startsWith(`${monthStr}-`));
+        const planByDate = new Map(planReadings.map(reading => [reading.date, reading]));
+        
+        const cells = [];
+        for (let i = 0; i < firstDay; i++) {
+            cells.push({ empty: true });
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = `${monthStr}-${String(day).padStart(2, '0')}`;
+            const reading = planByDate.get(date) || null;
+            const note = this.getNote(date);
+            const hasReflection = Boolean(note.dios?.trim() || note.aprendizaje?.trim() || note.respuesta?.trim() || note.oracion?.trim());
+            const hasPrayer = Boolean(note.oracion?.trim());
+            const hasReading = Boolean(reading);
+            const isRead = readDates.has(date);
+            const isToday = date === todayStr;
+            const isPending = hasReading && !isRead && date <= todayStr;
+
+            cells.push({
+                date,
+                day,
+                hasReading,
+                reference: reading?.reference || '',
+                isRead,
+                hasReflection,
+                hasPrayer,
+                isToday,
+                isPending
+            });
+        }
+
+        const dateObj = new Date(year, month - 1, 1);
+        const monthLabel = dateObj.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+
+        return { monthLabel, cells };
+    },
+
+    renderCalendarV2MonthBar: function(monthLabel) {
+        return `
+            <div class="calendar-v2-month-bar">
+                <button class="calendar-v2-month-nav-btn" type="button" data-action="calendar-v2-prev" aria-label="Mes anterior">◄</button>
+                <div class="calendar-v2-month-title">
+                    <h3>${this.escapeHtml(monthLabel)}</h3>
+                </div>
+                <button class="calendar-v2-today-btn" type="button" data-action="calendar-v2-today">Ir a Hoy</button>
+                <button class="calendar-v2-month-nav-btn" type="button" data-action="calendar-v2-next" aria-label="Mes siguiente">►</button>
+            </div>
+        `;
+    },
+
+    renderCalendarV2Filters: function() {
+        const activeFilter = this.calendarV2ActiveFilter || 'all';
+        const options = [
+            { id: 'all', label: 'Todo el mes' },
+            { id: 'pending', label: 'Pendientes' },
+            { id: 'read', label: 'Completadas' },
+            { id: 'notes', label: 'Con Reflexión' }
+        ];
+
+        return `
+            <nav class="calendar-v2-filter-bar" aria-label="Filtrar calendario">
+                ${options.map(opt => `
+                    <button class="calendar-v2-filter-chip ${opt.id === activeFilter ? 'is-active' : ''}" type="button" data-action="calendar-v2-filter" data-filter="${opt.id}">
+                        ${opt.label}
+                    </button>
+                `).join('')}
+            </nav>
+        `;
+    },
+
+    renderCalendarV2SelectedCard: function(selectedDate) {
+        const reading = this.getReadingMetadataByDate(selectedDate);
+        const readDates = new Set(this.getReadDates());
+        const note = this.getNote(selectedDate);
+        const hasReflection = Boolean(note.dios?.trim() || note.aprendizaje?.trim() || note.respuesta?.trim() || note.oracion?.trim());
+        const hasPrayer = Boolean(note.oracion?.trim());
+        const highlights = this.getHighlights(selectedDate);
+        const hasReading = Boolean(reading);
+        const isRead = readDates.has(selectedDate);
+        
+        let dateFormatted = '';
+        try {
+            const [y, m, d] = selectedDate.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            dateFormatted = dateObj.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+        } catch(err) {
+            dateFormatted = selectedDate;
+        }
+
+        const statusClass = hasReading ? (isRead ? 'is-complete' : 'is-pending') : 'is-empty';
+        const statusLabel = hasReading ? (isRead ? '✓ Lectura completada' : '⏳ Lectura pendiente') : 'Sin lectura asignada';
+
+        return `
+            <article class="calendar-v2-detail-card">
+                <div class="calendar-v2-detail-head">
+                    <span class="calendar-v2-detail-date">${this.escapeHtml(dateFormatted)}</span>
+                    <span class="calendar-v2-detail-status ${statusClass}">${this.escapeHtml(statusLabel)}</span>
+                </div>
+
+                <h3 class="calendar-v2-detail-ref">${this.escapeHtml(reading ? reading.reference : 'Meditación libre')}</h3>
+
+                <div class="calendar-v2-detail-pills">
+                    ${hasReflection ? '<span class="calendar-v2-pill active">📝 Reflexión escrita</span>' : ''}
+                    ${hasPrayer ? '<span class="calendar-v2-pill active">🙏 Oración guardada</span>' : ''}
+                    ${highlights.length > 0 ? `<span class="calendar-v2-pill active">✨ ${highlights.length} pasajes resaltados</span>` : ''}
+                    ${!hasReflection && !hasPrayer && highlights.length === 0 ? '<span class="calendar-v2-pill">Sin reflexiones aún</span>' : ''}
+                </div>
+
+                ${hasReading ? `
+                    <button class="calendar-v2-btn-action" type="button" data-nav="reading" data-param="${this.escapeHtml(selectedDate)}">
+                        <span>📖</span> Leer pasaje de este día
+                    </button>
+                ` : `
+                    <button class="calendar-v2-btn-action" type="button" data-nav="reading" data-param="${this.escapeHtml(selectedDate)}">
+                        <span>✍️</span> Ver mi cuaderno de hoy
+                    </button>
+                `}
+            </article>
+        `;
+    },
+
+    renderCalendar: function() {
+        const activeMonth = this.getCalendarV2ActiveMonth();
+        const selectedDate = this.getCalendarV2SelectedDate();
+        const activeFilter = this.calendarV2ActiveFilter || 'all';
+        const { monthLabel, cells } = this.getCalendarV2MonthGrid(activeMonth);
+
+        const weekdayLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+
+        const filteredCells = cells.map(cell => {
+            if (cell.empty) return cell;
+            if (activeFilter === 'pending' && (!cell.hasReading || cell.isRead)) return { ...cell, hiddenByFilter: true };
+            if (activeFilter === 'read' && !cell.isRead) return { ...cell, hiddenByFilter: true };
+            if (activeFilter === 'notes' && !cell.hasReflection && !cell.hasPrayer) return { ...cell, hiddenByFilter: true };
+            return cell;
+        });
+
+        const html = `
+            <div class="calendar-v2-container">
+                <header class="calendar-v2-header">
+                    <h2>Calendario</h2>
+                    <p>Tu guía diaria de lectura y meditación.</p>
+                </header>
+
+                ${this.renderCalendarV2MonthBar(monthLabel)}
+                ${this.renderCalendarV2Filters()}
+
+                <div class="calendar-v2-card-wrapper">
+                    <div class="calendar-v2-weekdays">
+                        ${weekdayLabels.map(w => `<div>${w}</div>`).join('')}
+                    </div>
+                    <div class="calendar-v2-grid">
+                        ${filteredCells.map(cell => {
+                            if (cell.empty) return '<div class="calendar-v2-cell is-empty"></div>';
+                            
+                            const isSelected = cell.date === selectedDate;
+                            const isDimmed = cell.hiddenByFilter;
+                            
+                            return `
+                                <button class="calendar-v2-cell ${cell.isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}"
+                                        type="button"
+                                        style="${isDimmed ? 'opacity:0.25;' : ''}"
+                                        data-action="calendar-v2-select-day"
+                                        data-date="${this.escapeHtml(cell.date)}">
+                                    <span class="calendar-v2-cell-num">${cell.day}</span>
+                                    <span class="calendar-v2-markers">
+                                        ${cell.isRead ? '<i class="calendar-v2-dot dot-read" title="Leído"></i>' : ''}
+                                        ${cell.hasReflection || cell.hasPrayer ? '<i class="calendar-v2-dot dot-note" title="Reflexión"></i>' : ''}
+                                        ${cell.isPending ? '<i class="calendar-v2-dot dot-pending" title="Pendiente"></i>' : ''}
+                                    </span>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                ${this.renderCalendarV2SelectedCard(selectedDate)}
+            </div>
+        `;
+
+        this.$content.innerHTML = html;
+    },
 
 renderCommunityLoadError: function(error) {
     if (this.currentView !== 'community') return;
@@ -14904,6 +15149,59 @@ if (loadMoreBtn) {
     return;
 }
 
+const calendarV2PrevBtn = e.target.closest('[data-action="calendar-v2-prev"]');
+if (calendarV2PrevBtn) {
+    const activeMonth = this.getCalendarV2ActiveMonth();
+    const [year, month] = activeMonth.split('-').map(Number);
+    const dateObj = new Date(year, month - 2, 1);
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    this.calendarV2ActiveMonth = `${y}-${m}`;
+    this.renderCalendar();
+    return;
+}
+
+const calendarV2NextBtn = e.target.closest('[data-action="calendar-v2-next"]');
+if (calendarV2NextBtn) {
+    const activeMonth = this.getCalendarV2ActiveMonth();
+    const [year, month] = activeMonth.split('-').map(Number);
+    const dateObj = new Date(year, month, 1);
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    this.calendarV2ActiveMonth = `${y}-${m}`;
+    this.renderCalendar();
+    return;
+}
+
+const calendarV2TodayBtn = e.target.closest('[data-action="calendar-v2-today"]');
+if (calendarV2TodayBtn) {
+    const todayStr = this.getTodayDateStr();
+    this.calendarV2ActiveMonth = todayStr.slice(0, 7);
+    this.calendarV2SelectedDate = todayStr;
+    this.renderCalendar();
+    return;
+}
+
+const calendarV2FilterBtn = e.target.closest('[data-action="calendar-v2-filter"]');
+if (calendarV2FilterBtn) {
+    const filter = calendarV2FilterBtn.getAttribute('data-filter');
+    if (filter) {
+        this.calendarV2ActiveFilter = filter;
+        this.renderCalendar();
+    }
+    return;
+}
+
+const calendarV2SelectDayBtn = e.target.closest('[data-action="calendar-v2-select-day"]');
+if (calendarV2SelectDayBtn) {
+    const date = calendarV2SelectDayBtn.getAttribute('data-date');
+    if (date) {
+        this.calendarV2SelectedDate = date;
+        this.renderCalendar();
+    }
+    return;
+}
+
 const calendarFilterBtn = e.target.closest('[data-action="set-calendar-filter"]');
 if (calendarFilterBtn) {
     const filterId = calendarFilterBtn.getAttribute('data-filter') || 'all';
@@ -17459,3 +17757,139 @@ App.closeReferencePreview = function() {
         if (typeof NotebookDiagnostics !== 'undefined') NotebookDiagnostics.trackListener(-2);
     }
 };
+
+function formatBibleFootnote(noteStr) {
+    if (!noteStr || typeof noteStr !== 'string') return noteStr || '';
+
+    let text = noteStr.trim();
+    
+    // Extract verse reference prefix if present (e.g., "9:10 ")
+    let refPrefix = '';
+    const refMatch = text.match(/^(\d+:\d+)\s*/);
+    if (refMatch) {
+        refPrefix = `<strong style="color:var(--text-main); font-weight:800; font-size:13px; margin-right:6px;">Versículo ${refMatch[1]}:</strong>`;
+        text = text.slice(refMatch[0].length);
+    }
+
+    // Replace abbreviations with elegant, high-clarity badges
+    text = text.replace(/\bLit\.,?\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(184,134,11,0.15); color:#b8860b; border:1px solid rgba(184,134,11,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">📜 Trad. Literal</span> ');
+    text = text.replace(/\bGr\.,?\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(49,130,206,0.15); color:#3182ce; border:1px solid rgba(49,130,206,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">🏛️ Texto Griego Original</span> ');
+    text = text.replace(/\bHeb\.,?\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(217,119,6,0.15); color:#d97706; border:1px solid rgba(217,119,6,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">📜 Texto Hebreo Original</span> ');
+    text = text.replace(/\bO,\s*/g, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(39,174,96,0.15); color:#27ae60; border:1px solid rgba(39,174,96,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">💡 Trad. Alternativa</span> ');
+    text = text.replace(/\b(Algunos|Muchos)\s+(mss|manuscritos)\.?:?\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(142,68,173,0.15); color:#8e44ad; border:1px solid rgba(142,68,173,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">📜 Manuscritos Antiguos</span> ');
+    text = text.replace(/\bVar\.\s*/gi, '<span style="display:inline-flex; align-items:center; padding:2px 7px; border-radius:6px; background:rgba(230,126,34,0.15); color:#e67e22; border:1px solid rgba(230,126,34,0.3); font-weight:800; font-size:11px; margin-right:5px; margin-left:2px;">🔄 Variante</span> ');
+
+    return `
+        <div style="background:color-mix(in srgb, var(--bg-color) 70%, var(--surface-color)); border:1px solid var(--border-color); border-radius:12px; padding:11px 14px; margin-bottom:10px; line-height:1.55; font-size:13.5px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+            ${refPrefix}
+            <span>${text}</span>
+        </div>
+    `;
+}
+
+App.toggleReferenceBubble = function(e, btn) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Dismiss existing bubble if open
+    const existingBubble = document.getElementById('bible-ref-bubble');
+    if (existingBubble) {
+        const activeBtn = existingBubble._activeBtn;
+        existingBubble.remove();
+        if (activeBtn === btn) return; // Toggle behavior on same badge click
+    }
+
+    const refsDataStr = btn.getAttribute('data-refs');
+    if (!refsDataStr) return;
+
+    try {
+        const refsData = JSON.parse(decodeURIComponent(refsDataStr));
+        
+        let html = '';
+        if (refsData.f && refsData.f.length > 0) {
+            refsData.f.forEach(f => {
+                html += formatBibleFootnote(f);
+            });
+        }
+        if (refsData.c && refsData.c.length > 0) {
+            refsData.c.forEach(c => {
+                html += `<div style="background:color-mix(in srgb, var(--bg-color) 70%, var(--surface-color)); border:1px solid var(--border-color); border-radius:10px; padding:8px 11px; margin-bottom:6px; font-size:13px;">📌 ${c}</div>`;
+            });
+        }
+
+        if (!html) return;
+
+        const bubble = document.createElement('div');
+        bubble.id = 'bible-ref-bubble';
+        bubble.className = 'bible-ref-bubble';
+        bubble._activeBtn = btn;
+
+        bubble.innerHTML = `
+            <button class="bible-ref-bubble-close" type="button" aria-label="Cerrar" onclick="document.getElementById('bible-ref-bubble')?.remove()">×</button>
+            <div class="bible-ref-bubble-content">${html}</div>
+        `;
+
+        document.body.appendChild(bubble);
+
+        // Position bubble smartly relative to button
+        const rect = btn.getBoundingClientRect();
+        const scrollX = window.scrollX || window.pageXOffset;
+        const scrollY = window.scrollY || window.pageYOffset;
+        const bubbleWidth = Math.min(320, window.innerWidth - 32);
+
+        let left = rect.left + scrollX + (rect.width / 2) - (bubbleWidth / 2);
+        left = Math.max(16, Math.min(left, window.innerWidth - bubbleWidth - 16));
+
+        let top = rect.top + scrollY - bubble.offsetHeight - 12;
+        if (rect.top - bubble.offsetHeight - 12 < 50) {
+            top = rect.bottom + scrollY + 12;
+        }
+
+        bubble.style.left = `${left}px`;
+        bubble.style.top = `${top}px`;
+
+        // Click outside handler
+        const dismissHandler = (evt) => {
+            if (!bubble.contains(evt.target) && evt.target !== btn) {
+                bubble.remove();
+                document.removeEventListener('click', dismissHandler, true);
+                document.removeEventListener('touchstart', dismissHandler, true);
+            }
+        };
+
+        setTimeout(() => {
+            document.addEventListener('click', dismissHandler, true);
+            document.addEventListener('touchstart', dismissHandler, true);
+        }, 50);
+
+    } catch(err) {
+        console.error('Error mostrando globito de referencia', err);
+    }
+};
+
+App.openReferencePanel = App.toggleReferenceBubble;
+
+// Listeners for closing the reference panel
+document.addEventListener('DOMContentLoaded', () => {
+    const closeReferenceBtn = document.getElementById('closeReferenceViewPanel');
+    const referenceBackdrop = document.getElementById('referenceViewBackdrop');
+    const panel = document.getElementById('referenceViewPanel');
+    
+    const closePanel = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        if (panel) {
+            panel.classList.remove('visible');
+            setTimeout(() => {
+                document.body.classList.remove('selection-panel-open');
+            }, 300); // match transition duration
+        }
+    };
+    
+    if (closeReferenceBtn) closeReferenceBtn.addEventListener('click', closePanel);
+    if (referenceBackdrop) referenceBackdrop.addEventListener('click', closePanel);
+});

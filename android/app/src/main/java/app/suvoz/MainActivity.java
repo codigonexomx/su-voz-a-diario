@@ -2,6 +2,7 @@ package app.suvoz;
 
 import android.os.Bundle;
 import androidx.activity.EdgeToEdge;
+import androidx.core.splashscreen.SplashScreen;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
@@ -9,10 +10,10 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        SplashScreen.installSplashScreen(this);
         registerPlugin(ImageSaverPlugin.class);
         EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
-        getWindow().setBackgroundDrawable(null);
         configureSystemBars();
     }
 

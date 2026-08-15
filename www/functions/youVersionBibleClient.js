@@ -906,8 +906,8 @@ class YouVersionBibleClient {
     const passageId = `${normalizedBookUsfm}.${normalizedChapter}`;
     const query = new URLSearchParams({
       format: "html",
-      include_headings: "false",
-      include_notes: "false",
+      include_headings: "true",
+      include_notes: "true",
     });
     const url = `${this.baseUrl}/bibles/` +
       `${encodeURIComponent(normalizedVersionId)}/passages/` +
