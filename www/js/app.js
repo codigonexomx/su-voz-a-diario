@@ -167,18 +167,19 @@ const content = `
             ${chapterData.verses.map(verse => {
 const verseNumber = verse.number;
 const text = verse.text;
-const safeText = escapeBibleHtml(text);
+                const cleanTextForCopy = text.replace(/\[\[REF:[fc]:[^\]]+\]\]/g, '').replace(/\s+/g, ' ').trim();
+                const safeText = escapeBibleHtml(cleanTextForCopy);
 
-const strongTokens = window.App?.getVerseStrongTokens(
-    chapterData.bookId,
-    chapterNumber,
-    verseNumber
-);
+                const strongTokens = window.App?.getVerseStrongTokens(
+                    chapterData.bookId,
+                    chapterNumber,
+                    verseNumber
+                );
 
-const tokenizedText = window.App?.tokenizeVerseText(
-    text,
-    strongTokens
-) || safeText;
+                const tokenizedText = window.App?.tokenizeVerseText(
+                    text,
+                    strongTokens
+                ) || escapeBibleHtml(text);
 
                 let extraHtml = '';
                 if (verse.subtitle) {
@@ -187,7 +188,19 @@ const tokenizedText = window.App?.tokenizeVerseText(
 
                 let finalTokenizedText = tokenizedText;
                 const totalRefs = (verse.footnotes?.length || 0) + (verse.crossReferences?.length || 0);
-                if (totalRefs > 0) {
+
+                if (finalTokenizedText.includes('[[REF:')) {
+                    finalTokenizedText = finalTokenizedText.replace(/\[\[REF:([fc]):([^\]]+)\]\]/g, (match, type, encodedData) => {
+                        try {
+                            const rawNote = decodeURIComponent(encodedData);
+                            const refsObj = type === 'c' ? { f: [], c: [rawNote] } : { f: [rawNote], c: [] };
+                            const refsData = encodeURIComponent(JSON.stringify(refsObj));
+                            return `<button type="button" class="bible-ref-badge" data-refs="${refsData}" onclick="App.toggleReferenceBubble(event, this)" title="Ver nota">1</button>`;
+                        } catch(e) {
+                            return '';
+                        }
+                    });
+                } else if (totalRefs > 0) {
                     const refsData = encodeURIComponent(JSON.stringify({
                         f: verse.footnotes || [],
                         c: verse.crossReferences || []
@@ -204,7 +217,7 @@ const tokenizedText = window.App?.tokenizeVerseText(
                         data-verse-full="${safeText}"
                     >
                         <span class="verse-number" data-verse-number="${verseNumber}">${verseNumber}</span>
-<span class="verse-text">${finalTokenizedText}</span>
+                        <span class="verse-text">${finalTokenizedText}</span>
                     </p>
                 `;
             }).join('')}

@@ -315,15 +315,23 @@ function extractPassageVerses(content) {
     });
     
     const footnotes = [];
-    $verse('.f, .note, .footnote').each((i, el) => {
-       footnotes.push($verse(el).text().trim());
-       $verse(el).remove();
-    });
-    
     const crossReferences = [];
-    $verse('.r, .x, .crossreference').each((i, el) => {
-       crossReferences.push($verse(el).text().trim());
-       $verse(el).remove();
+    
+    $verse('.f, .note, .footnote, .r, .x, .crossreference').each((i, el) => {
+       const $el = $verse(el);
+       const noteText = $el.text().trim();
+       if (noteText) {
+          const isCross = $el.is('.r, .x, .crossreference');
+          if (isCross) {
+             crossReferences.push(noteText);
+             $el.replaceWith(` [[REF:c:${encodeURIComponent(noteText)}]] `);
+          } else {
+             footnotes.push(noteText);
+             $el.replaceWith(` [[REF:f:${encodeURIComponent(noteText)}]] `);
+          }
+       } else {
+          $el.remove();
+       }
     });
     
     const cleanVerseHtml = $verse.html();
