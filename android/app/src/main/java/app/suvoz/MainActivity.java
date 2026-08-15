@@ -12,6 +12,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ImageSaverPlugin.class);
         EdgeToEdge.enable(this);
         super.onCreate(savedInstanceState);
+        getWindow().setBackgroundDrawable(null);
         configureSystemBars();
     }
 
