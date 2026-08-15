@@ -11083,7 +11083,7 @@ renderCalendarBookSection: function(group, readDateSet, todayStr) {
                 <h3 class="calendar-v2-detail-ref">${this.escapeHtml(reading ? reading.reference : 'Meditación libre')}</h3>
 
                 <div class="calendar-v2-detail-pills">
-                    ${hasReflection ? '<span class="calendar-v2-pill active">📝 Reflexión escrita</span>' : ''}
+                    ${hasReflection ? '<span class="calendar-v2-pill active">🪶 Reflexión escrita</span>' : ''}
                     ${hasPrayer ? '<span class="calendar-v2-pill active">🙏 Oración guardada</span>' : ''}
                     ${highlights.length > 0 ? `<span class="calendar-v2-pill active">✨ ${highlights.length} pasajes resaltados</span>` : ''}
                     ${!hasReflection && !hasPrayer && highlights.length === 0 ? '<span class="calendar-v2-pill">Sin reflexiones aún</span>' : ''}
