@@ -10948,52 +10948,221 @@ renderCalendarBookSection: function(group, readDateSet, todayStr) {
     `;
 },
 
-   renderCalendar: function() {
-    const calendarReadings = this.getCalendarReadings();
-
-    if (calendarReadings.length === 0) {
-        this.$content.innerHTML = `<div class="empty-state">📅 No hay lecturas disponibles.</div>`;
-        return;
-    }
-
-    const todayStr = this.getTodayDateStr();
-    const readDates = this.getReadDates();
-    const readDateSet = new Set(readDates);
-    const groups = this.getCalendarBookGroups(calendarReadings);
-    const totalRead = calendarReadings.filter(item => readDateSet.has(item.date)).length;
-    const totalAvailable = calendarReadings.length;
-    const totalPercentage = totalAvailable > 0 ? Math.round((totalRead / totalAvailable) * 100) : 0;
-
-    let html = `
-    ${this.renderViewHeader(
-        'Camino de lectura',
-        'Avanza por libros bíblicos y vuelve a cada lectura guardada.'
-    )}
-    ${this.renderCalendarBookSelector(groups, readDateSet, todayStr)}
-    ${this.renderCalendarFilters()}
-    <section class="calendar-overview">
-        <div>
-            <span>Plan completo</span>
-            <strong>${totalPercentage}%</strong>
-        </div>
-        <div class="calendar-overview-stats">
-            <span>${totalAvailable} lecturas</span>
-            <span>${totalRead} completadas</span>
-            <span>${groups.length} ${groups.length === 1 ? 'libro' : 'libros'}</span>
-        </div>
-    </section>
-    <div class="calendar-book-list">
-        ${groups.map(group => this.renderCalendarBookSection(group, readDateSet, todayStr)).join('')}
-    </div>
-`;
-    this.$content.innerHTML = html;
-
-    requestAnimationFrame(() => {
-        if (this.currentView === 'calendar') {
-            this.restoreCalendarPosition();
+    getCalendarV2ActiveMonth: function() {
+        const todayStr = this.getTodayDateStr();
+        if (!this.calendarV2ActiveMonth) {
+            this.calendarV2ActiveMonth = todayStr.slice(0, 7);
         }
-    });
-},
+        return this.calendarV2ActiveMonth;
+    },
+
+    getCalendarV2SelectedDate: function() {
+        const todayStr = this.getTodayDateStr();
+        const activeMonth = this.getCalendarV2ActiveMonth();
+        
+        if (this.calendarV2SelectedDate && this.calendarV2SelectedDate.startsWith(`${activeMonth}-`)) {
+            return this.calendarV2SelectedDate;
+        }
+        
+        if (todayStr.startsWith(`${activeMonth}-`)) {
+            this.calendarV2SelectedDate = todayStr;
+        } else {
+            this.calendarV2SelectedDate = `${activeMonth}-01`;
+        }
+        return this.calendarV2SelectedDate;
+    },
+
+    getCalendarV2MonthGrid: function(monthStr) {
+        const [year, month] = monthStr.split('-').map(Number);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const firstDay = new Date(year, month - 1, 1).getDay();
+        
+        const todayStr = this.getTodayDateStr();
+        const readDates = new Set(this.getReadDates());
+        const planReadings = this.getCalendarReadings()
+            .filter(reading => reading.date.startsWith(`${monthStr}-`));
+        const planByDate = new Map(planReadings.map(reading => [reading.date, reading]));
+        
+        const cells = [];
+        for (let i = 0; i < firstDay; i++) {
+            cells.push({ empty: true });
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = `${monthStr}-${String(day).padStart(2, '0')}`;
+            const reading = planByDate.get(date) || null;
+            const note = this.getNote(date);
+            const hasReflection = Boolean(note.dios?.trim() || note.aprendizaje?.trim() || note.respuesta?.trim() || note.oracion?.trim());
+            const hasPrayer = Boolean(note.oracion?.trim());
+            const hasReading = Boolean(reading);
+            const isRead = readDates.has(date);
+            const isToday = date === todayStr;
+            const isPending = hasReading && !isRead && date <= todayStr;
+
+            cells.push({
+                date,
+                day,
+                hasReading,
+                reference: reading?.reference || '',
+                isRead,
+                hasReflection,
+                hasPrayer,
+                isToday,
+                isPending
+            });
+        }
+
+        const dateObj = new Date(year, month - 1, 1);
+        const monthLabel = dateObj.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+
+        return { monthLabel, cells };
+    },
+
+    renderCalendarV2MonthBar: function(monthLabel) {
+        return `
+            <div class="calendar-v2-month-bar">
+                <button class="calendar-v2-month-nav-btn" type="button" data-action="calendar-v2-prev" aria-label="Mes anterior">◄</button>
+                <div class="calendar-v2-month-title">
+                    <h3>${this.escapeHtml(monthLabel)}</h3>
+                </div>
+                <button class="calendar-v2-today-btn" type="button" data-action="calendar-v2-today">Ir a Hoy</button>
+                <button class="calendar-v2-month-nav-btn" type="button" data-action="calendar-v2-next" aria-label="Mes siguiente">►</button>
+            </div>
+        `;
+    },
+
+    renderCalendarV2Filters: function() {
+        const activeFilter = this.calendarV2ActiveFilter || 'all';
+        const options = [
+            { id: 'all', label: 'Todo el mes' },
+            { id: 'pending', label: 'Pendientes' },
+            { id: 'read', label: 'Completadas' },
+            { id: 'notes', label: 'Con Reflexión' }
+        ];
+
+        return `
+            <nav class="calendar-v2-filter-bar" aria-label="Filtrar calendario">
+                ${options.map(opt => `
+                    <button class="calendar-v2-filter-chip ${opt.id === activeFilter ? 'is-active' : ''}" type="button" data-action="calendar-v2-filter" data-filter="${opt.id}">
+                        ${opt.label}
+                    </button>
+                `).join('')}
+            </nav>
+        `;
+    },
+
+    renderCalendarV2SelectedCard: function(selectedDate) {
+        const reading = this.getReadingMetadataByDate(selectedDate);
+        const readDates = new Set(this.getReadDates());
+        const note = this.getNote(selectedDate);
+        const hasReflection = Boolean(note.dios?.trim() || note.aprendizaje?.trim() || note.respuesta?.trim() || note.oracion?.trim());
+        const hasPrayer = Boolean(note.oracion?.trim());
+        const highlights = this.getHighlights(selectedDate);
+        const hasReading = Boolean(reading);
+        const isRead = readDates.has(selectedDate);
+        
+        let dateFormatted = '';
+        try {
+            const [y, m, d] = selectedDate.split('-').map(Number);
+            const dateObj = new Date(y, m - 1, d);
+            dateFormatted = dateObj.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+        } catch(err) {
+            dateFormatted = selectedDate;
+        }
+
+        const statusClass = hasReading ? (isRead ? 'is-complete' : 'is-pending') : 'is-empty';
+        const statusLabel = hasReading ? (isRead ? '✓ Lectura completada' : '⏳ Lectura pendiente') : 'Sin lectura asignada';
+
+        return `
+            <article class="calendar-v2-detail-card">
+                <div class="calendar-v2-detail-head">
+                    <span class="calendar-v2-detail-date">${this.escapeHtml(dateFormatted)}</span>
+                    <span class="calendar-v2-detail-status ${statusClass}">${this.escapeHtml(statusLabel)}</span>
+                </div>
+
+                <h3 class="calendar-v2-detail-ref">${this.escapeHtml(reading ? reading.reference : 'Meditación libre')}</h3>
+
+                <div class="calendar-v2-detail-pills">
+                    ${hasReflection ? '<span class="calendar-v2-pill active">📝 Reflexión escrita</span>' : ''}
+                    ${hasPrayer ? '<span class="calendar-v2-pill active">🙏 Oración guardada</span>' : ''}
+                    ${highlights.length > 0 ? `<span class="calendar-v2-pill active">✨ ${highlights.length} pasajes resaltados</span>` : ''}
+                    ${!hasReflection && !hasPrayer && highlights.length === 0 ? '<span class="calendar-v2-pill">Sin reflexiones aún</span>' : ''}
+                </div>
+
+                ${hasReading ? `
+                    <button class="calendar-v2-btn-action" type="button" data-nav="reading" data-param="${this.escapeHtml(selectedDate)}">
+                        <span>📖</span> Leer pasaje de este día
+                    </button>
+                ` : `
+                    <button class="calendar-v2-btn-action" type="button" data-nav="reading" data-param="${this.escapeHtml(selectedDate)}">
+                        <span>✍️</span> Ver mi cuaderno de hoy
+                    </button>
+                `}
+            </article>
+        `;
+    },
+
+    renderCalendar: function() {
+        const activeMonth = this.getCalendarV2ActiveMonth();
+        const selectedDate = this.getCalendarV2SelectedDate();
+        const activeFilter = this.calendarV2ActiveFilter || 'all';
+        const { monthLabel, cells } = this.getCalendarV2MonthGrid(activeMonth);
+
+        const weekdayLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+
+        const filteredCells = cells.map(cell => {
+            if (cell.empty) return cell;
+            if (activeFilter === 'pending' && (!cell.hasReading || cell.isRead)) return { ...cell, hiddenByFilter: true };
+            if (activeFilter === 'read' && !cell.isRead) return { ...cell, hiddenByFilter: true };
+            if (activeFilter === 'notes' && !cell.hasReflection && !cell.hasPrayer) return { ...cell, hiddenByFilter: true };
+            return cell;
+        });
+
+        const html = `
+            <div class="calendar-v2-container">
+                <header class="calendar-v2-header">
+                    <h2>Calendario</h2>
+                    <p>Tu guía diaria de lectura y meditación.</p>
+                </header>
+
+                ${this.renderCalendarV2MonthBar(monthLabel)}
+                ${this.renderCalendarV2Filters()}
+
+                <div class="calendar-v2-card-wrapper">
+                    <div class="calendar-v2-weekdays">
+                        ${weekdayLabels.map(w => `<div>${w}</div>`).join('')}
+                    </div>
+                    <div class="calendar-v2-grid">
+                        ${filteredCells.map(cell => {
+                            if (cell.empty) return '<div class="calendar-v2-cell is-empty"></div>';
+                            
+                            const isSelected = cell.date === selectedDate;
+                            const isDimmed = cell.hiddenByFilter;
+                            
+                            return `
+                                <button class="calendar-v2-cell ${cell.isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}"
+                                        type="button"
+                                        style="${isDimmed ? 'opacity:0.25;' : ''}"
+                                        data-action="calendar-v2-select-day"
+                                        data-date="${this.escapeHtml(cell.date)}">
+                                    <span class="calendar-v2-cell-num">${cell.day}</span>
+                                    <span class="calendar-v2-markers">
+                                        ${cell.isRead ? '<i class="calendar-v2-dot dot-read" title="Leído"></i>' : ''}
+                                        ${cell.hasReflection || cell.hasPrayer ? '<i class="calendar-v2-dot dot-note" title="Reflexión"></i>' : ''}
+                                        ${cell.isPending ? '<i class="calendar-v2-dot dot-pending" title="Pendiente"></i>' : ''}
+                                    </span>
+                                </button>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                ${this.renderCalendarV2SelectedCard(selectedDate)}
+            </div>
+        `;
+
+        this.$content.innerHTML = html;
+    },
 
 renderCommunityLoadError: function(error) {
     if (this.currentView !== 'community') return;
@@ -14976,6 +15145,59 @@ if (loadMoreBtn) {
     if (this.libraryState) {
         this.libraryState.limit += 50;
         this.updateLibraryResults();
+    }
+    return;
+}
+
+const calendarV2PrevBtn = e.target.closest('[data-action="calendar-v2-prev"]');
+if (calendarV2PrevBtn) {
+    const activeMonth = this.getCalendarV2ActiveMonth();
+    const [year, month] = activeMonth.split('-').map(Number);
+    const dateObj = new Date(year, month - 2, 1);
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    this.calendarV2ActiveMonth = `${y}-${m}`;
+    this.renderCalendar();
+    return;
+}
+
+const calendarV2NextBtn = e.target.closest('[data-action="calendar-v2-next"]');
+if (calendarV2NextBtn) {
+    const activeMonth = this.getCalendarV2ActiveMonth();
+    const [year, month] = activeMonth.split('-').map(Number);
+    const dateObj = new Date(year, month, 1);
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    this.calendarV2ActiveMonth = `${y}-${m}`;
+    this.renderCalendar();
+    return;
+}
+
+const calendarV2TodayBtn = e.target.closest('[data-action="calendar-v2-today"]');
+if (calendarV2TodayBtn) {
+    const todayStr = this.getTodayDateStr();
+    this.calendarV2ActiveMonth = todayStr.slice(0, 7);
+    this.calendarV2SelectedDate = todayStr;
+    this.renderCalendar();
+    return;
+}
+
+const calendarV2FilterBtn = e.target.closest('[data-action="calendar-v2-filter"]');
+if (calendarV2FilterBtn) {
+    const filter = calendarV2FilterBtn.getAttribute('data-filter');
+    if (filter) {
+        this.calendarV2ActiveFilter = filter;
+        this.renderCalendar();
+    }
+    return;
+}
+
+const calendarV2SelectDayBtn = e.target.closest('[data-action="calendar-v2-select-day"]');
+if (calendarV2SelectDayBtn) {
+    const date = calendarV2SelectDayBtn.getAttribute('data-date');
+    if (date) {
+        this.calendarV2SelectedDate = date;
+        this.renderCalendar();
     }
     return;
 }
