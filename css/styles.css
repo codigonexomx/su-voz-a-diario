@@ -14064,63 +14064,69 @@ body.dark-mode .bible-ref-bubble {
 .calendar-v2-header {
     position: relative;
     overflow: hidden;
-    margin-bottom: 22px;
-    padding: 28px 24px;
-    border-radius: 24px;
-    border: 1px solid rgba(197, 160, 89, 0.35);
+    margin-bottom: 24px;
+    min-height: 230px;
+    padding: 42px 26px;
+    display: flex;
+    align-items: center;
+    border-radius: 28px;
+    border: 1px solid rgba(197, 160, 89, 0.38);
     background: url('../media/imagen calendario.png') no-repeat center right / cover;
     box-shadow: 
-        0 12px 32px -4px rgba(37, 54, 90, 0.12),
-        0 4px 12px -2px rgba(37, 54, 90, 0.06),
-        inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.9);
+        0 16px 38px -6px rgba(37, 54, 90, 0.15),
+        0 6px 16px -2px rgba(37, 54, 90, 0.08),
+        inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 .calendar-v2-header::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 239, 228, 0.82) 50%, rgba(245, 239, 228, 0.3) 100%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.95) 0%, rgba(245, 239, 228, 0.84) 48%, rgba(245, 239, 228, 0.22) 100%);
     z-index: 1;
 }
 
 body.dark-mode .calendar-v2-header {
     background: url('../media/imagen calendario.png') no-repeat center right / cover;
-    border-color: rgba(197, 160, 89, 0.35);
+    border-color: rgba(197, 160, 89, 0.38);
     box-shadow: 
-        0 16px 36px -6px rgba(0, 0, 0, 0.5),
-        inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
+        0 18px 42px -6px rgba(0, 0, 0, 0.55),
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 body.dark-mode .calendar-v2-header::before {
-    background: linear-gradient(90deg, rgba(28, 34, 46, 0.95) 0%, rgba(18, 22, 32, 0.82) 50%, rgba(18, 22, 32, 0.3) 100%);
+    background: linear-gradient(90deg, rgba(26, 32, 44, 0.96) 0%, rgba(17, 21, 31, 0.84) 48%, rgba(17, 21, 31, 0.22) 100%);
 }
 
 .calendar-v2-header-content {
     position: relative;
     z-index: 2;
     text-align: left;
-    max-width: 82%;
+    max-width: 78%;
 }
 
 .calendar-v2-header h2 {
-    margin: 0 0 6px;
-    font-size: 2rem;
-    font-weight: 800;
+    margin: 0 0 8px;
+    font-family: 'Cormorant Garamond', 'Cinzel', 'Merriweather', Georgia, serif;
+    font-size: 2.75rem;
+    font-weight: 700;
     color: #25365A !important;
-    letter-spacing: -0.02em;
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, 0.9);
 }
 
 body.dark-mode .calendar-v2-header h2 {
-    color: #F3EAD8 !important;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    color: #F5ECCB !important;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
 }
 
 .calendar-v2-header p {
     margin: 0;
-    font-size: 0.94rem;
+    font-size: 1.06rem;
     color: #4a5568;
     font-weight: 600;
+    line-height: 1.35;
 }
 
 body.dark-mode .calendar-v2-header p {
