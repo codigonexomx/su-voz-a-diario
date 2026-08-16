@@ -14193,11 +14193,12 @@ body.dark-mode .calendar-v2-month-nav-btn {
 
 .calendar-v2-month-title h3 {
     margin: 0;
-    font-size: 1.25rem;
-    font-weight: 800;
+    font-family: 'Cormorant Garamond', 'Cinzel', 'Merriweather', Georgia, serif;
+    font-size: 1.45rem;
+    font-weight: 700;
     color: #25365A;
     text-transform: capitalize;
-    letter-spacing: -0.01em;
+    letter-spacing: 0.01em;
 }
 
 body.dark-mode .calendar-v2-month-title h3 {
@@ -14210,8 +14211,10 @@ body.dark-mode .calendar-v2-month-title h3 {
     border: 1px solid rgba(197, 160, 89, 0.45);
     background: linear-gradient(145deg, #FFFDF9 0%, #EFE5D3 100%);
     color: #8E6B27;
-    font-weight: 800;
-    font-size: 0.82rem;
+    font-family: 'Cormorant Garamond', 'Cinzel', 'Merriweather', Georgia, serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.01em;
     cursor: pointer;
     box-shadow: 
         0 4px 12px -2px rgba(197, 160, 89, 0.25),
@@ -14250,7 +14253,7 @@ body.dark-mode .calendar-v2-today-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 7px;
+    gap: 8px;
     width: 100%;
     text-align: center;
     padding: 12px 10px;
@@ -14258,8 +14261,10 @@ body.dark-mode .calendar-v2-today-btn {
     border: 1px solid rgba(197, 160, 89, 0.28);
     background: linear-gradient(145deg, #FFFFFF 0%, #F3EBE0 100%);
     color: #25365A;
-    font-size: 0.86rem;
-    font-weight: 800;
+    font-family: 'Cormorant Garamond', 'Cinzel', 'Merriweather', Georgia, serif;
+    font-size: 1.02rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
     cursor: pointer;
     box-shadow: 
         0 6px 16px -2px rgba(37, 54, 90, 0.08),
