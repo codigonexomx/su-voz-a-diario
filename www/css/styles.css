@@ -14221,14 +14221,18 @@ body.dark-mode .calendar-v2-today-btn {
 }
 
 .calendar-v2-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
     width: 100%;
     text-align: center;
-    padding: 12px 14px;
+    padding: 12px 10px;
     border-radius: 16px;
     border: 1px solid rgba(197, 160, 89, 0.28);
     background: linear-gradient(145deg, #FFFFFF 0%, #F3EBE0 100%);
     color: #25365A;
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     font-weight: 800;
     cursor: pointer;
     box-shadow: 
@@ -14236,6 +14240,15 @@ body.dark-mode .calendar-v2-today-btn {
         0 2px 4px -1px rgba(37, 54, 90, 0.04),
         inset 0 1.5px 1px 0 #FFFFFF;
     transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.calendar-v2-filter-chip .calendar-v2-filter-icon {
+    flex-shrink: 0;
+    transition: transform 0.2s ease, stroke 0.2s ease;
+}
+
+.calendar-v2-filter-chip:hover .calendar-v2-filter-icon {
+    transform: scale(1.12);
 }
 
 .calendar-v2-filter-chip:hover {
