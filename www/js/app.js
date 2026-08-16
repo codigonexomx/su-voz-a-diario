@@ -11050,22 +11050,22 @@ renderCalendarBookSection: function(group, readDateSet, todayStr) {
             {
                 id: 'all',
                 label: 'Todo el mes',
-                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5" ry="2.5"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="9" x2="21" y2="9"></line><path d="M8.5 15l2.5 2.5 4.5-4.5"></path></svg>`
+                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5" ry="2.5"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="9" x2="21" y2="9"></line><path d="M8.5 15l2.5 2.5 4.5-4.5"></path></svg>`
             },
             {
                 id: 'pending',
                 label: 'Pendientes',
-                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 1 9 9"></path><path d="M21 12a9 9 0 0 1-9 9" stroke-dasharray="3 3"></path><path d="M12 21a9 9 0 0 1-9-9" stroke-dasharray="3 3"></path><path d="M3 12a9 9 0 0 1 9-9" stroke-dasharray="3 3"></path><polyline points="12 7 12 12 15 14"></polyline></svg>`
+                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 1 9 9"></path><path d="M21 12a9 9 0 0 1-9 9" stroke-dasharray="3 3"></path><path d="M12 21a9 9 0 0 1-9-9" stroke-dasharray="3 3"></path><path d="M3 12a9 9 0 0 1 9-9" stroke-dasharray="3 3"></path><polyline points="12 7 12 12 15 14"></polyline></svg>`
             },
             {
                 id: 'read',
                 label: 'Completadas',
-                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect><path d="M8.5 12.5l2.5 2.5 4.5-4.5"></path></svg>`
+                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect><path d="M8.5 12.5l2.5 2.5 4.5-4.5"></path></svg>`
             },
             {
                 id: 'notes',
                 label: 'Con Reflexión',
-                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L3 13.5V21h7.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="15"></line></svg>`
+                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L3 13.5V21h7.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="15"></line></svg>`
             }
         ];
 

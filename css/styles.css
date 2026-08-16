@@ -14243,6 +14243,8 @@ body.dark-mode .calendar-v2-today-btn {
 }
 
 .calendar-v2-filter-chip .calendar-v2-filter-icon {
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
     transition: transform 0.2s ease, stroke 0.2s ease;
 }
