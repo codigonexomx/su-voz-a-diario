@@ -14062,29 +14062,49 @@ body.dark-mode .bible-ref-bubble {
 }
 
 .calendar-v2-header {
-    text-align: center;
+    position: relative;
+    overflow: hidden;
     margin-bottom: 22px;
-    padding: 24px 20px 20px;
-    background: linear-gradient(145deg, #FFFFFF 0%, #F5EFE4 100%);
+    padding: 28px 24px;
     border-radius: 24px;
-    border: 1px solid rgba(197, 160, 89, 0.3);
+    border: 1px solid rgba(197, 160, 89, 0.35);
+    background: url('../media/imagen calendario.png') no-repeat center right / cover;
     box-shadow: 
-        0 12px 32px -4px rgba(37, 54, 90, 0.08),
-        0 4px 12px -2px rgba(37, 54, 90, 0.04),
+        0 12px 32px -4px rgba(37, 54, 90, 0.12),
+        0 4px 12px -2px rgba(37, 54, 90, 0.06),
         inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+.calendar-v2-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(245, 239, 228, 0.82) 50%, rgba(245, 239, 228, 0.3) 100%);
+    z-index: 1;
+}
+
 body.dark-mode .calendar-v2-header {
-    background: linear-gradient(145deg, #1C222E 0%, #121620 100%);
-    border-color: rgba(197, 160, 89, 0.3);
+    background: url('../media/imagen calendario.png') no-repeat center right / cover;
+    border-color: rgba(197, 160, 89, 0.35);
     box-shadow: 
         0 16px 36px -6px rgba(0, 0, 0, 0.5),
         inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
 }
 
+body.dark-mode .calendar-v2-header::before {
+    background: linear-gradient(90deg, rgba(28, 34, 46, 0.95) 0%, rgba(18, 22, 32, 0.82) 50%, rgba(18, 22, 32, 0.3) 100%);
+}
+
+.calendar-v2-header-content {
+    position: relative;
+    z-index: 2;
+    text-align: left;
+    max-width: 82%;
+}
+
 .calendar-v2-header h2 {
     margin: 0 0 6px;
-    font-size: 1.95rem;
+    font-size: 2rem;
     font-weight: 800;
     color: #25365A !important;
     letter-spacing: -0.02em;
@@ -14098,13 +14118,13 @@ body.dark-mode .calendar-v2-header h2 {
 
 .calendar-v2-header p {
     margin: 0;
-    font-size: 0.92rem;
-    color: #5c6b8a;
+    font-size: 0.94rem;
+    color: #4a5568;
     font-weight: 600;
 }
 
 body.dark-mode .calendar-v2-header p {
-    color: #a0aec0;
+    color: #cbd5e1;
 }
 
 /* Month Navigation Bar - 3D Bar */

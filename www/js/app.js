@@ -11151,8 +11151,10 @@ renderCalendarBookSection: function(group, readDateSet, todayStr) {
         const html = `
             <div class="calendar-v2-container">
                 <header class="calendar-v2-header">
-                    <h2>Calendario</h2>
-                    <p>Tu guía diaria de lectura y meditación.</p>
+                    <div class="calendar-v2-header-content">
+                        <h2>Calendario</h2>
+                        <p>Tu guía diaria de lectura y meditación.</p>
+                    </div>
                 </header>
 
                 ${this.renderCalendarV2MonthBar(monthLabel)}
