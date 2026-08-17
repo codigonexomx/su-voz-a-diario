@@ -34,11 +34,21 @@ export const INTRO_VIDEO_CONFIG_PSALMS = {
     note: 'Antes de comenzar la lectura de Salmos, te recomendamos ver esta breve introducción para comprender mejor su contexto, mensaje y propósito.'
 };
 
+export const INTRO_VIDEO_CONFIG_1SAMUEL = {
+    startDate: '2026-09-01',
+    endDate: '2026-09-05',
+    url: 'https://www.youtube.com/embed/R0fBgSsTfUE',
+    label: '🎬 Video introductorio',
+    title: 'Introducción al libro de 1 Samuel',
+    note: 'Antes de comenzar la lectura de 1 Samuel, te recomendamos ver esta breve introducción para comprender mejor su contexto, mensaje y propósito.'
+};
+
 export const INTRO_VIDEO_CONFIGS = [
     INTRO_VIDEO_CONFIG,
     INTRO_VIDEO_CONFIG_2TIMOTHY,
     INTRO_VIDEO_CONFIG_MICAH,
-    INTRO_VIDEO_CONFIG_PSALMS
+    INTRO_VIDEO_CONFIG_PSALMS,
+    INTRO_VIDEO_CONFIG_1SAMUEL
 ];
 
 export function getIntroVideoConfig(dateStr) {
