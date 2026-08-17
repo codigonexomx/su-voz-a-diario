@@ -199,8 +199,9 @@ const text = verse.text;
                 let finalTokenizedText = tokenizedText;
                 const totalRefs = (verse.footnotes?.length || 0) + (verse.crossReferences?.length || 0);
                 const verseCrossReferences = crossReferencesByVerse?.[verseNumber] || [];
-                const hasPositiveCrossReferences = verseCrossReferences.some(reference => reference.votes > 0);
-                const referenceLabel = verse.reference || `${chapterData.bookName} ${chapterNumber}:${verseNumber}`;
+                const positiveCrossReferences = verseCrossReferences
+                    .filter(reference => reference.votes > 0)
+                    .sort((a, b) => Number(b.votes || 0) - Number(a.votes || 0));
 
                 if (finalTokenizedText.includes('[[REF:')) {
                     finalTokenizedText = finalTokenizedText.replace(/\[\[REF:([fc]):([^\]]+)\]\]/g, (match, type, encodedData) => {
@@ -221,19 +222,37 @@ const text = verse.text;
                     finalTokenizedText += `<button type="button" class="bible-ref-badge" data-refs="${refsData}" onclick="App.toggleReferenceBubble(event, this)" title="Ver nota">${totalRefs}</button>`;
                 }
 
-                const crossReferencesAction = hasPositiveCrossReferences
-                    ? `<button
-                        type="button"
-                        class="bible-crossrefs-trigger"
-                        data-action="open-cross-references"
-                        data-book-id="${escapeHtml(chapterData.bookId)}"
-                        data-chapter="${chapterNumber}"
-                        data-verse="${verseNumber}"
-                        aria-expanded="false"
-                        aria-label="Ver referencias de ${escapeHtml(referenceLabel)}"
-                    >
-                        Referencias
-                    </button>`
+                const crossReferenceMarkers = positiveCrossReferences.length
+                    ? `<span class="bible-crossref-markers" role="group" aria-label="Referencias cruzadas">
+                        ${positiveCrossReferences.slice(0, 3).map((reference, index) => {
+                            const letter = String.fromCharCode(97 + index);
+                            const referenceLabel = window.App?.formatBibleCrossReferenceLabel?.(reference) || `Referencia ${letter}`;
+
+                            return `<button
+                                type="button"
+                                class="bible-crossref-marker"
+                                data-action="open-cross-reference"
+                                data-book-id="${escapeHtml(chapterData.bookId)}"
+                                data-chapter="${chapterNumber}"
+                                data-verse="${verseNumber}"
+                                data-reference-index="${index}"
+                                aria-expanded="false"
+                                aria-label="Referencia cruzada: ${escapeBibleHtml(referenceLabel)}"
+                                title="${escapeBibleHtml(referenceLabel)}"
+                            >${letter}</button>`;
+                        }).join('')}
+                        ${positiveCrossReferences.length > 3 ? `<button
+                            type="button"
+                            class="bible-crossref-marker bible-crossref-marker-more"
+                            data-action="open-more-cross-references"
+                            data-book-id="${escapeHtml(chapterData.bookId)}"
+                            data-chapter="${chapterNumber}"
+                            data-verse="${verseNumber}"
+                            aria-expanded="false"
+                            aria-label="Más referencias cruzadas"
+                            title="Más referencias"
+                        >…</button>` : ''}
+                    </span>`
                     : '';
 
                 return `
@@ -246,7 +265,7 @@ const text = verse.text;
                     >
                         <span class="verse-number" data-verse-number="${verseNumber}">${verseNumber}</span>
                         <span class="verse-text">${finalTokenizedText}</span>
-                        ${crossReferencesAction}
+                        ${crossReferenceMarkers}
                     </p>
                 `;
             }).join('')}
@@ -550,6 +569,8 @@ const App = {
     searchTimeout: null,
     bibleSearchComposing: false,
     targetVerse: null,
+    bibleCrossReferencePopover: null,
+    bibleCrossReferencePassageCache: new Map(),
     bibleSearchFilter: 'all', // 'all', 'old', 'new'
     bibleReaderPickerOpen: false,
     bibleReaderPickerTestament: 'old',
@@ -6620,6 +6641,7 @@ bindBottomNavStateGuard: function() {
 },
 
 closeTransientBibleUI: function() {
+    this.closeBibleCrossReferencePopover();
     this.bibleReaderPickerOpen = false;
     this.bibleVersionPickerOpen = false;
     this.bibleReadingSettingsOpen = false;
@@ -7864,6 +7886,21 @@ getBibleChapterCrossReferences: async function(bookId, chapter, versionId = this
     }
 },
 
+getPositiveBibleCrossReferences: function(references) {
+    return (Array.isArray(references) ? references : [])
+        .filter(reference => Number(reference?.votes) > 0)
+        .slice()
+        .sort((a, b) => {
+            const voteDifference = Number(b.votes || 0) - Number(a.votes || 0);
+            return voteDifference || String(a.id || '').localeCompare(String(b.id || ''));
+        });
+},
+
+getBibleCrossReferencesForVerse: async function(bookId, chapter, verse) {
+    const references = await crossReferencesRepository.getForVerse(bookId, chapter, verse);
+    return this.getPositiveBibleCrossReferences(references);
+},
+
 formatBibleCrossReferenceLabel: function(reference) {
     const start = reference?.start;
     const end = reference?.end || start;
@@ -7886,112 +7923,368 @@ formatBibleCrossReferenceLabel: function(reference) {
     return endLabel === startLabel ? startLabel : `${startLabel}${dash}${endLabel}`;
 },
 
-renderBibleCrossReferencesPanel: function(references, showAll = false) {
-    const visibleReferences = showAll ? references : references.slice(0, 10);
-    const canExpand = references.length > 10 && !showAll;
+getBibleCrossReferencePassage: async function(reference) {
+    const cacheKey = `${RV1909_VERSION_ID}:${reference?.id || ''}`;
+
+    if (this.bibleCrossReferencePassageCache.has(cacheKey)) {
+        return this.bibleCrossReferencePassageCache.get(cacheKey);
+    }
+
+    const start = reference?.start;
+    const end = reference?.end || start;
+
+    if (!start || !end) return null;
+
+    const chapterCache = new Map();
+    const passageVerses = [];
+    const maxPassageVerses = 120;
+
+    const loadChapter = async (bookId, chapter) => {
+        const chapterKey = `${bookId}.${chapter}`;
+
+        if (!chapterCache.has(chapterKey)) {
+            chapterCache.set(
+                chapterKey,
+                bibleRepository.getChapter(RV1909_VERSION_ID, bookId, chapter)
+            );
+        }
+
+        return chapterCache.get(chapterKey);
+    };
+
+    const appendVerses = (chapterData, firstVerse, lastVerse) => {
+        const verses = Array.isArray(chapterData?.verses) ? chapterData.verses : [];
+        const first = Math.max(1, Number(firstVerse) || 1);
+        const last = Math.min(verses.length, Number(lastVerse) || verses.length);
+
+        for (let verseNumber = first; verseNumber <= last; verseNumber += 1) {
+            if (passageVerses.length >= maxPassageVerses) return;
+
+            const verse = verses[verseNumber - 1];
+            const text = this.normalizeBibleText(
+                String(verse?.text || '').replace(/\[\[REF:[fc]:[^\]]+\]\]/g, '')
+            );
+
+            if (!text) continue;
+
+            passageVerses.push({
+                bookName: chapterData.bookName,
+                chapter: chapterData.chapter,
+                number: verse.number,
+                text
+            });
+        }
+    };
+
+    if (start.bookId === end.bookId) {
+        const firstChapter = Math.min(start.chapter, end.chapter);
+        const lastChapter = Math.max(start.chapter, end.chapter);
+
+        for (let chapter = firstChapter; chapter <= lastChapter; chapter += 1) {
+            const chapterData = await loadChapter(start.bookId, chapter);
+            const firstVerse = chapter === start.chapter ? start.verse : 1;
+            const lastVerse = chapter === end.chapter ? end.verse : chapterData.verses.length;
+            appendVerses(chapterData, firstVerse, lastVerse);
+
+            if (passageVerses.length >= maxPassageVerses) break;
+        }
+    } else {
+        const startChapter = await loadChapter(start.bookId, start.chapter);
+        appendVerses(startChapter, start.verse, startChapter.verses.length);
+
+        if (passageVerses.length < maxPassageVerses) {
+            const endChapter = await loadChapter(end.bookId, end.chapter);
+            appendVerses(endChapter, 1, end.verse);
+        }
+    }
+
+    const passage = Object.freeze({
+        verses: Object.freeze(passageVerses),
+        isTruncated: passageVerses.length >= maxPassageVerses
+    });
+
+    this.bibleCrossReferencePassageCache.set(cacheKey, passage);
+    return passage;
+},
+
+renderBibleCrossReferencePopover: function({ letter, reference, passage = null, loading = false }) {
+    const label = this.formatBibleCrossReferenceLabel(reference);
+    const visibleVerses = passage?.verses?.slice(0, 4) || [];
+    const hasMoreVerses = Boolean(
+        passage && (passage.isTruncated || passage.verses.length > visibleVerses.length)
+    );
+    const passageHtml = loading
+        ? '<p class="bible-crossref-popover-loading">Cargando el texto…</p>'
+        : visibleVerses.length
+            ? `<div class="bible-crossref-passage" aria-label="Texto bíblico">
+                ${visibleVerses.map(verse => `
+                    <p class="bible-crossref-passage-verse">
+                        <sup>${verse.number}</sup>${this.escapeHtml(verse.text)}
+                    </p>
+                `).join('')}
+                ${hasMoreVerses ? '<span class="bible-crossref-passage-fade" aria-hidden="true"></span>' : ''}
+            </div>`
+            : '<p class="bible-crossref-popover-loading">No se pudo cargar el texto.</p>';
 
     return `
-        <div class="bible-crossrefs-panel" role="region" aria-label="Referencias cruzadas">
-            <div class="bible-crossrefs-head">
-                <strong>Referencias cruzadas</strong>
+        <div
+            class="bible-crossref-popover-inner"
+            role="dialog"
+            aria-modal="false"
+            aria-label="Referencia cruzada: ${this.escapeHtml(label)}"
+            aria-busy="${loading ? 'true' : 'false'}"
+        >
+            <div class="bible-crossref-popover-head">
+                <span class="bible-crossref-popover-letter" aria-hidden="true">${letter}</span>
+                <strong>${this.escapeHtml(label)}</strong>
                 <button
                     type="button"
-                    class="bible-crossrefs-close"
-                    data-action="close-cross-references"
-                    aria-label="Cerrar referencias cruzadas"
+                    class="bible-crossref-popover-close"
+                    data-action="close-cross-reference"
+                    aria-label="Cerrar referencia cruzada"
                     title="Cerrar"
-                >
-                    ×
-                </button>
+                >×</button>
             </div>
-            <div class="bible-crossrefs-list">
-                ${visibleReferences.map(reference => {
-                    const label = this.formatBibleCrossReferenceLabel(reference);
-                    const start = reference.start;
-
-                    return `
-                        <button
-                            type="button"
-                            class="bible-crossref-link"
-                            data-action="navigate-cross-reference"
-                            data-book-id="${this.escapeHtml(start.bookId)}"
-                            data-chapter="${start.chapter}"
-                            data-verse="${start.verse}"
-                        >
-                            ${this.escapeHtml(label)}
-                        </button>
-                    `;
-                }).join('')}
-            </div>
-            ${canExpand ? `
+            ${passageHtml}
+            ${loading ? '' : `
                 <button
                     type="button"
-                    class="bible-crossrefs-more"
-                    data-action="show-all-cross-references"
+                    class="bible-crossref-popover-action"
+                    data-action="navigate-to-cross-reference"
+                    data-book-id="${this.escapeHtml(reference.start.bookId)}"
+                    data-chapter="${reference.start.chapter}"
+                    data-verse="${reference.start.verse}"
                 >
-                    Ver todas
+                    Ir al texto <span aria-hidden="true">→</span>
                 </button>
-            ` : ''}
+            `}
         </div>
     `;
 },
 
-closeBibleCrossReferencesPanels: function() {
-    document.querySelectorAll('.bible-crossrefs-panel').forEach(panel => panel.remove());
-    document.querySelectorAll('[data-action="open-cross-references"]').forEach(button => {
+renderBibleCrossReferencesMorePopover: function(references) {
+    return `
+        <div
+            class="bible-crossref-popover-inner bible-crossref-more-popover"
+            role="dialog"
+            aria-modal="false"
+            aria-label="Más referencias cruzadas"
+        >
+            <div class="bible-crossref-popover-head">
+                <strong>Más referencias</strong>
+                <button
+                    type="button"
+                    class="bible-crossref-popover-close"
+                    data-action="close-cross-reference"
+                    aria-label="Cerrar referencias cruzadas"
+                    title="Cerrar"
+                >×</button>
+            </div>
+            <div class="bible-crossref-options">
+                ${references.slice(3).map((reference, offset) => {
+                    const index = offset + 3;
+                    const optionLabel = String(index + 1);
+                    const label = this.formatBibleCrossReferenceLabel(reference);
+
+                    return `
+                        <button
+                            type="button"
+                            class="bible-crossref-option"
+                            data-action="select-cross-reference"
+                            data-reference-index="${index}"
+                            aria-label="Referencia cruzada: ${this.escapeHtml(label)}"
+                        >
+                            <span class="bible-crossref-option-letter" aria-hidden="true">${optionLabel}</span>
+                            <span>${this.escapeHtml(label)}</span>
+                            <span class="bible-crossref-option-arrow" aria-hidden="true">›</span>
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
+},
+
+positionBibleCrossReferencePopover: function(anchor, popover) {
+    if (!anchor?.isConnected || !popover?.isConnected) return;
+
+    const viewportPadding = 12;
+    const maxWidth = Math.min(348, Math.max(260, window.innerWidth - viewportPadding * 2));
+    const maxHeight = Math.max(180, window.innerHeight - viewportPadding * 2);
+    const anchorRect = anchor.getBoundingClientRect();
+
+    popover.style.width = `${maxWidth}px`;
+    popover.style.maxHeight = `${maxHeight}px`;
+    popover.style.visibility = 'hidden';
+
+    const popoverRect = popover.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - anchorRect.bottom - viewportPadding;
+    const spaceAbove = anchorRect.top - viewportPadding;
+    const shouldPlaceAbove = spaceBelow < popoverRect.height && spaceAbove > spaceBelow;
+    const unclampedTop = shouldPlaceAbove
+        ? anchorRect.top - popoverRect.height - 8
+        : anchorRect.bottom + 8;
+    const top = Math.max(
+        viewportPadding,
+        Math.min(unclampedTop, window.innerHeight - popoverRect.height - viewportPadding)
+    );
+    const left = Math.max(
+        viewportPadding,
+        Math.min(anchorRect.left - 8, window.innerWidth - popoverRect.width - viewportPadding)
+    );
+
+    popover.style.top = `${top}px`;
+    popover.style.left = `${left}px`;
+    popover.style.visibility = 'visible';
+},
+
+mountBibleCrossReferencePopover: function(anchor, html, { referenceIndex = null, kind = 'passage' } = {}) {
+    this.closeBibleCrossReferencePopover();
+
+    const popover = document.createElement('div');
+    popover.className = 'bible-crossref-popover';
+    popover.setAttribute('data-bible-cross-reference-popover', 'true');
+    popover.setAttribute('tabindex', '-1');
+    popover.innerHTML = html;
+    document.body.appendChild(popover);
+
+    const updatePosition = () => {
+        this.positionBibleCrossReferencePopover(anchor, popover);
+    };
+    const handleKeydown = event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            this.closeBibleCrossReferencePopover();
+        }
+    };
+    const cleanup = () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition, true);
+        popover.removeEventListener('keydown', handleKeydown);
+    };
+
+    const state = {
+        anchor,
+        popover,
+        referenceIndex,
+        kind,
+        updatePosition,
+        cleanup
+    };
+
+    this.bibleCrossReferencePopover = state;
+    anchor.setAttribute('aria-expanded', 'true');
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    popover.addEventListener('keydown', handleKeydown);
+    updatePosition();
+    requestAnimationFrame(() => {
+        updatePosition();
+        popover.focus({ preventScroll: true });
+    });
+
+    return state;
+},
+
+closeBibleCrossReferencePopover: function() {
+    const state = this.bibleCrossReferencePopover;
+
+    if (state) {
+        state.cleanup?.();
+        state.popover?.remove();
+        state.anchor?.setAttribute('aria-expanded', 'false');
+    }
+
+    this.bibleCrossReferencePopover = null;
+    document.querySelectorAll('.bible-crossref-marker[aria-expanded="true"]').forEach(button => {
         button.setAttribute('aria-expanded', 'false');
     });
 },
 
-openBibleCrossReferences: async function(button) {
-    const verseItem = button?.closest('.verse-item');
-    if (!verseItem) return;
+openBibleCrossReference: async function(button, referenceIndex = 0) {
+    const index = Number(referenceIndex);
+    const state = this.bibleCrossReferencePopover;
 
-    const existingPanel = verseItem.querySelector('.bible-crossrefs-panel');
-    if (existingPanel) {
-        this.closeBibleCrossReferencesPanels();
+    if (state?.anchor === button && state.referenceIndex === index) {
+        this.closeBibleCrossReferencePopover();
         return;
     }
 
-    this.closeBibleCrossReferencesPanels();
+    const bookId = button?.getAttribute('data-book-id');
+    const chapter = Number(button?.getAttribute('data-chapter'));
+    const verse = Number(button?.getAttribute('data-verse'));
 
-    const bookId = button.getAttribute('data-book-id');
-    const chapter = Number(button.getAttribute('data-chapter'));
-    const verse = Number(button.getAttribute('data-verse'));
+    if (!button || !bookId || !Number.isInteger(chapter) || !Number.isInteger(verse)) return;
 
     try {
-        const references = (await crossReferencesRepository.getForVerse(bookId, chapter, verse))
-            .filter(reference => reference.votes > 0);
+        const references = await this.getBibleCrossReferencesForVerse(bookId, chapter, verse);
+        const reference = references[index];
 
-        if (!references.length) {
-            this.showToast('No hay referencias cruzadas disponibles para este versículo.');
-            return;
-        }
+        if (!reference) return;
 
-        verseItem.insertAdjacentHTML('beforeend', this.renderBibleCrossReferencesPanel(references));
-        button.setAttribute('aria-expanded', 'true');
+        const letter = String.fromCharCode(97 + index);
+        const popoverState = this.mountBibleCrossReferencePopover(
+            button,
+            this.renderBibleCrossReferencePopover({
+                letter,
+                reference,
+                loading: true
+            }),
+            { referenceIndex: index }
+        );
+
+        const passage = await this.getBibleCrossReferencePassage(reference);
+
+        if (this.bibleCrossReferencePopover !== popoverState) return;
+
+        popoverState.popover.innerHTML = this.renderBibleCrossReferencePopover({
+            letter,
+            reference,
+            passage
+        });
+        popoverState.updatePosition();
+        popoverState.popover.focus({ preventScroll: true });
     } catch (error) {
-        console.warn('[Bible] No se pudieron mostrar las referencias cruzadas:', error);
-        this.showToast('No se pudieron cargar las referencias cruzadas.');
+        console.warn('[Bible] No se pudo mostrar el pasaje de referencia:', error);
+        this.showToast('No se pudo cargar el texto de la referencia.');
     }
 },
 
-setBibleCrossReferencesExpanded: async function(button, showAll) {
-    const panel = button?.closest('.bible-crossrefs-panel');
-    const verseItem = panel?.closest('.verse-item');
-    if (!panel || !verseItem) return;
+openBibleCrossReferencesMore: async function(button) {
+    const state = this.bibleCrossReferencePopover;
 
-    const trigger = verseItem.querySelector('[data-action="open-cross-references"]');
-    const bookId = trigger?.getAttribute('data-book-id');
-    const chapter = Number(trigger?.getAttribute('data-chapter'));
-    const verse = Number(trigger?.getAttribute('data-verse'));
+    if (state?.anchor === button && state.kind === 'more') {
+        this.closeBibleCrossReferencePopover();
+        return;
+    }
+
+    const bookId = button?.getAttribute('data-book-id');
+    const chapter = Number(button?.getAttribute('data-chapter'));
+    const verse = Number(button?.getAttribute('data-verse'));
+
+    if (!button || !bookId || !Number.isInteger(chapter) || !Number.isInteger(verse)) return;
 
     try {
-        const references = (await crossReferencesRepository.getForVerse(bookId, chapter, verse))
-            .filter(reference => reference.votes > 0);
-        panel.outerHTML = this.renderBibleCrossReferencesPanel(references, showAll);
+        const references = await this.getBibleCrossReferencesForVerse(bookId, chapter, verse);
+
+        if (references.length <= 3) return;
+
+        this.mountBibleCrossReferencePopover(
+            button,
+            this.renderBibleCrossReferencesMorePopover(references),
+            { kind: 'more' }
+        );
     } catch (error) {
-        console.warn('[Bible] No se pudo ampliar la lista de referencias:', error);
+        console.warn('[Bible] No se pudieron mostrar más referencias:', error);
+        this.showToast('No se pudieron cargar más referencias.');
+    }
+},
+
+selectBibleCrossReferenceFromPopover: function(referenceIndex) {
+    const anchor = this.bibleCrossReferencePopover?.anchor;
+
+    if (anchor) {
+        this.openBibleCrossReference(anchor, Number(referenceIndex));
     }
 },
 
@@ -8000,7 +8293,7 @@ navigateToBibleCrossReference: function(button) {
     const chapter = Number(button?.getAttribute('data-chapter'));
     const verse = Number(button?.getAttribute('data-verse'));
 
-    this.closeBibleCrossReferencesPanels();
+    this.closeBibleCrossReferencePopover();
     this.navigateToVerse(bookId, chapter, verse);
 },
 
@@ -8021,37 +8314,26 @@ if (verseStudyBtn) {
     return;
 }
 
-    const crossReferencesBtn = e.target.closest('[data-action="open-cross-references"]');
-    if (crossReferencesBtn) {
+    const crossReferenceMarker = e.target.closest('[data-action="open-cross-reference"]');
+    if (crossReferenceMarker) {
         e.preventDefault();
         e.stopPropagation();
-        this.openBibleCrossReferences(crossReferencesBtn);
+        this.openBibleCrossReference(
+            crossReferenceMarker,
+            crossReferenceMarker.getAttribute('data-reference-index')
+        );
         return;
     }
 
-    const crossReferencesMoreBtn = e.target.closest('[data-action="show-all-cross-references"]');
+    const crossReferencesMoreBtn = e.target.closest('[data-action="open-more-cross-references"]');
     if (crossReferencesMoreBtn) {
         e.preventDefault();
         e.stopPropagation();
-        this.setBibleCrossReferencesExpanded(crossReferencesMoreBtn, true);
+        this.openBibleCrossReferencesMore(crossReferencesMoreBtn);
         return;
     }
 
-    const crossReferencesCloseBtn = e.target.closest('[data-action="close-cross-references"]');
-    if (crossReferencesCloseBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.closeBibleCrossReferencesPanels();
-        return;
-    }
-
-    const crossReferenceLink = e.target.closest('[data-action="navigate-cross-reference"]');
-    if (crossReferenceLink) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.navigateToBibleCrossReference(crossReferenceLink);
-        return;
-    }
+    this.closeBibleCrossReferencePopover();
 
     const verseItem = e.target.closest('.verse-selectable');
     if (!verseItem) return;
@@ -10513,6 +10795,7 @@ updateBibleReaderVersionButtons: function({ loadingVersionId = '' } = {}) {
 },
 
 async switchBibleReaderVersion(versionId) {
+    this.closeBibleCrossReferencePopover();
     const nextVersionId = String(versionId || '').trim().toLowerCase();
     const allowed = this.getBibleReaderVersions().some(version => version.id === nextVersionId);
     const previousVersionId = this.currentBibleVersion || RV1909_VERSION_ID;
@@ -10598,6 +10881,7 @@ async switchBibleReaderVersion(versionId) {
 },
 
 renderBibleReading: async function() {
+    this.closeBibleCrossReferencePopover();
     this.stopBibleChapterVoice(true);
 
     const requestedBookId = this.selectedBibleBook;
@@ -14056,6 +14340,45 @@ if (this.$headerSettingsBtn) {
         
 // Controles de fuente y versión
 document.addEventListener('click', (e) => {
+    const activeCrossReferencePopover = this.bibleCrossReferencePopover?.popover;
+    const clickedCrossReferenceTrigger = e.target.closest(
+        '[data-action="open-cross-reference"], [data-action="open-more-cross-references"]'
+    );
+
+    if (
+        activeCrossReferencePopover &&
+        !activeCrossReferencePopover.contains(e.target) &&
+        !clickedCrossReferenceTrigger
+    ) {
+        this.closeBibleCrossReferencePopover();
+    }
+
+    const closeCrossReferenceBtn = e.target.closest('[data-action="close-cross-reference"]');
+    if (closeCrossReferenceBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeBibleCrossReferencePopover();
+        return;
+    }
+
+    const navigateCrossReferenceBtn = e.target.closest('[data-action="navigate-to-cross-reference"]');
+    if (navigateCrossReferenceBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.navigateToBibleCrossReference(navigateCrossReferenceBtn);
+        return;
+    }
+
+    const selectCrossReferenceBtn = e.target.closest('[data-action="select-cross-reference"]');
+    if (selectCrossReferenceBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.selectBibleCrossReferenceFromPopover(
+            selectCrossReferenceBtn.getAttribute('data-reference-index')
+        );
+        return;
+    }
+
     const openStatsFromStreakBtn = e.target.closest('[data-action="open-stats-from-streak"]');
 
     if (openStatsFromStreakBtn) {
@@ -14099,7 +14422,7 @@ document.addEventListener('click', (e) => {
 
         return;
     }
-});
+}, true);
         
         // Eventos del contenido
      this.$content.addEventListener('click', async (e) => {
