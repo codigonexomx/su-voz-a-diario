@@ -36,6 +36,7 @@ const STATIC_ASSETS = [
   './js/bible/BibleRepository.js',
   './js/bible/FirebaseBibleApiClient.js',
   './js/bible/LocalRv1909Provider.js',
+  './js/bible/CrossReferencesRepository.js',
   './js/bible/RemoteBibleProvider.js',
   './js/services/storageService.js',
   './js/utils/dates.js',
@@ -237,6 +238,11 @@ self.addEventListener('fetch', event => {
 
   if (url.pathname.includes('/data/readings/')) {
     event.respondWith(staleWhileRevalidateStrategy(request));
+    return;
+  }
+
+  if (url.pathname.endsWith('/data/cross-references.json')) {
+    event.respondWith(cacheFirstStrategy(request));
     return;
   }
 

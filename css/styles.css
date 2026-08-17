@@ -13995,6 +13995,136 @@ body.dark-mode .bible-ref-badge:active {
     color: #111827 !important;
 }
 
+.bible-crossrefs-trigger {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    margin: 6px 0 0 8px;
+    padding: 4px 9px;
+    border: 1px solid rgba(184, 134, 11, 0.35);
+    border-radius: 8px;
+    background: rgba(184, 134, 11, 0.08);
+    color: #8a6515;
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.bible-crossrefs-trigger:hover,
+.bible-crossrefs-trigger[aria-expanded="true"] {
+    border-color: rgba(184, 134, 11, 0.62);
+    background: rgba(184, 134, 11, 0.16);
+    color: #6f4d0c;
+}
+
+.bible-crossrefs-panel {
+    max-width: 440px;
+    margin: 10px 0 2px 32px;
+    padding: 10px 12px 8px;
+    border: 1px solid rgba(184, 134, 11, 0.28);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface-color) 94%, #d4af37 6%);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.07);
+}
+
+.bible-crossrefs-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+}
+
+.bible-crossrefs-close {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.bible-crossrefs-close:hover {
+    background: rgba(184, 134, 11, 0.12);
+    color: #8a6515;
+}
+
+.bible-crossrefs-list {
+    display: grid;
+    gap: 3px;
+    margin-top: 6px;
+}
+
+.bible-crossref-link,
+.bible-crossrefs-more {
+    width: 100%;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #715417;
+    font-family: var(--font-ui);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+}
+
+.bible-crossref-link {
+    padding: 6px 8px;
+}
+
+.bible-crossrefs-more {
+    margin-top: 5px;
+    padding: 7px 8px 3px;
+    border-top: 1px solid rgba(184, 134, 11, 0.18);
+    color: #8a6515;
+    text-align: center;
+}
+
+.bible-crossref-link:hover,
+.bible-crossrefs-more:hover {
+    background: rgba(184, 134, 11, 0.11);
+    color: #4f3808;
+}
+
+body.dark-mode .bible-crossrefs-trigger {
+    border-color: rgba(212, 175, 55, 0.4);
+    background: rgba(212, 175, 55, 0.14);
+    color: #f1c40f;
+}
+
+body.dark-mode .bible-crossrefs-trigger:hover,
+body.dark-mode .bible-crossrefs-trigger[aria-expanded="true"] {
+    background: rgba(212, 175, 55, 0.22);
+    color: #ffe082;
+}
+
+body.dark-mode .bible-crossrefs-panel {
+    border-color: rgba(212, 175, 55, 0.32);
+    background: color-mix(in srgb, var(--surface-color) 92%, #8a6515 8%);
+}
+
+body.dark-mode .bible-crossref-link,
+body.dark-mode .bible-crossrefs-more {
+    color: #f1c40f;
+}
+
+@media (max-width: 640px) {
+    .bible-crossrefs-panel {
+        margin-left: 0;
+    }
+}
+
 /* Premium Floating Globito / Popover Bubble */
 .bible-ref-bubble {
     position: absolute;

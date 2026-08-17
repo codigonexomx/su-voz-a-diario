@@ -75,6 +75,10 @@ import {
 } from './bible/LocalRv1909Provider.js';
 
 import {
+    CrossReferencesRepository
+} from './bible/CrossReferencesRepository.js';
+
+import {
     REMOTE_BIBLE_VERSIONS,
     RemoteBibleProvider
 } from './bible/RemoteBibleProvider.js';
@@ -132,6 +136,7 @@ const STRONG_GREEK_PATH = './data/strong-greek-dictionary.json';
 const localRv1909Provider = new LocalRv1909Provider({
     dataPath: LOCAL_BIBLE_PATH
 });
+const crossReferencesRepository = new CrossReferencesRepository();
 const firebaseBibleApiClient = new FirebaseBibleApiClient();
 const remoteBibleProvider = new RemoteBibleProvider({
     versions: REMOTE_BIBLE_VERSIONS,
@@ -155,7 +160,12 @@ function getBibleReaderVersionId() {
     return window.App?.sessionOverrideBibleVersion || window.App?.currentBibleVersion || RV1909_VERSION_ID;
 }
 
-async function getBibleChapter(bookId, chapterNumber, versionId = getBibleReaderVersionId()) {
+async function getBibleChapter(
+    bookId,
+    chapterNumber,
+    versionId = getBibleReaderVersionId(),
+    { crossReferencesByVerse = null } = {}
+) {
     const chapterData = await bibleRepository.getChapter(
         versionId,
         bookId,
@@ -188,6 +198,9 @@ const text = verse.text;
 
                 let finalTokenizedText = tokenizedText;
                 const totalRefs = (verse.footnotes?.length || 0) + (verse.crossReferences?.length || 0);
+                const verseCrossReferences = crossReferencesByVerse?.[verseNumber] || [];
+                const hasPositiveCrossReferences = verseCrossReferences.some(reference => reference.votes > 0);
+                const referenceLabel = verse.reference || `${chapterData.bookName} ${chapterNumber}:${verseNumber}`;
 
                 if (finalTokenizedText.includes('[[REF:')) {
                     finalTokenizedText = finalTokenizedText.replace(/\[\[REF:([fc]):([^\]]+)\]\]/g, (match, type, encodedData) => {
@@ -208,6 +221,21 @@ const text = verse.text;
                     finalTokenizedText += `<button type="button" class="bible-ref-badge" data-refs="${refsData}" onclick="App.toggleReferenceBubble(event, this)" title="Ver nota">${totalRefs}</button>`;
                 }
 
+                const crossReferencesAction = hasPositiveCrossReferences
+                    ? `<button
+                        type="button"
+                        class="bible-crossrefs-trigger"
+                        data-action="open-cross-references"
+                        data-book-id="${escapeHtml(chapterData.bookId)}"
+                        data-chapter="${chapterNumber}"
+                        data-verse="${verseNumber}"
+                        aria-expanded="false"
+                        aria-label="Ver referencias de ${escapeHtml(referenceLabel)}"
+                    >
+                        Referencias
+                    </button>`
+                    : '';
+
                 return `
                     ${extraHtml}
                     <p
@@ -218,6 +246,7 @@ const text = verse.text;
                     >
                         <span class="verse-number" data-verse-number="${verseNumber}">${verseNumber}</span>
                         <span class="verse-text">${finalTokenizedText}</span>
+                        ${crossReferencesAction}
                     </p>
                 `;
             }).join('')}
@@ -7822,6 +7851,159 @@ normalizeBibleText: function(text) {
     return (text || '').replace(/\s+/g, ' ').trim();
 },
 
+getBibleChapterCrossReferences: async function(bookId, chapter, versionId = this.currentBibleVersion) {
+    if (String(versionId || '').trim().toLowerCase() !== RV1909_VERSION_ID) {
+        return null;
+    }
+
+    try {
+        return await crossReferencesRepository.getForChapter(bookId, chapter);
+    } catch (error) {
+        console.warn('[Bible] No se pudieron cargar las referencias cruzadas:', error);
+        return null;
+    }
+},
+
+formatBibleCrossReferenceLabel: function(reference) {
+    const start = reference?.start;
+    const end = reference?.end || start;
+
+    if (!start || !end) return '';
+
+    const startBook = this.getBibleBookById(start.bookId);
+    const endBook = this.getBibleBookById(end.bookId);
+    const startName = startBook?.name || start.bookId;
+    const endName = endBook?.name || end.bookId;
+    const dash = String.fromCharCode(0x2013);
+
+    if (start.bookId === end.bookId && start.chapter === end.chapter) {
+        return `${startName} ${start.chapter}:${start.verse}${end.verse !== start.verse ? `${dash}${end.verse}` : ''}`;
+    }
+
+    const startLabel = `${startName} ${start.chapter}:${start.verse}`;
+    const endLabel = `${endName} ${end.chapter}:${end.verse}`;
+
+    return endLabel === startLabel ? startLabel : `${startLabel}${dash}${endLabel}`;
+},
+
+renderBibleCrossReferencesPanel: function(references, showAll = false) {
+    const visibleReferences = showAll ? references : references.slice(0, 10);
+    const canExpand = references.length > 10 && !showAll;
+
+    return `
+        <div class="bible-crossrefs-panel" role="region" aria-label="Referencias cruzadas">
+            <div class="bible-crossrefs-head">
+                <strong>Referencias cruzadas</strong>
+                <button
+                    type="button"
+                    class="bible-crossrefs-close"
+                    data-action="close-cross-references"
+                    aria-label="Cerrar referencias cruzadas"
+                    title="Cerrar"
+                >
+                    ×
+                </button>
+            </div>
+            <div class="bible-crossrefs-list">
+                ${visibleReferences.map(reference => {
+                    const label = this.formatBibleCrossReferenceLabel(reference);
+                    const start = reference.start;
+
+                    return `
+                        <button
+                            type="button"
+                            class="bible-crossref-link"
+                            data-action="navigate-cross-reference"
+                            data-book-id="${this.escapeHtml(start.bookId)}"
+                            data-chapter="${start.chapter}"
+                            data-verse="${start.verse}"
+                        >
+                            ${this.escapeHtml(label)}
+                        </button>
+                    `;
+                }).join('')}
+            </div>
+            ${canExpand ? `
+                <button
+                    type="button"
+                    class="bible-crossrefs-more"
+                    data-action="show-all-cross-references"
+                >
+                    Ver todas
+                </button>
+            ` : ''}
+        </div>
+    `;
+},
+
+closeBibleCrossReferencesPanels: function() {
+    document.querySelectorAll('.bible-crossrefs-panel').forEach(panel => panel.remove());
+    document.querySelectorAll('[data-action="open-cross-references"]').forEach(button => {
+        button.setAttribute('aria-expanded', 'false');
+    });
+},
+
+openBibleCrossReferences: async function(button) {
+    const verseItem = button?.closest('.verse-item');
+    if (!verseItem) return;
+
+    const existingPanel = verseItem.querySelector('.bible-crossrefs-panel');
+    if (existingPanel) {
+        this.closeBibleCrossReferencesPanels();
+        return;
+    }
+
+    this.closeBibleCrossReferencesPanels();
+
+    const bookId = button.getAttribute('data-book-id');
+    const chapter = Number(button.getAttribute('data-chapter'));
+    const verse = Number(button.getAttribute('data-verse'));
+
+    try {
+        const references = (await crossReferencesRepository.getForVerse(bookId, chapter, verse))
+            .filter(reference => reference.votes > 0);
+
+        if (!references.length) {
+            this.showToast('No hay referencias cruzadas disponibles para este versículo.');
+            return;
+        }
+
+        verseItem.insertAdjacentHTML('beforeend', this.renderBibleCrossReferencesPanel(references));
+        button.setAttribute('aria-expanded', 'true');
+    } catch (error) {
+        console.warn('[Bible] No se pudieron mostrar las referencias cruzadas:', error);
+        this.showToast('No se pudieron cargar las referencias cruzadas.');
+    }
+},
+
+setBibleCrossReferencesExpanded: async function(button, showAll) {
+    const panel = button?.closest('.bible-crossrefs-panel');
+    const verseItem = panel?.closest('.verse-item');
+    if (!panel || !verseItem) return;
+
+    const trigger = verseItem.querySelector('[data-action="open-cross-references"]');
+    const bookId = trigger?.getAttribute('data-book-id');
+    const chapter = Number(trigger?.getAttribute('data-chapter'));
+    const verse = Number(trigger?.getAttribute('data-verse'));
+
+    try {
+        const references = (await crossReferencesRepository.getForVerse(bookId, chapter, verse))
+            .filter(reference => reference.votes > 0);
+        panel.outerHTML = this.renderBibleCrossReferencesPanel(references, showAll);
+    } catch (error) {
+        console.warn('[Bible] No se pudo ampliar la lista de referencias:', error);
+    }
+},
+
+navigateToBibleCrossReference: function(button) {
+    const bookId = button?.getAttribute('data-book-id');
+    const chapter = Number(button?.getAttribute('data-chapter'));
+    const verse = Number(button?.getAttribute('data-verse'));
+
+    this.closeBibleCrossReferencesPanels();
+    this.navigateToVerse(bookId, chapter, verse);
+},
+
 handleVerseClick: function(e) {
    const verseStudyBtn = e.target.closest('[data-action="open-verse-study"]');
 
@@ -7838,6 +8020,38 @@ if (verseStudyBtn) {
 
     return;
 }
+
+    const crossReferencesBtn = e.target.closest('[data-action="open-cross-references"]');
+    if (crossReferencesBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openBibleCrossReferences(crossReferencesBtn);
+        return;
+    }
+
+    const crossReferencesMoreBtn = e.target.closest('[data-action="show-all-cross-references"]');
+    if (crossReferencesMoreBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.setBibleCrossReferencesExpanded(crossReferencesMoreBtn, true);
+        return;
+    }
+
+    const crossReferencesCloseBtn = e.target.closest('[data-action="close-cross-references"]');
+    if (crossReferencesCloseBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.closeBibleCrossReferencesPanels();
+        return;
+    }
+
+    const crossReferenceLink = e.target.closest('[data-action="navigate-cross-reference"]');
+    if (crossReferenceLink) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.navigateToBibleCrossReference(crossReferenceLink);
+        return;
+    }
 
     const verseItem = e.target.closest('.verse-selectable');
     if (!verseItem) return;
@@ -10322,10 +10536,16 @@ async switchBibleReaderVersion(versionId) {
     }
 
     try {
-        const chapterData = await getBibleChapter(
+        const crossReferencesByVerse = await this.getBibleChapterCrossReferences(
             requestedBookId,
             requestedChapter,
             nextVersionId
+        );
+        const chapterData = await getBibleChapter(
+            requestedBookId,
+            requestedChapter,
+            nextVersionId,
+            { crossReferencesByVerse }
         );
 
         if (
@@ -10481,7 +10701,18 @@ renderBibleReading: async function() {
     `);
 
     try {
-        const chapterData = await getBibleChapter(requestedBookId, requestedChapter);
+        const requestedVersionId = getBibleReaderVersionId();
+        const crossReferencesByVerse = await this.getBibleChapterCrossReferences(
+            requestedBookId,
+            requestedChapter,
+            requestedVersionId
+        );
+        const chapterData = await getBibleChapter(
+            requestedBookId,
+            requestedChapter,
+            requestedVersionId,
+            { crossReferencesByVerse }
+        );
 
         if (
             this.currentView !== 'bible-reading' ||
