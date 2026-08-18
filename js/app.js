@@ -79,6 +79,10 @@ import {
 } from './bible/CrossReferencesRepository.js';
 
 import {
+    SectionHeadingsRepository
+} from './bible/SectionHeadingsRepository.js';
+
+import {
     REMOTE_BIBLE_VERSIONS,
     RemoteBibleProvider
 } from './bible/RemoteBibleProvider.js';
@@ -160,10 +164,24 @@ function getCrossReferenceMarkerLabel(index) {
     return label;
 }
 
+function getSectionHeadingMarker(heading) {
+    const marker = String(heading?.marker || '').trim().toLowerCase();
+
+    if (['ms1', 's1', 's2'].includes(marker)) return marker;
+    return Number(heading?.level) >= 2 ? 's2' : 's1';
+}
+
+function getSectionHeadingAriaLevel(marker) {
+    if (marker === 'ms1') return 2;
+    if (marker === 's2') return 4;
+    return 3;
+}
+
 const localRv1909Provider = new LocalRv1909Provider({
     dataPath: LOCAL_BIBLE_PATH
 });
 const crossReferencesRepository = new CrossReferencesRepository();
+const sectionHeadingsRepository = new SectionHeadingsRepository();
 const firebaseBibleApiClient = new FirebaseBibleApiClient();
 const remoteBibleProvider = new RemoteBibleProvider({
     versions: REMOTE_BIBLE_VERSIONS,
@@ -191,7 +209,7 @@ async function getBibleChapter(
     bookId,
     chapterNumber,
     versionId = getBibleReaderVersionId(),
-    { crossReferencesByVerse = null } = {}
+    { crossReferencesByVerse = null, sectionHeadingsByVerse = null } = {}
 ) {
     const chapterData = await bibleRepository.getChapter(
         versionId,
@@ -239,6 +257,26 @@ const text = verse.text;
                     extraHtml += `<h3 class="bible-reader-subtitle">${escapeBibleHtml(verse.subtitle)}</h3>`;
                 }
 
+                const sectionHeadingHtml = (sectionHeadingsByVerse?.[verseNumber] || [])
+                    .map(heading => {
+                        const title = String(heading?.title ?? '');
+                        if (!title) return '';
+
+                        const marker = getSectionHeadingMarker(heading);
+                        const ariaLevel = getSectionHeadingAriaLevel(marker);
+
+                        return `
+                            <div
+                                class="bible-section-heading bible-section-heading-${marker}"
+                                data-section-heading="true"
+                                data-section-heading-marker="${marker}"
+                                role="heading"
+                                aria-level="${ariaLevel}"
+                            >${escapeBibleHtml(title)}</div>
+                        `;
+                    })
+                    .join('');
+
                 let finalTokenizedText = tokenizedText;
                 const totalRefs = (verse.footnotes?.length || 0) + (verse.crossReferences?.length || 0);
                 const crossReferenceMarker = crossReferenceMarkersByVerse.get(verseNumber);
@@ -282,6 +320,7 @@ const text = verse.text;
 
                 return `
                     ${extraHtml}
+                    ${sectionHeadingHtml}
                     <p
                         class="verse-item verse-selectable"
                         data-verse-number="${verseNumber}"
@@ -7947,6 +7986,19 @@ getBibleChapterCrossReferences: async function(bookId, chapter, versionId = this
     }
 },
 
+getBibleChapterSectionHeadings: async function(bookId, chapter, versionId = this.currentBibleVersion) {
+    if (String(versionId || '').trim().toLowerCase() !== RV1909_VERSION_ID) {
+        return null;
+    }
+
+    try {
+        return await sectionHeadingsRepository.getForChapter(bookId, chapter);
+    } catch (error) {
+        console.warn('[Bible] No se pudieron cargar los encabezados de sección:', error);
+        return null;
+    }
+},
+
 getPositiveBibleCrossReferences: function(references) {
     return (Array.isArray(references) ? references : [])
         .filter(reference => Number(reference?.votes) > 0)
@@ -11060,16 +11112,19 @@ async switchBibleReaderVersion(versionId) {
     }
 
     try {
-        const crossReferencesByVerse = await this.getBibleChapterCrossReferences(
-            requestedBookId,
-            requestedChapter,
-            nextVersionId
-        );
+        const [crossReferencesByVerse, sectionHeadingsByVerse] = await Promise.all([
+            this.getBibleChapterCrossReferences(
+                requestedBookId,
+                requestedChapter,
+                nextVersionId
+            ),
+            this.getBibleChapterSectionHeadings(requestedBookId, requestedChapter, nextVersionId)
+        ]);
         const chapterData = await getBibleChapter(
             requestedBookId,
             requestedChapter,
             nextVersionId,
-            { crossReferencesByVerse }
+            { crossReferencesByVerse, sectionHeadingsByVerse }
         );
 
         if (
@@ -11227,16 +11282,19 @@ renderBibleReading: async function() {
 
     try {
         const requestedVersionId = getBibleReaderVersionId();
-        const crossReferencesByVerse = await this.getBibleChapterCrossReferences(
-            requestedBookId,
-            requestedChapter,
-            requestedVersionId
-        );
+        const [crossReferencesByVerse, sectionHeadingsByVerse] = await Promise.all([
+            this.getBibleChapterCrossReferences(
+                requestedBookId,
+                requestedChapter,
+                requestedVersionId
+            ),
+            this.getBibleChapterSectionHeadings(requestedBookId, requestedChapter, requestedVersionId)
+        ]);
         const chapterData = await getBibleChapter(
             requestedBookId,
             requestedChapter,
             requestedVersionId,
-            { crossReferencesByVerse }
+            { crossReferencesByVerse, sectionHeadingsByVerse }
         );
 
         if (

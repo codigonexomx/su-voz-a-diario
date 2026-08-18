@@ -9298,6 +9298,53 @@ body.bible-version-picker-open .bottom-nav {
     gap: 9px;
 }
 
+.bible-reader-content .bible-section-heading {
+    display: block;
+    max-width: 100%;
+    min-width: 0;
+    margin: 1.25rem 0 0.2rem;
+    padding: 0;
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    text-align: left;
+}
+
+.bible-reader-content .verse-container > .bible-section-heading:first-child {
+    margin-top: 0.35rem;
+}
+
+.bible-reader-content .bible-section-heading + .bible-section-heading {
+    margin-top: 0.2rem;
+}
+
+.bible-reader-content .bible-section-heading + .verse-item {
+    margin-top: 0;
+}
+
+.bible-reader-content .bible-section-heading-ms1 {
+    margin-top: 1.55rem;
+    color: var(--text-main);
+    font-family: var(--font-reading);
+    font-size: 1.04rem;
+    font-weight: 750;
+}
+
+.bible-reader-content .bible-section-heading-s1 {
+    color: var(--text-main);
+    font-size: 0.95rem;
+    font-weight: 750;
+}
+
+.bible-reader-content .bible-section-heading-s2 {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
 .bible-reader-content .verse-item {
     position: relative;
     margin: 0;
@@ -9698,6 +9745,16 @@ body.dark-mode .bible-reader-content .verse-item {
     margin-left: 12px;
 }
 
+body.dark-mode .bible-reader-content .bible-section-heading,
+body.dark-mode .bible-reader-content .bible-section-heading-ms1,
+body.dark-mode .bible-reader-content .bible-section-heading-s1 {
+    color: var(--text-main);
+}
+
+body.dark-mode .bible-reader-content .bible-section-heading-s2 {
+    color: var(--text-muted);
+}
+
 body.dark-mode .bible-reader-context-bar,
 body.dark-mode .bible-reading-settings-panel {
     background: rgba(10, 17, 24, 0.85);
@@ -9846,6 +9903,18 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
     .bible-reader-content .verse-item {
         line-height: 1.74;
+    }
+
+    .bible-reader-content .bible-section-heading-ms1 {
+        font-size: 0.98rem;
+    }
+
+    .bible-reader-content .bible-section-heading-s1 {
+        font-size: 0.9rem;
+    }
+
+    .bible-reader-content .bible-section-heading-s2 {
+        font-size: 0.82rem;
     }
 
     .bible-reader-spacing-compact .bible-reader-content .verse-item {
