@@ -8217,12 +8217,126 @@ renderBibleCrossReferencePanel: function(state) {
 positionBibleCrossReferencePopover: function(anchor, popover) {
     if (!anchor?.isConnected || !popover?.isConnected) return;
 
-    const viewportPadding = 12;
-    const maxWidth = Math.min(640, Math.max(280, window.innerWidth - viewportPadding * 2));
-    const maxHeight = Math.max(180, Math.min(360, window.innerHeight - 190));
+    const visualViewport = window.visualViewport;
+    const viewportLeft = Number(visualViewport?.offsetLeft) || 0;
+    const viewportTop = Number(visualViewport?.offsetTop) || 0;
+    const viewportWidth = Number(visualViewport?.width) || window.innerWidth;
+    const viewportHeight = Number(visualViewport?.height) || window.innerHeight;
+    const viewportRight = viewportLeft + viewportWidth;
+    const viewportBottom = viewportTop + viewportHeight;
+    const viewportPadding = Math.min(16, Math.max(10, viewportWidth * 0.04));
+    const anchorRect = anchor.getBoundingClientRect();
+    const anchorIsVisible = (
+        anchorRect.bottom > viewportTop &&
+        anchorRect.top < viewportBottom &&
+        anchorRect.right > viewportLeft &&
+        anchorRect.left < viewportRight
+    );
+
+    if (!anchorIsVisible) {
+        this.closeBibleCrossReferencePopover();
+        return;
+    }
+
+    const getVisibleRect = selector => {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+
+        const style = window.getComputedStyle(element);
+        const rect = element.getBoundingClientRect();
+
+        if (
+            style.display === 'none' ||
+            style.visibility === 'hidden' ||
+            rect.width <= 0 ||
+            rect.height <= 0
+        ) {
+            return null;
+        }
+
+        return rect;
+    };
+
+    const topObstacles = [
+        getVisibleRect('.app-header'),
+        getVisibleRect('.bible-reader-fixed-header')
+    ].filter(Boolean);
+    const bottomObstacles = [
+        getVisibleRect('.bible-reader-context-bar'),
+        getVisibleRect('.bottom-nav')
+    ].filter(Boolean);
+
+    let topBoundary = Math.max(
+        viewportTop + viewportPadding,
+        ...topObstacles.map(rect => rect.bottom + 8)
+    );
+    let bottomBoundary = Math.min(
+        viewportBottom - viewportPadding,
+        ...bottomObstacles.map(rect => rect.top - 8)
+    );
+    const minimumPanelHeight = 112;
+
+    if (bottomBoundary - topBoundary < minimumPanelHeight) {
+        topBoundary = viewportTop + viewportPadding;
+        bottomBoundary = viewportBottom - viewportPadding;
+    }
+
+    const maxWidth = Math.max(0, Math.min(420, viewportWidth - viewportPadding * 2));
+    const anchorCenter = anchorRect.left + anchorRect.width / 2;
+    const gap = 10;
 
     popover.style.width = `${maxWidth}px`;
-    popover.style.maxHeight = `${maxHeight}px`;
+    popover.style.left = `${viewportLeft + viewportPadding}px`;
+    popover.style.top = `${topBoundary}px`;
+    popover.style.setProperty('--bible-crossref-max-height', 'none');
+    popover.classList.remove('is-above', 'is-below');
+
+    const measuredRect = popover.getBoundingClientRect();
+    const availableBelow = Math.max(0, bottomBoundary - anchorRect.bottom - gap);
+    const availableAbove = Math.max(0, anchorRect.top - topBoundary - gap);
+    const fitsBelow = availableBelow >= measuredRect.height;
+    const fitsAbove = availableAbove >= measuredRect.height;
+    const placeBelow = fitsBelow || (!fitsAbove && availableBelow >= availableAbove);
+    const availableHeight = placeBelow ? availableBelow : availableAbove;
+    const panelHeight = Math.max(
+        Math.min(measuredRect.height, availableHeight || measuredRect.height),
+        Math.min(minimumPanelHeight, viewportHeight - viewportPadding * 2)
+    );
+    const unclampedTop = placeBelow
+        ? anchorRect.bottom + gap
+        : anchorRect.top - panelHeight - gap;
+    const maxTop = Math.max(topBoundary, bottomBoundary - panelHeight);
+    const top = Math.max(topBoundary, Math.min(unclampedTop, maxTop));
+    const minLeft = viewportLeft + viewportPadding;
+    const maxLeft = Math.max(minLeft, viewportRight - viewportPadding - measuredRect.width);
+    const left = Math.max(
+        minLeft,
+        Math.min(anchorCenter - measuredRect.width / 2, maxLeft)
+    );
+    const caretLeft = Math.max(
+        16,
+        Math.min(anchorCenter - left, measuredRect.width - 16)
+    );
+
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
+    popover.style.setProperty('--bible-crossref-caret-left', `${caretLeft}px`);
+    popover.style.setProperty('--bible-crossref-max-height', `${panelHeight}px`);
+    popover.classList.toggle('is-below', placeBelow);
+    popover.classList.toggle('is-above', !placeBelow);
+
+    const finalAnchorRect = anchor.getBoundingClientRect();
+    const finalPopoverRect = popover.getBoundingClientRect();
+    const finalCaretLeft = Math.max(
+        16,
+        Math.min(
+            finalAnchorRect.left + finalAnchorRect.width / 2 - finalPopoverRect.left,
+            finalPopoverRect.width - 16
+        )
+    );
+
+    popover.style.setProperty('--bible-crossref-caret-left', `${finalCaretLeft}px`);
+    popover.style.visibility = 'visible';
 },
 
 pushBibleCrossReferenceHistory: function(view) {
@@ -8259,6 +8373,8 @@ mountBibleCrossReferencePopover: function(anchor, state) {
     const cleanup = () => {
         window.removeEventListener('resize', updatePosition);
         window.removeEventListener('scroll', updatePosition, true);
+        window.visualViewport?.removeEventListener('resize', updatePosition);
+        window.visualViewport?.removeEventListener('scroll', updatePosition);
         popover.removeEventListener('keydown', handleKeydown);
     };
 
@@ -8272,8 +8388,11 @@ mountBibleCrossReferencePopover: function(anchor, state) {
 
     this.bibleCrossReferencePopover = popoverState;
     anchor.setAttribute('aria-expanded', 'true');
+    popover.style.visibility = 'hidden';
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
+    window.visualViewport?.addEventListener('resize', updatePosition);
+    window.visualViewport?.addEventListener('scroll', updatePosition);
     popover.addEventListener('keydown', handleKeydown);
     updatePosition();
     requestAnimationFrame(() => {
