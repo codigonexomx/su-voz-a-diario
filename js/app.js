@@ -83,6 +83,10 @@ import {
 } from './bible/SectionHeadingsRepository.js';
 
 import {
+    FootnotesRepository
+} from './bible/FootnotesRepository.js';
+
+import {
     REMOTE_BIBLE_VERSIONS,
     RemoteBibleProvider
 } from './bible/RemoteBibleProvider.js';
@@ -177,11 +181,143 @@ function getSectionHeadingAriaLevel(marker) {
     return 3;
 }
 
+const BIBLE_FOOTNOTE_SUPERSCRIPTS = Object.freeze({
+    '0': '⁰',
+    '1': '¹',
+    '2': '²',
+    '3': '³',
+    '4': '⁴',
+    '5': '⁵',
+    '6': '⁶',
+    '7': '⁷',
+    '8': '⁸',
+    '9': '⁹'
+});
+
+function getBibleFootnoteSuperscript(number) {
+    return String(number)
+        .split('')
+        .map(digit => BIBLE_FOOTNOTE_SUPERSCRIPTS[digit] || digit)
+        .join('');
+}
+
+function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isRenderableBibleFootnote(note, text) {
+    const anchor = note?.rv1909_anchor;
+
+    if (anchor?.display !== true) return false;
+    if (!['inline', 'verse_end'].includes(anchor.placement)) return false;
+    if (anchor.placement === 'verse_end') return true;
+
+    return Number.isInteger(anchor.char_offset)
+        && anchor.char_offset >= 0
+        && anchor.char_offset <= String(text || '').length;
+}
+
+function sortBibleFootnotesForDisplay(notes) {
+    return (Array.isArray(notes) ? notes : [])
+        .map((note, index) => ({ note, index }))
+        .sort((left, right) => {
+            const leftAnchor = left.note?.rv1909_anchor || {};
+            const rightAnchor = right.note?.rv1909_anchor || {};
+            const leftPlacement = leftAnchor.placement === 'verse_end' ? 1 : 0;
+            const rightPlacement = rightAnchor.placement === 'verse_end' ? 1 : 0;
+
+            if (leftPlacement !== rightPlacement) return leftPlacement - rightPlacement;
+
+            if (leftPlacement === 0 && leftAnchor.char_offset !== rightAnchor.char_offset) {
+                return Number(leftAnchor.char_offset) - Number(rightAnchor.char_offset);
+            }
+
+            return left.index - right.index;
+        })
+        .map(item => item.note);
+}
+
+function renderBibleFootnoteMarker(note, number) {
+    const superscript = getBibleFootnoteSuperscript(number);
+    const noteId = escapeBibleHtml(note?.id || '');
+    const encodedText = escapeBibleHtml(encodeURIComponent(String(note?.text || '')));
+
+    return `<button
+        type="button"
+        class="bible-footnote-marker"
+        data-action="open-bible-footnote"
+        data-footnote-id="${noteId}"
+        data-footnote-number="${number}"
+        data-footnote-text="${encodedText}"
+        aria-expanded="false"
+        aria-label="Nota al pie ${number}"
+        title="Nota al pie ${number}"
+        onpointerdown="event.stopPropagation()"
+        ontouchstart="event.stopPropagation()"
+        onmousedown="event.stopPropagation()"
+    ><sup aria-hidden="true">${superscript}</sup></button>`;
+}
+
+function renderBibleTextWithFootnotes(text, strongTokens, footnotes) {
+    const sourceText = String(text || '');
+    const inlineInsertions = new Map();
+    const verseEndMarkers = [];
+    const markersByPlaceholder = new Map();
+
+    footnotes.forEach((note, index) => {
+        const anchor = note?.rv1909_anchor || {};
+        const marker = renderBibleFootnoteMarker(note, note.number);
+
+        if (anchor.placement === 'verse_end') {
+            verseEndMarkers.push(marker);
+            return;
+        }
+
+        const placeholder = `__SUVOZ_FOOTNOTE_${index}_${String(note.id || '').replace(/[^a-zA-Z0-9]/g, '_')}__`;
+        markersByPlaceholder.set(placeholder, marker);
+
+        if (!inlineInsertions.has(anchor.char_offset)) {
+            inlineInsertions.set(anchor.char_offset, []);
+        }
+
+        inlineInsertions.get(anchor.char_offset).push(placeholder);
+    });
+
+    const offsets = Array.from(inlineInsertions.keys()).sort((left, right) => left - right);
+    let annotatedText = '';
+    let cursor = 0;
+
+    offsets.forEach(offset => {
+        annotatedText += sourceText.slice(cursor, offset);
+        annotatedText += inlineInsertions.get(offset).join('');
+        cursor = offset;
+    });
+    annotatedText += sourceText.slice(cursor);
+
+    let tokenizedText = window.App?.tokenizeVerseText(
+        annotatedText,
+        strongTokens
+    ) || escapeBibleHtml(annotatedText);
+
+    markersByPlaceholder.forEach((marker, placeholder) => {
+        const escapedPlaceholder = escapeRegExp(placeholder);
+
+        tokenizedText = tokenizedText.replace(
+            new RegExp(`(data-word="[^"]*)${escapedPlaceholder}([^"]*")`, 'g'),
+            '$1$2'
+        );
+        tokenizedText = tokenizedText.split(placeholder).join(marker);
+    });
+
+    return tokenizedText + verseEndMarkers.join('');
+}
+
 const localRv1909Provider = new LocalRv1909Provider({
     dataPath: LOCAL_BIBLE_PATH
 });
 const crossReferencesRepository = new CrossReferencesRepository();
 const sectionHeadingsRepository = new SectionHeadingsRepository();
+const footnotesRepository = new FootnotesRepository();
 const firebaseBibleApiClient = new FirebaseBibleApiClient();
 const remoteBibleProvider = new RemoteBibleProvider({
     versions: REMOTE_BIBLE_VERSIONS,
@@ -209,7 +345,11 @@ async function getBibleChapter(
     bookId,
     chapterNumber,
     versionId = getBibleReaderVersionId(),
-    { crossReferencesByVerse = null, sectionHeadingsByVerse = null } = {}
+    {
+        crossReferencesByVerse = null,
+        sectionHeadingsByVerse = null,
+        footnotesByVerse = null
+    } = {}
 ) {
     const chapterData = await bibleRepository.getChapter(
         versionId,
@@ -233,6 +373,22 @@ async function getBibleChapter(
         crossReferenceMarkerIndex += 1;
     });
 
+    const footnoteMarkersByVerse = new Map();
+    let footnoteMarkerIndex = 0;
+
+    chapterData.verses.forEach(verse => {
+        const notes = sortBibleFootnotesForDisplay(footnotesByVerse?.[verse.number])
+            .filter(note => isRenderableBibleFootnote(note, verse.text))
+            .map(note => ({
+                ...note,
+                number: ++footnoteMarkerIndex
+            }));
+
+        if (notes.length) {
+            footnoteMarkersByVerse.set(verse.number, notes);
+        }
+    });
+
 const content = `
         <div class="verse-container">
             ${chapterData.verses.map(verse => {
@@ -247,10 +403,11 @@ const text = verse.text;
                     verseNumber
                 );
 
-                const tokenizedText = window.App?.tokenizeVerseText(
+                const tokenizedText = renderBibleTextWithFootnotes(
                     text,
-                    strongTokens
-                ) || escapeBibleHtml(text);
+                    strongTokens,
+                    footnoteMarkersByVerse.get(verseNumber) || []
+                );
 
                 let extraHtml = '';
                 if (verse.subtitle) {
@@ -633,6 +790,7 @@ const App = {
     searchTimeout: null,
     bibleSearchComposing: false,
     targetVerse: null,
+    bibleFootnotePopover: null,
     bibleCrossReferencePopover: null,
     bibleCrossReferencePassageCache: new Map(),
     bibleCrossReferenceHistoryDepth: 0,
@@ -6740,6 +6898,7 @@ handleBibleCrossReferencePopState: function(event) {
 },
 
 closeTransientBibleUI: function() {
+    this.closeBibleFootnotePopover();
     this.closeBibleCrossReferencePopover({ restoreHistory: false });
     this.bibleCrossReferenceHistoryDepth = 0;
     this.bibleReaderPickerOpen = false;
@@ -7999,6 +8158,84 @@ getBibleChapterSectionHeadings: async function(bookId, chapter, versionId = this
     }
 },
 
+getBibleChapterFootnotes: async function(bookId, chapter, versionId = this.currentBibleVersion) {
+    if (String(versionId || '').trim().toLowerCase() !== RV1909_VERSION_ID) {
+        return null;
+    }
+
+    try {
+        return await footnotesRepository.getForChapter(bookId, chapter);
+    } catch (error) {
+        console.warn('[Bible] No se pudieron cargar las notas al pie:', error);
+        return null;
+    }
+},
+
+hydrateBibleChapterFootnotes: async function({
+    bookId,
+    chapter,
+    versionId,
+    requestedBook,
+    crossReferencesByVerse,
+    sectionHeadingsByVerse,
+    footnotesPromise
+} = {}) {
+    try {
+        const footnotesByVerse = await footnotesPromise;
+        if (!footnotesByVerse) return;
+
+        if (
+            this.currentView !== 'bible-reading'
+            || this.selectedBibleBook !== bookId
+            || Number(this.selectedBibleChapter) !== Number(chapter)
+            || this.currentBibleVersion !== versionId
+        ) {
+            return;
+        }
+
+        const chapterData = await getBibleChapter(
+            bookId,
+            chapter,
+            versionId,
+            { crossReferencesByVerse, sectionHeadingsByVerse, footnotesByVerse }
+        );
+
+        if (
+            this.currentView !== 'bible-reading'
+            || this.selectedBibleBook !== bookId
+            || Number(this.selectedBibleChapter) !== Number(chapter)
+            || this.currentBibleVersion !== versionId
+        ) {
+            return;
+        }
+
+        const currentShell = this.$content?.querySelector('.reading-text-shell');
+        if (!currentShell) return;
+
+        const anchor = this.captureBibleReaderScrollAnchor();
+        const readingDateKey = createBibleReadingKey(
+            chapterData.versionId,
+            bookId,
+            chapter
+        );
+
+        this.currentBibleChapterData = chapterData;
+        currentShell.outerHTML = `
+            <div class="reading-text-shell" data-reading-date="${this.escapeHtml(readingDateKey)}">
+                <div class="reading-text bible-api-content selection-surface">
+                    ${this.renderBibleChapterVoiceControl(requestedBook.name, chapter)}
+                    ${chapterData.content || '<p style="text-align: center; color: var(--text-muted);">No se pudo cargar el contenido.</p>'}
+                </div>
+            </div>
+        `;
+
+        this.restoreHighlightsInDOMForVerses(readingDateKey);
+        this.restoreBibleReaderScrollAnchor(anchor);
+    } catch (error) {
+        console.warn('[Bible] No se pudieron hidratar las notas al pie:', error);
+    }
+},
+
 getPositiveBibleCrossReferences: function(references) {
     return (Array.isArray(references) ? references : [])
         .filter(reference => Number(reference?.votes) > 0)
@@ -8264,6 +8501,172 @@ renderBibleCrossReferencePanel: function(state) {
     return state.view === 'text'
         ? this.renderBibleCrossReferencePassage(state)
         : this.renderBibleCrossReferenceList(state);
+},
+
+positionBibleFootnotePopover: function(anchor, popover) {
+    if (!anchor?.isConnected || !popover?.isConnected) return;
+
+    const visualViewport = window.visualViewport;
+    const viewportLeft = Number(visualViewport?.offsetLeft) || 0;
+    const viewportTop = Number(visualViewport?.offsetTop) || 0;
+    const viewportWidth = Number(visualViewport?.width) || window.innerWidth;
+    const viewportHeight = Number(visualViewport?.height) || window.innerHeight;
+    const viewportRight = viewportLeft + viewportWidth;
+    const viewportBottom = viewportTop + viewportHeight;
+    const viewportPadding = Math.min(16, Math.max(10, viewportWidth * 0.04));
+    const anchorRect = anchor.getBoundingClientRect();
+    const anchorIsVisible = (
+        anchorRect.bottom > viewportTop
+        && anchorRect.top < viewportBottom
+        && anchorRect.right > viewportLeft
+        && anchorRect.left < viewportRight
+    );
+
+    if (!anchorIsVisible) {
+        this.closeBibleFootnotePopover();
+        return;
+    }
+
+    popover.style.visibility = 'hidden';
+    popover.style.maxHeight = `${Math.max(120, viewportHeight - (viewportPadding * 2))}px`;
+
+    const popoverRect = popover.getBoundingClientRect();
+    const gap = 9;
+    const spaceBelow = viewportBottom - anchorRect.bottom - gap - viewportPadding;
+    const spaceAbove = anchorRect.top - viewportTop - gap - viewportPadding;
+    const showBelow = spaceBelow >= popoverRect.height || spaceBelow >= spaceAbove;
+    let top = showBelow
+        ? anchorRect.bottom + gap
+        : anchorRect.top - popoverRect.height - gap;
+    let left = anchorRect.left + (anchorRect.width / 2) - (popoverRect.width / 2);
+
+    left = Math.max(
+        viewportLeft + viewportPadding,
+        Math.min(left, viewportRight - popoverRect.width - viewportPadding)
+    );
+    top = Math.max(
+        viewportTop + viewportPadding,
+        Math.min(top, viewportBottom - popoverRect.height - viewportPadding)
+    );
+
+    const caretLeft = Math.max(
+        18,
+        Math.min(
+            popoverRect.width - 18,
+            anchorRect.left + (anchorRect.width / 2) - left
+        )
+    );
+
+    popover.classList.toggle('is-below', showBelow);
+    popover.classList.toggle('is-above', !showBelow);
+    popover.style.left = `${left}px`;
+    popover.style.top = `${top}px`;
+    popover.style.setProperty('--bible-footnote-caret-left', `${caretLeft}px`);
+    popover.style.visibility = 'visible';
+},
+
+mountBibleFootnotePopover: function(anchor, number, text) {
+    this.closeBibleFootnotePopover();
+
+    const popover = document.createElement('div');
+    popover.className = 'bible-footnote-popover';
+    popover.setAttribute('role', 'dialog');
+    popover.setAttribute('aria-modal', 'false');
+    popover.setAttribute('aria-label', `Nota al pie ${number}`);
+    popover.setAttribute('tabindex', '-1');
+    popover.innerHTML = `
+        <div class="bible-footnote-popover-inner">
+            <div class="bible-footnote-popover-number" aria-hidden="true">${getBibleFootnoteSuperscript(number)}</div>
+            <div class="bible-footnote-popover-text">${this.escapeHtml(text)}</div>
+        </div>
+    `;
+    document.body.appendChild(popover);
+
+    const updatePosition = () => {
+        this.positionBibleFootnotePopover(anchor, popover);
+    };
+    const handleKeydown = event => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            this.closeBibleFootnotePopover();
+        }
+    };
+    const handlePointerDown = event => {
+        if (!popover.contains(event.target) && event.target !== anchor) {
+            this.closeBibleFootnotePopover();
+        }
+    };
+    const cleanup = () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition, true);
+        window.visualViewport?.removeEventListener('resize', updatePosition);
+        window.visualViewport?.removeEventListener('scroll', updatePosition);
+        document.removeEventListener('pointerdown', handlePointerDown, true);
+        popover.removeEventListener('keydown', handleKeydown);
+    };
+
+    const popoverState = {
+        anchor,
+        popover,
+        updatePosition,
+        cleanup
+    };
+
+    this.bibleFootnotePopover = popoverState;
+    anchor.setAttribute('aria-expanded', 'true');
+    popover.style.visibility = 'hidden';
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    window.visualViewport?.addEventListener('resize', updatePosition);
+    window.visualViewport?.addEventListener('scroll', updatePosition);
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    popover.addEventListener('keydown', handleKeydown);
+    updatePosition();
+    requestAnimationFrame(() => {
+        if (this.bibleFootnotePopover !== popoverState) return;
+        updatePosition();
+        popover.focus({ preventScroll: true });
+    });
+
+    return popoverState;
+},
+
+closeBibleFootnotePopover: function() {
+    const state = this.bibleFootnotePopover;
+
+    if (state) {
+        state.cleanup?.();
+        state.popover?.remove();
+        state.anchor?.setAttribute('aria-expanded', 'false');
+    }
+
+    this.bibleFootnotePopover = null;
+    document.querySelectorAll('.bible-footnote-marker[aria-expanded="true"]').forEach(button => {
+        button.setAttribute('aria-expanded', 'false');
+    });
+},
+
+openBibleFootnote: function(marker) {
+    if (!marker) return;
+
+    if (this.bibleFootnotePopover?.anchor === marker) {
+        this.closeBibleFootnotePopover();
+        return;
+    }
+
+    const number = Number(marker.getAttribute('data-footnote-number'));
+    if (!Number.isInteger(number) || number < 1) return;
+
+    let text = '';
+    try {
+        text = decodeURIComponent(marker.getAttribute('data-footnote-text') || '');
+    } catch (error) {
+        console.warn('[Bible] No se pudo leer el texto de la nota al pie:', error);
+        return;
+    }
+
+    if (!text) return;
+    this.mountBibleFootnotePopover(marker, number, text);
 },
 
 positionBibleCrossReferencePopover: function(anchor, popover) {
@@ -8602,6 +9005,15 @@ navigateToBibleCrossReference: function(button) {
 },
 
 handleVerseClick: function(e) {
+   const footnoteMarker = e.target.closest('[data-action="open-bible-footnote"]');
+
+if (footnoteMarker) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.openBibleFootnote(footnoteMarker);
+    return;
+}
+
    const verseStudyBtn = e.target.closest('[data-action="open-verse-study"]');
 
 if (verseStudyBtn) {
@@ -11088,6 +11500,7 @@ updateBibleReaderVersionButtons: function({ loadingVersionId = '' } = {}) {
 },
 
 async switchBibleReaderVersion(versionId) {
+    this.closeBibleFootnotePopover();
     this.closeBibleCrossReferencePopover({ restoreHistory: false });
     const nextVersionId = String(versionId || '').trim().toLowerCase();
     const allowed = this.getBibleReaderVersions().some(version => version.id === nextVersionId);
@@ -11112,6 +11525,11 @@ async switchBibleReaderVersion(versionId) {
     }
 
     try {
+        const footnotesPromise = this.getBibleChapterFootnotes(
+            requestedBookId,
+            requestedChapter,
+            nextVersionId
+        );
         const [crossReferencesByVerse, sectionHeadingsByVerse] = await Promise.all([
             this.getBibleChapterCrossReferences(
                 requestedBookId,
@@ -11160,6 +11578,15 @@ async switchBibleReaderVersion(versionId) {
         this.updateBibleReaderContextBarUI();
         this.updateBibleReaderVersionButtons();
         this.restoreBibleReaderScrollAnchor(anchor);
+        void this.hydrateBibleChapterFootnotes({
+            bookId: requestedBookId,
+            chapter: requestedChapter,
+            versionId: nextVersionId,
+            requestedBook,
+            crossReferencesByVerse,
+            sectionHeadingsByVerse,
+            footnotesPromise
+        });
         requestAnimationFrame(() => {
             this.saveBibleLastLocation(requestedBookId, requestedChapter, {
                 versionId: nextVersionId,
@@ -11177,6 +11604,7 @@ async switchBibleReaderVersion(versionId) {
 },
 
 renderBibleReading: async function() {
+    this.closeBibleFootnotePopover();
     this.closeBibleCrossReferencePopover({ restoreHistory: false });
     this.stopBibleChapterVoice(true);
 
@@ -11282,6 +11710,11 @@ renderBibleReading: async function() {
 
     try {
         const requestedVersionId = getBibleReaderVersionId();
+        const footnotesPromise = this.getBibleChapterFootnotes(
+            requestedBookId,
+            requestedChapter,
+            requestedVersionId
+        );
         const [crossReferencesByVerse, sectionHeadingsByVerse] = await Promise.all([
             this.getBibleChapterCrossReferences(
                 requestedBookId,
@@ -11336,6 +11769,16 @@ renderBibleReading: async function() {
             this.bibleRestoreScrollPending = false;
             this.bibleSuppressScrollSave = false;
         }
+
+        void this.hydrateBibleChapterFootnotes({
+            bookId: requestedBookId,
+            chapter: requestedChapter,
+            versionId: requestedVersionId,
+            requestedBook,
+            crossReferencesByVerse,
+            sectionHeadingsByVerse,
+            footnotesPromise
+        });
     } catch (error) {
         const isOffline = error?.code === 'BIBLE_OFFLINE';
 
@@ -14640,6 +15083,17 @@ if (this.$headerSettingsBtn) {
         
 // Controles de fuente y versión
 document.addEventListener('click', (e) => {
+    const activeFootnotePopover = this.bibleFootnotePopover?.popover;
+    const clickedFootnoteTrigger = e.target.closest('[data-action="open-bible-footnote"]');
+
+    if (
+        activeFootnotePopover
+        && !activeFootnotePopover.contains(e.target)
+        && !clickedFootnoteTrigger
+    ) {
+        this.closeBibleFootnotePopover();
+    }
+
     const activeCrossReferencePopover = this.bibleCrossReferencePopover?.popover;
     const clickedCrossReferenceTrigger = e.target.closest('[data-action="open-cross-reference"]');
 

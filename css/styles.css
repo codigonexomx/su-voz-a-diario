@@ -14129,6 +14129,176 @@ body.dark-mode .bible-ref-badge:active {
     font-weight: 800;
 }
 
+.bible-footnote-marker {
+    position: relative;
+    display: inline;
+    margin-inline: 1px;
+    padding: 0 4px;
+    border: 0;
+    background: transparent;
+    color: var(--accent);
+    font: inherit;
+    font-size: 0.72em;
+    font-weight: 750;
+    line-height: 1;
+    vertical-align: super;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* The visual call remains small while the pseudo-element provides a touch target. */
+.bible-footnote-marker::before {
+    position: absolute;
+    inset: -8px -5px;
+    content: "";
+}
+
+.bible-footnote-marker sup {
+    font-size: 1em;
+    line-height: 1;
+    vertical-align: baseline;
+}
+
+.bible-footnote-marker:hover,
+.bible-footnote-marker[aria-expanded="true"] {
+    color: var(--accent-hover);
+}
+
+.bible-footnote-marker:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+}
+
+.bible-footnote-popover {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 1310;
+    width: min(320px, calc(100vw - 24px));
+    max-width: calc(100vw - 24px);
+    overflow: visible;
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-color));
+    border-radius: 12px;
+    background: var(--surface-color);
+    color: var(--text-main);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.13), 0 2px 6px rgba(15, 23, 42, 0.06);
+    opacity: 1;
+    animation: bibleFootnotePopoverIn 0.16s ease-out;
+}
+
+.bible-footnote-popover::before,
+.bible-footnote-popover::after {
+    position: absolute;
+    left: var(--bible-footnote-caret-left, 50%);
+    width: 0;
+    height: 0;
+    pointer-events: none;
+    content: "";
+    transform: translateX(-50%);
+}
+
+.bible-footnote-popover::before {
+    z-index: 0;
+}
+
+.bible-footnote-popover::after {
+    z-index: 1;
+}
+
+.bible-footnote-popover.is-below::before {
+    top: -9px;
+    border-right: 9px solid transparent;
+    border-bottom: 9px solid color-mix(in srgb, var(--accent) 30%, var(--border-color));
+    border-left: 9px solid transparent;
+}
+
+.bible-footnote-popover.is-below::after {
+    top: -7px;
+    border-right: 7px solid transparent;
+    border-bottom: 7px solid var(--surface-color);
+    border-left: 7px solid transparent;
+}
+
+.bible-footnote-popover.is-above::before {
+    bottom: -9px;
+    border-top: 9px solid color-mix(in srgb, var(--accent) 30%, var(--border-color));
+    border-right: 9px solid transparent;
+    border-left: 9px solid transparent;
+}
+
+.bible-footnote-popover.is-above::after {
+    bottom: -7px;
+    border-top: 7px solid var(--surface-color);
+    border-right: 7px solid transparent;
+    border-left: 7px solid transparent;
+}
+
+.bible-footnote-popover-inner {
+    max-height: inherit;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 12px 14px 13px;
+    border-radius: inherit;
+    -webkit-overflow-scrolling: touch;
+}
+
+.bible-footnote-popover-number {
+    margin-bottom: 5px;
+    color: var(--accent);
+    font-family: var(--font-reading);
+    font-size: 0.9rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.bible-footnote-popover-text {
+    font-family: var(--font-reading);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+@keyframes bibleFootnotePopoverIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 520px) {
+    .bible-footnote-popover {
+        width: calc(100vw - 20px);
+        max-width: calc(100vw - 20px);
+        border-radius: 11px;
+    }
+
+    .bible-footnote-popover-inner {
+        padding: 11px 12px 12px;
+    }
+}
+
+body.dark-mode .bible-footnote-marker {
+    color: #d4af37;
+}
+
+body.dark-mode .bible-footnote-marker:hover,
+body.dark-mode .bible-footnote-marker[aria-expanded="true"] {
+    color: #f1c40f;
+}
+
+body.dark-mode .bible-footnote-popover {
+    border-color: rgba(212, 175, 55, 0.32);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.18);
+}
+
 .bible-crossref-popover {
     position: fixed;
     top: 12px;
