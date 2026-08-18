@@ -56,7 +56,7 @@ const STATIC_ASSETS = [
   './data/readings/2026-08.json',
   './data/readings/2026-09.json',
   './data/rv1909.json',
-  './data/section-headings-español.json',
+  './data/section-headings-español.json',
   './imagendefondo.png',
   './icons/icon-48.png',
   './icons/icon-180.png',

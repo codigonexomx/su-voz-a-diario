@@ -3,7 +3,7 @@ import {
     normalizeBibleBookId
 } from './bibleBookIds.js';
 
-export const SECTION_HEADINGS_PATH = './data/section-headings-español.json';
+export const SECTION_HEADINGS_PATH = './data/section-headings-español.json';
 
 function normalizeHeadingEntries(entries) {
     if (!Array.isArray(entries)) return [];
