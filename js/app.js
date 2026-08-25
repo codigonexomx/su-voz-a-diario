@@ -12953,6 +12953,7 @@ const communityDraftState = this.ensureCommunityDraftContext(this.loadCommunityD
 const hasCommunityDraft = this.hasCommunityDraftContent(communityDraftState);
 const showCommunityDraftRestored =
     this.communityDraftRestoredNoticePending && hasCommunityDraft;
+const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
 const currentUserProfile = this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null;
 const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
     ? AvatarGenerator.generate(this.currentUser?.uid || 'user', this.currentUser?.displayName || 'Usuario', {
