@@ -2339,7 +2339,49 @@ openAvatarPickerModal: async function() {
 
     if (window.AvatarPicker) {
         const modalHtml = window.AvatarPicker.renderModalHtml(this.selectedAvatarIcon, this.selectedAvatarColor);
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const container = this.$content || document.body;
+        container.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modalEl = document.getElementById('avatarPickerModal');
+        if (modalEl) {
+            modalEl.addEventListener('click', (e) => {
+                const closeBtn = e.target.closest('[data-action="close-avatar-picker"]');
+                if (closeBtn || e.target === modalEl) {
+                    modalEl.remove();
+                    return;
+                }
+
+                const iconBtn = e.target.closest('.avatar-icon-btn');
+                if (iconBtn) {
+                    const icon = iconBtn.getAttribute('data-icon');
+                    if (icon) {
+                        this.selectedAvatarIcon = icon;
+                        modalEl.querySelectorAll('.avatar-icon-btn').forEach(b => b.classList.remove('is-selected'));
+                        iconBtn.classList.add('is-selected');
+                        this.updateAvatarPickerPreview();
+                    }
+                    return;
+                }
+
+                const colorBtn = e.target.closest('.avatar-color-btn');
+                if (colorBtn) {
+                    const color = colorBtn.getAttribute('data-color');
+                    if (color) {
+                        this.selectedAvatarColor = color;
+                        modalEl.querySelectorAll('.avatar-color-btn').forEach(b => b.classList.remove('is-selected'));
+                        colorBtn.classList.add('is-selected');
+                        this.updateAvatarPickerPreview();
+                    }
+                    return;
+                }
+
+                const saveBtn = e.target.closest('[data-action="save-avatar-selection"]');
+                if (saveBtn) {
+                    this.saveAvatarSelection();
+                    return;
+                }
+            });
+        }
     }
 },
 
