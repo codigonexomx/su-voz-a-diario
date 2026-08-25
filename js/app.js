@@ -16383,9 +16383,6 @@ if (replyAnonCheckbox) {
     this.setUserCommunityPreferences(prefs);
 }
 
-    return;
-}
-
 const communityReactionBtn = e.target.closest('[data-action="community-reaction-toggle"]');
 if (communityReactionBtn) {
     e.preventDefault();
