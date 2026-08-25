@@ -1,4 +1,4 @@
-const APP_VERSION = "172";
+const APP_VERSION = "173";
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -26,6 +26,22 @@ const STATIC_ASSETS = [
   './js/MeditationDocument.js?v=157',
   './js/KeyboardManager.js?v=157',
   './js/DeepeningShell.js?v=157',
+  './js/utils/dompurify.min.js?v=157',
+  './js/avatarGenerator.js?v=157',
+  './js/richTextEditor.js?v=157',
+  './js/voiceReflections.js?v=157',
+  './js/liveFeed.js?v=157',
+  './js/moderation.js?v=157',
+  './js/userMetrics.js?v=157',
+  './js/notifications.js?v=157',
+  './js/performance.js?v=157',
+  './js/accessibility.js?v=157',
+  './js/i18n.js?v=157',
+  './js/toastManager.js?v=157',
+  './js/communityAnalytics.js?v=157',
+  './js/searchCommunity.js?v=157',
+  './js/filters.js?v=157',
+  './js/offlineSupport.js?v=157',
   './js/core/constants.js',
   './js/core/defaults.js',
   './js/bible/bibleModel.js',

@@ -39,9 +39,12 @@ class NotificationCenter {
     }
 
     listenNotifications() {
-        const currentUser = window.app?.currentUser;
-        if (!currentUser?.uid) return;
+        if (!window.app?.currentUser?.uid) {
+            console.warn('[NotificationCenter] Omitiendo listener: Usuario no autenticado aún');
+            return;
+        }
 
+        const currentUser = window.app.currentUser;
         const db = window.firebaseDb;
         const fns = window.firebaseFns;
 

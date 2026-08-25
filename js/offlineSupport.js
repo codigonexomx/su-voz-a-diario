@@ -98,5 +98,7 @@ class OfflineManager {
 
 if (typeof window !== 'undefined') {
     window.OfflineManager = OfflineManager;
-    window.offlineManager = new OfflineManager();
+    document.addEventListener('DOMContentLoaded', () => {
+        window.offlineManager = new OfflineManager();
+    });
 }

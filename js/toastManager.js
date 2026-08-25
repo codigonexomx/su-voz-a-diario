@@ -72,5 +72,7 @@ class ToastManager {
 
 if (typeof window !== 'undefined') {
     window.ToastManager = ToastManager;
-    window.toastManager = new ToastManager();
+    document.addEventListener('DOMContentLoaded', () => {
+        window.toastManager = new ToastManager();
+    });
 }

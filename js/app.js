@@ -958,7 +958,6 @@ this.setupAndroidBackButton();
 this.setupNativePushActionListeners();
 this.bindCommunityDraftLifecycle();
 this.bindBibleReadingContinuityLifecycle();
-this.initializeCommunityPremium();
 await this.loadData();
 
 // Fase 9: Migración única de cuadernillo a sesiones
@@ -975,7 +974,7 @@ if (this._pendingPushHash) {
 
 this.updateStreakUI();
 
-this.initAuth().then(async () => {
+await this.initAuth().then(async () => {
     try {
         if (!this.currentUser?.uid) {
             console.warn('[Community] Badge omitido: no hay usuario autenticado');
@@ -997,6 +996,8 @@ this.initAuth().then(async () => {
         console.warn('[App] Servicios secundarios no disponibles al iniciar:', error);
     }
 });
+
+await this.initializeCommunityPremium();
 
 console.log('[App] Inicialización completada');
 	},
@@ -2926,26 +2927,30 @@ setUserCommunityPreferences: function(prefs) {
     localStorage.setItem('communityPrefs', JSON.stringify(prefs));
 },
 
-initializeCommunityPremium: function() {
-    if (typeof window.AvatarGenerator !== 'undefined') this.avatarGenerator = window.AvatarGenerator;
-    if (typeof window.RichTextEditor !== 'undefined') this.richTextEditor = window.RichTextEditor;
-    if (typeof window.VoiceReflectionRecorder !== 'undefined') this.voiceRecorder = new window.VoiceReflectionRecorder();
-    if (typeof window.LiveCommunityFeed !== 'undefined') this.liveFeed = new window.LiveCommunityFeed();
-    if (typeof window.ModerationSystem !== 'undefined') this.moderation = new window.ModerationSystem();
-    if (typeof window.UserMetrics !== 'undefined') this.userMetrics = new window.UserMetrics();
-    if (typeof window.NotificationCenter !== 'undefined') {
-        this.notificationCenter = new window.NotificationCenter();
-        this.notificationCenter.initialize();
-    }
-    if (typeof window.PerformanceOptimizer !== 'undefined') this.performanceOptimizer = new window.PerformanceOptimizer();
-    if (typeof window.AccessibilityManager !== 'undefined') {
-        this.accessibilityManager = new window.AccessibilityManager();
-        this.accessibilityManager.applyARIA();
-        this.accessibilityManager.handleKeyboardNavigation();
-    }
-    if (typeof window.I18nManager !== 'undefined') {
-        this.i18n = new window.I18nManager();
-        this.i18n.updateUI();
+initializeCommunityPremium: async function() {
+    try {
+        if (typeof window.AvatarGenerator !== 'undefined') this.avatarGenerator = window.AvatarGenerator;
+        if (typeof window.RichTextEditor !== 'undefined') this.richTextEditor = window.RichTextEditor;
+        if (typeof window.VoiceReflectionRecorder !== 'undefined') this.voiceRecorder = new window.VoiceReflectionRecorder();
+        if (typeof window.LiveCommunityFeed !== 'undefined') this.liveFeed = new window.LiveCommunityFeed();
+        if (typeof window.ModerationSystem !== 'undefined') this.moderation = new window.ModerationSystem();
+        if (typeof window.UserMetrics !== 'undefined') this.userMetrics = new window.UserMetrics();
+        if (typeof window.NotificationCenter !== 'undefined') {
+            this.notificationCenter = new window.NotificationCenter();
+            this.notificationCenter.initialize();
+        }
+        if (typeof window.PerformanceOptimizer !== 'undefined') this.performanceOptimizer = new window.PerformanceOptimizer();
+        if (typeof window.AccessibilityManager !== 'undefined') {
+            this.accessibilityManager = new window.AccessibilityManager();
+            this.accessibilityManager.applyARIA();
+            this.accessibilityManager.handleKeyboardNavigation();
+        }
+        if (typeof window.I18nManager !== 'undefined') {
+            this.i18n = new window.I18nManager();
+            this.i18n.updateUI();
+        }
+    } catch (error) {
+        console.warn('Error en módulos premium:', error);
     }
 },
 
