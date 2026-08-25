@@ -2297,6 +2297,15 @@ getUserProfilesBatch: async function(uids = []) {
         return this.userProfilesCache;
     }
 
+    missingUids.forEach(uid => {
+        try {
+            const local = localStorage.getItem(`suvoz_avatar_profile_${uid}`);
+            if (local) {
+                this.userProfilesCache[uid] = JSON.parse(local);
+            }
+        } catch (e) {}
+    });
+
     const db = window.firebaseDb;
     const fns = window.firebaseFns;
     if (!db || !fns?.doc || !fns?.getDoc) {
@@ -2309,12 +2318,14 @@ getUserProfilesBatch: async function(uids = []) {
                 const profileRef = fns.doc(db, 'userProfiles', uid);
                 const snap = await fns.getDoc(profileRef);
                 if (snap && snap.exists()) {
-                    this.userProfilesCache[uid] = snap.data();
-                } else {
-                    this.userProfilesCache[uid] = null;
+                    const data = snap.data();
+                    this.userProfilesCache[uid] = data;
+                    try {
+                        localStorage.setItem(`suvoz_avatar_profile_${uid}`, JSON.stringify(data));
+                    } catch (e) {}
                 }
             } catch (e) {
-                this.userProfilesCache[uid] = null;
+                // Conservar perfil de localStorage en caso de error de red
             }
         }));
     } catch (err) {
@@ -2403,33 +2414,37 @@ saveAvatarSelection: async function() {
     const saveBtn = document.getElementById('saveAvatarBtn');
     if (saveBtn) saveBtn.disabled = true;
 
+    const profileData = {
+        userId: this.currentUser.uid,
+        avatarIcon: this.selectedAvatarIcon || '🕊️',
+        avatarColor: this.selectedAvatarColor || '#3182CE',
+        updatedAt: new Date().toISOString()
+    };
+
+    if (!this.userProfilesCache) this.userProfilesCache = {};
+    this.userProfilesCache[this.currentUser.uid] = profileData;
+
+    try {
+        localStorage.setItem(`suvoz_avatar_profile_${this.currentUser.uid}`, JSON.stringify(profileData));
+    } catch (e) {}
+
     try {
         if (window.AvatarPicker) {
             await window.AvatarPicker.saveToFirestore(
                 this.currentUser.uid,
-                this.selectedAvatarIcon || '🕊️',
-                this.selectedAvatarColor || '#3182CE'
+                profileData.avatarIcon,
+                profileData.avatarColor
             );
         }
-
-        if (!this.userProfilesCache) this.userProfilesCache = {};
-        this.userProfilesCache[this.currentUser.uid] = {
-            userId: this.currentUser.uid,
-            avatarIcon: this.selectedAvatarIcon,
-            avatarColor: this.selectedAvatarColor,
-            updatedAt: new Date()
-        };
-
-        const modal = document.getElementById('avatarPickerModal');
-        if (modal) modal.remove();
-
-        this.showToast('Avatar guardado correctamente', 'success');
-        this.renderCommunity({ forceRefresh: true });
     } catch (error) {
-        console.error('[AvatarPicker] Error guardando avatar:', error);
-        this.showToast('No se pudo guardar el avatar');
-        if (saveBtn) saveBtn.disabled = false;
+        console.warn('[AvatarPicker] Sincronización en la nube diferida:', error);
     }
+
+    const modal = document.getElementById('avatarPickerModal');
+    if (modal) modal.remove();
+
+    this.showToast('Avatar guardado correctamente', 'success');
+    this.renderCommunity({ forceRefresh: true });
 },
 
 getCommunityFeedState: function(mode = this.communityMode) {
