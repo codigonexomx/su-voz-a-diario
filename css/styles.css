@@ -15315,10 +15315,14 @@ body.dark-mode .calendar-v2-btn-action {
     width: 48px;
     height: 48px;
     border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: inline-block;
+    flex-shrink: 0;
     position: relative;
     box-shadow: 0 0 0 2px var(--surface-color), 0 0 0 4px var(--accent);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    flex-shrink: 0;
 }
 
 .premium-avatar:hover {
@@ -15342,7 +15346,10 @@ body.dark-mode .calendar-v2-btn-action {
 }
 
 @media (max-width: 768px) {
-    .premium-avatar { width: 40px; height: 40px; }
+    .premium-avatar {
+        width: 40px;
+        height: 40px;
+    }
 }
 
 @media (min-width: 1200px) {
