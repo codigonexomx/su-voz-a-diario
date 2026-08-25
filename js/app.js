@@ -12953,37 +12953,44 @@ const communityDraftState = this.ensureCommunityDraftContext(this.loadCommunityD
 const hasCommunityDraft = this.hasCommunityDraftContent(communityDraftState);
 const showCommunityDraftRestored =
     this.communityDraftRestoredNoticePending && hasCommunityDraft;
-const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
+const currentUserProfile = this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null;
+const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
+    ? AvatarGenerator.generate(this.currentUser?.uid || 'user', this.currentUser?.displayName || 'Usuario', {
+        avatarIcon: currentUserProfile?.avatarIcon,
+        avatarColor: currentUserProfile?.avatarColor
+    })
+    : '';
     
     // Renderizar el contenido
     this.$content.innerHTML = `
         <div class="community-container">
             <section class="community-hero community-hero-compact">
-                <div class="community-hero-copy">
-                    <div class="community-hero-kicker">Su Voz a Diario</div>
-                    <h2>Comunidad</h2>
-                    <p>Comparte con sencillez lo que Dios te habló en esta lectura.</p>
-                </div>
-                <div class="community-hero-actions">
-                    <div class="notification-bell" id="notificationBell">
-                        <button type="button" class="bell-btn" aria-label="Ver notificaciones" title="Notificaciones">🔔 <span class="notification-badge" style="display: none;">0</span></button>
-                    </div>
-                    <button
-                        class="community-rules-btn"
-                        type="button"
+                <div class="hero-avatar-section">
+                    <div
+                        class="hero-avatar-large"
                         data-action="open-avatar-picker"
-                        title="Personalizar mi avatar"
+                        title="Cambiar mi avatar"
+                        style="background-image: url('${heroAvatarUri}');"
                     >
-                        👤 Mi Avatar
-                    </button>
-                    <button
-                        class="community-rules-btn"
-                        type="button"
-                        data-action="toggle-community-guidelines"
-                        aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
-                    >
-                        Normas
-                    </button>
+                        <div class="hero-avatar-edit-badge">✏️</div>
+                    </div>
+                </div>
+                <div class="hero-info-section">
+                    <h2>Comunidad</h2>
+                    <p>Comparte con sencillez lo que Dios te habló</p>
+                    <div class="hero-actions-row">
+                        <button
+                            class="community-rules-btn"
+                            type="button"
+                            data-action="toggle-community-guidelines"
+                            aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
+                        >
+                            Normas
+                        </button>
+                        <div class="notification-bell" id="notificationBell">
+                            <button type="button" class="bell-btn" aria-label="Ver notificaciones" title="Notificaciones">🔔 <span class="notification-badge" style="display: none;">0</span></button>
+                        </div>
+                    </div>
                 </div>
             </section>
 

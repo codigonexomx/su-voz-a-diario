@@ -16055,6 +16055,105 @@ body.dark-mode .calendar-v2-btn-action {
     background: var(--surface-color-hover, rgba(0, 0, 0, 0.05));
 }
 
+/* Rediseño Hero Horizontal Comunidad */
+.community-hero-compact {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 12px;
+    min-height: 100px;
+}
+
+.hero-avatar-section {
+    flex: 0 0 33%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hero-avatar-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    position: relative;
+    box-shadow: 0 0 0 3px var(--surface-color), 0 0 0 5px var(--accent);
+    transition: transform 0.3s ease;
+    cursor: pointer;
+    background-size: cover;
+    background-position: center;
+}
+
+.hero-avatar-large:hover {
+    transform: scale(1.05);
+}
+
+.hero-avatar-edit-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    border: 2px solid var(--surface-color);
+}
+
+.hero-info-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.hero-info-section h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.hero-info-section p {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.hero-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+@media (max-width: 768px) {
+    .community-hero-compact {
+        min-height: 80px;
+        padding: 8px;
+    }
+    
+    .hero-avatar-large {
+        width: 60px;
+        height: 60px;
+        font-size: 28px;
+    }
+    
+    .hero-info-section h2 {
+        font-size: 18px;
+    }
+    
+    .hero-info-section p {
+        font-size: 11px;
+    }
+}
+
 /* Modal de Selección de Avatar */
 .avatar-picker-overlay {
     position: fixed;
