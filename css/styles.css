@@ -16002,4 +16002,50 @@ body.dark-mode .calendar-v2-btn-action {
     cursor: pointer;
 }
 
+/* Botón y menú desplegable de opciones en publicaciones */
+.post-menu-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.3rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background 0.2s ease;
+}
+
+.post-menu-btn:hover {
+    background: var(--surface-color-hover, rgba(0, 0, 0, 0.05));
+    color: var(--text-main);
+}
+
+.post-menu-dropdown {
+    position: absolute;
+    top: 36px;
+    right: 12px;
+    background: var(--surface-color, #ffffff);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.post-menu-dropdown button {
+    background: transparent;
+    border: none;
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.post-menu-dropdown button:hover {
+    background: var(--surface-color-hover, rgba(0, 0, 0, 0.05));
+}
+
 

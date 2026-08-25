@@ -3347,10 +3347,18 @@ renderReplyBlock: function(post, replies = []) {
             ${isOpen && replies.length ? `
                 <div class="community-reply-list">
                     <div class="community-reply-list-title">Conversación edificante</div>
-                    ${replies.map(reply => `
+                    ${replies.map(reply => {
+                        const replyAuthorName = reply.name || 'Anónimo';
+                        const isReplyAnon = !reply.name || replyAuthorName.trim().toLowerCase() === 'anónimo';
+                        const replyAvatarSvg = typeof AvatarGenerator !== 'undefined'
+                            ? AvatarGenerator.renderHtml(reply.avatarSeed || reply.ownerUid || reply.id, replyAuthorName, isReplyAnon)
+                            : '';
+
+                        return `
                         <div class="community-reply-item" data-reply-id="${this.escapeHtml(reply.id)}">
-                            <div class="community-reply-meta">
-                                ${this.escapeHtml(reply.name || 'Anónimo')} · ${this.escapeHtml(this.formatCommunityDateLabel(reply.date || ''))}
+                            <div class="community-reply-meta" style="display: flex; align-items: center; gap: 8px;">
+                                ${replyAvatarSvg}
+                                <span>${this.escapeHtml(replyAuthorName)} · ${this.escapeHtml(this.formatCommunityDateLabel(reply.date || ''))}</span>
                             </div>
 
                             <div class="community-reply-text">
@@ -3371,7 +3379,8 @@ renderReplyBlock: function(post, replies = []) {
                                 </div>
                             ` : ''}
                         </div>
-                    `).join('')}
+                    `;
+                }).join('')}
                 </div>
             ` : ''}
         </div>
@@ -12601,6 +12610,15 @@ renderCommunityFormCardHtml: function(options = {}) {
 
                     <div class="community-form-group">
                         <label class="community-label" for="community-reflection">¿Qué escuchaste de su voz hoy?</label>
+
+                        <div class="rich-editor-toolbar" role="toolbar" aria-label="Herramientas de formato">
+                            <button type="button" class="rich-toolbar-btn" data-format="bold" aria-label="Negrita" title="Negrita (<b>)"><b>B</b></button>
+                            <button type="button" class="rich-toolbar-btn" data-format="italic" aria-label="Cursiva" title="Cursiva (<i>)"><i>I</i></button>
+                            <button type="button" class="rich-toolbar-btn" data-format="underline" aria-label="Subrayado" title="Subrayado (<u>)"><u>U</u></button>
+                            <button type="button" class="rich-toolbar-btn" data-format="blockquote" aria-label="Cita" title="Cita bíblica">❝</button>
+                            <button type="button" class="rich-toolbar-btn" data-format="verse" aria-label="Versículo" title="Insertar versículo del día">📖</button>
+                        </div>
+
                         <textarea
                             class="community-textarea"
                             id="community-reflection"
@@ -12796,6 +12814,9 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
                     <p>Comparte con sencillez lo que Dios te habló en esta lectura.</p>
                 </div>
                 <div class="community-hero-actions">
+                    <div class="notification-bell" id="notificationBell">
+                        <button type="button" class="bell-btn" aria-label="Ver notificaciones" title="Notificaciones">🔔 <span class="notification-badge" style="display: none;">0</span></button>
+                    </div>
                     <button
                         class="community-rules-btn"
                         type="button"
@@ -12844,13 +12865,14 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
                     const isAnonymous = !post.name || authorName.trim().toLowerCase() === 'anónimo';
                     const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
                     const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
+                    const avatarSvg = typeof AvatarGenerator !== 'undefined'
+                        ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, isAnonymous)
+                        : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
 
                     return `
                         <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
                             <div class="community-post-header">
-                                <div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">
-                                    ${this.escapeHtml(authorInitial)}
-                                </div>
+                                ${avatarSvg}
 
                                 <div class="community-post-heading">
                                     <div class="community-author-row">
@@ -12861,9 +12883,26 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
 
                                     <div class="community-ref">Escuchó en ${this.escapeHtml(post.reference)}</div>
                                 </div>
+
+                                <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋯</button>
+                                <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
+                                    <button type="button" class="report-post-btn" data-action="report-post" data-post-id="${post.id}">🚩 Reportar contenido</button>
+                                    ${post.ownerUid && post.ownerUid !== this.currentUser?.uid ? `
+                                        <button type="button" class="block-user-btn" data-action="block-user" data-uid="${post.ownerUid}">🚫 Bloquear usuario</button>
+                                    ` : ''}
+                                </div>
                             </div>
 
                            <div class="community-text">${this.escapeHtml(post.text)}</div>
+
+                           ${post.audioURL ? `
+                               <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
+                                   <button type="button" class="audio-play-btn" aria-label="Reproducir audio">▶</button>
+                                   <div class="audio-progress-bar"><div class="audio-progress-fill" style="width: 0%;"></div></div>
+                                   <span class="audio-time">0:00 / 0:30</span>
+                                   <button type="button" class="audio-speed-btn">1x</button>
+                               </div>
+                           ` : ''}
 
                                 <div class="community-reaction-row">
                                     ${this.renderCommunityReactionBar(post.id, reactionData)}
