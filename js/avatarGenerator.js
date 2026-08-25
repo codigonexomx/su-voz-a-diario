@@ -65,10 +65,10 @@ function renderPatternSVG(pattern, colors) {
     }
 }
 
-function createSVG(palette, pattern, initial, hash) {
-    const c1 = palette[0] || '#3182CE';
+function createSVG(palette, pattern, initialOrIcon, hash, customColor) {
+    const c1 = customColor || palette[0] || '#3182CE';
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="100%" height="100%"><circle cx="25" cy="25" r="25" fill="${c1}" /><g opacity="0.35">${renderPatternSVG(pattern, palette)}</g><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="'Inter', system-ui, -apple-system, sans-serif" font-size="20" font-weight="800" letter-spacing="-0.5px">${initial}</text></svg>`.trim();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="100%" height="100%"><circle cx="25" cy="25" r="25" fill="${c1}" /><g opacity="0.35">${renderPatternSVG(pattern, palette)}</g><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="'Inter', 'Apple Color Emoji', 'Segoe UI Emoji', system-ui, sans-serif" font-size="22" font-weight="800">${initialOrIcon}</text></svg>`.trim();
 
     const base64 = typeof btoa !== 'undefined'
         ? btoa(unescape(encodeURIComponent(svg)))
@@ -81,13 +81,13 @@ class AvatarGenerator {
     static generate(seed, displayName = 'Anónimo', options = {}) {
         const isAnonymous = !displayName || displayName.trim().toLowerCase() === 'anónimo' || options.isAnonymous === true;
         const effectiveName = isAnonymous ? 'Anónimo' : displayName;
-        const initial = isAnonymous ? 'A' : (effectiveName.trim().charAt(0).toUpperCase() || 'S');
+        const icon = options.avatarIcon || (isAnonymous ? 'A' : (effectiveName.trim().charAt(0).toUpperCase() || 'S'));
 
         const hash = hashString(seed || effectiveName);
         const palette = isAnonymous ? ['#718096', '#4A5568', '#2D3748'] : selectPalette(hash);
         const pattern = selectPattern(hash);
 
-        const dataUri = createSVG(palette, pattern, initial, hash);
+        const dataUri = createSVG(palette, pattern, icon, hash, options.avatarColor);
         return dataUri;
     }
 
@@ -105,14 +105,97 @@ class AvatarGenerator {
         ].filter(Boolean).join(' ');
 
         return `
-            <div class="${classes}" title="${isAnonymous ? 'Anónimo' : (displayName || 'Usuario')}" style="background-image: url('${dataUri}'); background-size: cover; background-position: center;">
+            <div class="${classes}" title="${isAnonymous ? 'Anónimo' : (displayName || 'Usuario')}" style="background-image: url('${dataUri}'); background-size: cover; background-position: center; cursor: pointer;" data-action="open-avatar-picker">
                 ${isActive ? '<span class="status-indicator" title="Activo"></span>' : ''}
             </div>
         `;
     }
 }
 
+class AvatarPicker {
+    static ICONS = ['🕊️', '✝️', '📖', '🐑', '🌿', '🔥', '💧', '🌅', '🌟', '🕯️'];
+    static COLORS = [
+        { name: 'Azul', hex: '#3182CE' },
+        { name: 'Verde', hex: '#38A169' },
+        { name: 'Morado', hex: '#805AD5' },
+        { name: 'Naranja', hex: '#DD6B20' },
+        { name: 'Rojo', hex: '#E53E3E' },
+        { name: 'Dorado', hex: '#D69E2E' },
+        { name: 'Rosa', hex: '#D53F8C' },
+        { name: 'Gris', hex: '#718096' }
+    ];
+
+    static renderModalHtml(selectedIcon = '🕊️', selectedColor = '#3182CE') {
+        const previewUri = AvatarGenerator.generate('preview', 'Usuario', {
+            avatarIcon: selectedIcon,
+            avatarColor: selectedColor
+        });
+
+        return `
+            <div class="avatar-picker-overlay" id="avatarPickerModal" role="dialog" aria-modal="true" aria-labelledby="avatarPickerTitle">
+                <div class="avatar-picker-modal">
+                    <button type="button" class="avatar-picker-close" data-action="close-avatar-picker" aria-label="Cerrar">×</button>
+                    <h3 id="avatarPickerTitle">Elige tu avatar</h3>
+
+                    <!-- Vista previa en tiempo real -->
+                    <div class="avatar-picker-preview-container">
+                        <div class="avatar-picker-preview-img" id="avatarPickerPreview" style="background-image: url('${previewUri}');"></div>
+                        <span class="avatar-picker-preview-label">Vista previa</span>
+                    </div>
+
+                    <!-- Grid de Iconos Espirituales (2 filas de 5) -->
+                    <div class="avatar-picker-section">
+                        <label class="avatar-picker-label">Icono espiritual</label>
+                        <div class="avatar-icon-grid">
+                            ${AvatarPicker.ICONS.map(icon => `
+                                <button type="button" class="avatar-icon-btn ${icon === selectedIcon ? 'is-selected' : ''}" data-icon="${icon}">
+                                    ${icon}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Grid de Colores de Fondo (2 filas de 4) -->
+                    <div class="avatar-picker-section">
+                        <label class="avatar-picker-label">Color de fondo</label>
+                        <div class="avatar-color-grid">
+                            ${AvatarPicker.COLORS.map(c => `
+                                <button type="button" class="avatar-color-btn ${c.hex === selectedColor ? 'is-selected' : ''}" data-color="${c.hex}" title="${c.name}" style="background-color: ${c.hex};">
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="avatar-picker-actions">
+                        <button type="button" class="btn-secondary" data-action="close-avatar-picker">Cancelar</button>
+                        <button type="button" class="btn-primary" id="saveAvatarBtn" data-action="save-avatar-selection">Guardar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    static async saveToFirestore(userId, avatarIcon, avatarColor) {
+        if (!userId) throw new Error('Usuario no autenticado');
+
+        const db = window.firebaseDb;
+        const fns = window.firebaseFns;
+        if (!db || !fns?.doc || !fns?.setDoc) {
+            throw new Error('Firestore no está disponible');
+        }
+
+        const profileRef = fns.doc(db, 'userProfiles', userId);
+        await fns.setDoc(profileRef, {
+            userId: userId,
+            avatarIcon: avatarIcon,
+            avatarColor: avatarColor,
+            updatedAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
+        }, { merge: true });
+    }
+}
+
 if (typeof window !== 'undefined') {
     window.AvatarGenerator = AvatarGenerator;
+    window.AvatarPicker = AvatarPicker;
     window.generateAvatar = AvatarGenerator.generate;
 }

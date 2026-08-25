@@ -2285,6 +2285,111 @@ ensureCommunityFeedStates: function() {
     return this.communityFeedStates;
 },
 
+getUserProfilesBatch: async function(uids = []) {
+    if (!this.userProfilesCache) {
+        this.userProfilesCache = {};
+    }
+
+    const uniqueUids = [...new Set(uids.filter(Boolean))];
+    const missingUids = uniqueUids.filter(uid => this.userProfilesCache[uid] === undefined);
+
+    if (!missingUids.length) {
+        return this.userProfilesCache;
+    }
+
+    const db = window.firebaseDb;
+    const fns = window.firebaseFns;
+    if (!db || !fns?.doc || !fns?.getDoc) {
+        return this.userProfilesCache;
+    }
+
+    try {
+        await Promise.all(missingUids.map(async (uid) => {
+            try {
+                const profileRef = fns.doc(db, 'userProfiles', uid);
+                const snap = await fns.getDoc(profileRef);
+                if (snap && snap.exists()) {
+                    this.userProfilesCache[uid] = snap.data();
+                } else {
+                    this.userProfilesCache[uid] = null;
+                }
+            } catch (e) {
+                this.userProfilesCache[uid] = null;
+            }
+        }));
+    } catch (err) {
+        console.warn('[Community] Error leyendo userProfiles:', err);
+    }
+
+    return this.userProfilesCache;
+},
+
+openAvatarPickerModal: async function() {
+    if (!this.currentUser?.uid) {
+        this.showToast('Inicia sesión para personalizar tu avatar');
+        return;
+    }
+
+    const userProfile = this.userProfilesCache?.[this.currentUser.uid] || {};
+    this.selectedAvatarIcon = userProfile.avatarIcon || '🕊️';
+    this.selectedAvatarColor = userProfile.avatarColor || '#3182CE';
+
+    const existingModal = document.getElementById('avatarPickerModal');
+    if (existingModal) existingModal.remove();
+
+    if (window.AvatarPicker) {
+        const modalHtml = window.AvatarPicker.renderModalHtml(this.selectedAvatarIcon, this.selectedAvatarColor);
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+},
+
+updateAvatarPickerPreview: function() {
+    const previewEl = document.getElementById('avatarPickerPreview');
+    if (!previewEl || !window.AvatarGenerator) return;
+
+    const uri = window.AvatarGenerator.generate('preview', 'Usuario', {
+        avatarIcon: this.selectedAvatarIcon,
+        avatarColor: this.selectedAvatarColor
+    });
+
+    previewEl.style.backgroundImage = `url('${uri}')`;
+},
+
+saveAvatarSelection: async function() {
+    if (!this.currentUser?.uid) return;
+
+    const saveBtn = document.getElementById('saveAvatarBtn');
+    if (saveBtn) saveBtn.disabled = true;
+
+    try {
+        if (window.AvatarPicker) {
+            await window.AvatarPicker.saveToFirestore(
+                this.currentUser.uid,
+                this.selectedAvatarIcon || '🕊️',
+                this.selectedAvatarColor || '#3182CE'
+            );
+        }
+
+        if (!this.userProfilesCache) this.userProfilesCache = {};
+        this.userProfilesCache[this.currentUser.uid] = {
+            userId: this.currentUser.uid,
+            avatarIcon: this.selectedAvatarIcon,
+            avatarColor: this.selectedAvatarColor,
+            updatedAt: new Date()
+        };
+
+        const modal = document.getElementById('avatarPickerModal');
+        if (modal) modal.remove();
+
+        this.showToast('Avatar guardado correctamente', 'success');
+        this.renderCommunity({ forceRefresh: true });
+    } catch (error) {
+        console.error('[AvatarPicker] Error guardando avatar:', error);
+        this.showToast('No se pudo guardar el avatar');
+        if (saveBtn) saveBtn.disabled = false;
+    }
+},
+
 getCommunityFeedState: function(mode = this.communityMode) {
     const normalizedMode = mode === 'history' ? 'history' : 'recent';
     return this.ensureCommunityFeedStates()[normalizedMode];
@@ -3328,8 +3433,14 @@ renderReplyBlock: function(post, replies = []) {
                     ${replies.map(reply => {
                         const replyAuthorName = reply.name || 'Anónimo';
                         const isReplyAnon = !reply.name || replyAuthorName.trim().toLowerCase() === 'anónimo';
+                        const replyProfile = reply.ownerUid ? this.userProfilesCache?.[reply.ownerUid] : null;
+
                         const replyAvatarSvg = typeof AvatarGenerator !== 'undefined'
-                            ? AvatarGenerator.renderHtml(reply.avatarSeed || reply.ownerUid || reply.id, replyAuthorName, isReplyAnon)
+                            ? AvatarGenerator.renderHtml(reply.avatarSeed || reply.ownerUid || reply.id, replyAuthorName, {
+                                isAnonymous: isReplyAnon,
+                                avatarIcon: replyProfile?.avatarIcon,
+                                avatarColor: replyProfile?.avatarColor
+                            })
                             : '';
 
                         return `
@@ -12755,6 +12866,11 @@ renderCommunityComposerLocally: function() {
             'La información de Comunidad tardó demasiado'
         );
 
+        const authorUids = posts.map(p => p.ownerUid).concat(
+            Object.values(repliesSummary).flat().map(r => r.ownerUid)
+        );
+        await this.getUserProfilesBatch(authorUids);
+
         loadingCompleted = true;
     } catch (error) {
         if (options.preserveOnError) {
@@ -12795,6 +12911,14 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
                     <div class="notification-bell" id="notificationBell">
                         <button type="button" class="bell-btn" aria-label="Ver notificaciones" title="Notificaciones">🔔 <span class="notification-badge" style="display: none;">0</span></button>
                     </div>
+                    <button
+                        class="community-rules-btn"
+                        type="button"
+                        data-action="open-avatar-picker"
+                        title="Personalizar mi avatar"
+                    >
+                        👤 Mi Avatar
+                    </button>
                     <button
                         class="community-rules-btn"
                         type="button"
@@ -12843,8 +12967,14 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
                     const isAnonymous = !post.name || authorName.trim().toLowerCase() === 'anónimo';
                     const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
                     const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
+                    const userProfile = post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
+
                     const avatarSvg = typeof AvatarGenerator !== 'undefined'
-                        ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, isAnonymous)
+                        ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {
+                            isAnonymous,
+                            avatarIcon: userProfile?.avatarIcon,
+                            avatarColor: userProfile?.avatarColor
+                        })
                         : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
 
                     return `
@@ -16259,6 +16389,49 @@ if (deleteCommunityBtn) {
         });
     }
 
+    return;
+}
+
+const openAvatarPickerBtn = e.target.closest('[data-action="open-avatar-picker"]');
+if (openAvatarPickerBtn) {
+    this.openAvatarPickerModal();
+    return;
+}
+
+const closeAvatarPickerBtn = e.target.closest('[data-action="close-avatar-picker"]');
+if (closeAvatarPickerBtn) {
+    const modal = document.getElementById('avatarPickerModal');
+    if (modal) modal.remove();
+    return;
+}
+
+const avatarIconBtn = e.target.closest('.avatar-icon-btn');
+if (avatarIconBtn) {
+    const icon = avatarIconBtn.getAttribute('data-icon');
+    if (icon) {
+        this.selectedAvatarIcon = icon;
+        document.querySelectorAll('.avatar-icon-btn').forEach(b => b.classList.remove('is-selected'));
+        avatarIconBtn.classList.add('is-selected');
+        this.updateAvatarPickerPreview();
+    }
+    return;
+}
+
+const avatarColorBtn = e.target.closest('.avatar-color-btn');
+if (avatarColorBtn) {
+    const color = avatarColorBtn.getAttribute('data-color');
+    if (color) {
+        this.selectedAvatarColor = color;
+        document.querySelectorAll('.avatar-color-btn').forEach(b => b.classList.remove('is-selected'));
+        avatarColorBtn.classList.add('is-selected');
+        this.updateAvatarPickerPreview();
+    }
+    return;
+}
+
+const saveAvatarBtn = e.target.closest('[data-action="save-avatar-selection"]');
+if (saveAvatarBtn) {
+    this.saveAvatarSelection();
     return;
 }
 
