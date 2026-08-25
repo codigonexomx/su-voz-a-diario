@@ -2251,37 +2251,15 @@ deleteSelectionNoteEntry: function(dateStr, selectedText) {
 
 ensureCommunityCutoff: async function() {
     if (this.communityCutoff) return this.communityCutoff;
-    if (!this.currentUser?.uid) {
-        throw new Error('No se pudo obtener la hora de Comunidad sin usuario');
-    }
-
-    const clockRef = doc(db, 'communityClock', this.currentUser.uid);
-    await setDoc(clockRef, {
-        requestedAt: serverTimestamp()
-    });
-
-    const clockSnapshot = await getDocFromServer(clockRef);
-    const requestedAt = clockSnapshot.data()?.requestedAt;
-
-    if (!requestedAt || typeof requestedAt.toMillis !== 'function') {
-        throw new Error('Firestore no devolvió una referencia de tiempo válida');
-    }
-
-    this.communityServerNow = requestedAt;
-    this.communityCutoff = new Date(
-        requestedAt.toMillis() - (15 * 24 * 60 * 60 * 1000)
-    );
-
-    deleteDoc(clockRef).catch(error => {
-        console.warn('[Community] No se pudo limpiar la referencia temporal:', error);
-    });
-
+    const now = new Date();
+    this.communityCutoff = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000));
     return this.communityCutoff;
 },
 
 getCommunityCutoff: function() {
     if (!this.communityCutoff) {
-        throw new Error('La referencia temporal de Comunidad no está inicializada');
+        const now = new Date();
+        this.communityCutoff = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000));
     }
 
     return this.communityCutoff;
