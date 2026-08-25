@@ -956,9 +956,10 @@ this.bindKeyboardViewportFix();
 this.bindBottomNavStateGuard();
 this.setupAndroidBackButton();
 this.setupNativePushActionListeners();
-	this.bindCommunityDraftLifecycle();
-	this.bindBibleReadingContinuityLifecycle();
-		await this.loadData();
+this.bindCommunityDraftLifecycle();
+this.bindBibleReadingContinuityLifecycle();
+this.initializeCommunityPremium();
+await this.loadData();
 
 // Fase 9: Migración única de cuadernillo a sesiones
 this.migrateLegacyNotebookToSessions();
@@ -2895,7 +2896,57 @@ saveCommunityPreferences: function(updates = {}) {
     next.isAnonymous = next.isAnonymous !== false;
     next.name = typeof next.name === 'string' ? next.name.slice(0, 30) : '';
     this.storage.set(this.getCommunityPreferencesKey(), next);
+    this.setUserCommunityPreferences({
+        isAnonymous: next.isAnonymous,
+        name: next.name
+    });
     return next;
+},
+
+getUserCommunityPreferences: function() {
+    const prefs = localStorage.getItem('communityPrefs');
+    if (prefs) {
+        try {
+            return JSON.parse(prefs);
+        } catch (e) {
+            console.warn('[Community] Error parsing communityPrefs', e);
+        }
+    }
+    const legacy = this.getCommunityPreferences();
+    return {
+        isAnonymous: legacy.isAnonymous !== false,
+        name: legacy.name || null,
+        lastUpdated: new Date().toISOString()
+    };
+},
+
+setUserCommunityPreferences: function(prefs) {
+    if (!prefs || typeof prefs !== 'object') return;
+    prefs.lastUpdated = new Date().toISOString();
+    localStorage.setItem('communityPrefs', JSON.stringify(prefs));
+},
+
+initializeCommunityPremium: function() {
+    if (typeof window.AvatarGenerator !== 'undefined') this.avatarGenerator = window.AvatarGenerator;
+    if (typeof window.RichTextEditor !== 'undefined') this.richTextEditor = window.RichTextEditor;
+    if (typeof window.VoiceReflectionRecorder !== 'undefined') this.voiceRecorder = new window.VoiceReflectionRecorder();
+    if (typeof window.LiveCommunityFeed !== 'undefined') this.liveFeed = new window.LiveCommunityFeed();
+    if (typeof window.ModerationSystem !== 'undefined') this.moderation = new window.ModerationSystem();
+    if (typeof window.UserMetrics !== 'undefined') this.userMetrics = new window.UserMetrics();
+    if (typeof window.NotificationCenter !== 'undefined') {
+        this.notificationCenter = new window.NotificationCenter();
+        this.notificationCenter.initialize();
+    }
+    if (typeof window.PerformanceOptimizer !== 'undefined') this.performanceOptimizer = new window.PerformanceOptimizer();
+    if (typeof window.AccessibilityManager !== 'undefined') {
+        this.accessibilityManager = new window.AccessibilityManager();
+        this.accessibilityManager.applyARIA();
+        this.accessibilityManager.handleKeyboardNavigation();
+    }
+    if (typeof window.I18nManager !== 'undefined') {
+        this.i18n = new window.I18nManager();
+        this.i18n.updateUI();
+    }
 },
 
 getDefaultCommunityDraftState: function() {
@@ -16231,12 +16282,18 @@ if (publishReplyBtn) {
         return;
     }
 
+    const userPrefs = this.getUserCommunityPreferences();
+    const isAnonymous = userPrefs.isAnonymous ?? false;
+    const displayName = isAnonymous ? 'Anónimo' : 
+        (Sanitizer.sanitizeUsername(userPrefs.name || this.currentUser?.displayName) || 'Hermano(a)');
+
     const result = await this.addCommunityReply({
         postId,
-        name: 'Anónimo',
+        name: displayName,
         text,
         date: this.getTodayDateStr(),
-        ownerUid: this.currentUser.uid
+        ownerUid: this.currentUser.uid,
+        avatarSeed: this.currentUser.uid
     });
 
     if (!result.success) {
@@ -16281,6 +16338,45 @@ if (deleteReplyBtn) {
             console.error('[Community] Error actualizando respuestas:', error);
         });
     }
+    return;
+}
+
+const toggleMenuBtn = e.target.closest('[data-action="toggle-post-menu"]');
+if (toggleMenuBtn) {
+    const postId = toggleMenuBtn.getAttribute('data-post-id');
+    const dropdown = document.getElementById(`post-menu-${postId}`);
+    if (dropdown) {
+        const isHidden = dropdown.style.display === 'none';
+        document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+        dropdown.style.display = isHidden ? 'flex' : 'none';
+    }
+    return;
+}
+
+const reportPostBtn = e.target.closest('[data-action="report-post"]');
+if (reportPostBtn) {
+    const postId = reportPostBtn.getAttribute('data-post-id');
+    if (this.moderation) {
+        this.moderation.showReportDialog(postId);
+    }
+    return;
+}
+
+const blockUserBtn = e.target.closest('[data-action="block-user"]');
+if (blockUserBtn) {
+    const targetUid = blockUserBtn.getAttribute('data-uid');
+    if (this.moderation) {
+        this.moderation.blockUser(targetUid);
+    }
+    return;
+}
+
+const replyAnonCheckbox = e.target.closest('.reply-anonymous-checkbox');
+if (replyAnonCheckbox) {
+    const prefs = this.getUserCommunityPreferences();
+    prefs.isAnonymous = replyAnonCheckbox.checked;
+    this.setUserCommunityPreferences(prefs);
+}
 
     return;
 }

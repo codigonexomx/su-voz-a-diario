@@ -158,5 +158,36 @@ service cloud.firestore {
 
       allow update: if false;
     }
+
+    match /communityReports/{reportId} {
+      allow read: if isSignedIn() &&
+        (request.auth.uid == resource.data.reportedBy ||
+         request.auth.token.moderator == true);
+      allow create: if isSignedIn() &&
+        request.auth.uid == request.resource.data.reportedBy &&
+        request.resource.data.reason in [
+          'Contenido inapropiado',
+          'Spam o promoción',
+          'Contenido ofensivo',
+          'Información engañosa',
+          'Acoso o bullying',
+          'Otro motivo'
+        ];
+      allow update: if request.auth.token.moderator == true;
+      allow delete: if request.auth.token.moderator == true;
+    }
+
+    match /userMetrics/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId;
+      allow update: if isSignedIn() &&
+        (request.auth.uid == userId || request.auth.token.moderator == true);
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow write: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+    }
   }
 }
