@@ -66,31 +66,15 @@ function renderPatternSVG(pattern, colors) {
 }
 
 function createSVG(palette, pattern, initial, hash) {
-    const c1 = palette[0];
-    const c2 = palette[1];
-    const gradId = `avatar-grad-${hash}`;
+    const c1 = palette[0] || '#3182CE';
 
-    const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="100%" height="100%">
-            <defs>
-                <linearGradient id="${gradId}" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="${c1}" />
-                    <stop offset="100%" stop-color="${c2}" />
-                </linearGradient>
-            </defs>
-            <circle cx="25" cy="25" r="25" fill="url(#${gradId})" />
-            <g opacity="0.35">
-                ${renderPatternSVG(pattern, palette)}
-            </g>
-            <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" 
-                  fill="#ffffff" font-family="'Inter', system-ui, -apple-system, sans-serif" 
-                  font-size="20" font-weight="800" letter-spacing="-0.5px">
-                ${initial}
-            </text>
-        </svg>
-    `.trim();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="100%" height="100%"><circle cx="25" cy="25" r="25" fill="${c1}" /><g opacity="0.35">${renderPatternSVG(pattern, palette)}</g><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="'Inter', system-ui, -apple-system, sans-serif" font-size="20" font-weight="800" letter-spacing="-0.5px">${initial}</text></svg>`.trim();
 
-    return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    const base64 = typeof btoa !== 'undefined'
+        ? btoa(unescape(encodeURIComponent(svg)))
+        : encodeURIComponent(svg);
+
+    return `data:image/svg+xml;base64,${base64}`;
 }
 
 class AvatarGenerator {
@@ -115,6 +99,7 @@ class AvatarGenerator {
         
         const classes = [
             'premium-avatar',
+            'community-avatar',
             isVerified ? 'verified' : '',
             isAnonymous ? 'is-anonymous' : 'has-name'
         ].filter(Boolean).join(' ');
