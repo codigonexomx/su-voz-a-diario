@@ -13743,13 +13743,22 @@ renderStats: function() {
                 </div>
                 
                 <div class="setting-card">
-                    <h3>💾 Datos</h3>
-                    <div class="setting-item">
-                        <button id="export-data" class="btn-secondary">📤 Exportar mis datos</button>
-                        <button id="import-data" class="btn-secondary">📥 Importar respaldo</button>
+                    <h3>💾 Datos y Respaldo</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                        Guarda una copia completa de tus lecturas, racha, reflexiones, avatar y preferencias para restaurarlos en cualquier momento.
+                    </p>
+                    <div class="setting-item" style="display: flex; flex-direction: column; gap: 8px;">
+                        <button id="export-data" class="btn-primary" style="width: 100%; justify-content: center; font-weight: 700; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer;">
+                            💾 Exportar mis datos
+                        </button>
+                        <button id="import-data" class="btn-secondary" style="width: 100%; justify-content: center;">
+                            📥 Importar respaldo
+                        </button>
                     </div>
-                    <div class="setting-item">
-                        <button id="reset-data" class="btn-secondary danger">⚠️ Reiniciar todo</button>
+                    <div class="setting-item" style="margin-top: 8px;">
+                        <button id="reset-data" class="btn-secondary danger" style="width: 100%; justify-content: center;">
+                            ⚠️ Reiniciar todo
+                        </button>
                     </div>
                     <input type="file" id="import-file" accept=".json" style="display: none;">
                 </div>
@@ -13898,48 +13907,68 @@ if (notificationsToggle) {
         
         if (resetBtn) {
             resetBtn.addEventListener('click', () => {
-                if (confirm('⚠️ ¿Estás seguro? Se borrarán TODOS tus datos:\n- Lecturas marcadas\n- Rachas\n- Reflexiones\n- Resaltados\n\nEsta acción no se puede deshacer.')) {
-                    this.resetAllData();
-                }
+                this.resetAllData();
             });
         }
     },
     
    exportAllData: function() {
+    const uid = this.currentUser?.uid || null;
+    let userProfile = uid ? this.userProfilesCache?.[uid] : null;
+
+    if (!userProfile && uid) {
+        try {
+            const local = localStorage.getItem(`suvoz_avatar_profile_${uid}`);
+            if (local) userProfile = JSON.parse(local);
+        } catch (e) {}
+    }
+
+    if (!userProfile) {
+        userProfile = {
+            avatarIcon: this.selectedAvatarIcon || '🕊️',
+            avatarColor: this.selectedAvatarColor || '#4A90D9',
+            avatarCategory: window.AvatarPicker?.findCategoryForIcon(this.selectedAvatarIcon) || 'Símbolos Bíblicos'
+        };
+    }
+
+    const communityPrefs = this.getUserCommunityPreferences();
+
     const allData = {
-    version: '2.1',
-    exportDate: new Date().toISOString(),
-    readDates: this.getReadDates(),
-    streak: this.streak,
-    settings: this.settings,
-    notes: {},
-    highlights: {},
-    selectionNotes: {}
-};
+        version: '2.1',
+        exportDate: new Date().toISOString(),
+        userProfile: userProfile,
+        communityPreferences: communityPrefs,
+        readDates: this.getReadDates(),
+        streak: this.streak,
+        settings: this.settings,
+        notes: {},
+        highlights: {},
+        selectionNotes: {}
+    };
     
     for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+        const key = localStorage.key(i);
 
-    if (key && key.startsWith('su-voz-note-')) {
-        const date = key.replace('su-voz-note-', '');
-        allData.notes[date] = this.storage.get(key, {
-            dios: '',
-            aprendizaje: '',
-            respuesta: '',
-            oracion: ''
-        });
-    }
+        if (key && key.startsWith('su-voz-note-')) {
+            const date = key.replace('su-voz-note-', '');
+            allData.notes[date] = this.storage.get(key, {
+                dios: '',
+                aprendizaje: '',
+                respuesta: '',
+                oracion: ''
+            });
+        }
 
-    if (key && key.startsWith('su-voz-highlights-')) {
-        const date = key.replace('su-voz-highlights-', '');
-        allData.highlights[date] = this.getHighlights(date);
-    }
+        if (key && key.startsWith('su-voz-highlights-')) {
+            const date = key.replace('su-voz-highlights-', '');
+            allData.highlights[date] = this.getHighlights(date);
+        }
 
-    if (key && key.startsWith('su-voz-selection-notes-')) {
-        const date = key.replace('su-voz-selection-notes-', '');
-        allData.selectionNotes[date] = this.getSelectionNotes(date);
+        if (key && key.startsWith('su-voz-selection-notes-')) {
+            const date = key.replace('su-voz-selection-notes-', '');
+            allData.selectionNotes[date] = this.getSelectionNotes(date);
+        }
     }
-}
 
     const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -13949,16 +13978,75 @@ if (notificationsToggle) {
     a.click();
     URL.revokeObjectURL(url);
 
-    this.showToast('Datos exportados correctamente');
+    alert('Este archivo contiene tu avatar, preferencias y datos. Guárdalo en un lugar seguro. Si cambias de dispositivo o desinstalas la app, podrás restaurar todo con este archivo.');
+    this.showToast('Datos y avatar exportados correctamente', 'success');
 },
     
     importData: function(file) {
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
                 
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Archivo de respaldo no válido');
+                }
+
+                const summaryItems = [
+                    data.userProfile ? '• Avatar y perfil personalizado' : null,
+                    data.communityPreferences ? '• Preferencias de comunidad' : null,
+                    data.readDates ? `• ${data.readDates.length || 0} lecturas marcadas` : null,
+                    data.streak ? '• Historial de racha' : null,
+                    data.notes ? `• ${Object.keys(data.notes || {}).length} reflexiones escritas` : null,
+                    data.highlights ? `• ${Object.keys(data.highlights || {}).length} versículos resaltados` : null
+                ].filter(Boolean).join('\n');
+
+                const confirmMsg = `📥 Se restaurará lo siguiente desde el respaldo:\n\n${summaryItems}\n\n¿Deseas restaurar tus datos ahora?`;
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+
+                if (data.userProfile) {
+                    const uid = this.currentUser?.uid;
+                    const profileData = {
+                        userId: uid || data.userProfile.userId || 'local_user',
+                        avatarIcon: data.userProfile.avatarIcon || '🕊️',
+                        avatarColor: data.userProfile.avatarColor || '#4A90D9',
+                        avatarCategory: data.userProfile.avatarCategory || window.AvatarPicker?.findCategoryForIcon(data.userProfile.avatarIcon) || 'Símbolos Bíblicos',
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    if (!this.userProfilesCache) this.userProfilesCache = {};
+                    if (uid) this.userProfilesCache[uid] = profileData;
+
+                    this.selectedAvatarIcon = profileData.avatarIcon;
+                    this.selectedAvatarColor = profileData.avatarColor;
+
+                    if (uid) {
+                        try {
+                            localStorage.setItem(`suvoz_avatar_profile_${uid}`, JSON.stringify(profileData));
+                        } catch (err) {}
+
+                        try {
+                            if (window.AvatarPicker) {
+                                await window.AvatarPicker.saveToFirestore(
+                                    uid,
+                                    profileData.avatarIcon,
+                                    profileData.avatarColor,
+                                    profileData.avatarCategory
+                                );
+                            }
+                        } catch (err) {
+                            console.warn('[Import] Sincronización en la nube diferida:', err);
+                        }
+                    }
+                }
+
+                if (data.communityPreferences) {
+                    this.setUserCommunityPreferences(data.communityPreferences);
+                }
+
                 if (data.readDates) {
                    this.storage.set('su-voz-read-dates', data.readDates);
                 }
@@ -13969,7 +14057,6 @@ if (notificationsToggle) {
                 if (data.settings) {
                     this.settings = { ...this.settings, ...data.settings };
                     this.saveSettings();
-                    // Recargar configuración visual
                     this.initTheme();
                     this.loadFontSize();
                 }
@@ -13986,25 +14073,25 @@ if (notificationsToggle) {
                 }
 
                 if (data.selectionNotes) {
-    Object.entries(data.selectionNotes).forEach(([date, selectionNotes]) => {
-        const normalized = Array.isArray(selectionNotes)
-            ? selectionNotes
-                .map(item => ({
-                    text: (item?.text || '').replace(/\s+/g, ' ').trim(),
-                    note: (item?.note || '').trim()
-                }))
-                .filter(item => item.text.length >= 3 && item.note.length > 0)
-            : [];
+                    Object.entries(data.selectionNotes).forEach(([date, selectionNotes]) => {
+                        const normalized = Array.isArray(selectionNotes)
+                            ? selectionNotes
+                                .map(item => ({
+                                    text: (item?.text || '').replace(/\s+/g, ' ').trim(),
+                                    note: (item?.note || '').trim()
+                                }))
+                                .filter(item => item.text.length >= 3 && item.note.length > 0)
+                            : [];
 
-        if (normalized.length > 0) {
-            this.storage.set(this.getSelectionNotesKey(date), normalized);
-        } else {
-            this.storage.remove(this.getSelectionNotesKey(date));
-        }
-    });
-}
+                        if (normalized.length > 0) {
+                            this.storage.set(this.getSelectionNotesKey(date), normalized);
+                        } else {
+                            this.storage.remove(this.getSelectionNotesKey(date));
+                        }
+                    });
+                }
                 
-                this.showToast('✅ Datos importados correctamente');
+                this.showToast('✅ Datos y avatar restaurados correctamente', 'success');
                 setTimeout(() => location.reload(), 1500);
             } catch (error) {
                 console.error('Error importando:', error);
@@ -14015,16 +14102,22 @@ if (notificationsToggle) {
     },
     
     resetAllData: function() {
+        const confirmWarning = '⚠️ Vas a borrar todos tus datos incluyendo tu avatar. ¿Has exportado tus datos primero?';
+        if (!confirm(confirmWarning)) {
+            return;
+        }
+
         const keys = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && (key.startsWith('su-voz-') || key === 'theme' || key === 'reading-size' || key === 'current-version')) {
+            if (key && (key.startsWith('su-voz-') || key.startsWith('suvoz_') || key === 'communityPrefs' || key === 'theme' || key === 'reading-size' || key === 'current-version')) {
                 keys.push(key);
             }
         }
 
         keys.forEach(key => this.storage.remove(key));
 
+        this.userProfilesCache = {};
         this.streak = { ...DEFAULT_STREAK };
         this.settings = { ...DEFAULT_SETTINGS };
 
