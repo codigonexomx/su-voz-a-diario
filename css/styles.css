@@ -16482,4 +16482,359 @@ body.dark-mode .calendar-v2-btn-action {
     flex-shrink: 0;
 }
 
+/* ========================================
+   REDISEÑO EDITORIAL COMUNIDAD (MODO CLARO)
+   ======================================== */
+:root {
+    --community-bg: #FBF7F0;
+    --community-bg-soft: #F7F1E8;
+    --community-surface: #FFFDF9;
+    --community-surface-secondary: #FAF5ED;
+    --community-navy: #172F55;
+    --community-navy-hover: #203D68;
+    --community-navy-soft: #E9EEF4;
+    --community-gold: #B47A2A;
+    --community-gold-dark: #98631F;
+    --community-gold-soft: #F5E8D2;
+    --community-text: #202A39;
+    --community-text-heading: #172B49;
+    --community-text-secondary: #697180;
+    --community-text-muted: #8A8F96;
+    --community-border: #E8DED0;
+    --community-border-soft: #EFE7DC;
+    --community-shadow: 0 8px 28px rgba(61, 45, 27, 0.06);
+}
+
+/* 1. Fondo General de la Sección Comunidad */
+body:not(.dark-mode).community-background,
+body:not(.dark-mode) .community-container {
+    background: linear-gradient(180deg, #FCF9F4 0%, #FBF7F0 45%, #F9F4EC 100%) !important;
+}
+
+/* 2. Encabezado Superior (App Header) en Comunidad */
+body:not(.dark-mode).community-background .app-header {
+    background-color: rgba(251, 247, 240, 0.92) !important;
+    border-bottom: 1px solid var(--community-border-soft) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: none !important;
+}
+
+body:not(.dark-mode).community-background .app-header::before {
+    background: rgba(251, 247, 240, 0.92) !important;
+}
+
+body:not(.dark-mode).community-background .app-header-main h1 {
+    color: var(--community-text-heading) !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-weight: 700 !important;
+}
+
+body:not(.dark-mode).community-background .header-left-btn {
+    background: var(--community-navy) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 50% !important;
+    box-shadow: 0 4px 12px rgba(23, 47, 85, 0.16) !important;
+}
+
+body:not(.dark-mode).community-background .header-left-btn:hover {
+    background: var(--community-navy-hover) !important;
+}
+
+body:not(.dark-mode).community-background .header-settings-btn {
+    background: rgba(255, 253, 249, 0.85) !important;
+    border: 1px solid #E3D4BF !important;
+    color: var(--community-navy) !important;
+    border-radius: 50% !important;
+}
+
+/* 3. Tarjeta Hero "Comunidad" */
+body:not(.dark-mode) .community-hero {
+    position: relative;
+    background: var(--community-surface) !important;
+    border: 1px solid var(--community-border) !important;
+    border-radius: 22px !important;
+    box-shadow: var(--community-shadow) !important;
+    padding: 18px 22px !important;
+    overflow: hidden;
+}
+
+body:not(.dark-mode) .community-hero::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 110px;
+    height: 110px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' fill='%23E9DDCC' opacity='0.35'%3E%3Cpath d='M80,20 Q60,30 50,60 Q70,50 80,20 M70,10 Q50,25 35,50 Q55,40 70,10 M90,35 Q70,45 60,75 Q80,65 90,35'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: top right;
+    background-size: contain;
+    pointer-events: none;
+    z-index: 0;
+}
+
+body:not(.dark-mode) .community-hero h2 {
+    color: var(--community-text-heading) !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-weight: 700 !important;
+}
+
+body:not(.dark-mode) .community-hero p {
+    color: var(--community-text-secondary) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+body:not(.dark-mode) .community-rules-btn {
+    background: var(--community-surface) !important;
+    border: 1px solid #DFCDB4 !important;
+    color: #9A681F !important;
+    border-radius: 999px !important;
+    font-weight: 600 !important;
+    padding: 6px 16px !important;
+    transition: all 0.2s ease !important;
+}
+
+body:not(.dark-mode) .community-rules-btn:hover {
+    background: var(--community-surface-secondary) !important;
+    border-color: var(--community-gold) !important;
+}
+
+/* 4. Bloque Composer "¿Qué escuchaste de su voz hoy?" */
+body:not(.dark-mode) .community-composer-card,
+body:not(.dark-mode) .community-form-card {
+    background: var(--community-surface) !important;
+    border: 1px solid var(--community-border) !important;
+    border-radius: 20px !important;
+    box-shadow: var(--community-shadow) !important;
+    padding: 18px 20px !important;
+}
+
+body:not(.dark-mode) .community-composer-question,
+body:not(.dark-mode) .community-form-title {
+    color: var(--community-text) !important;
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+}
+
+body:not(.dark-mode) .community-composer-reference,
+body:not(.dark-mode) .community-passage-context strong {
+    color: var(--community-gold) !important;
+    font-weight: 600 !important;
+}
+
+body:not(.dark-mode) .hero-avatar-edit-badge {
+    background: var(--community-navy) !important;
+    color: #FFFFFF !important;
+}
+
+/* 5. Botón "Compartir" */
+body:not(.dark-mode) .community-composer-btn,
+body:not(.dark-mode) .community-submit-btn,
+body:not(.dark-mode) .community-form-card button[type="submit"] {
+    background: var(--community-navy) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 16px !important;
+    box-shadow: 0 6px 16px rgba(23, 47, 85, 0.16) !important;
+    font-weight: 600 !important;
+    padding: 10px 22px !important;
+    transition: all 0.18s ease !important;
+}
+
+body:not(.dark-mode) .community-composer-btn:hover,
+body:not(.dark-mode) .community-submit-btn:hover {
+    background: var(--community-navy-hover) !important;
+}
+
+body:not(.dark-mode) .community-composer-btn:active,
+body:not(.dark-mode) .community-submit-btn:active {
+    transform: scale(0.98) !important;
+}
+
+/* 6. Sección "Ecos de su voz" */
+body:not(.dark-mode) .community-feed-heading h3 {
+    color: var(--community-text-heading) !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-weight: 700 !important;
+    font-size: 1.35rem !important;
+}
+
+body:not(.dark-mode) .community-history-toggle {
+    color: #A66F24 !important;
+    font-weight: 600 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+/* 7. Filtros (Todas, Mis reflexiones, Favoritos) */
+body:not(.dark-mode) .community-tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 18px 0;
+}
+
+body:not(.dark-mode) .community-tab-btn {
+    background: #F8F3EC !important;
+    color: #555A63 !important;
+    border: 1px solid #E5DDD2 !important;
+    border-radius: 999px !important;
+    padding: 7px 16px !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+}
+
+body:not(.dark-mode) .community-tab-btn:hover {
+    background: #F2E8DB !important;
+    color: var(--community-text) !important;
+}
+
+body:not(.dark-mode) .community-tab-btn.is-active {
+    background: var(--community-navy) !important;
+    color: #FFFFFF !important;
+    border-color: var(--community-navy) !important;
+    box-shadow: 0 4px 12px rgba(23, 47, 85, 0.18) !important;
+}
+
+/* 8. Tarjetas de Publicaciones */
+body:not(.dark-mode) .community-card {
+    background: var(--community-surface) !important;
+    border: 1px solid var(--community-border) !important;
+    border-radius: 22px !important;
+    box-shadow: 0 8px 24px rgba(61, 45, 27, 0.055) !important;
+    padding: 20px !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+body:not(.dark-mode) .community-card:hover {
+    box-shadow: 0 12px 30px rgba(61, 45, 27, 0.08) !important;
+}
+
+/* 9. Nombre del usuario y Metadatos */
+body:not(.dark-mode) .community-author {
+    color: var(--community-text) !important;
+    font-weight: 700 !important;
+}
+
+body:not(.dark-mode) .community-date {
+    color: #7D828A !important;
+}
+
+body:not(.dark-mode) .community-ref {
+    color: #A66F24 !important;
+    font-weight: 600 !important;
+}
+
+/* 10. Avatares (Sin aro azul eléctrico) */
+body:not(.dark-mode) .community-avatar,
+body:not(.dark-mode) .premium-avatar {
+    border: 2px solid #D8C09C !important;
+    box-shadow: 0 0 0 3px #FFFDF9 !important;
+}
+
+/* 11. Texto de las Reflexiones */
+body:not(.dark-mode) .community-text {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    color: #252E3B !important;
+    line-height: 1.6 !important;
+    font-size: 0.98rem !important;
+}
+
+body:not(.dark-mode) .community-text blockquote {
+    color: var(--community-navy) !important;
+    font-family: Georgia, "Times New Roman", serif !important;
+    font-weight: 700 !important;
+    border-left: 3px solid var(--community-gold) !important;
+    background: var(--community-surface-secondary) !important;
+    padding: 10px 16px !important;
+    border-radius: 8px !important;
+    margin: 12px 0 !important;
+}
+
+/* 12. Reacciones ("Me habló", "Gracias") */
+body:not(.dark-mode) .community-reaction-btn {
+    background: #FFF9F0 !important;
+    border: 1px solid #E5D2B7 !important;
+    color: #A66F24 !important;
+    border-radius: 999px !important;
+    padding: 6px 14px !important;
+    font-weight: 600 !important;
+    transition: all 0.18s ease !important;
+}
+
+body:not(.dark-mode) .community-reaction-btn:hover {
+    background: #F7EAD8 !important;
+}
+
+body:not(.dark-mode) .community-reaction-btn.is-active {
+    background: var(--community-gold-soft) !important;
+    border-color: var(--community-gold) !important;
+    color: var(--community-gold-dark) !important;
+    font-weight: 700 !important;
+}
+
+body:not(.dark-mode) .community-reaction-count {
+    background: var(--community-surface-secondary) !important;
+    color: var(--community-gold-dark) !important;
+    border-radius: 999px !important;
+}
+
+/* 13. Botón "Responder a este eco" */
+body:not(.dark-mode) .community-reply-toggle,
+body:not(.dark-mode) .community-reply-submit {
+    background: var(--community-surface) !important;
+    border: 1px solid #E3D9CC !important;
+    color: #28313E !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.18s ease !important;
+}
+
+body:not(.dark-mode) .community-reply-toggle:hover {
+    background: #F8F2E9 !important;
+}
+
+/* 14. Menú de tres puntos (⋮) */
+body:not(.dark-mode) .post-menu-btn {
+    color: #73777E !important;
+}
+
+body:not(.dark-mode) .post-menu-dropdown {
+    background: var(--community-surface) !important;
+    border: 1px solid var(--community-border) !important;
+    box-shadow: 0 8px 28px rgba(61, 45, 27, 0.12) !important;
+    border-radius: 14px !important;
+}
+
+body:not(.dark-mode) .post-menu-dropdown button {
+    color: var(--community-text) !important;
+}
+
+body:not(.dark-mode) .post-menu-dropdown button:hover {
+    background: var(--community-bg-soft) !important;
+}
+
+/* 15. Navegación Inferior en Comunidad */
+body:not(.dark-mode).community-background .bottom-nav {
+    background: rgba(255, 253, 249, 0.94) !important;
+    border: 1px solid #EAE1D6 !important;
+    backdrop-filter: blur(18px) !important;
+    -webkit-backdrop-filter: blur(18px) !important;
+    box-shadow: 0 -4px 24px rgba(48, 38, 25, 0.08) !important;
+}
+
+body:not(.dark-mode).community-background .nav-btn {
+    color: #666A70 !important;
+}
+
+body:not(.dark-mode).community-background .nav-btn.active,
+body:not(.dark-mode).community-background .nav-btn-community.active {
+    color: #A66F24 !important;
+    background: #FAEEDC !important;
+    border-radius: 16px !important;
+}
+
 

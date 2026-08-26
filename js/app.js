@@ -7656,6 +7656,8 @@ if (view !== 'settings' && oldView !== 'settings') {
 	const usesSuVozHoyLayout = view === 'home' || view === 'reading';
 	this.$content.classList.toggle('su-voz-hoy-view', usesSuVozHoyLayout);
 	document.body.classList.toggle('su-voz-hoy-background', usesSuVozHoyLayout);
+	this.$content.classList.toggle('community-view', view === 'community');
+	document.body.classList.toggle('community-background', view === 'community');
 	this.updateNavUI();
     
     document.querySelectorAll('.version-btn').forEach(btn => {
