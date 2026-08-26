@@ -15428,6 +15428,37 @@ body.dark-mode .calendar-v2-btn-action {
     font-size: 0.95rem;
 }
 
+.community-editor-content {
+    min-height: 120px;
+    max-height: 320px;
+    padding: 12px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow-y: auto;
+    background: var(--surface-color);
+    color: var(--text-main);
+    outline: none;
+    line-height: 1.6;
+    font-family: inherit;
+    font-size: 0.95rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.community-editor-content:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+.community-editor-content:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-muted);
+    pointer-events: none;
+    display: block;
+}
+
+.community-editor-content blockquote,
 .editor-preview-content blockquote,
 .community-text blockquote,
 .community-reply-text blockquote {

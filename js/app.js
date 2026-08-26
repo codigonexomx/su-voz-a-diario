@@ -2465,41 +2465,36 @@ formatCommunityRichText: function(text) {
 },
 
 applyRichFormatToComposer: function(format) {
-    const textarea = document.getElementById('community-reflection');
-    if (!textarea) return;
+    const editor = document.getElementById('community-reflection');
+    if (!editor) return;
+
+    editor.focus();
 
     if (format === 'verse') {
-        this.openVersePickerModalForComposer(textarea);
+        this.openVersePickerModalForComposer(editor);
         return;
     }
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = textarea.value.substring(start, end);
-
-    let wrapper = ['', ''];
     switch (format) {
-        case 'bold': wrapper = ['<b>', '</b>']; break;
-        case 'italic': wrapper = ['<i>', '</i>']; break;
-        case 'underline': wrapper = ['<u>', '</u>']; break;
-        case 'blockquote': wrapper = ['<blockquote>', '</blockquote>']; break;
+        case 'bold':
+            document.execCommand('bold', false, null);
+            break;
+        case 'italic':
+            document.execCommand('italic', false, null);
+            break;
+        case 'underline':
+            document.execCommand('underline', false, null);
+            break;
+        case 'blockquote':
+            document.execCommand('formatBlock', false, 'blockquote');
+            break;
     }
 
-    const inner = selectedText || (format === 'bold' ? 'texto en negrita' : format === 'italic' ? 'texto en cursiva' : format === 'underline' ? 'texto subrayado' : 'Cita bíblica...');
-    const replacement = wrapper[0] + inner + wrapper[1];
-
-    const newValue = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
-
-    if (newValue.length <= 1200) {
-        textarea.value = newValue;
-        textarea.focus();
-        textarea.setSelectionRange(start + wrapper[0].length, start + wrapper[0].length + inner.length);
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
-    }
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
 },
 
-openVersePickerModalForComposer: function(textarea) {
-    if (!textarea) return;
+openVersePickerModalForComposer: function(editor) {
+    if (!editor) return;
     const existingModal = document.getElementById('versePickerModal');
     if (existingModal) existingModal.remove();
 
@@ -2553,18 +2548,29 @@ openVersePickerModalForComposer: function(textarea) {
     document.getElementById('confirmVerseInsertBtn')?.addEventListener('click', () => {
         const inputEl = document.getElementById('customVerseRefInput');
         const customRef = inputEl?.value.trim() || todayReference;
-        const textToInsert = sampleVerse ? `\n<blockquote>"${sampleVerse}" — ${customRef}</blockquote>\n` : `\n<blockquote>"${customRef}"</blockquote>\n`;
+        const quoteHtml = sampleVerse
+            ? `<blockquote style="margin: 8px 0;">"${this.escapeHtml(sampleVerse)}" — ${this.escapeHtml(customRef)}</blockquote>`
+            : `<blockquote style="margin: 8px 0;">"${this.escapeHtml(customRef)}"</blockquote>`;
 
-        const start = textarea.selectionStart || textarea.value.length;
-        const end = textarea.selectionEnd || textarea.value.length;
-        const newValue = textarea.value.substring(0, start) + textToInsert + textarea.value.substring(end);
+        editor.focus();
 
-        if (newValue.length <= 1200) {
-            textarea.value = newValue;
-            textarea.focus();
-            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = quoteHtml;
+            const frag = document.createDocumentFragment();
+            let node;
+            while ((node = tempDiv.firstChild)) {
+                frag.appendChild(node);
+            }
+            range.insertNode(frag);
+        } else {
+            editor.innerHTML += quoteHtml;
         }
 
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
         closeModal();
     });
 },
@@ -3442,7 +3448,7 @@ flushCommunityDraftFromDOM: function() {
         formOpen: this.communityFormOpen
     };
 
-    if (reflectionInput) updates.text = reflectionInput.value.slice(0, 1200);
+    if (reflectionInput) updates.text = (reflectionInput.innerHTML || '').slice(0, 3000);
     if (anonymousInput) updates.isAnonymous = anonymousInput.checked;
     if (nameInput) updates.name = nameInput.value.slice(0, 30);
 
@@ -12940,14 +12946,14 @@ renderCommunityFormCardHtml: function(options = {}) {
                             <button type="button" class="rich-toolbar-btn" data-format="verse" aria-label="Versículo" title="Insertar versículo del día">📖</button>
                         </div>
 
-                        <textarea
-                            class="community-textarea"
+                        <div
+                            class="community-textarea community-editor-content"
                             id="community-reflection"
-                            placeholder="Escribe con sencillez lo que Dios te mostró en esta lectura..."
-                            maxlength="1200"
-                        >${this.escapeHtml(communityDraft)}</textarea>
+                            contenteditable="true"
+                            data-placeholder="Escribe con sencillez lo que Dios te mostró en esta lectura..."
+                        >${communityDraft ? Sanitizer.sanitizeText(communityDraft) : ''}</div>
 
-                        <div class="community-char-counter" id="community-char-counter">${communityDraft.length} / 1200</div>
+                        <div class="community-char-counter" id="community-char-counter">${(communityDraft || '').replace(/<[^>]*>/g, '').length} / 1200</div>
                         ${showCommunityDraftRestored ? '<div class="community-draft-restored" role="status">Se restauró tu borrador anterior.</div>' : ''}
                     </div>
 
@@ -16617,13 +16623,14 @@ if (publishCommunityBtn) {
     const anonymousInput = document.getElementById('community-anonymous');
     const reflectionInput = document.getElementById('community-reflection');
 
-    let reflectionText = reflectionInput ? reflectionInput.value.trim() : '';
+    let reflectionText = reflectionInput ? (reflectionInput.innerHTML || '').trim() : '';
+    let plainTextLength = reflectionInput ? (reflectionInput.textContent || '').trim().length : 0;
 
-    if (reflectionText.length > 1200) {
-    this.showToast('Lo compartido no puede exceder 1200 caracteres');
-    if (reflectionInput) reflectionInput.focus();
-    return;
-}
+    if (plainTextLength > 1200) {
+        this.showToast('Lo compartido no puede exceder 1200 caracteres');
+        if (reflectionInput) reflectionInput.focus();
+        return;
+    }
 
     const validation = Sanitizer.validateText(reflectionText);
     if (!validation.valid) {
@@ -17293,8 +17300,11 @@ if (navItem) {
     }
 
     if (e.target.id === 'community-reflection') {
+        const htmlContent = e.target.innerHTML || '';
+        const textContent = (e.target.textContent || '').trim();
+
         this.updateCommunityDraftState({
-            text: e.target.value.slice(0, 1200),
+            text: htmlContent.slice(0, 3000),
             formOpen: true
         });
 
@@ -17302,11 +17312,11 @@ if (navItem) {
         if (!counter) return;
         const draftRestoredNotice = document.querySelector('.community-draft-restored');
 
-        if (draftRestoredNotice && !e.target.value.trim()) {
+        if (draftRestoredNotice && !textContent) {
             draftRestoredNotice.remove();
         }
 
-        const currentLength = e.target.value.length;
+        const currentLength = textContent.length;
         const maxLength = 1200;
 
         counter.textContent = `${currentLength} / ${maxLength}`;
@@ -18963,16 +18973,22 @@ const Sanitizer = {
     },
 
     validateText(text) {
-        if (!text || text.trim().length === 0) {
+        if (!text || typeof text !== 'string') {
             return { valid: false, message: 'Escribe tu reflexión' };
         }
 
-        if (text.length < 10) {
+        const plainText = text.replace(/<[^>]*>/g, '').trim();
+
+        if (plainText.length === 0) {
+            return { valid: false, message: 'Escribe tu reflexión' };
+        }
+
+        if (plainText.length < 10) {
             return { valid: false, message: 'Escribe un poco más (mínimo 10 caracteres)' };
         }
 
-        if (text.length > 1200) {
-            return { valid: false, message: 'Texto demasiado largo' };
+        if (plainText.length > 1200) {
+            return { valid: false, message: 'Texto demasiado largo (máximo 1200 caracteres)' };
         }
 
         return { valid: true };
