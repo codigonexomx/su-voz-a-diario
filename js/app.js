@@ -2588,46 +2588,76 @@ toggleFavoritePost: async function(postId) {
 },
 
 copyPostText: function(postId) {
-    const post = this.getCommunityPostsMap()?.[postId];
-    const cardEl = document.querySelector(`[data-post-id="${postId}"] .community-text`);
-    const textToCopy = post ? (post.text || '').replace(/<[^>]*>/g, '') : (cardEl ? cardEl.textContent : '');
+    const card = Array.from(document.querySelectorAll('.community-card')).find(c => c.getAttribute('data-post-id') === String(postId)) || document.querySelector(`[data-post-id="${postId}"]`);
+    const textElement = card?.querySelector('.community-text');
+    const text = (textElement?.textContent || '').trim();
 
-    if (textToCopy && navigator.clipboard) {
-        navigator.clipboard.writeText(textToCopy).then(() => {
-            this.showToast('✅ Copiada al portapapeles', 'success');
-        }).catch(() => {
-            this.showToast('No se pudo copiar el texto', 'error');
-        });
+    const self = this;
+    function fallbackCopy(txt) {
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = txt;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            self.showToast('✅ Copiada');
+        } catch (e) {
+            self.showToast('No se pudo copiar el texto', 'error');
+        }
+    }
+
+    if (text && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => this.showToast('✅ Copiada al portapapeles'))
+            .catch(() => { fallbackCopy(text); });
+    } else if (text) {
+        fallbackCopy(text);
     } else {
-        this.showToast('Portapapeles no disponible', 'warning');
+        this.showToast('No hay texto para copiar', 'warning');
     }
 },
 
 sharePost: function(postId) {
-    const post = this.getCommunityPostsMap()?.[postId];
-    const textToShare = post
-        ? `"${(post.text || '').replace(/<[^>]*>/g, '')}" — ${post.name || 'Alguien de la comunidad'} (en Su Voz a Diario)`
-        : 'Reflexión compartida en Su Voz a Diario';
-    const shareUrl = window.location.href;
+    const card = Array.from(document.querySelectorAll('.community-card')).find(c => c.getAttribute('data-post-id') === String(postId)) || document.querySelector(`[data-post-id="${postId}"]`);
+    const text = (card?.querySelector('.community-text')?.textContent || '').trim();
+    const link = 'https://suvoz.app/#community';
 
     if (navigator.share) {
-        navigator.share({
-            title: 'Reflexión en Su Voz a Diario',
-            text: textToShare,
-            url: shareUrl
-        }).then(() => {
-            this.showToast('Reflexión compartida 🔗', 'success');
-        }).catch((err) => {
-            if (err.name !== 'AbortError') {
-                this.showToast('Enlace copiado para compartir 🔗', 'success');
-            }
-        });
-    } else if (navigator.clipboard) {
-        navigator.clipboard.writeText(`${textToShare}\n${shareUrl}`).then(() => {
-            this.showToast('Enlace copiado para compartir 🔗', 'success');
-        });
+        navigator.share({ text: text, title: 'Reflexión de Comunidad', url: link })
+            .then(() => this.showToast('🔗 Compartida'))
+            .catch((err) => {
+                if (err.name !== 'AbortError') {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text + '\n\n' + link)
+                            .then(() => this.showToast('🔗 Enlace copiado'))
+                            .catch(() => this.showToast('🔗 Copia manual: ' + link));
+                    }
+                }
+            });
     } else {
-        this.showToast('Opción de compartir no disponible', 'warning');
+        // Desktop: copiar enlace
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text + '\n\n' + link)
+                .then(() => this.showToast('🔗 Enlace copiado'))
+                .catch(() => this.showToast('🔗 Copia manual: ' + link));
+        } else {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text + '\n\n' + link;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                this.showToast('🔗 Enlace copiado');
+            } catch (e) {
+                this.showToast('🔗 Copia manual: ' + link);
+            }
+        }
     }
 },
 
@@ -2637,54 +2667,66 @@ toggleSpeechPost: function(postId) {
         return;
     }
 
-    if (window.speechSynthesis.speaking && this.currentlySpeakingPostId === postId) {
+    if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
         this.currentlySpeakingPostId = null;
         this.updateSpeechMenuButton(postId, false);
-        this.showToast('Lectura detenida', 'info');
+        this.showToast('Lectura detenida');
         return;
     }
 
-    if (window.speechSynthesis.speaking) {
-        const oldId = this.currentlySpeakingPostId;
-        window.speechSynthesis.cancel();
-        if (oldId) this.updateSpeechMenuButton(oldId, false);
-    }
+    const card = Array.from(document.querySelectorAll('.community-card')).find(c => c.getAttribute('data-post-id') === String(postId)) || document.querySelector(`[data-post-id="${postId}"]`);
+    const text = (card?.querySelector('.community-text')?.textContent || '').trim();
 
-    const post = this.getCommunityPostsMap()?.[postId];
-    const cardTextEl = document.querySelector(`[data-post-id="${postId}"] .community-text`);
-    const rawText = post ? post.text : (cardTextEl ? cardTextEl.textContent : '');
-    const cleanText = (rawText || '').replace(/<[^>]*>/g, '').trim();
-
-    if (!cleanText) {
+    if (!text) {
         this.showToast('No hay texto para leer', 'warning');
         return;
     }
 
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'es-ES';
-    utterance.rate = 0.95;
+    const self = this;
+    function speak(voices) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+        utterance.rate = 1;
+        utterance.pitch = 1;
 
-    const voices = window.speechSynthesis.getVoices();
-    const esVoice = voices.find(v => v.lang.startsWith('es-ES')) || voices.find(v => v.lang.startsWith('es'));
-    if (esVoice) {
-        utterance.voice = esVoice;
+        const spanishVoice = voices.find(v =>
+            v.lang.startsWith('es') ||
+            v.lang.startsWith('es-ES') ||
+            v.lang.startsWith('es-MX')
+        );
+
+        if (spanishVoice) utterance.voice = spanishVoice;
+
+        utterance.onend = () => {
+            self.currentlySpeakingPostId = null;
+            self.updateSpeechMenuButton(postId, false);
+        };
+
+        utterance.onerror = () => {
+            self.currentlySpeakingPostId = null;
+            self.updateSpeechMenuButton(postId, false);
+        };
+
+        self.currentlySpeakingPostId = postId;
+        self.updateSpeechMenuButton(postId, true);
+
+        try {
+            window.speechSynthesis.resume();
+        } catch (e) {}
+
+        window.speechSynthesis.speak(utterance);
+        self.showToast('🗣️ Leyendo reflexión...');
     }
 
-    utterance.onend = () => {
-        this.currentlySpeakingPostId = null;
-        this.updateSpeechMenuButton(postId, false);
-    };
-
-    utterance.onerror = () => {
-        this.currentlySpeakingPostId = null;
-        this.updateSpeechMenuButton(postId, false);
-    };
-
-    this.currentlySpeakingPostId = postId;
-    this.updateSpeechMenuButton(postId, true);
-    window.speechSynthesis.speak(utterance);
-    this.showToast('🗣️ Leyendo reflexión...', 'info');
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        speak(voices);
+    } else {
+        window.speechSynthesis.onvoiceschanged = () => {
+            speak(window.speechSynthesis.getVoices());
+        };
+    }
 },
 
 updateSpeechMenuButton: function(postId, isSpeaking) {
