@@ -2932,6 +2932,32 @@ async getRepliesSummary(posts) {
     }
 },
 
+createInAppNotification: async function(targetUserId, type, title, body, postId) {
+    if (!targetUserId || !this.currentUser?.uid) return;
+    if (targetUserId === this.currentUser.uid) return;
+
+    const db = window.firebaseDb;
+    const fns = window.firebaseFns;
+
+    if (!db || !fns?.collection || !fns?.addDoc) {
+        return;
+    }
+
+    try {
+        await fns.addDoc(fns.collection(db, 'notifications'), {
+            userId: targetUserId,
+            type: type,
+            title: title,
+            body: body,
+            postId: postId || null,
+            isRead: false,
+            createdAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
+        });
+    } catch (error) {
+        console.warn('[Notification] Error creando notificación in-app:', error);
+    }
+},
+
 async addCommunityReply(reply) {
     try {
         const cleanText = Sanitizer.sanitizeText(reply.text || '');
@@ -2953,6 +2979,18 @@ async addCommunityReply(reply) {
             text: cleanText,
             createdAt: serverTimestamp()
         });
+
+        const post = this.getCommunityFeedState().posts.find(p => p.id === reply.postId);
+        if (post && post.ownerUid) {
+            const replyName = reply.name || 'Alguien de la comunidad';
+            await this.createInAppNotification(
+                post.ownerUid,
+                'newReply',
+                'Nueva respuesta',
+                `${replyName} respondió a tu reflexión`,
+                reply.postId
+            );
+        }
 
         return { success: true, id: createdReply.id };
     } catch (error) {
@@ -3671,6 +3709,21 @@ toggleCommunityReaction: async function(postId, reaction) {
             reactions: currentReactions,
             updatedAt: serverTimestamp()
         });
+
+        if (currentReactions[reaction] === true) {
+            const post = this.getCommunityFeedState().posts.find(p => p.id === postId);
+            if (post && post.ownerUid) {
+                const prefs = this.getUserCommunityPreferences();
+                const userName = (prefs && !prefs.isAnonymous && prefs.name) ? prefs.name : 'Alguien de la comunidad';
+                await this.createInAppNotification(
+                    post.ownerUid,
+                    'newReaction',
+                    'Nueva reacción',
+                    `${userName} reaccionó a tu reflexión`,
+                    postId
+                );
+            }
+        }
 
         return { success: true, removed: false };
     } catch (error) {
@@ -13129,6 +13182,13 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
             ` : ''}
         </div>
     `;
+
+    if (this.notificationCenter) {
+        const bellEl = document.getElementById('notificationBell');
+        if (bellEl) {
+            this.notificationCenter.bindEvents(bellEl);
+        }
+    }
 
     if (showCommunityDraftRestored) {
         this.armCommunityDraftRestoredNoticeDismissal();

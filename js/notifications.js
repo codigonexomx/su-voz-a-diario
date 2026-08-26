@@ -101,6 +101,8 @@ class NotificationCenter {
         this.container = bellContainer;
         if (!this.container) return;
 
+        this.updateBadgeUI();
+
         const bellBtn = this.container.querySelector('.bell-btn');
         const dropdown = this.container.querySelector('.notification-dropdown');
         const markAllBtn = this.container.querySelector('.mark-all-read-btn');
