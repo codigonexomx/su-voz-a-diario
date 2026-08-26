@@ -134,7 +134,20 @@ class AvatarPicker {
         { id: 'girl', label: 'Jovencita', icon: '👧' },
         { id: 'person', label: 'Persona', icon: '🧑' },
         { id: 'child', label: 'Niño', icon: '🧒' },
-        { id: 'angel', label: 'Ángel', icon: '👼' }
+        { id: 'angel', label: 'Ángel', icon: '👼' },
+
+        { id: 'man_light', label: 'Hombre', icon: '👨🏻' },
+        { id: 'woman_light', label: 'Mujer', icon: '👩🏻' },
+        { id: 'man_beard_light', label: 'Hombre con barba', icon: '🧔🏻' },
+        { id: 'woman_long_light', label: 'Mujer cabello largo', icon: '👩🏻‍🦰' },
+        { id: 'grandpa_light', label: 'Anciano', icon: '👴🏻' },
+        { id: 'grandma_light', label: 'Anciana', icon: '👵🏻' },
+        { id: 'boy_light', label: 'Joven', icon: '👦🏻' },
+        { id: 'girl_light', label: 'Jovencita', icon: '👧🏻' },
+        { id: 'man_dark', label: 'Hombre moreno', icon: '👨🏽' },
+        { id: 'woman_dark', label: 'Mujer morena', icon: '👩🏽' },
+        { id: 'man_elder', label: 'Hombre mayor', icon: '👨🏻‍🦳' },
+        { id: 'woman_elder', label: 'Mujer mayor', icon: '👩🏻‍🦳' }
     ];
 
     static INSTRUMENTS = ['🎵', '🪕', '🎺', '📯', '🥁'];

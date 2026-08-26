@@ -1,4 +1,4 @@
-const APP_VERSION = "193";
+const APP_VERSION = "194";
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
