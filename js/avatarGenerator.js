@@ -125,18 +125,16 @@ class AvatarPicker {
     ];
 
     static PERSON_AVATARS = [
-        { id: 'man', label: 'Hombre', icon: '👨🏻' },
-        { id: 'woman', label: 'Mujer', icon: '👩🏻' },
-        { id: 'manBeard', label: 'Hombre con barba', icon: '👨🏻🦱' },
-        { id: 'womanLong', label: 'Mujer cabello largo', icon: '👩🏻🦰' },
-        { id: 'grandpa', label: 'Anciano', icon: '👴🏻' },
-        { id: 'grandma', label: 'Anciana', icon: '👵🏻' },
-        { id: 'boy', label: 'Joven', icon: '👦🏻' },
-        { id: 'girl', label: 'Jovencita', icon: '👧🏻' },
-        { id: 'manDark', label: 'Hombre moreno', icon: '👨🏽' },
-        { id: 'womanDark', label: 'Mujer morena', icon: '👩🏽' },
-        { id: 'manElder', label: 'Hombre mayor', icon: '👨🏻🦳' },
-        { id: 'womanElder', label: 'Mujer mayor', icon: '👩🏻🦳' }
+        { id: 'man', label: 'Hombre', icon: '👨' },
+        { id: 'woman', label: 'Mujer', icon: '👩' },
+        { id: 'manBeard', label: 'Hombre con barba', icon: '🧔' },
+        { id: 'grandpa', label: 'Anciano', icon: '👴' },
+        { id: 'grandma', label: 'Anciana', icon: '👵' },
+        { id: 'boy', label: 'Joven', icon: '👦' },
+        { id: 'girl', label: 'Jovencita', icon: '👧' },
+        { id: 'person', label: 'Persona', icon: '🧑' },
+        { id: 'child', label: 'Niño', icon: '🧒' },
+        { id: 'angel', label: 'Ángel', icon: '👼' }
     ];
 
     static INSTRUMENTS = ['🎵', '🪕', '🎺', '📯', '🥁'];

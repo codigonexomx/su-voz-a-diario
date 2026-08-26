@@ -16309,29 +16309,36 @@ body.dark-mode .calendar-v2-btn-action {
     gap: 8px;
 }
 
-.avatar-icon-btn {
-    background: var(--surface-color-hover, rgba(0, 0, 0, 0.04));
-    border: 2px solid transparent;
-    border-radius: 12px;
-    font-size: 1.5rem;
-    padding: 8px;
-    cursor: pointer;
+.avatar-icon-btn,
+.avatar-option {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 24px;
+    line-height: 1;
+    overflow: visible;
+    flex-shrink: 0;
+    background: var(--surface-color-hover, rgba(0, 0, 0, 0.04));
+    border: 2px solid transparent;
+    cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.avatar-icon-btn:hover {
-    transform: scale(1.18);
+.avatar-icon-btn:hover,
+.avatar-option:hover {
+    transform: scale(1.15);
     background: var(--surface-color-hover, rgba(0, 0, 0, 0.08));
     z-index: 2;
 }
 
-.avatar-icon-btn.is-selected {
+.avatar-icon-btn.is-selected,
+.avatar-option.is-selected {
     border-color: var(--accent);
     background: color-mix(in srgb, var(--accent) 20%, transparent);
-    transform: scale(1.12);
+    transform: scale(1.1);
     box-shadow: 0 0 0 2px var(--accent);
 }
 
