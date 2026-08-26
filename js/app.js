@@ -2452,7 +2452,15 @@ saveAvatarSelection: async function() {
 
 formatCommunityRichText: function(text) {
     if (!text) return '';
-    const clean = Sanitizer.sanitizeText(text);
+    let raw = String(text);
+    let unescaped = raw
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+
+    const clean = Sanitizer.sanitizeText(unescaped);
     return clean.replace(/\n/g, '<br>');
 },
 
@@ -3553,7 +3561,7 @@ renderReplyBlock: function(post, replies = []) {
     const draft = this.getReplyDraft(post.id);
     const replyCount = replies.length;
     const latestReply = replyCount ? replies[replyCount - 1] : null;
-    const latestReplyText = latestReply?.text || '';
+    const latestReplyText = (latestReply?.text || '').replace(/<[^>]*>/g, '');
     const latestReplyPreview = latestReplyText.length > 92
         ? `${latestReplyText.slice(0, 92).trim()}...`
         : latestReplyText;
@@ -3660,7 +3668,7 @@ renderReplyBlock: function(post, replies = []) {
                             </div>
 
                             <div class="community-reply-text">
-                                ${this.escapeHtml(reply.text || '')}
+                                ${this.formatCommunityRichText(reply.text || '')}
                             </div>
 
                             ${reply.ownerUid === this.currentUser?.uid ? `

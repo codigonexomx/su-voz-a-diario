@@ -15428,12 +15428,18 @@ body.dark-mode .calendar-v2-btn-action {
     font-size: 0.95rem;
 }
 
-.editor-preview-content blockquote {
+.editor-preview-content blockquote,
+.community-text blockquote,
+.community-reply-text blockquote {
     border-left: 3px solid var(--accent);
     padding-left: 12px;
     margin: 8px 0;
     font-style: italic;
     color: var(--text-muted);
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border-radius: 0 6px 6px 0;
 }
 
 .editor-preview-content .verse-reference {
