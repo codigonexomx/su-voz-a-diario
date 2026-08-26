@@ -1,4 +1,4 @@
-const APP_VERSION = "191";
+const APP_VERSION = "192";
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -235,11 +235,6 @@ self.addEventListener('fetch', event => {
     targetUrl.search = url.search;
     targetUrl.hash = url.hash;
     event.respondWith(Response.redirect(targetUrl.href, 302));
-    return;
-  }
-
-  if (url.hostname.includes('dicebear.com')) {
-    event.respondWith(staleWhileRevalidateStrategy(request));
     return;
   }
 

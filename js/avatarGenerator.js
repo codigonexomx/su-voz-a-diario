@@ -77,29 +77,15 @@ function createIconSVG(palette, pattern, initialOrIcon, hash, customColor) {
     return `data:image/svg+xml;base64,${base64}`;
 }
 
-function createPersonSVG(personUrl, customColor) {
-    const c1 = customColor || '#4A90D9';
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="50" fill="${c1}"/><image href="${personUrl}" x="5" y="5" width="90" height="90" preserveAspectRatio="xMidYMid slice"/></svg>`.trim();
-
-    const base64 = typeof btoa !== 'undefined'
-        ? btoa(unescape(encodeURIComponent(svg)))
-        : encodeURIComponent(svg);
-
-    return `data:image/svg+xml;base64,${base64}`;
-}
-
 class AvatarGenerator {
     static generate(seed, displayName = 'Anónimo', options = {}) {
         const isAnonymous = !displayName || displayName.trim().toLowerCase() === 'anónimo' || options.isAnonymous === true;
         const effectiveName = isAnonymous ? 'Anónimo' : displayName;
 
-        const val = options.avatarValue || options.avatarIcon;
-        const isPerson = options.avatarType === 'person' || (val && window.AvatarPicker?.isPerson(val));
-
-        if (isPerson) {
-            const person = window.AvatarPicker?.getPerson(val);
-            const personUrl = person ? person.url : `https://api.dicebear.com/7.x/avataaars/svg?seed=${val || 'male1'}`;
-            return createPersonSVG(personUrl, options.avatarColor);
+        let val = options.avatarValue || options.avatarIcon;
+        const personObj = window.AvatarPicker?.getPerson(val);
+        if (personObj) {
+            val = personObj.icon;
         }
 
         const icon = val || (isAnonymous ? 'A' : (effectiveName.trim().charAt(0).toUpperCase() || 'S'));
@@ -139,14 +125,18 @@ class AvatarPicker {
     ];
 
     static PERSON_AVATARS = [
-        { id: 'male1', label: 'Hombre joven', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=male1&top=shortHair&accessories=none&facialHair=none' },
-        { id: 'female1', label: 'Mujer joven', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=female1&top=longHair&accessories=none' },
-        { id: 'male2', label: 'Hombre con barba', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=male2&facialHair=beardMedium' },
-        { id: 'female2', label: 'Mujer con cabello largo', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=female2&top=longHair&accessories=round' },
-        { id: 'elderlyMale', label: 'Anciano', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=elderlyMale&facialHair=grayFull&top=shortHair' },
-        { id: 'elderlyFemale', label: 'Anciana', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=elderlyFemale&top=longHair&hairColor=gray' },
-        { id: 'teenBoy', label: 'Joven', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=teenBoy&top=shortHair' },
-        { id: 'teenGirl', label: 'Jovencita', url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=teenGirl&top=longHair&accessories=prescription02' }
+        { id: 'man', label: 'Hombre', icon: '👨🏻' },
+        { id: 'woman', label: 'Mujer', icon: '👩🏻' },
+        { id: 'manBeard', label: 'Hombre con barba', icon: '👨🏻🦱' },
+        { id: 'womanLong', label: 'Mujer cabello largo', icon: '👩🏻🦰' },
+        { id: 'grandpa', label: 'Anciano', icon: '👴🏻' },
+        { id: 'grandma', label: 'Anciana', icon: '👵🏻' },
+        { id: 'boy', label: 'Joven', icon: '👦🏻' },
+        { id: 'girl', label: 'Jovencita', icon: '👧🏻' },
+        { id: 'manDark', label: 'Hombre moreno', icon: '👨🏽' },
+        { id: 'womanDark', label: 'Mujer morena', icon: '👩🏽' },
+        { id: 'manElder', label: 'Hombre mayor', icon: '👨🏻🦳' },
+        { id: 'womanElder', label: 'Mujer mayor', icon: '👩🏻🦳' }
     ];
 
     static INSTRUMENTS = ['🎵', '🪕', '🎺', '📯', '🥁'];
@@ -161,12 +151,12 @@ class AvatarPicker {
 
     static isPerson(val) {
         if (!val) return false;
-        return AvatarPicker.PERSON_AVATARS.some(p => p.id === val);
+        return AvatarPicker.PERSON_AVATARS.some(p => p.id === val || p.icon === val);
     }
 
     static getPerson(val) {
         if (!val) return null;
-        return AvatarPicker.PERSON_AVATARS.find(p => p.id === val) || null;
+        return AvatarPicker.PERSON_AVATARS.find(p => p.id === val || p.icon === val) || null;
     }
 
     static findCategoryForIcon(icon) {
@@ -218,21 +208,20 @@ class AvatarPicker {
                             <label class="avatar-picker-label">Símbolos Bíblicos</label>
                             <div class="avatar-icon-grid">
                                 ${AvatarPicker.BIBLICAL_ICONS.map(icon => `
-                                    <button type="button" class="avatar-icon-btn ${selectedType === 'icon' && icon === selectedValue ? 'is-selected' : ''}" data-icon="${icon}">
+                                    <button type="button" class="avatar-icon-btn ${selectedType === 'icon' && icon === selectedValue ? 'is-selected' : ''}" data-icon="${icon}" title="Símbolo">
                                         ${icon}
                                     </button>
                                 `).join('')}
                             </div>
                         </div>
 
-                        <!-- Categoría 2: Personas Ilustradas (8) -->
+                        <!-- Categoría 2: Personas Ilustradas (12) -->
                         <div class="avatar-picker-section">
                             <label class="avatar-picker-label">Personas Ilustradas</label>
-                            <div class="avatar-person-grid">
+                            <div class="avatar-icon-grid">
                                 ${AvatarPicker.PERSON_AVATARS.map(p => `
-                                    <button type="button" class="avatar-person-btn ${selectedType === 'person' && p.id === selectedValue ? 'is-selected' : ''}" data-id="${p.id}" data-url="${p.url}" data-label="${p.label}">
-                                        <div class="avatar-person-img" style="background-image: url('${p.url}'); background-color: ${selectedColor};"></div>
-                                        <span class="avatar-person-title">${p.label}</span>
+                                    <button type="button" class="avatar-icon-btn ${selectedType === 'person' && (selectedValue === p.id || selectedValue === p.icon) ? 'is-selected' : ''}" data-type="person" data-id="${p.id}" data-icon="${p.icon}" title="${p.label}">
+                                        ${p.icon}
                                     </button>
                                 `).join('')}
                             </div>
@@ -243,7 +232,7 @@ class AvatarPicker {
                             <label class="avatar-picker-label">Instrumentos de Adoración</label>
                             <div class="avatar-icon-grid">
                                 ${AvatarPicker.INSTRUMENTS.map(icon => `
-                                    <button type="button" class="avatar-icon-btn ${selectedType === 'icon' && icon === selectedValue ? 'is-selected' : ''}" data-icon="${icon}">
+                                    <button type="button" class="avatar-icon-btn ${selectedType === 'icon' && icon === selectedValue ? 'is-selected' : ''}" data-icon="${icon}" title="Instrumento">
                                         ${icon}
                                     </button>
                                 `).join('')}
@@ -255,7 +244,7 @@ class AvatarPicker {
                             <label class="avatar-picker-label">Elementos de Oración</label>
                             <div class="avatar-icon-grid">
                                 ${AvatarPicker.PRAYER_ICONS.map(icon => `
-                                    <button type="button" class="avatar-icon-btn ${selectedType === 'icon' && icon === selectedValue ? 'is-selected' : ''}" data-icon="${icon}">
+                                    <button type="button" class="avatar-icon-btn ${selectedType === 'icon' && icon === selectedValue ? 'is-selected' : ''}" data-icon="${icon}" title="Oración">
                                         ${icon}
                                     </button>
                                 `).join('')}
@@ -286,14 +275,15 @@ class AvatarPicker {
         const color = typeof profileData === 'object' ? profileData.avatarColor : arguments[2];
         const isPerson = (typeof profileData === 'object' && profileData.avatarType === 'person') || AvatarPicker.isPerson(val);
         const personObj = isPerson ? AvatarPicker.getPerson(val) : null;
+        const effectiveIcon = personObj ? personObj.icon : val;
 
         const dataToSave = {
             userId: userId,
             avatarType: isPerson ? 'person' : 'icon',
-            avatarValue: val || '🕊️',
+            avatarValue: effectiveIcon || '🕊️',
             avatarColor: color || '#4A90D9',
             avatarLabel: isPerson ? (personObj?.label || 'Persona') : 'Símbolo',
-            avatarIcon: val || '🕊️', // retrocompatibilidad
+            avatarIcon: effectiveIcon || '🕊️',
             avatarCategory: isPerson ? 'Personas Ilustradas' : AvatarPicker.findCategoryForIcon(val),
             updatedAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
         };

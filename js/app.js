@@ -2370,24 +2370,12 @@ openAvatarPickerModal: async function() {
                 const iconBtn = e.target.closest('.avatar-icon-btn');
                 if (iconBtn) {
                     const icon = iconBtn.getAttribute('data-icon');
+                    const dataType = iconBtn.getAttribute('data-type');
                     if (icon) {
-                        this.selectedAvatarType = 'icon';
+                        this.selectedAvatarType = dataType === 'person' ? 'person' : (window.AvatarPicker?.isPerson(icon) ? 'person' : 'icon');
                         this.selectedAvatarValue = icon;
-                        modalEl.querySelectorAll('.avatar-icon-btn, .avatar-person-btn').forEach(b => b.classList.remove('is-selected'));
+                        modalEl.querySelectorAll('.avatar-icon-btn').forEach(b => b.classList.remove('is-selected'));
                         iconBtn.classList.add('is-selected');
-                        this.updateAvatarPickerPreview();
-                    }
-                    return;
-                }
-
-                const personBtn = e.target.closest('.avatar-person-btn');
-                if (personBtn) {
-                    const id = personBtn.getAttribute('data-id');
-                    if (id) {
-                        this.selectedAvatarType = 'person';
-                        this.selectedAvatarValue = id;
-                        modalEl.querySelectorAll('.avatar-icon-btn, .avatar-person-btn').forEach(b => b.classList.remove('is-selected'));
-                        personBtn.classList.add('is-selected');
                         this.updateAvatarPickerPreview();
                     }
                     return;
