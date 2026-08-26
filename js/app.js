@@ -2450,6 +2450,117 @@ saveAvatarSelection: async function() {
     this.renderCommunity({ forceRefresh: true });
 },
 
+formatCommunityRichText: function(text) {
+    if (!text) return '';
+    const clean = Sanitizer.sanitizeText(text);
+    return clean.replace(/\n/g, '<br>');
+},
+
+applyRichFormatToComposer: function(format) {
+    const textarea = document.getElementById('community-reflection');
+    if (!textarea) return;
+
+    if (format === 'verse') {
+        this.openVersePickerModalForComposer(textarea);
+        return;
+    }
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = textarea.value.substring(start, end);
+
+    let wrapper = ['', ''];
+    switch (format) {
+        case 'bold': wrapper = ['<b>', '</b>']; break;
+        case 'italic': wrapper = ['<i>', '</i>']; break;
+        case 'underline': wrapper = ['<u>', '</u>']; break;
+        case 'blockquote': wrapper = ['<blockquote>', '</blockquote>']; break;
+    }
+
+    const inner = selectedText || (format === 'bold' ? 'texto en negrita' : format === 'italic' ? 'texto en cursiva' : format === 'underline' ? 'texto subrayado' : 'Cita bíblica...');
+    const replacement = wrapper[0] + inner + wrapper[1];
+
+    const newValue = textarea.value.substring(0, start) + replacement + textarea.value.substring(end);
+
+    if (newValue.length <= 1200) {
+        textarea.value = newValue;
+        textarea.focus();
+        textarea.setSelectionRange(start + wrapper[0].length, start + wrapper[0].length + inner.length);
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+},
+
+openVersePickerModalForComposer: function(textarea) {
+    if (!textarea) return;
+    const existingModal = document.getElementById('versePickerModal');
+    if (existingModal) existingModal.remove();
+
+    const todayContext = this.getCommunityTodayContext();
+    const todayReading = this.getReadingMetadataByDate(todayContext.readingDate);
+    const todayReference = todayContext.reference || (todayReading ? todayReading.reference : 'Lectura de hoy');
+    const sampleVerse = todayReading?.verse || '';
+
+    const modalHtml = `
+        <div class="avatar-picker-overlay" id="versePickerModal" role="dialog" aria-modal="true" aria-labelledby="versePickerTitle">
+            <div class="avatar-picker-modal" style="max-width: 460px;">
+                <button type="button" class="avatar-picker-close" id="closeVersePickerBtn" aria-label="Cerrar">×</button>
+                <h3 id="versePickerTitle">📖 Insertar Versículo de Hoy</h3>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                    <div style="font-size: 0.88rem; color: var(--text-muted);">
+                        Pasaje del día: <strong style="color: var(--text-main);">${this.escapeHtml(todayReference)}</strong>
+                    </div>
+
+                    ${sampleVerse ? `
+                        <div style="background: var(--surface-color-hover, rgba(0,0,0,0.04)); padding: 12px; border-radius: 12px; font-style: italic; font-size: 0.88rem; border-left: 3px solid var(--accent);">
+                            "${this.escapeHtml(sampleVerse)}"
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label for="customVerseRefInput" style="font-size: 0.85rem; font-weight: 600;">Referencia o versículo a citar:</label>
+                        <input type="text" id="customVerseRefInput" class="community-input" value="${this.escapeHtml(todayReference)}" placeholder="Ej. Juan 3:16 o v. 4-5" />
+                    </div>
+                </div>
+
+                <div class="avatar-picker-actions" style="margin-top: 16px;">
+                    <button type="button" class="btn-secondary" id="cancelVersePickerBtn">Cancelar</button>
+                    <button type="button" class="btn-primary" id="confirmVerseInsertBtn">Insertar en mi reflexión</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const container = this.$content || document.body;
+    container.insertAdjacentHTML('beforeend', modalHtml);
+
+    const modalEl = document.getElementById('versePickerModal');
+    if (!modalEl) return;
+
+    const closeModal = () => modalEl.remove();
+
+    document.getElementById('closeVersePickerBtn')?.addEventListener('click', closeModal);
+    document.getElementById('cancelVersePickerBtn')?.addEventListener('click', closeModal);
+
+    document.getElementById('confirmVerseInsertBtn')?.addEventListener('click', () => {
+        const inputEl = document.getElementById('customVerseRefInput');
+        const customRef = inputEl?.value.trim() || todayReference;
+        const textToInsert = sampleVerse ? `\n<blockquote>"${sampleVerse}" — ${customRef}</blockquote>\n` : `\n<blockquote>"${customRef}"</blockquote>\n`;
+
+        const start = textarea.selectionStart || textarea.value.length;
+        const end = textarea.selectionEnd || textarea.value.length;
+        const newValue = textarea.value.substring(0, start) + textToInsert + textarea.value.substring(end);
+
+        if (newValue.length <= 1200) {
+            textarea.value = newValue;
+            textarea.focus();
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        closeModal();
+    });
+},
+
 getCommunityFeedState: function(mode = this.communityMode) {
     const normalizedMode = mode === 'history' ? 'history' : 'recent';
     return this.ensureCommunityFeedStates()[normalizedMode];
@@ -13122,7 +13233,7 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                                 </div>
                             </div>
 
-                           <div class="community-text">${this.escapeHtml(post.text)}</div>
+                           <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
 
                            ${post.audioURL ? `
                                <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
@@ -16613,6 +16724,16 @@ if (deleteCommunityBtn) {
     return;
 }
 
+const richToolbarBtn = e.target.closest('.rich-toolbar-btn');
+if (richToolbarBtn) {
+    e.preventDefault();
+    const format = richToolbarBtn.getAttribute('data-format');
+    if (format) {
+        this.applyRichFormatToComposer(format);
+    }
+    return;
+}
+
 const openAvatarPickerBtn = e.target.closest('[data-action="open-avatar-picker"]');
 if (openAvatarPickerBtn) {
     this.openAvatarPickerModal();
@@ -18799,20 +18920,16 @@ const Sanitizer = {
         if (!text || typeof text !== 'string') return '';
 
         let cleaned = text.trim();
-
-        // Limitar longitud
         cleaned = cleaned.substring(0, 1200);
 
-        // Eliminar HTML
-        cleaned = cleaned.replace(/<[^>]*>/g, '');
-
-        // Quitar scripts peligrosos
+        cleaned = cleaned.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
         cleaned = cleaned.replace(/javascript:/gi, '');
         cleaned = cleaned.replace(/on\w+=/gi, '');
 
-        // Normalizar espacios horizontales sin eliminar saltos de línea.
+        // Permitir únicamente etiquetas seguras de formato enriquecido
+        cleaned = cleaned.replace(/<(?!\/?(b|i|u|blockquote|br|span|p)\b)[^>]+>/gi, '');
+
         cleaned = cleaned.replace(/\r\n?/g, '\n');
-        cleaned = cleaned.replace(/[^\S\n]+/g, ' ');
 
         return cleaned.trim();
     },
