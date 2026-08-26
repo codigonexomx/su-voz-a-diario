@@ -16325,6 +16325,59 @@ body.dark-mode .calendar-v2-btn-action {
     box-shadow: 0 0 0 2px var(--accent);
 }
 
+.avatar-person-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+
+@media (max-width: 480px) {
+    .avatar-person-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.avatar-person-btn {
+    background: var(--surface-color-hover, rgba(0, 0, 0, 0.04));
+    border: 2px solid transparent;
+    border-radius: 14px;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.avatar-person-btn:hover {
+    transform: translateY(-2px);
+    background: var(--surface-color-hover, rgba(0, 0, 0, 0.08));
+}
+
+.avatar-person-btn.is-selected {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    box-shadow: 0 0 0 2px var(--accent);
+}
+
+.avatar-person-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--border-color);
+}
+
+.avatar-person-title {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-main);
+    text-align: center;
+    line-height: 1.1;
+}
+
 .avatar-color-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);

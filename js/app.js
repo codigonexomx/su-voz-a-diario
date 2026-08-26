@@ -2342,14 +2342,19 @@ openAvatarPickerModal: async function() {
     }
 
     const userProfile = this.userProfilesCache?.[this.currentUser.uid] || {};
-    this.selectedAvatarIcon = userProfile.avatarIcon || '🕊️';
-    this.selectedAvatarColor = userProfile.avatarColor || '#3182CE';
+    this.selectedAvatarValue = userProfile.avatarValue || userProfile.avatarIcon || '🕊️';
+    this.selectedAvatarType = userProfile.avatarType || (window.AvatarPicker?.isPerson(this.selectedAvatarValue) ? 'person' : 'icon');
+    this.selectedAvatarColor = userProfile.avatarColor || '#4A90D9';
 
     const existingModal = document.getElementById('avatarPickerModal');
     if (existingModal) existingModal.remove();
 
     if (window.AvatarPicker) {
-        const modalHtml = window.AvatarPicker.renderModalHtml(this.selectedAvatarIcon, this.selectedAvatarColor);
+        const modalHtml = window.AvatarPicker.renderModalHtml({
+            selectedType: this.selectedAvatarType,
+            selectedValue: this.selectedAvatarValue,
+            selectedColor: this.selectedAvatarColor
+        });
         const container = this.$content || document.body;
         container.insertAdjacentHTML('beforeend', modalHtml);
 
@@ -2366,9 +2371,23 @@ openAvatarPickerModal: async function() {
                 if (iconBtn) {
                     const icon = iconBtn.getAttribute('data-icon');
                     if (icon) {
-                        this.selectedAvatarIcon = icon;
-                        modalEl.querySelectorAll('.avatar-icon-btn').forEach(b => b.classList.remove('is-selected'));
+                        this.selectedAvatarType = 'icon';
+                        this.selectedAvatarValue = icon;
+                        modalEl.querySelectorAll('.avatar-icon-btn, .avatar-person-btn').forEach(b => b.classList.remove('is-selected'));
                         iconBtn.classList.add('is-selected');
+                        this.updateAvatarPickerPreview();
+                    }
+                    return;
+                }
+
+                const personBtn = e.target.closest('.avatar-person-btn');
+                if (personBtn) {
+                    const id = personBtn.getAttribute('data-id');
+                    if (id) {
+                        this.selectedAvatarType = 'person';
+                        this.selectedAvatarValue = id;
+                        modalEl.querySelectorAll('.avatar-icon-btn, .avatar-person-btn').forEach(b => b.classList.remove('is-selected'));
+                        personBtn.classList.add('is-selected');
                         this.updateAvatarPickerPreview();
                     }
                     return;
@@ -2401,7 +2420,9 @@ updateAvatarPickerPreview: function() {
     if (!previewEl || !window.AvatarGenerator) return;
 
     const uri = window.AvatarGenerator.generate('preview', 'Usuario', {
-        avatarIcon: this.selectedAvatarIcon,
+        avatarType: this.selectedAvatarType,
+        avatarValue: this.selectedAvatarValue,
+        avatarIcon: this.selectedAvatarValue,
         avatarColor: this.selectedAvatarColor
     });
 
@@ -2414,12 +2435,17 @@ saveAvatarSelection: async function() {
     const saveBtn = document.getElementById('saveAvatarBtn');
     if (saveBtn) saveBtn.disabled = true;
 
-    const category = window.AvatarPicker?.findCategoryForIcon(this.selectedAvatarIcon) || 'Símbolos Bíblicos';
+    const isPerson = this.selectedAvatarType === 'person' || window.AvatarPicker?.isPerson(this.selectedAvatarValue);
+    const personObj = isPerson ? window.AvatarPicker?.getPerson(this.selectedAvatarValue) : null;
+
     const profileData = {
         userId: this.currentUser.uid,
-        avatarIcon: this.selectedAvatarIcon || '🕊️',
+        avatarType: isPerson ? 'person' : 'icon',
+        avatarValue: this.selectedAvatarValue || '🕊️',
+        avatarIcon: this.selectedAvatarValue || '🕊️',
         avatarColor: this.selectedAvatarColor || '#4A90D9',
-        avatarCategory: category,
+        avatarLabel: isPerson ? (personObj?.label || 'Persona') : 'Símbolo',
+        avatarCategory: isPerson ? 'Personas Ilustradas' : (window.AvatarPicker?.findCategoryForIcon(this.selectedAvatarValue) || 'Símbolos Bíblicos'),
         updatedAt: new Date().toISOString()
     };
 
@@ -2434,9 +2460,7 @@ saveAvatarSelection: async function() {
         if (window.AvatarPicker) {
             await window.AvatarPicker.saveToFirestore(
                 this.currentUser.uid,
-                profileData.avatarIcon,
-                profileData.avatarColor,
-                profileData.avatarCategory
+                profileData
             );
         }
     } catch (error) {
@@ -3661,8 +3685,10 @@ renderReplyBlock: function(post, replies = []) {
                         const replyAvatarSvg = typeof AvatarGenerator !== 'undefined'
                             ? AvatarGenerator.renderHtml(reply.avatarSeed || reply.ownerUid || reply.id, replyAuthorName, {
                                 isAnonymous: isReplyAnon,
-                                avatarIcon: replyProfile?.avatarIcon,
-                                avatarColor: replyProfile?.avatarColor
+                                avatarType: reply.avatarType || replyProfile?.avatarType,
+                                avatarValue: reply.avatarValue || reply.avatarIcon || replyProfile?.avatarValue || replyProfile?.avatarIcon,
+                                avatarIcon: reply.avatarIcon || replyProfile?.avatarIcon,
+                                avatarColor: reply.avatarColor || replyProfile?.avatarColor
                             })
                             : '';
 
@@ -13138,6 +13164,8 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
 const currentUserProfile = this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null;
 const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
     ? AvatarGenerator.generate(this.currentUser?.uid || 'user', this.currentUser?.displayName || 'Usuario', {
+        avatarType: currentUserProfile?.avatarType,
+        avatarValue: currentUserProfile?.avatarValue || currentUserProfile?.avatarIcon,
         avatarIcon: currentUserProfile?.avatarIcon,
         avatarColor: currentUserProfile?.avatarColor
     })
@@ -13215,8 +13243,10 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                     const avatarSvg = typeof AvatarGenerator !== 'undefined'
                         ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {
                             isAnonymous,
-                            avatarIcon: userProfile?.avatarIcon,
-                            avatarColor: userProfile?.avatarColor
+                            avatarType: post.avatarType || userProfile?.avatarType,
+                            avatarValue: post.avatarValue || post.avatarIcon || userProfile?.avatarValue || userProfile?.avatarIcon,
+                            avatarIcon: post.avatarIcon || userProfile?.avatarIcon,
+                            avatarColor: post.avatarColor || userProfile?.avatarColor
                         })
                         : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
 
