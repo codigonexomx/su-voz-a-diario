@@ -16102,6 +16102,49 @@ body.dark-mode .calendar-v2-btn-action {
     background: var(--bg-color, var(--surface-color-hover, rgba(0, 0, 0, 0.05)));
 }
 
+.post-favorite-star {
+    font-size: 0.95rem;
+    margin-left: 4px;
+    vertical-align: middle;
+    display: inline-block;
+    filter: drop-shadow(0 1px 2px rgba(234, 179, 8, 0.4));
+}
+
+.community-tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0 16px 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.community-tab-btn {
+    background: var(--surface-color-hover, rgba(0, 0, 0, 0.04));
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.community-tab-btn:hover {
+    background: var(--surface-color-hover, rgba(0, 0, 0, 0.08));
+    color: var(--text-main);
+}
+
+.community-tab-btn.is-active {
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
 /* Rediseño Hero Horizontal Comunidad */
 .community-hero-compact {
     display: flex;

@@ -2534,15 +2534,32 @@ toggleFavoritePost: async function(postId) {
 
     if (isFav) {
         favs = favs.filter(id => id !== postId);
-        this.showToast('Removido de tus favoritos', 'info');
+        this.showToast('Removido de favoritos', 'info');
     } else {
         favs.push(postId);
-        this.showToast('Agregado a tus favoritos ⭐', 'success');
+        this.showToast('⭐ Agregado a favoritos', 'success');
     }
 
     try {
         localStorage.setItem('suvoz_favorite_posts', JSON.stringify(favs));
     } catch (e) {}
+
+    const cardEl = document.querySelector(`[data-post-id="${postId}"]`);
+    if (cardEl) {
+        const favBtn = cardEl.querySelector('[data-action="favorite-post"]');
+        if (favBtn) {
+            favBtn.textContent = !isFav ? '⭐ En favoritos' : '⭐ Marcar favorito';
+        }
+        const authorRow = cardEl.querySelector('.community-author-row');
+        let starEl = cardEl.querySelector('.post-favorite-star');
+        if (!isFav) {
+            if (!starEl && authorRow) {
+                authorRow.insertAdjacentHTML('beforeend', '<span class="post-favorite-star" title="En tus favoritos">⭐</span>');
+            }
+        } else if (starEl) {
+            starEl.remove();
+        }
+    }
 
     if (this.currentUser?.uid) {
         try {
@@ -2565,7 +2582,9 @@ toggleFavoritePost: async function(postId) {
         }
     }
 
-    this.renderCommunity({ preserveOnError: true });
+    if (this.communityTabFilter === 'favorites' && isFav) {
+        cardEl?.remove();
+    }
 },
 
 copyPostText: function(postId) {
@@ -2575,7 +2594,7 @@ copyPostText: function(postId) {
 
     if (textToCopy && navigator.clipboard) {
         navigator.clipboard.writeText(textToCopy).then(() => {
-            this.showToast('Reflexión copiada al portapapeles 📋', 'success');
+            this.showToast('✅ Copiada al portapapeles', 'success');
         }).catch(() => {
             this.showToast('No se pudo copiar el texto', 'error');
         });
@@ -2609,6 +2628,71 @@ sharePost: function(postId) {
         });
     } else {
         this.showToast('Opción de compartir no disponible', 'warning');
+    }
+},
+
+toggleSpeechPost: function(postId) {
+    if (!('speechSynthesis' in window)) {
+        this.showToast('Tu navegador no soporta síntesis de voz', 'warning');
+        return;
+    }
+
+    if (window.speechSynthesis.speaking && this.currentlySpeakingPostId === postId) {
+        window.speechSynthesis.cancel();
+        this.currentlySpeakingPostId = null;
+        this.updateSpeechMenuButton(postId, false);
+        this.showToast('Lectura detenida', 'info');
+        return;
+    }
+
+    if (window.speechSynthesis.speaking) {
+        const oldId = this.currentlySpeakingPostId;
+        window.speechSynthesis.cancel();
+        if (oldId) this.updateSpeechMenuButton(oldId, false);
+    }
+
+    const post = this.getCommunityPostsMap()?.[postId];
+    const cardTextEl = document.querySelector(`[data-post-id="${postId}"] .community-text`);
+    const rawText = post ? post.text : (cardTextEl ? cardTextEl.textContent : '');
+    const cleanText = (rawText || '').replace(/<[^>]*>/g, '').trim();
+
+    if (!cleanText) {
+        this.showToast('No hay texto para leer', 'warning');
+        return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'es-ES';
+    utterance.rate = 0.95;
+
+    const voices = window.speechSynthesis.getVoices();
+    const esVoice = voices.find(v => v.lang.startsWith('es-ES')) || voices.find(v => v.lang.startsWith('es'));
+    if (esVoice) {
+        utterance.voice = esVoice;
+    }
+
+    utterance.onend = () => {
+        this.currentlySpeakingPostId = null;
+        this.updateSpeechMenuButton(postId, false);
+    };
+
+    utterance.onerror = () => {
+        this.currentlySpeakingPostId = null;
+        this.updateSpeechMenuButton(postId, false);
+    };
+
+    this.currentlySpeakingPostId = postId;
+    this.updateSpeechMenuButton(postId, true);
+    window.speechSynthesis.speak(utterance);
+    this.showToast('🗣️ Leyendo reflexión...', 'info');
+},
+
+updateSpeechMenuButton: function(postId, isSpeaking) {
+    const cardEl = document.querySelector(`[data-post-id="${postId}"]`);
+    if (!cardEl) return;
+    const speechBtn = cardEl.querySelector('[data-action="speech-post"]');
+    if (speechBtn) {
+        speechBtn.textContent = isSpeaking ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta';
     }
 },
 
@@ -13368,96 +13452,134 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                 </button>
             </div>
 
+            <div class="community-tab-bar" role="tablist">
+                <button type="button" class="community-tab-btn ${(!this.communityTabFilter || this.communityTabFilter === 'all') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="all">Todas</button>
+                <button type="button" class="community-tab-btn ${this.communityTabFilter === 'my-posts' ? 'is-active' : ''}" data-action="set-community-tab" data-tab="my-posts">Mis reflexiones</button>
+                <button type="button" class="community-tab-btn ${this.communityTabFilter === 'favorites' ? 'is-active' : ''}" data-action="set-community-tab" data-tab="favorites">⭐ Favoritos</button>
+            </div>
+
             <div class="community-feed">
-                ${posts.length ? posts.map(post => {
-                    const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
-                    const replies = repliesSummary[post.id] || [];
-                    const authorName = post.name || 'Anónimo';
-                    const isAnonymous = !post.name || authorName.trim().toLowerCase() === 'anónimo';
-                    const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
-                    const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
-                    const userProfile = post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
+                ${(() => {
+                    let visiblePosts = posts;
+                    if (this.communityTabFilter === 'my-posts' && this.currentUser?.uid) {
+                        visiblePosts = posts.filter(p => p.ownerUid === this.currentUser.uid);
+                    } else if (this.communityTabFilter === 'favorites') {
+                        visiblePosts = posts.filter(p => this.isPostFavorite(p.id));
+                    }
 
-                    const avatarSvg = typeof AvatarGenerator !== 'undefined'
-                        ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {
-                            isAnonymous,
-                            avatarType: post.avatarType || userProfile?.avatarType,
-                            avatarValue: post.avatarValue || post.avatarIcon || userProfile?.avatarValue || userProfile?.avatarIcon,
-                            avatarIcon: post.avatarIcon || userProfile?.avatarIcon,
-                            avatarColor: post.avatarColor || userProfile?.avatarColor
-                        })
-                        : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
+                    if (!visiblePosts.length) {
+                        if (this.communityTabFilter === 'favorites') {
+                            return `
+                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                    <div style="font-size: 2.2rem; margin-bottom: 8px;">⭐</div>
+                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">No tienes reflexiones marcadas como favoritas</p>
+                                    <p style="font-size: 0.85rem; margin-top: 4px;">Presiona <strong style="color: var(--text-main);">⋮</strong> en cualquier publicación y elige <em>"⭐ Marcar favorito"</em>.</p>
+                                </div>
+                            `;
+                        } else if (this.communityTabFilter === 'my-posts') {
+                            return `
+                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                    <div style="font-size: 2.2rem; margin-bottom: 8px;">✍️</div>
+                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no has compartido publicaciones</p>
+                                    <p style="font-size: 0.85rem; margin-top: 4px;">¡Comparte con sencillez lo que Dios te mostró hoy!</p>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <div class="community-empty-state">
+                                    <div class="community-empty-icon" aria-hidden="true">+</div>
+                                    <div class="community-empty-title">${
+                                        this.communityMode === 'history'
+                                            ? 'Todavía no hay publicaciones anteriores.'
+                                            : 'Sé la primera persona en compartir lo que Dios te habló en esta lectura.'
+                                    }</div>
+                                    <div class="community-empty-text">
+                                        ${
+                                            this.communityMode === 'history'
+                                                ? 'Aquí aparecerán las conversaciones cuya última respuesta tenga más de 15 días.'
+                                                : 'Comparte cómo escuchaste su voz en esta lectura.'
+                                        }
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
 
-                    return `
-                        <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
-                            <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋮</button>
-                            <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
-                                <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar reflexión</button>
-                                <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
-                                <button type="button" data-action="save-post-later" data-post-id="${post.id}">${this.isPostSaved(post.id) ? '💾 Guardado' : '💾 Guardar para después'}</button>
-                                <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar como favorito'}</button>
-                                ${post.ownerUid && post.ownerUid === this.currentUser?.uid ? `
-                                    <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
-                                ` : ''}
-                            </div>
+                    return visiblePosts.map(post => {
+                        const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
+                        const replies = repliesSummary[post.id] || [];
+                        const authorName = post.name || 'Anónimo';
+                        const isAnonymous = !post.name || authorName.trim().toLowerCase() === 'anónimo';
+                        const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
+                        const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
+                        const userProfile = post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
 
-                            <div class="community-post-header">
-                                ${avatarSvg}
+                        const avatarSvg = typeof AvatarGenerator !== 'undefined'
+                            ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {
+                                isAnonymous,
+                                avatarType: post.avatarType || userProfile?.avatarType,
+                                avatarValue: post.avatarValue || post.avatarIcon || userProfile?.avatarValue || userProfile?.avatarIcon,
+                                avatarIcon: post.avatarIcon || userProfile?.avatarIcon,
+                                avatarColor: post.avatarColor || userProfile?.avatarColor
+                            })
+                            : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
 
-                                <div class="community-post-heading">
-                                    <div class="community-author-row">
-                                        <span class="community-author ${isAnonymous ? 'is-anonymous' : 'has-name'}">${this.escapeHtml(displayAuthorName)}</span>
-                                        <span class="community-meta-dot" aria-hidden="true"></span>
-                                        <span class="community-date">${this.escapeHtml(this.formatCommunityDateLabel(post.date))}</span>
+                        return `
+                            <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
+                                <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋮</button>
+                                <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
+                                    <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar reflexión</button>
+                                    <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
+                                    <button type="button" data-action="speech-post" data-post-id="${post.id}">${this.currentlySpeakingPostId === post.id ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta'}</button>
+                                    <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar favorito'}</button>
+                                    ${post.ownerUid && post.ownerUid === this.currentUser?.uid ? `
+                                        <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
+                                    ` : ''}
+                                </div>
+
+                                <div class="community-post-header">
+                                    ${avatarSvg}
+
+                                    <div class="community-post-heading">
+                                        <div class="community-author-row">
+                                            <span class="community-author ${isAnonymous ? 'is-anonymous' : 'has-name'}">${this.escapeHtml(displayAuthorName)}</span>
+                                            <span class="community-meta-dot" aria-hidden="true"></span>
+                                            <span class="community-date">${this.escapeHtml(this.formatCommunityDateLabel(post.date))}</span>
+                                            ${this.isPostFavorite(post.id) ? '<span class="post-favorite-star" title="En tus favoritos">⭐</span>' : ''}
+                                        </div>
+
+                                        <div class="community-ref">Escuchó en ${this.escapeHtml(post.reference)}</div>
+                                    </div>
+                                </div>
+
+                               <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
+
+                               ${post.audioURL ? `
+                                   <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
+                                       <button type="button" class="audio-play-btn" aria-label="Reproducir audio">▶</button>
+                                       <div class="audio-progress-bar"><div class="audio-progress-fill" style="width: 0%;"></div></div>
+                                       <span class="audio-time">0:00 / 0:30</span>
+                                       <button type="button" class="audio-speed-btn">1x</button>
+                                   </div>
+                               ` : ''}
+
+                                    <div class="community-reaction-row">
+                                        ${this.renderCommunityReactionBar(post.id, reactionData)}
                                     </div>
 
-                                    <div class="community-ref">Escuchó en ${this.escapeHtml(post.reference)}</div>
-                                </div>
+                                    ${this.renderReplyBlock(post, replies)}
+
+                                      ${post.ownerUid === this.currentUser?.uid ? `
+        <div class="community-actions">
+            <button class="community-delete-main" data-action="delete-community-post" data-id="${post.id}">
+                🗑️ Eliminar
+            </button>
+        </div>
+    ` : ''}
                             </div>
-
-                           <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
-
-                           ${post.audioURL ? `
-                               <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
-                                   <button type="button" class="audio-play-btn" aria-label="Reproducir audio">▶</button>
-                                   <div class="audio-progress-bar"><div class="audio-progress-fill" style="width: 0%;"></div></div>
-                                   <span class="audio-time">0:00 / 0:30</span>
-                                   <button type="button" class="audio-speed-btn">1x</button>
-                               </div>
-                           ` : ''}
-
-                                <div class="community-reaction-row">
-                                    ${this.renderCommunityReactionBar(post.id, reactionData)}
-                                </div>
-
-                                ${this.renderReplyBlock(post, replies)}
-
-                                  ${post.ownerUid === this.currentUser?.uid ? `
-    <div class="community-actions">
-        <button class="community-delete-main" data-action="delete-community-post" data-id="${post.id}">
-            🗑️ Eliminar
-        </button>
-    </div>
-` : ''}
-                        </div>
-                    `;
-                }).join('') : `
-                    <div class="community-empty-state">
-                        <div class="community-empty-icon" aria-hidden="true">+</div>
-                        <div class="community-empty-title">${
-                            this.communityMode === 'history'
-                                ? 'Todavía no hay publicaciones anteriores.'
-                                : 'Sé la primera persona en compartir lo que Dios te habló en esta lectura.'
-                        }</div>
-                        <div class="community-empty-text">
-                            ${
-                                this.communityMode === 'history'
-                                    ? 'Aquí aparecerán las conversaciones cuya última respuesta tenga más de 15 días.'
-                                    : 'Comparte cómo escuchaste su voz en esta lectura.'
-                            }
-                        </div>
-                    </div>
-                `}
+                        `;
+                    }).join('');
+                })()}
             </div>
 
             ${posts.length ? `
@@ -17068,6 +17190,16 @@ if (toggleMenuBtn) {
     return;
 }
 
+const setTabBtn = e.target.closest('[data-action="set-community-tab"]');
+if (setTabBtn) {
+    const tab = setTabBtn.getAttribute('data-tab');
+    if (tab && this.communityTabFilter !== tab) {
+        this.communityTabFilter = tab;
+        this.renderCommunity({ preserveOnError: true });
+    }
+    return;
+}
+
 const copyPostBtn = e.target.closest('[data-action="copy-post-text"]');
 if (copyPostBtn) {
     const postId = copyPostBtn.getAttribute('data-post-id');
@@ -17084,11 +17216,11 @@ if (sharePostBtn) {
     return;
 }
 
-const savePostBtn = e.target.closest('[data-action="save-post-later"]');
-if (savePostBtn) {
-    const postId = savePostBtn.getAttribute('data-post-id');
+const speechPostBtn = e.target.closest('[data-action="speech-post"]');
+if (speechPostBtn) {
+    const postId = speechPostBtn.getAttribute('data-post-id');
     document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
-    this.toggleSavePost(postId);
+    this.toggleSpeechPost(postId);
     return;
 }
 
