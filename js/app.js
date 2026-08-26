@@ -2414,10 +2414,12 @@ saveAvatarSelection: async function() {
     const saveBtn = document.getElementById('saveAvatarBtn');
     if (saveBtn) saveBtn.disabled = true;
 
+    const category = window.AvatarPicker?.findCategoryForIcon(this.selectedAvatarIcon) || 'Símbolos Bíblicos';
     const profileData = {
         userId: this.currentUser.uid,
         avatarIcon: this.selectedAvatarIcon || '🕊️',
-        avatarColor: this.selectedAvatarColor || '#3182CE',
+        avatarColor: this.selectedAvatarColor || '#4A90D9',
+        avatarCategory: category,
         updatedAt: new Date().toISOString()
     };
 
@@ -2433,7 +2435,8 @@ saveAvatarSelection: async function() {
             await window.AvatarPicker.saveToFirestore(
                 this.currentUser.uid,
                 profileData.avatarIcon,
-                profileData.avatarColor
+                profileData.avatarColor,
+                profileData.avatarCategory
             );
         }
     } catch (error) {

@@ -113,19 +113,48 @@ class AvatarGenerator {
 }
 
 class AvatarPicker {
-    static ICONS = ['🕊️', '✝️', '📖', '🐑', '🌿', '🔥', '💧', '🌅', '🌟', '🕯️'];
-    static COLORS = [
-        { name: 'Azul', hex: '#3182CE' },
-        { name: 'Verde', hex: '#38A169' },
-        { name: 'Morado', hex: '#805AD5' },
-        { name: 'Naranja', hex: '#DD6B20' },
-        { name: 'Rojo', hex: '#E53E3E' },
-        { name: 'Dorado', hex: '#D69E2E' },
-        { name: 'Rosa', hex: '#D53F8C' },
-        { name: 'Gris', hex: '#718096' }
+    static CATEGORIES = [
+        {
+            name: 'Símbolos Bíblicos',
+            icons: ['🕊️', '✝️', '📖', '🐑', '🌿', '🔥', '💧', '🌅', '🌟', '🕯️', '🌾', '🍇', '🐟', '🦁', '⚓', '🏔️', '🌊', '🌈', '👑', '🗝️']
+        },
+        {
+            name: 'Figuras Espirituales',
+            icons: ['🦅', '🦋', '🌳', '🌺', '🪨', '🌵', '🐝']
+        },
+        {
+            name: 'Instrumentos de Adoración',
+            icons: ['🎵', '🪕', '🎺', '📯', '🥁']
+        },
+        {
+            name: 'Elementos de Oración',
+            icons: ['🙏', '📿', '💒', '⛪', '🕍', '🛐']
+        }
     ];
 
-    static renderModalHtml(selectedIcon = '🕊️', selectedColor = '#3182CE') {
+    static COLORS = [
+        { name: 'Azul', hex: '#4A90D9' },
+        { name: 'Verde', hex: '#52B788' },
+        { name: 'Morado', hex: '#7C6BC4' },
+        { name: 'Dorado', hex: '#D4A533' },
+        { name: 'Rojo', hex: '#C94C4C' },
+        { name: 'Naranja', hex: '#E67E22' },
+        { name: 'Rosa', hex: '#D96C8A' },
+        { name: 'Turquesa', hex: '#2EC4B6' },
+        { name: 'Marrón', hex: '#8B6F5E' },
+        { name: 'Gris', hex: '#7D8597' },
+        { name: 'Azul Profundo', hex: '#2C3E50' },
+        { name: 'Blanco', hex: '#E8E8E8' }
+    ];
+
+    static findCategoryForIcon(icon) {
+        for (const cat of AvatarPicker.CATEGORIES) {
+            if (cat.icons.includes(icon)) return cat.name;
+        }
+        return 'Símbolos Bíblicos';
+    }
+
+    static renderModalHtml(selectedIcon = '🕊️', selectedColor = '#4A90D9') {
         const previewUri = AvatarGenerator.generate('preview', 'Usuario', {
             avatarIcon: selectedIcon,
             avatarColor: selectedColor
@@ -143,27 +172,31 @@ class AvatarPicker {
                         <span class="avatar-picker-preview-label">Vista previa</span>
                     </div>
 
-                    <!-- Grid de Iconos Espirituales (2 filas de 5) -->
-                    <div class="avatar-picker-section">
-                        <label class="avatar-picker-label">Icono espiritual</label>
-                        <div class="avatar-icon-grid">
-                            ${AvatarPicker.ICONS.map(icon => `
-                                <button type="button" class="avatar-icon-btn ${icon === selectedIcon ? 'is-selected' : ''}" data-icon="${icon}">
-                                    ${icon}
-                                </button>
-                            `).join('')}
+                    <div class="avatar-picker-body">
+                        <!-- Selector de Colores (12 colores) -->
+                        <div class="avatar-picker-section">
+                            <label class="avatar-picker-label">Color de fondo</label>
+                            <div class="avatar-color-grid">
+                                ${AvatarPicker.COLORS.map(c => `
+                                    <button type="button" class="avatar-color-btn ${c.hex === selectedColor ? 'is-selected' : ''}" data-color="${c.hex}" title="${c.name}" style="background-color: ${c.hex};">
+                                    </button>
+                                `).join('')}
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Grid de Colores de Fondo (2 filas de 4) -->
-                    <div class="avatar-picker-section">
-                        <label class="avatar-picker-label">Color de fondo</label>
-                        <div class="avatar-color-grid">
-                            ${AvatarPicker.COLORS.map(c => `
-                                <button type="button" class="avatar-color-btn ${c.hex === selectedColor ? 'is-selected' : ''}" data-color="${c.hex}" title="${c.name}" style="background-color: ${c.hex};">
-                                </button>
-                            `).join('')}
-                        </div>
+                        <!-- Iconos Agrupados por Categorías -->
+                        ${AvatarPicker.CATEGORIES.map(cat => `
+                            <div class="avatar-picker-section" data-category="${cat.name}">
+                                <label class="avatar-picker-label">${cat.name}</label>
+                                <div class="avatar-icon-grid">
+                                    ${cat.icons.map(icon => `
+                                        <button type="button" class="avatar-icon-btn ${icon === selectedIcon ? 'is-selected' : ''}" data-icon="${icon}" data-category="${cat.name}">
+                                            ${icon}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
                     </div>
 
                     <div class="avatar-picker-actions">
@@ -175,7 +208,7 @@ class AvatarPicker {
         `;
     }
 
-    static async saveToFirestore(userId, avatarIcon, avatarColor) {
+    static async saveToFirestore(userId, avatarIcon, avatarColor, avatarCategory) {
         if (!userId) throw new Error('Usuario no autenticado');
 
         const db = window.firebaseDb;
@@ -185,10 +218,13 @@ class AvatarPicker {
         }
 
         const profileRef = fns.doc(db, 'userProfiles', userId);
+        const category = avatarCategory || AvatarPicker.findCategoryForIcon(avatarIcon);
+
         await fns.setDoc(profileRef, {
             userId: userId,
             avatarIcon: avatarIcon,
             avatarColor: avatarColor,
+            avatarCategory: category,
             updatedAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
         }, { merge: true });
     }

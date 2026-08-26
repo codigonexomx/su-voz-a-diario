@@ -16176,13 +16176,14 @@ body.dark-mode .calendar-v2-btn-action {
     border: 1px solid var(--border-color);
     border-radius: 20px;
     width: 100%;
-    max-width: 420px;
-    padding: 24px;
+    max-width: 440px;
+    max-height: 88vh;
+    padding: 20px 24px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 14px;
     color: var(--text-main);
 }
 
@@ -16209,10 +16210,11 @@ body.dark-mode .calendar-v2-btn-action {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    padding: 12px;
+    gap: 6px;
+    padding: 10px;
     background: var(--surface-color-hover, rgba(0, 0, 0, 0.03));
     border-radius: 14px;
+    flex-shrink: 0;
 }
 
 .avatar-picker-preview-img {
@@ -16231,6 +16233,15 @@ body.dark-mode .calendar-v2-btn-action {
     font-weight: 600;
 }
 
+.avatar-picker-body {
+    overflow-y: auto;
+    max-height: 50vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-right: 6px;
+}
+
 .avatar-picker-section {
     display: flex;
     flex-direction: column;
@@ -16239,8 +16250,10 @@ body.dark-mode .calendar-v2-btn-action {
 
 .avatar-picker-label {
     font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-muted);
+    font-weight: 700;
+    color: var(--text-main);
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 4px;
 }
 
 .avatar-icon-grid {
@@ -16259,28 +16272,30 @@ body.dark-mode .calendar-v2-btn-action {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .avatar-icon-btn:hover {
-    transform: scale(1.1);
+    transform: scale(1.18);
     background: var(--surface-color-hover, rgba(0, 0, 0, 0.08));
+    z-index: 2;
 }
 
 .avatar-icon-btn.is-selected {
     border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 15%, transparent);
-    transform: scale(1.1);
+    background: color-mix(in srgb, var(--accent) 20%, transparent);
+    transform: scale(1.12);
+    box-shadow: 0 0 0 2px var(--accent);
 }
 
 .avatar-color-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
 }
 
 .avatar-color-btn {
-    height: 36px;
+    height: 34px;
     border-radius: 10px;
     border: 3px solid transparent;
     cursor: pointer;
@@ -16289,13 +16304,13 @@ body.dark-mode .calendar-v2-btn-action {
 }
 
 .avatar-color-btn:hover {
-    transform: scale(1.08);
+    transform: scale(1.12);
 }
 
 .avatar-color-btn.is-selected {
     border-color: var(--text-main);
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transform: scale(1.14);
+    box-shadow: 0 0 0 2px var(--text-main);
 }
 
 .avatar-picker-actions {
@@ -16303,6 +16318,7 @@ body.dark-mode .calendar-v2-btn-action {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 6px;
+    flex-shrink: 0;
 }
 
 
