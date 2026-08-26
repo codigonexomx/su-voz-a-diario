@@ -13169,9 +13169,6 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                         >
                             Normas
                         </button>
-                        <div class="notification-bell" id="notificationBell">
-                            <button type="button" class="bell-btn" aria-label="Ver notificaciones" title="Notificaciones">🔔 <span class="notification-badge" style="display: none;">0</span></button>
-                        </div>
                     </div>
                 </div>
             </section>
@@ -13311,12 +13308,7 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
         </div>
     `;
 
-    if (this.notificationCenter) {
-        const bellEl = document.getElementById('notificationBell');
-        if (bellEl) {
-            this.notificationCenter.bindEvents(bellEl);
-        }
-    }
+
 
     if (showCommunityDraftRestored) {
         this.armCommunityDraftRestoredNoticeDismissal();

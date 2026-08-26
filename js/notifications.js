@@ -39,6 +39,8 @@ class NotificationCenter {
     }
 
     listenNotifications() {
+        // Notificaciones in-app desactivadas temporalmente
+        return;
         if (!window.app?.currentUser?.uid) {
             console.warn('[NotificationCenter] Omitiendo listener: Usuario no autenticado aún');
             return;
