@@ -2345,6 +2345,7 @@ openAvatarPickerModal: async function() {
     this.selectedAvatarValue = userProfile.avatarValue || userProfile.avatarIcon || '🕊️';
     this.selectedAvatarType = userProfile.avatarType || (window.AvatarPicker?.isPerson(this.selectedAvatarValue) ? 'person' : 'icon');
     this.selectedAvatarColor = userProfile.avatarColor || '#4A90D9';
+    const currentDisplayName = userProfile.displayName || this.currentUser.displayName || '';
 
     const existingModal = document.getElementById('avatarPickerModal');
     if (existingModal) existingModal.remove();
@@ -2353,7 +2354,8 @@ openAvatarPickerModal: async function() {
         const modalHtml = window.AvatarPicker.renderModalHtml({
             selectedType: this.selectedAvatarType,
             selectedValue: this.selectedAvatarValue,
-            selectedColor: this.selectedAvatarColor
+            selectedColor: this.selectedAvatarColor,
+            displayName: currentDisplayName
         });
         const container = this.$content || document.body;
         container.insertAdjacentHTML('beforeend', modalHtml);
@@ -2421,6 +2423,16 @@ saveAvatarSelection: async function() {
     if (!this.currentUser?.uid) return;
 
     const saveBtn = document.getElementById('saveAvatarBtn');
+    const nameInput = document.getElementById('profileNameInput');
+    const rawName = nameInput ? nameInput.value : '';
+
+    if (nameInput && rawName.length > 0 && !rawName.trim()) {
+        this.showToast('El nombre no puede contener solo espacios');
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+    }
+
+    const displayName = rawName.trim();
     if (saveBtn) saveBtn.disabled = true;
 
     const isPerson = this.selectedAvatarType === 'person' || window.AvatarPicker?.isPerson(this.selectedAvatarValue);
@@ -2434,6 +2446,7 @@ saveAvatarSelection: async function() {
         avatarColor: this.selectedAvatarColor || '#4A90D9',
         avatarLabel: isPerson ? (personObj?.label || 'Persona') : 'Símbolo',
         avatarCategory: isPerson ? 'Personas Ilustradas' : (window.AvatarPicker?.findCategoryForIcon(this.selectedAvatarValue) || 'Símbolos Bíblicos'),
+        displayName: displayName,
         updatedAt: new Date().toISOString()
     };
 
@@ -3942,9 +3955,11 @@ renderReplyBlock: function(post, replies = []) {
                 <div class="community-reply-list">
                     <div class="community-reply-list-title">Conversación edificante</div>
                     ${replies.map(reply => {
-                        const replyAuthorName = reply.name || 'Anónimo';
-                        const isReplyAnon = !reply.name || replyAuthorName.trim().toLowerCase() === 'anónimo';
                         const replyProfile = reply.ownerUid ? this.userProfilesCache?.[reply.ownerUid] : null;
+                        const isReplyAnon = reply.isAnonymous || !reply.name || reply.name.trim().toLowerCase() === 'anónimo';
+                        const replyAuthorName = isReplyAnon
+                            ? 'Anónimo'
+                            : (replyProfile?.displayName?.trim() || reply.name?.trim() || 'Hermano(a)');
 
                         const replyAvatarSvg = typeof AvatarGenerator !== 'undefined'
                             ? AvatarGenerator.renderHtml(reply.avatarSeed || reply.ownerUid || reply.id, replyAuthorName, {
@@ -13428,6 +13443,9 @@ const showCommunityDraftRestored =
     this.communityDraftRestoredNoticePending && hasCommunityDraft;
 const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
 const currentUserProfile = this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null;
+const userDisplayName = currentUserProfile?.displayName?.trim()
+    || this.currentUser?.displayName?.trim()
+    || 'Hermano(a)';
 const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
     ? AvatarGenerator.generate(this.currentUser?.uid || 'user', this.currentUser?.displayName || 'Usuario', {
         avatarType: currentUserProfile?.avatarType,
@@ -13445,11 +13463,12 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                     <div
                         class="hero-avatar-large"
                         data-action="open-avatar-picker"
-                        title="Cambiar mi avatar"
+                        title="Cambiar mi avatar y nombre"
                         style="background-image: url('${heroAvatarUri}');"
                     >
                         <div class="hero-avatar-edit-badge">✏️</div>
                     </div>
+                    <div class="hero-user-name">${this.escapeHtml(userDisplayName)}</div>
                 </div>
                 <div class="hero-info-section">
                     <h2>Comunidad</h2>
@@ -13552,11 +13571,13 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                     return visiblePosts.map(post => {
                         const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
                         const replies = repliesSummary[post.id] || [];
-                        const authorName = post.name || 'Anónimo';
-                        const isAnonymous = !post.name || authorName.trim().toLowerCase() === 'anónimo';
+                        const userProfile = post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
+                        const isAnonymous = post.isAnonymous || !post.name || post.name.trim().toLowerCase() === 'anónimo';
+                        const authorName = isAnonymous
+                            ? 'Anónimo'
+                            : (userProfile?.displayName?.trim() || post.name?.trim() || 'Hermano(a)');
                         const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
                         const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
-                        const userProfile = post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
 
                         const avatarSvg = typeof AvatarGenerator !== 'undefined'
                             ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {

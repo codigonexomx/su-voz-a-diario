@@ -17188,4 +17188,39 @@ body.dark-mode.community-background .nav-btn-community.active {
     border-radius: 16px !important;
 }
 
+/* Nombre de usuario editable en Hero y Modal */
+.hero-user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-top: 4px;
+    text-align: center;
+}
+
+.hero-avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.profile-name-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 16px;
+    margin: 8px 0;
+}
+
+body.dark-mode .hero-user-name {
+    color: #F1EEE9 !important;
+}
+
+body.dark-mode .profile-name-input {
+    background: #102235 !important;
+    border-color: rgba(199, 171, 130, 0.22) !important;
+    color: #F1EEE9 !important;
+}
+
 

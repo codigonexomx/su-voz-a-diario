@@ -178,10 +178,21 @@ class AvatarPicker {
         return 'Símbolos Bíblicos';
     }
 
+    static escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     static renderModalHtml(options = {}) {
         const selectedType = options.selectedType || (options.selectedValue && AvatarPicker.isPerson(options.selectedValue) ? 'person' : 'icon');
         const selectedValue = options.selectedValue || options.selectedIcon || '🕊️';
         const selectedColor = options.selectedColor || '#4A90D9';
+        const currentDisplayName = options.displayName || '';
 
         const previewUri = AvatarGenerator.generate('preview', 'Usuario', {
             avatarType: selectedType,
@@ -203,6 +214,19 @@ class AvatarPicker {
                     </div>
 
                     <div class="avatar-picker-body">
+                        <!-- Campo de Nombre en Comunidad -->
+                        <div class="avatar-picker-section">
+                            <label class="avatar-picker-label" for="profileNameInput">Tu nombre en Comunidad</label>
+                            <input
+                                type="text"
+                                id="profileNameInput"
+                                class="profile-name-input"
+                                placeholder="Escribe tu nombre..."
+                                maxlength="30"
+                                value="${AvatarPicker.escapeHtml(currentDisplayName)}"
+                            />
+                        </div>
+
                         <!-- Selector de Colores (12 colores) -->
                         <div class="avatar-picker-section">
                             <label class="avatar-picker-label">Color de fondo</label>
@@ -296,6 +320,7 @@ class AvatarPicker {
             avatarLabel: isPerson ? (personObj?.label || 'Persona') : 'Símbolo',
             avatarIcon: effectiveIcon || '🕊️',
             avatarCategory: isPerson ? 'Personas Ilustradas' : AvatarPicker.findCategoryForIcon(val),
+            displayName: typeof profileData === 'object' && profileData.displayName ? profileData.displayName : '',
             updatedAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
         };
 
