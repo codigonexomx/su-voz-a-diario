@@ -17225,9 +17225,15 @@ if (toggleMenuBtn) {
     const postId = toggleMenuBtn.getAttribute('data-post-id');
     const dropdown = document.getElementById(`post-menu-${postId}`);
     if (dropdown) {
-        const isHidden = dropdown.style.display === 'none';
-        document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
-        dropdown.style.display = isHidden ? 'flex' : 'none';
+        const isOpen = dropdown.classList.contains('open');
+        document.querySelectorAll('.post-menu-dropdown').forEach(d => {
+            d.classList.remove('open');
+            d.style.display = 'none';
+        });
+        if (!isOpen) {
+            dropdown.classList.add('open');
+            dropdown.style.display = 'flex';
+        }
     }
     return;
 }

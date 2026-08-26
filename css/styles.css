@@ -16058,12 +16058,19 @@ body.dark-mode .calendar-v2-btn-action {
     padding: 4px 8px;
     border-radius: 8px;
     z-index: 10;
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
     color: var(--text-muted);
-    transition: background 0.2s ease, color 0.2s ease;
+    transition: background 0.2s ease;
 }
 
 .post-menu-btn:hover {
-    background: var(--surface-color-hover, rgba(0, 0, 0, 0.05));
+    background: var(--surface-color-hover, rgba(0, 0, 0, 0.08));
     color: var(--text-main);
 }
 
@@ -16071,15 +16078,19 @@ body.dark-mode .calendar-v2-btn-action {
     position: absolute;
     top: 40px;
     right: 12px;
+    z-index: 100;
+    min-width: 200px;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    z-index: 100;
-    min-width: 180px;
+    display: none;
     overflow: hidden;
-    display: flex;
     flex-direction: column;
+}
+
+.post-menu-dropdown.open {
+    display: flex !important;
 }
 
 .post-menu-dropdown button {
