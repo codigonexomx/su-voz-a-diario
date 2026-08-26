@@ -2474,6 +2474,156 @@ saveAvatarSelection: async function() {
     this.renderCommunity({ forceRefresh: true });
 },
 
+getSavedPosts: function() {
+    try {
+        const raw = localStorage.getItem('suvoz_saved_posts');
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+},
+
+isPostSaved: function(postId) {
+    return this.getSavedPosts().includes(postId);
+},
+
+toggleSavePost: async function(postId) {
+    let saved = this.getSavedPosts();
+    const isSaved = saved.includes(postId);
+
+    if (isSaved) {
+        saved = saved.filter(id => id !== postId);
+        this.showToast('Removido de guardados', 'info');
+    } else {
+        saved.push(postId);
+        this.showToast('Guardado para después 💾', 'success');
+    }
+
+    try {
+        localStorage.setItem('suvoz_saved_posts', JSON.stringify(saved));
+    } catch (e) {}
+
+    if (this.currentUser?.uid) {
+        try {
+            const db = window.firebaseDb;
+            const fns = window.firebaseFns;
+            if (db && fns?.doc && fns?.setDoc) {
+                const savedRef = fns.doc(db, 'savedPosts', `${this.currentUser.uid}_${postId}`);
+                if (!isSaved) {
+                    await fns.setDoc(savedRef, {
+                        userId: this.currentUser.uid,
+                        postId: postId,
+                        createdAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
+                    }, { merge: true });
+                } else if (fns.deleteDoc) {
+                    await fns.deleteDoc(savedRef);
+                }
+            }
+        } catch (err) {
+            console.warn('[Community] Error al sincronizar guardados:', err);
+        }
+    }
+
+    this.renderCommunity({ preserveOnError: true });
+},
+
+getFavoritePosts: function() {
+    try {
+        const raw = localStorage.getItem('suvoz_favorite_posts');
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+},
+
+isPostFavorite: function(postId) {
+    return this.getFavoritePosts().includes(postId);
+},
+
+toggleFavoritePost: async function(postId) {
+    let favs = this.getFavoritePosts();
+    const isFav = favs.includes(postId);
+
+    if (isFav) {
+        favs = favs.filter(id => id !== postId);
+        this.showToast('Removido de tus favoritos', 'info');
+    } else {
+        favs.push(postId);
+        this.showToast('Agregado a tus favoritos ⭐', 'success');
+    }
+
+    try {
+        localStorage.setItem('suvoz_favorite_posts', JSON.stringify(favs));
+    } catch (e) {}
+
+    if (this.currentUser?.uid) {
+        try {
+            const db = window.firebaseDb;
+            const fns = window.firebaseFns;
+            if (db && fns?.doc && fns?.setDoc) {
+                const favRef = fns.doc(db, 'favoritePosts', `${this.currentUser.uid}_${postId}`);
+                if (!isFav) {
+                    await fns.setDoc(favRef, {
+                        userId: this.currentUser.uid,
+                        postId: postId,
+                        createdAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
+                    }, { merge: true });
+                } else if (fns.deleteDoc) {
+                    await fns.deleteDoc(favRef);
+                }
+            }
+        } catch (err) {
+            console.warn('[Community] Error al sincronizar favoritos:', err);
+        }
+    }
+
+    this.renderCommunity({ preserveOnError: true });
+},
+
+copyPostText: function(postId) {
+    const post = this.getCommunityPostsMap()?.[postId];
+    const cardEl = document.querySelector(`[data-post-id="${postId}"] .community-text`);
+    const textToCopy = post ? (post.text || '').replace(/<[^>]*>/g, '') : (cardEl ? cardEl.textContent : '');
+
+    if (textToCopy && navigator.clipboard) {
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            this.showToast('Reflexión copiada al portapapeles 📋', 'success');
+        }).catch(() => {
+            this.showToast('No se pudo copiar el texto', 'error');
+        });
+    } else {
+        this.showToast('Portapapeles no disponible', 'warning');
+    }
+},
+
+sharePost: function(postId) {
+    const post = this.getCommunityPostsMap()?.[postId];
+    const textToShare = post
+        ? `"${(post.text || '').replace(/<[^>]*>/g, '')}" — ${post.name || 'Alguien de la comunidad'} (en Su Voz a Diario)`
+        : 'Reflexión compartida en Su Voz a Diario';
+    const shareUrl = window.location.href;
+
+    if (navigator.share) {
+        navigator.share({
+            title: 'Reflexión en Su Voz a Diario',
+            text: textToShare,
+            url: shareUrl
+        }).then(() => {
+            this.showToast('Reflexión compartida 🔗', 'success');
+        }).catch((err) => {
+            if (err.name !== 'AbortError') {
+                this.showToast('Enlace copiado para compartir 🔗', 'success');
+            }
+        });
+    } else if (navigator.clipboard) {
+        navigator.clipboard.writeText(`${textToShare}\n${shareUrl}`).then(() => {
+            this.showToast('Enlace copiado para compartir 🔗', 'success');
+        });
+    } else {
+        this.showToast('Opción de compartir no disponible', 'warning');
+    }
+},
+
 formatCommunityRichText: function(text) {
     if (!text) return '';
     let raw = String(text);
@@ -13252,6 +13402,17 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
 
                     return `
                         <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
+                            <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋮</button>
+                            <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
+                                <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar reflexión</button>
+                                <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
+                                <button type="button" data-action="save-post-later" data-post-id="${post.id}">${this.isPostSaved(post.id) ? '💾 Guardado' : '💾 Guardar para después'}</button>
+                                <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar como favorito'}</button>
+                                ${post.ownerUid && post.ownerUid === this.currentUser?.uid ? `
+                                    <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
+                                ` : ''}
+                            </div>
+
                             <div class="community-post-header">
                                 ${avatarSvg}
 
@@ -13263,14 +13424,6 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                                     </div>
 
                                     <div class="community-ref">Escuchó en ${this.escapeHtml(post.reference)}</div>
-                                </div>
-
-                                <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋯</button>
-                                <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
-                                    <button type="button" class="report-post-btn" data-action="report-post" data-post-id="${post.id}">🚩 Reportar contenido</button>
-                                    ${post.ownerUid && post.ownerUid !== this.currentUser?.uid ? `
-                                        <button type="button" class="block-user-btn" data-action="block-user" data-uid="${post.ownerUid}">🚫 Bloquear usuario</button>
-                                    ` : ''}
                                 </div>
                             </div>
 
@@ -16927,21 +17080,35 @@ if (toggleMenuBtn) {
     return;
 }
 
-const reportPostBtn = e.target.closest('[data-action="report-post"]');
-if (reportPostBtn) {
-    const postId = reportPostBtn.getAttribute('data-post-id');
-    if (this.moderation) {
-        this.moderation.showReportDialog(postId);
-    }
+const copyPostBtn = e.target.closest('[data-action="copy-post-text"]');
+if (copyPostBtn) {
+    const postId = copyPostBtn.getAttribute('data-post-id');
+    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.copyPostText(postId);
     return;
 }
 
-const blockUserBtn = e.target.closest('[data-action="block-user"]');
-if (blockUserBtn) {
-    const targetUid = blockUserBtn.getAttribute('data-uid');
-    if (this.moderation) {
-        this.moderation.blockUser(targetUid);
-    }
+const sharePostBtn = e.target.closest('[data-action="share-post"]');
+if (sharePostBtn) {
+    const postId = sharePostBtn.getAttribute('data-post-id');
+    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.sharePost(postId);
+    return;
+}
+
+const savePostBtn = e.target.closest('[data-action="save-post-later"]');
+if (savePostBtn) {
+    const postId = savePostBtn.getAttribute('data-post-id');
+    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.toggleSavePost(postId);
+    return;
+}
+
+const favPostBtn = e.target.closest('[data-action="favorite-post"]');
+if (favPostBtn) {
+    const postId = favPostBtn.getAttribute('data-post-id');
+    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.toggleFavoritePost(postId);
     return;
 }
 
