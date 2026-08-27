@@ -17223,44 +17223,61 @@ body.dark-mode .profile-name-input {
     color: #F1EEE9 !important;
 }
 
-/* Layout del bloque Composer con Iconos Lineales */
+/* Layout del bloque Composer con Círculo de 3 Puntos e Icono de Lápiz Interno en Botón */
 .community-composer-layout {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    gap: 12px;
     width: 100%;
 }
 
-.community-composer-icon {
-    display: inline-flex;
+.community-composer-circle-badge {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    width: 20px;
-    height: 20px;
-    color: var(--text-muted, #697180);
-    opacity: 0.85;
-    transition: opacity 0.2s ease, color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
-.community-composer-icon svg {
-    width: 20px;
-    height: 20px;
+.community-composer-circle-badge svg {
+    width: 22px;
+    height: 22px;
     display: block;
 }
 
-body:not(.dark-mode) .community-composer-icon {
-    color: #697180 !important;
+body:not(.dark-mode) .community-composer-circle-badge {
+    border: 2px solid var(--community-border, #E8DED0);
+    background: transparent;
+    color: var(--community-navy, #172F55);
 }
 
-body.dark-mode .community-composer-icon {
-    color: #9299A3 !important;
+body.dark-mode .community-composer-circle-badge {
+    border: 2px solid #FFFFFF;
+    background: transparent;
+    color: #FFFFFF;
+}
+
+.community-composer-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.composer-btn-pencil-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: block;
 }
 
 body:not(.dark-mode) .community-composer-question,
 body.dark-mode .community-composer-question {
-    font-size: 0.85rem !important;
+    font-size: 0.85rem !important; /* Reducido al 80-85% */
 }
 
 
