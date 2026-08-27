@@ -13180,13 +13180,33 @@ renderCommunityLoadError: function(error) {
 renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayContext().reference) {
     return `
             <div class="community-composer-card">
-                <div class="community-composer-copy">
-                    <div class="community-composer-question">¿Qué escuchaste de su voz hoy?</div>
-                    <div class="community-composer-reference">${this.escapeHtml(reference)}</div>
+                <div class="community-composer-layout">
+                    <span class="community-composer-icon community-composer-msg-icon" aria-hidden="true" title="Comentar">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <circle cx="8.5" cy="10" r="1.2" fill="currentColor" stroke="none"/>
+                            <circle cx="12" cy="10" r="1.2" fill="currentColor" stroke="none"/>
+                            <circle cx="15.5" cy="10" r="1.2" fill="currentColor" stroke="none"/>
+                        </svg>
+                    </span>
+
+                    <div class="community-composer-copy">
+                        <div class="community-composer-question">¿Qué escuchaste de su voz hoy?</div>
+                        <div class="community-composer-reference">${this.escapeHtml(reference)}</div>
+                    </div>
+
+                    <span class="community-composer-icon community-composer-edit-icon" aria-hidden="true" title="Escribir reflexión">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="3" ry="3"/>
+                            <line x1="8.5" y1="15.5" x2="15.5" y2="8.5"/>
+                            <path d="M12.5 7.5l4 4"/>
+                        </svg>
+                    </span>
+
+                    <button class="community-composer-btn" type="button" data-action="share-community-reflection">
+                        Compartir
+                    </button>
                 </div>
-                <button class="community-composer-btn" type="button" data-action="share-community-reflection">
-                    Compartir
-                </button>
             </div>
     `;
 },

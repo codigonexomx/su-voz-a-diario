@@ -17223,4 +17223,44 @@ body.dark-mode .profile-name-input {
     color: #F1EEE9 !important;
 }
 
+/* Layout del bloque Composer con Iconos Lineales */
+.community-composer-layout {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+}
+
+.community-composer-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--text-muted, #697180);
+    opacity: 0.85;
+    transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.community-composer-icon svg {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+body:not(.dark-mode) .community-composer-icon {
+    color: #697180 !important;
+}
+
+body.dark-mode .community-composer-icon {
+    color: #9299A3 !important;
+}
+
+body:not(.dark-mode) .community-composer-question,
+body.dark-mode .community-composer-question {
+    font-size: 0.85rem !important;
+}
+
 
