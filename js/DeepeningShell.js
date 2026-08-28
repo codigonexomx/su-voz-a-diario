@@ -63,7 +63,11 @@
     }
 
     function getStableViewportHeight() {
-        return window.innerHeight || document.documentElement.clientHeight || screen.height || 0;
+        return window.KeyboardViewportManager?.getState?.().visibleHeight
+            || window.visualViewport?.height
+            || window.innerHeight
+            || document.documentElement.clientHeight
+            || 0;
     }
 
     function getBackgroundElements() {
@@ -730,6 +734,7 @@
 
         restorePositionRecord = window.ReadingPositionManager?.createPositionRecord(options) || null;
         targetRoot.hidden = false;
+        window.KeyboardViewportManager?.init?.();
         targetRoot.style.setProperty('--deepening-shell-height', `${getStableViewportHeight()}px`);
         targetRoot.innerHTML = renderShell();
         lockBackground({ root: targetRoot });

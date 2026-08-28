@@ -387,11 +387,13 @@ body.meditation-library-editor-open {
 }
 
 body.meditation-library-editor-open .sliding-notebook-panel {
-    top: clamp(56px, 8vh, 92px);
-    top: clamp(56px, 8dvh, 92px);
-    right: max(12px, env(safe-area-inset-right));
-    bottom: max(12px, env(safe-area-inset-bottom));
-    left: max(12px, env(safe-area-inset-left));
+    --library-editor-top: max(calc(44px + var(--safe-area-top)), clamp(56px, 8dvh, 92px));
+    --library-editor-bottom: max(12px, var(--safe-area-bottom));
+    top: var(--library-editor-top);
+    right: max(12px, var(--safe-area-right));
+    bottom: auto;
+    left: max(12px, var(--safe-area-left));
+    height: calc(var(--visible-viewport-height, 100dvh) - var(--library-editor-top) - var(--library-editor-bottom));
     width: auto;
     max-width: 760px;
     margin: 0 auto;
@@ -407,6 +409,10 @@ body.meditation-library-editor-open .sliding-notebook-panel {
     overflow: hidden;
     overscroll-behavior: contain;
     transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+body.keyboard-open.meditation-library-editor-open .sliding-notebook-panel {
+    --library-editor-bottom: 8px;
 }
 
 body.meditation-library-editor-open .sliding-notebook-panel::before {
@@ -466,8 +472,7 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-flow {
     width: min(100%, 660px);
     min-height: 100%;
     margin: 0 auto;
-    padding: clamp(18px, 4vh, 32px) clamp(22px, 5vw, 48px) calc(28px + env(safe-area-inset-bottom)) !important;
-    padding: clamp(18px, 4dvh, 32px) clamp(22px, 5vw, 48px) calc(28px + env(safe-area-inset-bottom)) !important;
+    padding: clamp(18px, 4dvh, 32px) clamp(22px, 5vw, 48px) calc(28px + var(--safe-area-bottom)) !important;
     display: grid;
     align-content: start;
     gap: clamp(14px, 2.4dvh, 22px);
@@ -501,8 +506,9 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-step-labe
 
 body.meditation-library-editor-open .sliding-notebook-body .devotional-step-card {
     display: grid;
-    grid-template-rows: auto 3.3em 8.4em auto auto;
+    grid-template-rows: auto minmax(0, auto) minmax(4.8em, auto) minmax(150px, 1fr) auto;
     gap: 10px;
+    min-height: 0;
 }
 
 body.meditation-library-editor-open .sliding-notebook-body .note-title {
@@ -541,12 +547,9 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-question-
 }
 
 body.meditation-library-editor-open .sliding-notebook-body .note-textarea {
-    height: clamp(220px, 32vh, 380px);
-    height: clamp(220px, 32dvh, 380px);
-    min-height: clamp(220px, 32vh, 380px);
-    min-height: clamp(220px, 32dvh, 380px);
-    max-height: min(46vh, 430px);
-    max-height: min(46dvh, 430px);
+    height: 100%;
+    min-height: 150px;
+    max-height: none;
     padding: 16px 2px 18px !important;
     border-bottom-color: rgba(46, 35, 25, 0.14) !important;
     font-size: 16px;
@@ -556,7 +559,7 @@ body.meditation-library-editor-open .sliding-notebook-body .note-textarea {
     overflow-y: auto;
     resize: none;
     -webkit-overflow-scrolling: touch;
-    scroll-margin-bottom: calc(120px + env(safe-area-inset-bottom));
+    scroll-margin-bottom: calc(120px + var(--safe-area-bottom));
 }
 
 body.meditation-library-editor-open .sliding-notebook-body .note-textarea:focus {
@@ -591,27 +594,23 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-nav-btn-p
 
 @media (min-width: 768px) {
     body.meditation-library-editor-open .sliding-notebook-panel {
-        top: clamp(72px, 9vh, 112px);
-        top: clamp(72px, 9dvh, 112px);
-        bottom: clamp(18px, 4vh, 34px);
-        bottom: clamp(18px, 4dvh, 34px);
+        --library-editor-top: max(calc(56px + var(--safe-area-top)), clamp(72px, 9dvh, 112px));
+        --library-editor-bottom: max(var(--safe-area-bottom), clamp(18px, 4dvh, 34px));
         border-radius: 26px;
     }
 
     body.meditation-library-editor-open .sliding-notebook-body .note-box,
     body.meditation-library-editor-open .sliding-notebook-body .devotional-flow {
-        padding: clamp(24px, 4vh, 40px) clamp(42px, 7vw, 72px) calc(38px + env(safe-area-inset-bottom)) !important;
-        padding: clamp(24px, 4dvh, 40px) clamp(42px, 7vw, 72px) calc(38px + env(safe-area-inset-bottom)) !important;
+        padding: clamp(24px, 4dvh, 40px) clamp(42px, 7vw, 72px) calc(38px + var(--safe-area-bottom)) !important;
     }
 }
 
 @media (max-width: 520px) {
     body.meditation-library-editor-open .sliding-notebook-panel {
-        top: clamp(44px, 7vh, 74px);
-        top: clamp(44px, 7dvh, 74px);
-        right: max(8px, env(safe-area-inset-right));
-        bottom: max(8px, env(safe-area-inset-bottom));
-        left: max(8px, env(safe-area-inset-left));
+        --library-editor-top: max(calc(36px + var(--safe-area-top)), clamp(44px, 7dvh, 74px));
+        --library-editor-bottom: max(8px, var(--safe-area-bottom));
+        right: max(8px, var(--safe-area-right));
+        left: max(8px, var(--safe-area-left));
         border-radius: 22px 22px 18px 18px;
     }
 
@@ -622,7 +621,7 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-nav-btn-p
 
     body.meditation-library-editor-open .sliding-notebook-body .note-box,
     body.meditation-library-editor-open .sliding-notebook-body .devotional-flow {
-        padding: 16px 18px calc(24px + env(safe-area-inset-bottom)) !important;
+        padding: 16px 18px calc(24px + var(--safe-area-bottom)) !important;
         gap: 14px;
     }
 
@@ -638,19 +637,14 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-nav-btn-p
     }
 
     body.meditation-library-editor-open .sliding-notebook-body .note-textarea {
-        height: clamp(190px, 34vh, 310px);
-        height: clamp(190px, 34dvh, 310px);
-        min-height: clamp(190px, 34vh, 310px);
-        min-height: clamp(190px, 34dvh, 310px);
-        max-height: 44vh;
-        max-height: 44dvh;
+        min-height: 140px;
     }
 }
 
 @media (max-height: 620px) {
     body.meditation-library-editor-open .sliding-notebook-panel {
-        top: max(16px, env(safe-area-inset-top));
-        bottom: max(6px, env(safe-area-inset-bottom));
+        --library-editor-top: max(16px, var(--safe-area-top));
+        --library-editor-bottom: max(6px, var(--safe-area-bottom));
     }
 
     body.meditation-library-editor-open .sliding-notebook-header {
@@ -686,12 +680,7 @@ body.meditation-library-editor-open .sliding-notebook-body .devotional-nav-btn-p
     }
 
     body.meditation-library-editor-open .sliding-notebook-body .note-textarea {
-        height: max(160px, 32vh);
-        height: max(160px, 32dvh);
-        min-height: max(160px, 32vh);
-        min-height: max(160px, 32dvh);
-        max-height: 40vh;
-        max-height: 40dvh;
+        min-height: 120px;
     }
 }
 

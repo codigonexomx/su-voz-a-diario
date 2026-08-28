@@ -4,7 +4,7 @@
  */
 (function() {
     const FIELD_MARGIN = 24;
-    const KEYBOARD_THRESHOLD = 80;
+    const KEYBOARD_THRESHOLD = window.KeyboardViewportManager?.MIN_KEYBOARD_REDUCTION || 120;
 
     function recordLayoutLifecycle(eventName, detail = {}) {
         window.DeepeningFocusDiagnostics?.recordLayoutLifecycle?.(eventName, {
@@ -34,7 +34,6 @@
         let documentElement = null;
         let shellElement = null;
         let rootElement = null;
-        let visualViewport = window.visualViewport || null;
         let viewportRafId = null;
         let cursorRafId = null;
         let baseVisibleHeight = 0;
@@ -43,13 +42,18 @@
         let appResumeListener = null;
         let appLifecycleListenerPromises = [];
         let usingCapacitorLifecycle = false;
+        let keyboardViewportUnsubscribe = null;
 
         function getViewportHeight() {
-            return visualViewport?.height || window.innerHeight || document.documentElement.clientHeight || 0;
+            return window.KeyboardViewportManager?.getState?.().visibleHeight
+                || window.visualViewport?.height
+                || window.innerHeight
+                || document.documentElement.clientHeight
+                || 0;
         }
 
         function getViewportOffsetTop() {
-            return visualViewport?.offsetTop || 0;
+            return window.visualViewport?.offsetTop || 0;
         }
 
         function isInsideDocument(element) {
@@ -68,8 +72,9 @@
         }
 
         function getLifecycleSnapshotState() {
-            const visibleHeight = getViewportHeight();
-            const keyboardOpen = baseVisibleHeight - visibleHeight > KEYBOARD_THRESHOLD;
+            const viewportState = window.KeyboardViewportManager?.getState?.() || {};
+            const visibleHeight = viewportState.visibleHeight || getViewportHeight();
+            const keyboardOpen = Boolean(viewportState.isKeyboardOpen);
             const targetHeight = Math.round(keyboardOpen ? visibleHeight : baseVisibleHeight);
 
             return {
@@ -202,11 +207,11 @@
             });
         }
 
-        function applyViewportPosition() {
+        function applyViewportPosition(viewportState = window.KeyboardViewportManager?.getState?.() || {}) {
             if (!documentElement || !shellElement || !rootElement) return;
 
-            const visibleHeight = getViewportHeight();
-            const keyboardOpen = baseVisibleHeight - visibleHeight > KEYBOARD_THRESHOLD;
+            const visibleHeight = viewportState.visibleHeight || getViewportHeight();
+            const keyboardOpen = Boolean(viewportState.isKeyboardOpen);
             const targetHeight = Math.round(keyboardOpen ? visibleHeight : baseVisibleHeight);
             recordLayoutLifecycle('applyViewportPosition:before', {
                 baseVisibleHeight,
@@ -218,10 +223,7 @@
                 '--deepening-shell-height',
                 `${targetHeight}px`
             );
-            shellElement.style.setProperty(
-                '--deepening-layout-height',
-                `${targetHeight}px`
-            );
+            shellElement.style.removeProperty('--deepening-layout-height');
             shellElement.classList.toggle('is-keyboard-open', keyboardOpen);
             recordLayoutLifecycle('applyViewportPosition:after', {
                 baseVisibleHeight,
@@ -232,14 +234,14 @@
             ensureCursorVisible();
         }
 
-        function scheduleViewportPosition() {
+        function scheduleViewportPosition(viewportState) {
             if (viewportRafId !== null) {
                 cancelAnimationFrame(viewportRafId);
             }
 
             viewportRafId = requestAnimationFrame(() => {
                 viewportRafId = null;
-                applyViewportPosition();
+                applyViewportPosition(viewportState);
             });
         }
 
@@ -258,20 +260,21 @@
 
             shellElement = documentElement.closest('.deepening-shell');
             rootElement = document.getElementById('deepening-root');
-            baseVisibleHeight = rootElement?.getBoundingClientRect().height || getViewportHeight();
+            const viewportState = window.KeyboardViewportManager?.getState?.() || {};
+            baseVisibleHeight = viewportState.baselineHeight
+                || rootElement?.getBoundingClientRect().height
+                || getViewportHeight();
             recordLayoutLifecycle('calibrateBaseHeight', {
                 baseVisibleHeight,
                 targetHeight: baseVisibleHeight,
-                keyboardOpen: false,
-                visibleHeight: getViewportHeight()
+                keyboardOpen: Boolean(viewportState.isKeyboardOpen),
+                visibleHeight: viewportState.visibleHeight || getViewportHeight()
             });
             documentElement.addEventListener('focusin', onFocusIn);
             documentElement.addEventListener('input', onInput);
-            visualViewport?.addEventListener('resize', scheduleViewportPosition);
-            visualViewport?.addEventListener('scroll', scheduleViewportPosition);
-            window.addEventListener('resize', scheduleViewportPosition);
+            keyboardViewportUnsubscribe = window.KeyboardViewportManager?.subscribe?.(scheduleViewportPosition) || null;
             bindBackgroundLifecycle();
-            scheduleViewportPosition();
+            scheduleViewportPosition(viewportState);
         }
 
         function destroy() {
@@ -286,9 +289,8 @@
 
             documentElement?.removeEventListener('focusin', onFocusIn);
             documentElement?.removeEventListener('input', onInput);
-            visualViewport?.removeEventListener('resize', scheduleViewportPosition);
-            visualViewport?.removeEventListener('scroll', scheduleViewportPosition);
-            window.removeEventListener('resize', scheduleViewportPosition);
+            keyboardViewportUnsubscribe?.();
+            keyboardViewportUnsubscribe = null;
             unbindBackgroundLifecycle();
 
             rootElement?.style.setProperty('--deepening-shell-height', `${Math.round(baseVisibleHeight)}px`);

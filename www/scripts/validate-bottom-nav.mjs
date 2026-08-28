@@ -1,11 +1,92 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { resolveKeyboardViewportState } from '../js/utils/platform.js';
+import vm from 'node:vm';
 
-const keyboardState = options => resolveKeyboardViewportState({
-    virtualKeyboardHeight: 0,
-    ...options
-}).keyboardOpen;
+const keyboardManagerSource = await readFile(new URL('../js/KeyboardViewportManager.js', import.meta.url), 'utf8');
+
+class FakeInput {}
+class FakeTextarea {}
+
+function createKeyboardContext() {
+    const documentElement = {
+        clientHeight: 844,
+        style: {
+            values: {},
+            setProperty(name, value) {
+                this.values[name] = value;
+            }
+        }
+    };
+    const document = {
+        activeElement: null,
+        hidden: false,
+        documentElement,
+        addEventListener() {},
+        removeEventListener() {}
+    };
+    const visualViewport = {
+        width: 390,
+        height: 844,
+        addEventListener() {},
+        removeEventListener() {}
+    };
+    const window = {
+        innerWidth: 390,
+        innerHeight: 844,
+        visualViewport,
+        addEventListener() {},
+        removeEventListener() {},
+        dispatchEvent() {}
+    };
+    const navigator = {
+        virtualKeyboard: {
+            boundingRect: { height: 0 },
+            addEventListener() {},
+            removeEventListener() {}
+        }
+    };
+    const context = {
+        window,
+        document,
+        navigator,
+        CustomEvent: class CustomEvent {
+            constructor(type, init = {}) {
+                this.type = type;
+                this.detail = init.detail;
+            }
+        },
+        HTMLInputElement: FakeInput,
+        HTMLTextAreaElement: FakeTextarea,
+        requestAnimationFrame(callback) {
+            callback();
+            return 1;
+        },
+        cancelAnimationFrame() {},
+        setTimeout(callback) {
+            callback();
+            return 1;
+        },
+        clearTimeout() {}
+    };
+    vm.createContext(context);
+    vm.runInContext(keyboardManagerSource, context);
+    return context;
+}
+
+function keyboardState(options) {
+    const context = createKeyboardContext();
+    const { window, document, navigator } = context;
+    window.innerHeight = options.baselineHeight;
+    window.visualViewport.height = options.baselineHeight;
+    document.documentElement.clientHeight = options.baselineHeight;
+    window.KeyboardViewportManager.init();
+
+    document.activeElement = options.hasKeyboardFocus ? new FakeInput() : null;
+    window.visualViewport.height = options.currentHeight;
+    navigator.virtualKeyboard.boundingRect.height = options.virtualKeyboardHeight || 0;
+    window.KeyboardViewportManager.refresh();
+    return window.KeyboardViewportManager.getState().isKeyboardOpen;
+}
 
 assert.equal(
     keyboardState({

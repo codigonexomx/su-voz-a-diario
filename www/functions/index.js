@@ -542,6 +542,154 @@ exports.countNewCommunityReaction = onDocumentWritten(
   }
 );
 
+exports.updateMetricsOnPost = onDocumentCreated(
+  {
+    document: "communityPosts/{postId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const post = event.data?.data();
+    if (!post?.ownerUid) return;
+
+    const db = getFirestore();
+    const userId = post.ownerUid;
+    const metricRef = db.collection("userMetrics").doc(userId);
+
+    await metricRef.set(
+      {
+        userId: userId,
+        postsCreated: FieldValue.increment(1),
+        lastActiveDate: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    const metricDoc = await metricRef.get();
+    const metrics = metricDoc.data() || {};
+
+    if (
+      metrics.postsCreated >= 1 &&
+      !metrics.achievements?.includes("firstEcho")
+    ) {
+      await metricRef.update({
+        achievements: FieldValue.arrayUnion("firstEcho"),
+      });
+
+      await db.collection("notifications").add({
+        userId: userId,
+        type: "achievement",
+        title: "¡Logro desbloqueado!",
+        body: 'Has ganado el logro "Primer Eco"',
+        isRead: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+  }
+);
+
+exports.updateStreakOnPost = onDocumentCreated(
+  {
+    document: "communityPosts/{postId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const post = event.data?.data();
+    if (!post?.ownerUid) return;
+
+    const db = getFirestore();
+    const userId = post.ownerUid;
+    const today = new Date().toISOString().split("T")[0];
+
+    const metricRef = db.collection("userMetrics").doc(userId);
+    const metricDoc = await metricRef.get();
+
+    if (metricDoc.exists) {
+      const lastActive = metricDoc.data()?.lastActiveDate;
+      const lastDate = lastActive
+        ? lastActive.toDate().toISOString().split("T")[0]
+        : null;
+
+      if (lastDate !== today) {
+        const yesterdayDate = new Date(Date.now() - 86400000);
+        const yesterday = yesterdayDate.toISOString().split("T")[0];
+        const currentStreak = metricDoc.data()?.currentStreak || 0;
+        const newStreak = lastDate === yesterday ? currentStreak + 1 : 1;
+        const longestStreak = Math.max(
+          newStreak,
+          metricDoc.data()?.longestStreak || 0
+        );
+
+        await metricRef.update({
+          currentStreak: newStreak,
+          longestStreak: longestStreak,
+          lastActiveDate: FieldValue.serverTimestamp(),
+        });
+      }
+    }
+  }
+);
+
+exports.notifyPostOwnerInApp = onDocumentCreated(
+  {
+    document: "communityReplies/{replyId}",
+    region: "us-central1",
+  },
+  async (event) => {
+    const reply = event.data?.data();
+    if (!reply?.postId || !reply?.ownerUid) return;
+
+    const db = getFirestore();
+    const postOwnerUid = await getCommunityPostOwner(db, reply.postId);
+
+    if (postOwnerUid && postOwnerUid !== reply.ownerUid) {
+      const replyAuthor = reply.name || "Alguien de la comunidad";
+      await db.collection("notifications").add({
+        userId: postOwnerUid,
+        type: "newReply",
+        title: "Nueva respuesta",
+        body: `${replyAuthor} respondió a tu reflexión.`,
+        postId: reply.postId,
+        isRead: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    }
+  }
+);
+
+exports.cleanupOldData = onSchedule(
+  {
+    schedule: "0 0 * * *",
+    timeZone: TIME_ZONE,
+    region: "us-central1",
+  },
+  async () => {
+    const db = getFirestore();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 90);
+
+    const oldPosts = await db
+      .collection("communityPosts")
+      .where("createdAt", "<", cutoffDate)
+      .get();
+
+    if (oldPosts.empty) {
+      logger.info("No hay publicaciones antiguas para limpiar.");
+      return;
+    }
+
+    const batches = chunk(oldPosts.docs, MAX_FIRESTORE_BATCH_WRITES);
+    for (const docBatch of batches) {
+      const batch = db.batch();
+      docBatch.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+    }
+
+    logger.info(`Limpiadas ${oldPosts.size} publicaciones antiguas.`);
+  }
+);
+
 exports.getRemoteBibleBooks = getRemoteBibleBooks;
 exports.getRemoteBibleChapter = getRemoteBibleChapter;
 exports.searchRemoteBible = searchRemoteBible;
+
+

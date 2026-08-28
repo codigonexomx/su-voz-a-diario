@@ -13,7 +13,7 @@
     width: 100%;
     height: 100vh;
     height: 100dvh;
-    height: var(--deepening-shell-height, 100dvh);
+    height: var(--deepening-shell-height, var(--visible-viewport-height, 100dvh));
     z-index: 1600;
     background: #f5f1e8;
     color: #2f261f;
@@ -39,7 +39,7 @@ body.deepening-shell-active > .bottom-nav {
     --deepening-mobile-gutter: clamp(18px, 5vw, 24px);
     position: relative;
     width: 100%;
-    height: var(--deepening-layout-height, 100%);
+    height: 100%;
     min-width: 0;
     min-height: 0;
     overflow: hidden;

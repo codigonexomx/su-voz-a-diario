@@ -45,8 +45,7 @@ import {
     isRunningAsInstalledPWA,
     isIOSDevice,
     isAndroidDevice,
-    getPlatformLabel,
-    resolveKeyboardViewportState
+    getPlatformLabel
 } from './utils/platform.js';
 
 import {
@@ -1207,124 +1206,44 @@ cacheDOM: function() {
 
     this.$bottomNav = document.querySelector('.bottom-nav');
     this._keyboardHandlersBound = false;
-    this._viewportHeightBaselines = {};
-    this._keyboardViewportTimers = [];
+    this._keyboardViewportUnsubscribe = null;
 },
 
 isKeyboardInput: function(element) {
-    if (!element || element.disabled || element.readOnly) return false;
-    if (element.isContentEditable) return true;
-    if (element.tagName === 'TEXTAREA') return true;
-    if (element.tagName !== 'INPUT') return false;
-
-    return /^(text|search|url|email|tel|password|number|date|time|datetime-local|month|week)$/i
-        .test(element.type || 'text');
+    return Boolean(window.KeyboardViewportManager?.isEditableElement?.(element));
 },
 
 getViewportOrientationKey: function() {
-    const viewport = window.visualViewport;
-    const width = viewport?.width || window.innerWidth || document.documentElement.clientWidth;
-    const height = viewport?.height || window.innerHeight || document.documentElement.clientHeight;
-    return width > height ? 'landscape' : 'portrait';
+    return window.KeyboardViewportManager?.getState?.().orientation || 'portrait';
 },
 
 getCurrentViewportHeight: function() {
-    return window.visualViewport?.height
+    return window.KeyboardViewportManager?.getState?.().visibleHeight
         || window.innerHeight
         || document.documentElement.clientHeight
         || 0;
 },
 
 clearKeyboardViewportTimers: function() {
-    (this._keyboardViewportTimers || []).forEach(timer => clearTimeout(timer));
-    this._keyboardViewportTimers = [];
 },
 
-scheduleKeyboardViewportUpdate: function(delays = [0, 120, 360]) {
-    this.clearKeyboardViewportTimers();
-    this._keyboardViewportTimers = delays.map(delay => setTimeout(() => {
-        this.updateKeyboardViewportState();
-    }, delay));
+scheduleKeyboardViewportUpdate: function() {
+    window.KeyboardViewportManager?.refresh?.();
 },
 
-updateKeyboardViewportState: function({ forceRecalibration = false } = {}) {
-    const activeElement = document.activeElement;
-    const hasKeyboardFocus = this.isKeyboardInput(activeElement);
-    const currentHeight = this.getCurrentViewportHeight();
-    const orientationKey = this.getViewportOrientationKey();
-    const baselines = this._viewportHeightBaselines || (this._viewportHeightBaselines = {});
-    const virtualKeyboardHeight = Number(navigator.virtualKeyboard?.boundingRect?.height || 0);
-
-    if (!hasKeyboardFocus) {
-        document.body.classList.remove('keyboard-open');
-
-        if (currentHeight > 0) {
-            baselines[orientationKey] = forceRecalibration
-                ? currentHeight
-                : Math.max(baselines[orientationKey] || 0, currentHeight);
-        }
-
-        return false;
-    }
-
-    if (!baselines[orientationKey] && currentHeight > 0) {
-        baselines[orientationKey] = Math.max(currentHeight, window.innerHeight || 0);
-    }
-
-    const baselineHeight = baselines[orientationKey] || currentHeight;
-    const { keyboardOpen } = resolveKeyboardViewportState({
-        hasKeyboardFocus,
-        currentHeight,
-        baselineHeight,
-        virtualKeyboardHeight
-    });
-
-    document.body.classList.toggle('keyboard-open', keyboardOpen);
-    return keyboardOpen;
+updateKeyboardViewportState: function() {
+    const state = window.KeyboardViewportManager?.getState?.();
+    document.body.classList.toggle('keyboard-open', Boolean(state?.isKeyboardOpen));
+    return Boolean(state?.isKeyboardOpen);
 },
 
 bindKeyboardViewportFix: function() {
     if (this._keyboardHandlersBound) return;
 
-    const updateKeyboardState = () => this.updateKeyboardViewportState();
-    const recalibrateAfterViewportChange = () => {
-        document.body.classList.remove('keyboard-open');
-        this.scheduleKeyboardViewportUpdate([80, 250, 500]);
-    };
-
-    this.updateKeyboardViewportState({ forceRecalibration: true });
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', updateKeyboardState);
-        window.visualViewport.addEventListener('scroll', updateKeyboardState);
-    }
-
-    window.addEventListener('resize', updateKeyboardState);
-    window.addEventListener('orientationchange', recalibrateAfterViewportChange);
-    window.addEventListener('pageshow', () => {
-        this.scheduleKeyboardViewportUpdate([0, 180]);
-    });
-
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            this.scheduleKeyboardViewportUpdate([0, 180, 420]);
-        }
-    });
-
-    document.addEventListener('focusin', (event) => {
-        if (this.isKeyboardInput(event.target)) {
-            this.scheduleKeyboardViewportUpdate([0, 80, 220]);
-        }
-    });
-
-    document.addEventListener('focusout', () => {
-        this.scheduleKeyboardViewportUpdate([0, 120, 300]);
-    });
-
-    if (navigator.virtualKeyboard?.addEventListener) {
-        navigator.virtualKeyboard.addEventListener('geometrychange', updateKeyboardState);
-    }
-
+    this._keyboardViewportUnsubscribe = window.KeyboardViewportManager?.subscribe?.(state => {
+        document.body.classList.toggle('keyboard-open', Boolean(state.isKeyboardOpen));
+    }) || null;
+    this.updateKeyboardViewportState();
     this._keyboardHandlersBound = true;
 },
 
@@ -2674,16 +2593,38 @@ sharePost: function(postId) {
     }
 },
 
-toggleSpeechPost: function(postId) {
-    if (!('speechSynthesis' in window)) {
+toggleSpeechPost: async function(postId) {
+    const hasNativeTextToSpeech = this.isNativeTextToSpeechAvailable();
+    const hasWebSpeech = ('speechSynthesis' in window) && typeof SpeechSynthesisUtterance !== 'undefined';
+
+    if (!hasNativeTextToSpeech && !hasWebSpeech) {
         this.showToast('Tu navegador no soporta síntesis de voz', 'warning');
         return;
     }
 
-    if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
+    if (this.currentlySpeakingPostId) {
+        const previousPostId = this.currentlySpeakingPostId;
+        this.communitySpeechToken = null;
+
+        if (hasNativeTextToSpeech) {
+            await this.stopNativeTextToSpeech();
+        }
+
+        if ('speechSynthesis' in window) {
+            try {
+                window.speechSynthesis.cancel();
+            } catch (e) {}
+        }
+
         this.currentlySpeakingPostId = null;
-        this.updateSpeechMenuButton(postId, false);
+        this.updateSpeechMenuButton(previousPostId, false);
+
+        if (String(previousPostId) === String(postId)) {
+            this.showToast('Lectura detenida');
+            return;
+        }
+    } else if (hasWebSpeech && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
         this.showToast('Lectura detenida');
         return;
     }
@@ -2696,33 +2637,53 @@ toggleSpeechPost: function(postId) {
         return;
     }
 
+    this.stopDailyReadingVoice(true);
+    this.stopBibleChapterVoice(true);
+
+    const speechToken = {};
+    this.communitySpeechToken = speechToken;
+    this.currentlySpeakingPostId = postId;
+    this.updateSpeechMenuButton(postId, true);
+
+    const clearSpeechState = () => {
+        if (this.communitySpeechToken !== speechToken) return;
+        this.communitySpeechToken = null;
+        this.currentlySpeakingPostId = null;
+        this.updateSpeechMenuButton(postId, false);
+    };
+
+    if (hasNativeTextToSpeech) {
+        try {
+            await this.speakWithNativeTextToSpeech(text);
+        } catch (error) {
+            console.warn('[Community Voice] No se pudo leer la reflexión:', error);
+            this.showToast('No se pudo leer la reflexión en voz alta', 'warning');
+        } finally {
+            clearSpeechState();
+        }
+        return;
+    }
+
     const self = this;
     function speak(voices) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-ES';
-        utterance.rate = 1;
-        utterance.pitch = 1;
+        if (self.communitySpeechToken !== speechToken) return;
 
-        const spanishVoice = voices.find(v =>
-            v.lang.startsWith('es') ||
-            v.lang.startsWith('es-ES') ||
-            v.lang.startsWith('es-MX')
-        );
+        const utterance = new SpeechSynthesisUtterance(text);
+        const spanishVoice = self.selectSpanishVoice(voices);
 
         if (spanishVoice) utterance.voice = spanishVoice;
+        utterance.lang = spanishVoice?.lang || 'es-MX';
+        utterance.rate = 0.92;
+        utterance.pitch = 1;
 
         utterance.onend = () => {
-            self.currentlySpeakingPostId = null;
-            self.updateSpeechMenuButton(postId, false);
+            clearSpeechState();
         };
 
-        utterance.onerror = () => {
-            self.currentlySpeakingPostId = null;
-            self.updateSpeechMenuButton(postId, false);
+        utterance.onerror = (error) => {
+            console.warn('[Community Voice] No se pudo leer la reflexión:', error);
+            clearSpeechState();
         };
-
-        self.currentlySpeakingPostId = postId;
-        self.updateSpeechMenuButton(postId, true);
 
         try {
             window.speechSynthesis.resume();
@@ -2737,6 +2698,8 @@ toggleSpeechPost: function(postId) {
         speak(voices);
     } else {
         window.speechSynthesis.onvoiceschanged = () => {
+            if (self.communitySpeechToken !== speechToken) return;
+            window.speechSynthesis.onvoiceschanged = null;
             speak(window.speechSynthesis.getVoices());
         };
     }

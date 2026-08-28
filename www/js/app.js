@@ -45,8 +45,7 @@ import {
     isRunningAsInstalledPWA,
     isIOSDevice,
     isAndroidDevice,
-    getPlatformLabel,
-    resolveKeyboardViewportState
+    getPlatformLabel
 } from './utils/platform.js';
 
 import {
@@ -956,9 +955,9 @@ this.bindKeyboardViewportFix();
 this.bindBottomNavStateGuard();
 this.setupAndroidBackButton();
 this.setupNativePushActionListeners();
-	this.bindCommunityDraftLifecycle();
-	this.bindBibleReadingContinuityLifecycle();
-		await this.loadData();
+this.bindCommunityDraftLifecycle();
+this.bindBibleReadingContinuityLifecycle();
+await this.loadData();
 
 // Fase 9: Migración única de cuadernillo a sesiones
 this.migrateLegacyNotebookToSessions();
@@ -974,7 +973,7 @@ if (this._pendingPushHash) {
 
 this.updateStreakUI();
 
-this.initAuth().then(async () => {
+await this.initAuth().then(async () => {
     try {
         if (!this.currentUser?.uid) {
             console.warn('[Community] Badge omitido: no hay usuario autenticado');
@@ -996,6 +995,8 @@ this.initAuth().then(async () => {
         console.warn('[App] Servicios secundarios no disponibles al iniciar:', error);
     }
 });
+
+await this.initializeCommunityPremium();
 
 console.log('[App] Inicialización completada');
 	},
@@ -1205,124 +1206,44 @@ cacheDOM: function() {
 
     this.$bottomNav = document.querySelector('.bottom-nav');
     this._keyboardHandlersBound = false;
-    this._viewportHeightBaselines = {};
-    this._keyboardViewportTimers = [];
+    this._keyboardViewportUnsubscribe = null;
 },
 
 isKeyboardInput: function(element) {
-    if (!element || element.disabled || element.readOnly) return false;
-    if (element.isContentEditable) return true;
-    if (element.tagName === 'TEXTAREA') return true;
-    if (element.tagName !== 'INPUT') return false;
-
-    return /^(text|search|url|email|tel|password|number|date|time|datetime-local|month|week)$/i
-        .test(element.type || 'text');
+    return Boolean(window.KeyboardViewportManager?.isEditableElement?.(element));
 },
 
 getViewportOrientationKey: function() {
-    const viewport = window.visualViewport;
-    const width = viewport?.width || window.innerWidth || document.documentElement.clientWidth;
-    const height = viewport?.height || window.innerHeight || document.documentElement.clientHeight;
-    return width > height ? 'landscape' : 'portrait';
+    return window.KeyboardViewportManager?.getState?.().orientation || 'portrait';
 },
 
 getCurrentViewportHeight: function() {
-    return window.visualViewport?.height
+    return window.KeyboardViewportManager?.getState?.().visibleHeight
         || window.innerHeight
         || document.documentElement.clientHeight
         || 0;
 },
 
 clearKeyboardViewportTimers: function() {
-    (this._keyboardViewportTimers || []).forEach(timer => clearTimeout(timer));
-    this._keyboardViewportTimers = [];
 },
 
-scheduleKeyboardViewportUpdate: function(delays = [0, 120, 360]) {
-    this.clearKeyboardViewportTimers();
-    this._keyboardViewportTimers = delays.map(delay => setTimeout(() => {
-        this.updateKeyboardViewportState();
-    }, delay));
+scheduleKeyboardViewportUpdate: function() {
+    window.KeyboardViewportManager?.refresh?.();
 },
 
-updateKeyboardViewportState: function({ forceRecalibration = false } = {}) {
-    const activeElement = document.activeElement;
-    const hasKeyboardFocus = this.isKeyboardInput(activeElement);
-    const currentHeight = this.getCurrentViewportHeight();
-    const orientationKey = this.getViewportOrientationKey();
-    const baselines = this._viewportHeightBaselines || (this._viewportHeightBaselines = {});
-    const virtualKeyboardHeight = Number(navigator.virtualKeyboard?.boundingRect?.height || 0);
-
-    if (!hasKeyboardFocus) {
-        document.body.classList.remove('keyboard-open');
-
-        if (currentHeight > 0) {
-            baselines[orientationKey] = forceRecalibration
-                ? currentHeight
-                : Math.max(baselines[orientationKey] || 0, currentHeight);
-        }
-
-        return false;
-    }
-
-    if (!baselines[orientationKey] && currentHeight > 0) {
-        baselines[orientationKey] = Math.max(currentHeight, window.innerHeight || 0);
-    }
-
-    const baselineHeight = baselines[orientationKey] || currentHeight;
-    const { keyboardOpen } = resolveKeyboardViewportState({
-        hasKeyboardFocus,
-        currentHeight,
-        baselineHeight,
-        virtualKeyboardHeight
-    });
-
-    document.body.classList.toggle('keyboard-open', keyboardOpen);
-    return keyboardOpen;
+updateKeyboardViewportState: function() {
+    const state = window.KeyboardViewportManager?.getState?.();
+    document.body.classList.toggle('keyboard-open', Boolean(state?.isKeyboardOpen));
+    return Boolean(state?.isKeyboardOpen);
 },
 
 bindKeyboardViewportFix: function() {
     if (this._keyboardHandlersBound) return;
 
-    const updateKeyboardState = () => this.updateKeyboardViewportState();
-    const recalibrateAfterViewportChange = () => {
-        document.body.classList.remove('keyboard-open');
-        this.scheduleKeyboardViewportUpdate([80, 250, 500]);
-    };
-
-    this.updateKeyboardViewportState({ forceRecalibration: true });
-
-    if (window.visualViewport) {
-        window.visualViewport.addEventListener('resize', updateKeyboardState);
-        window.visualViewport.addEventListener('scroll', updateKeyboardState);
-    }
-
-    window.addEventListener('resize', updateKeyboardState);
-    window.addEventListener('orientationchange', recalibrateAfterViewportChange);
-    window.addEventListener('pageshow', () => {
-        this.scheduleKeyboardViewportUpdate([0, 180]);
-    });
-
-    document.addEventListener('visibilitychange', () => {
-        if (!document.hidden) {
-            this.scheduleKeyboardViewportUpdate([0, 180, 420]);
-        }
-    });
-
-    document.addEventListener('focusin', (event) => {
-        if (this.isKeyboardInput(event.target)) {
-            this.scheduleKeyboardViewportUpdate([0, 80, 220]);
-        }
-    });
-
-    document.addEventListener('focusout', () => {
-        this.scheduleKeyboardViewportUpdate([0, 120, 300]);
-    });
-
-    if (navigator.virtualKeyboard?.addEventListener) {
-        navigator.virtualKeyboard.addEventListener('geometrychange', updateKeyboardState);
-    }
-
+    this._keyboardViewportUnsubscribe = window.KeyboardViewportManager?.subscribe?.(state => {
+        document.body.classList.toggle('keyboard-open', Boolean(state.isKeyboardOpen));
+    }) || null;
+    this.updateKeyboardViewportState();
     this._keyboardHandlersBound = true;
 },
 
@@ -2249,37 +2170,15 @@ deleteSelectionNoteEntry: function(dateStr, selectedText) {
 
 ensureCommunityCutoff: async function() {
     if (this.communityCutoff) return this.communityCutoff;
-    if (!this.currentUser?.uid) {
-        throw new Error('No se pudo obtener la hora de Comunidad sin usuario');
-    }
-
-    const clockRef = doc(db, 'communityClock', this.currentUser.uid);
-    await setDoc(clockRef, {
-        requestedAt: serverTimestamp()
-    });
-
-    const clockSnapshot = await getDocFromServer(clockRef);
-    const requestedAt = clockSnapshot.data()?.requestedAt;
-
-    if (!requestedAt || typeof requestedAt.toMillis !== 'function') {
-        throw new Error('Firestore no devolvió una referencia de tiempo válida');
-    }
-
-    this.communityServerNow = requestedAt;
-    this.communityCutoff = new Date(
-        requestedAt.toMillis() - (15 * 24 * 60 * 60 * 1000)
-    );
-
-    deleteDoc(clockRef).catch(error => {
-        console.warn('[Community] No se pudo limpiar la referencia temporal:', error);
-    });
-
+    const now = new Date();
+    this.communityCutoff = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000));
     return this.communityCutoff;
 },
 
 getCommunityCutoff: function() {
     if (!this.communityCutoff) {
-        throw new Error('La referencia temporal de Comunidad no está inicializada');
+        const now = new Date();
+        this.communityCutoff = new Date(now.getTime() - (15 * 24 * 60 * 60 * 1000));
     }
 
     return this.communityCutoff;
@@ -2303,6 +2202,641 @@ ensureCommunityFeedStates: function() {
     }
 
     return this.communityFeedStates;
+},
+
+getUserProfilesBatch: async function(uids = []) {
+    if (!this.userProfilesCache) {
+        this.userProfilesCache = {};
+    }
+
+    const uniqueUids = [...new Set(uids.filter(Boolean))];
+    const missingUids = uniqueUids.filter(uid => this.userProfilesCache[uid] === undefined);
+
+    if (!missingUids.length) {
+        return this.userProfilesCache;
+    }
+
+    missingUids.forEach(uid => {
+        try {
+            const local = localStorage.getItem(`suvoz_avatar_profile_${uid}`);
+            if (local) {
+                this.userProfilesCache[uid] = JSON.parse(local);
+            }
+        } catch (e) {}
+    });
+
+    const db = window.firebaseDb;
+    const fns = window.firebaseFns;
+    if (!db || !fns?.doc || !fns?.getDoc) {
+        return this.userProfilesCache;
+    }
+
+    try {
+        await Promise.all(missingUids.map(async (uid) => {
+            try {
+                const profileRef = fns.doc(db, 'userProfiles', uid);
+                const snap = await fns.getDoc(profileRef);
+                if (snap && snap.exists()) {
+                    const data = snap.data();
+                    this.userProfilesCache[uid] = data;
+                    try {
+                        localStorage.setItem(`suvoz_avatar_profile_${uid}`, JSON.stringify(data));
+                    } catch (e) {}
+                }
+            } catch (e) {
+                // Conservar perfil de localStorage en caso de error de red
+            }
+        }));
+    } catch (err) {
+        console.warn('[Community] Error leyendo userProfiles:', err);
+    }
+
+    return this.userProfilesCache;
+},
+
+openAvatarPickerModal: async function() {
+    if (!this.currentUser?.uid) {
+        this.showToast('Inicia sesión para personalizar tu avatar');
+        return;
+    }
+
+    const userProfile = this.userProfilesCache?.[this.currentUser.uid] || {};
+    this.selectedAvatarValue = userProfile.avatarValue || userProfile.avatarIcon || '🕊️';
+    this.selectedAvatarType = userProfile.avatarType || (window.AvatarPicker?.isPerson(this.selectedAvatarValue) ? 'person' : 'icon');
+    this.selectedAvatarColor = userProfile.avatarColor || '#4A90D9';
+    const currentDisplayName = userProfile.displayName || this.currentUser.displayName || '';
+
+    const existingModal = document.getElementById('avatarPickerModal');
+    if (existingModal) existingModal.remove();
+
+    if (window.AvatarPicker) {
+        const modalHtml = window.AvatarPicker.renderModalHtml({
+            selectedType: this.selectedAvatarType,
+            selectedValue: this.selectedAvatarValue,
+            selectedColor: this.selectedAvatarColor,
+            displayName: currentDisplayName
+        });
+        const container = this.$content || document.body;
+        container.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modalEl = document.getElementById('avatarPickerModal');
+        if (modalEl) {
+            modalEl.addEventListener('click', (e) => {
+                const closeBtn = e.target.closest('[data-action="close-avatar-picker"]');
+                if (closeBtn || e.target === modalEl) {
+                    modalEl.remove();
+                    return;
+                }
+
+                const iconBtn = e.target.closest('.avatar-icon-btn');
+                if (iconBtn) {
+                    const icon = iconBtn.getAttribute('data-icon');
+                    const dataType = iconBtn.getAttribute('data-type');
+                    if (icon) {
+                        this.selectedAvatarType = dataType === 'person' ? 'person' : (window.AvatarPicker?.isPerson(icon) ? 'person' : 'icon');
+                        this.selectedAvatarValue = icon;
+                        modalEl.querySelectorAll('.avatar-icon-btn').forEach(b => b.classList.remove('is-selected'));
+                        iconBtn.classList.add('is-selected');
+                        this.updateAvatarPickerPreview();
+                    }
+                    return;
+                }
+
+                const colorBtn = e.target.closest('.avatar-color-btn');
+                if (colorBtn) {
+                    const color = colorBtn.getAttribute('data-color');
+                    if (color) {
+                        this.selectedAvatarColor = color;
+                        modalEl.querySelectorAll('.avatar-color-btn').forEach(b => b.classList.remove('is-selected'));
+                        colorBtn.classList.add('is-selected');
+                        this.updateAvatarPickerPreview();
+                    }
+                    return;
+                }
+
+                const saveBtn = e.target.closest('[data-action="save-avatar-selection"]');
+                if (saveBtn) {
+                    this.saveAvatarSelection();
+                    return;
+                }
+            });
+        }
+    }
+},
+
+updateAvatarPickerPreview: function() {
+    const previewEl = document.getElementById('avatarPickerPreview');
+    if (!previewEl || !window.AvatarGenerator) return;
+
+    const uri = window.AvatarGenerator.generate('preview', 'Usuario', {
+        avatarType: this.selectedAvatarType,
+        avatarValue: this.selectedAvatarValue,
+        avatarIcon: this.selectedAvatarValue,
+        avatarColor: this.selectedAvatarColor
+    });
+
+    previewEl.style.backgroundImage = `url('${uri}')`;
+},
+
+saveAvatarSelection: async function() {
+    if (!this.currentUser?.uid) return;
+
+    const saveBtn = document.getElementById('saveAvatarBtn');
+    const nameInput = document.getElementById('profileNameInput');
+    const rawName = nameInput ? nameInput.value : '';
+
+    if (nameInput && rawName.length > 0 && !rawName.trim()) {
+        this.showToast('El nombre no puede contener solo espacios');
+        if (saveBtn) saveBtn.disabled = false;
+        return;
+    }
+
+    const displayName = rawName.trim();
+    if (saveBtn) saveBtn.disabled = true;
+
+    const isPerson = this.selectedAvatarType === 'person' || window.AvatarPicker?.isPerson(this.selectedAvatarValue);
+    const personObj = isPerson ? window.AvatarPicker?.getPerson(this.selectedAvatarValue) : null;
+
+    const profileData = {
+        userId: this.currentUser.uid,
+        avatarType: isPerson ? 'person' : 'icon',
+        avatarValue: this.selectedAvatarValue || '🕊️',
+        avatarIcon: this.selectedAvatarValue || '🕊️',
+        avatarColor: this.selectedAvatarColor || '#4A90D9',
+        avatarLabel: isPerson ? (personObj?.label || 'Persona') : 'Símbolo',
+        avatarCategory: isPerson ? 'Personas Ilustradas' : (window.AvatarPicker?.findCategoryForIcon(this.selectedAvatarValue) || 'Símbolos Bíblicos'),
+        displayName: displayName,
+        updatedAt: new Date().toISOString()
+    };
+
+    if (!this.userProfilesCache) this.userProfilesCache = {};
+    this.userProfilesCache[this.currentUser.uid] = profileData;
+
+    try {
+        localStorage.setItem(`suvoz_avatar_profile_${this.currentUser.uid}`, JSON.stringify(profileData));
+    } catch (e) {}
+
+    try {
+        if (window.AvatarPicker) {
+            await window.AvatarPicker.saveToFirestore(
+                this.currentUser.uid,
+                profileData
+            );
+        }
+    } catch (error) {
+        console.warn('[AvatarPicker] Sincronización en la nube diferida:', error);
+    }
+
+    const modal = document.getElementById('avatarPickerModal');
+    if (modal) modal.remove();
+
+    this.showToast('Avatar guardado correctamente', 'success');
+    this.renderCommunity({ forceRefresh: true });
+},
+
+getSavedPosts: function() {
+    try {
+        const raw = localStorage.getItem('suvoz_saved_posts');
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+},
+
+isPostSaved: function(postId) {
+    return this.getSavedPosts().includes(postId);
+},
+
+toggleSavePost: async function(postId) {
+    let saved = this.getSavedPosts();
+    const isSaved = saved.includes(postId);
+
+    if (isSaved) {
+        saved = saved.filter(id => id !== postId);
+        this.showToast('Removido de guardados', 'info');
+    } else {
+        saved.push(postId);
+        this.showToast('Guardado para después 💾', 'success');
+    }
+
+    try {
+        localStorage.setItem('suvoz_saved_posts', JSON.stringify(saved));
+    } catch (e) {}
+
+    if (this.currentUser?.uid) {
+        try {
+            const db = window.firebaseDb;
+            const fns = window.firebaseFns;
+            if (db && fns?.doc && fns?.setDoc) {
+                const savedRef = fns.doc(db, 'savedPosts', `${this.currentUser.uid}_${postId}`);
+                if (!isSaved) {
+                    await fns.setDoc(savedRef, {
+                        userId: this.currentUser.uid,
+                        postId: postId,
+                        createdAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
+                    }, { merge: true });
+                } else if (fns.deleteDoc) {
+                    await fns.deleteDoc(savedRef);
+                }
+            }
+        } catch (err) {
+            console.warn('[Community] Error al sincronizar guardados:', err);
+        }
+    }
+
+    this.renderCommunity({ preserveOnError: true });
+},
+
+getFavoritePosts: function() {
+    try {
+        const raw = localStorage.getItem('suvoz_favorite_posts');
+        return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+        return [];
+    }
+},
+
+isPostFavorite: function(postId) {
+    return this.getFavoritePosts().includes(postId);
+},
+
+toggleFavoritePost: async function(postId) {
+    let favs = this.getFavoritePosts();
+    const isFav = favs.includes(postId);
+
+    if (isFav) {
+        favs = favs.filter(id => id !== postId);
+        this.showToast('Removido de favoritos', 'info');
+    } else {
+        favs.push(postId);
+        this.showToast('⭐ Agregado a favoritos', 'success');
+    }
+
+    try {
+        localStorage.setItem('suvoz_favorite_posts', JSON.stringify(favs));
+    } catch (e) {}
+
+    const cardEl = document.querySelector(`[data-post-id="${postId}"]`);
+    if (cardEl) {
+        const favBtn = cardEl.querySelector('[data-action="favorite-post"]');
+        if (favBtn) {
+            favBtn.textContent = !isFav ? '⭐ En favoritos' : '⭐ Marcar favorito';
+        }
+        const authorRow = cardEl.querySelector('.community-author-row');
+        let starEl = cardEl.querySelector('.post-favorite-star');
+        if (!isFav) {
+            if (!starEl && authorRow) {
+                authorRow.insertAdjacentHTML('beforeend', '<span class="post-favorite-star" title="En tus favoritos">⭐</span>');
+            }
+        } else if (starEl) {
+            starEl.remove();
+        }
+    }
+
+    if (this.currentUser?.uid) {
+        try {
+            const db = window.firebaseDb;
+            const fns = window.firebaseFns;
+            if (db && fns?.doc && fns?.setDoc) {
+                const favRef = fns.doc(db, 'favoritePosts', `${this.currentUser.uid}_${postId}`);
+                if (!isFav) {
+                    await fns.setDoc(favRef, {
+                        userId: this.currentUser.uid,
+                        postId: postId,
+                        createdAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
+                    }, { merge: true });
+                } else if (fns.deleteDoc) {
+                    await fns.deleteDoc(favRef);
+                }
+            }
+        } catch (err) {
+            console.warn('[Community] Error al sincronizar favoritos:', err);
+        }
+    }
+
+    if (this.communityTabFilter === 'favorites' && isFav) {
+        cardEl?.remove();
+    }
+},
+
+copyPostText: function(postId) {
+    const card = Array.from(document.querySelectorAll('.community-card')).find(c => c.getAttribute('data-post-id') === String(postId)) || document.querySelector(`[data-post-id="${postId}"]`);
+    const textElement = card?.querySelector('.community-text');
+    const text = (textElement?.textContent || '').trim();
+
+    const self = this;
+    function fallbackCopy(txt) {
+        try {
+            const textarea = document.createElement('textarea');
+            textarea.value = txt;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            self.showToast('✅ Copiada');
+        } catch (e) {
+            self.showToast('No se pudo copiar el texto', 'error');
+        }
+    }
+
+    if (text && navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => this.showToast('✅ Copiada al portapapeles'))
+            .catch(() => { fallbackCopy(text); });
+    } else if (text) {
+        fallbackCopy(text);
+    } else {
+        this.showToast('No hay texto para copiar', 'warning');
+    }
+},
+
+sharePost: function(postId) {
+    const card = Array.from(document.querySelectorAll('.community-card')).find(c => c.getAttribute('data-post-id') === String(postId)) || document.querySelector(`[data-post-id="${postId}"]`);
+    const text = (card?.querySelector('.community-text')?.textContent || '').trim();
+    const link = 'https://suvoz.app/#community';
+
+    if (navigator.share) {
+        navigator.share({ text: text, title: 'Reflexión de Comunidad', url: link })
+            .then(() => this.showToast('🔗 Compartida'))
+            .catch((err) => {
+                if (err.name !== 'AbortError') {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(text + '\n\n' + link)
+                            .then(() => this.showToast('🔗 Enlace copiado'))
+                            .catch(() => this.showToast('🔗 Copia manual: ' + link));
+                    }
+                }
+            });
+    } else {
+        // Desktop: copiar enlace
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text + '\n\n' + link)
+                .then(() => this.showToast('🔗 Enlace copiado'))
+                .catch(() => this.showToast('🔗 Copia manual: ' + link));
+        } else {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text + '\n\n' + link;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                this.showToast('🔗 Enlace copiado');
+            } catch (e) {
+                this.showToast('🔗 Copia manual: ' + link);
+            }
+        }
+    }
+},
+
+toggleSpeechPost: async function(postId) {
+    const hasNativeTextToSpeech = this.isNativeTextToSpeechAvailable();
+    const hasWebSpeech = ('speechSynthesis' in window) && typeof SpeechSynthesisUtterance !== 'undefined';
+
+    if (!hasNativeTextToSpeech && !hasWebSpeech) {
+        this.showToast('Tu navegador no soporta síntesis de voz', 'warning');
+        return;
+    }
+
+    if (this.currentlySpeakingPostId) {
+        const previousPostId = this.currentlySpeakingPostId;
+        this.communitySpeechToken = null;
+
+        if (hasNativeTextToSpeech) {
+            await this.stopNativeTextToSpeech();
+        }
+
+        if ('speechSynthesis' in window) {
+            try {
+                window.speechSynthesis.cancel();
+            } catch (e) {}
+        }
+
+        this.currentlySpeakingPostId = null;
+        this.updateSpeechMenuButton(previousPostId, false);
+
+        if (String(previousPostId) === String(postId)) {
+            this.showToast('Lectura detenida');
+            return;
+        }
+    } else if (hasWebSpeech && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        this.showToast('Lectura detenida');
+        return;
+    }
+
+    const card = Array.from(document.querySelectorAll('.community-card')).find(c => c.getAttribute('data-post-id') === String(postId)) || document.querySelector(`[data-post-id="${postId}"]`);
+    const text = (card?.querySelector('.community-text')?.textContent || '').trim();
+
+    if (!text) {
+        this.showToast('No hay texto para leer', 'warning');
+        return;
+    }
+
+    this.stopDailyReadingVoice(true);
+    this.stopBibleChapterVoice(true);
+
+    const speechToken = {};
+    this.communitySpeechToken = speechToken;
+    this.currentlySpeakingPostId = postId;
+    this.updateSpeechMenuButton(postId, true);
+
+    const clearSpeechState = () => {
+        if (this.communitySpeechToken !== speechToken) return;
+        this.communitySpeechToken = null;
+        this.currentlySpeakingPostId = null;
+        this.updateSpeechMenuButton(postId, false);
+    };
+
+    if (hasNativeTextToSpeech) {
+        try {
+            await this.speakWithNativeTextToSpeech(text);
+        } catch (error) {
+            console.warn('[Community Voice] No se pudo leer la reflexión:', error);
+            this.showToast('No se pudo leer la reflexión en voz alta', 'warning');
+        } finally {
+            clearSpeechState();
+        }
+        return;
+    }
+
+    const self = this;
+    function speak(voices) {
+        if (self.communitySpeechToken !== speechToken) return;
+
+        const utterance = new SpeechSynthesisUtterance(text);
+        const spanishVoice = self.selectSpanishVoice(voices);
+
+        if (spanishVoice) utterance.voice = spanishVoice;
+        utterance.lang = spanishVoice?.lang || 'es-MX';
+        utterance.rate = 0.92;
+        utterance.pitch = 1;
+
+        utterance.onend = () => {
+            clearSpeechState();
+        };
+
+        utterance.onerror = (error) => {
+            console.warn('[Community Voice] No se pudo leer la reflexión:', error);
+            clearSpeechState();
+        };
+
+        try {
+            window.speechSynthesis.resume();
+        } catch (e) {}
+
+        window.speechSynthesis.speak(utterance);
+        self.showToast('🗣️ Leyendo reflexión...');
+    }
+
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        speak(voices);
+    } else {
+        window.speechSynthesis.onvoiceschanged = () => {
+            if (self.communitySpeechToken !== speechToken) return;
+            window.speechSynthesis.onvoiceschanged = null;
+            speak(window.speechSynthesis.getVoices());
+        };
+    }
+},
+
+updateSpeechMenuButton: function(postId, isSpeaking) {
+    const cardEl = document.querySelector(`[data-post-id="${postId}"]`);
+    if (!cardEl) return;
+    const speechBtn = cardEl.querySelector('[data-action="speech-post"]');
+    if (speechBtn) {
+        speechBtn.textContent = isSpeaking ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta';
+    }
+},
+
+formatCommunityRichText: function(text) {
+    if (!text) return '';
+    let raw = String(text);
+    let unescaped = raw
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+
+    const clean = Sanitizer.sanitizeText(unescaped);
+    return clean.replace(/\n/g, '<br>');
+},
+
+applyRichFormatToComposer: function(format) {
+    const editor = document.getElementById('community-reflection');
+    if (!editor) return;
+
+    editor.focus();
+
+    if (format === 'verse') {
+        this.openVersePickerModalForComposer(editor);
+        return;
+    }
+
+    switch (format) {
+        case 'bold':
+            document.execCommand('bold', false, null);
+            break;
+        case 'italic':
+            document.execCommand('italic', false, null);
+            break;
+        case 'underline':
+            document.execCommand('underline', false, null);
+            break;
+        case 'blockquote':
+            document.execCommand('formatBlock', false, 'blockquote');
+            break;
+    }
+
+    editor.dispatchEvent(new Event('input', { bubbles: true }));
+},
+
+openVersePickerModalForComposer: function(editor) {
+    if (!editor) return;
+    const existingModal = document.getElementById('versePickerModal');
+    if (existingModal) existingModal.remove();
+
+    const todayContext = this.getCommunityTodayContext();
+    const todayReading = this.getReadingMetadataByDate(todayContext.readingDate);
+    const todayReference = todayContext.reference || (todayReading ? todayReading.reference : 'Lectura de hoy');
+    const sampleVerse = todayReading?.verse || '';
+
+    const modalHtml = `
+        <div class="avatar-picker-overlay" id="versePickerModal" role="dialog" aria-modal="true" aria-labelledby="versePickerTitle">
+            <div class="avatar-picker-modal" style="max-width: 460px;">
+                <button type="button" class="avatar-picker-close" id="closeVersePickerBtn" aria-label="Cerrar">×</button>
+                <h3 id="versePickerTitle">📖 Insertar Versículo de Hoy</h3>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+                    <div style="font-size: 0.88rem; color: var(--text-muted);">
+                        Pasaje del día: <strong style="color: var(--text-main);">${this.escapeHtml(todayReference)}</strong>
+                    </div>
+
+                    ${sampleVerse ? `
+                        <div style="background: var(--surface-color-hover, rgba(0,0,0,0.04)); padding: 12px; border-radius: 12px; font-style: italic; font-size: 0.88rem; border-left: 3px solid var(--accent);">
+                            "${this.escapeHtml(sampleVerse)}"
+                        </div>
+                    ` : ''}
+
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                        <label for="customVerseRefInput" style="font-size: 0.85rem; font-weight: 600;">Referencia o versículo a citar:</label>
+                        <input type="text" id="customVerseRefInput" class="community-input" value="${this.escapeHtml(todayReference)}" placeholder="Ej. Juan 3:16 o v. 4-5" />
+                    </div>
+                </div>
+
+                <div class="avatar-picker-actions" style="margin-top: 16px;">
+                    <button type="button" class="btn-secondary" id="cancelVersePickerBtn">Cancelar</button>
+                    <button type="button" class="btn-primary" id="confirmVerseInsertBtn">Insertar en mi reflexión</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const container = this.$content || document.body;
+    container.insertAdjacentHTML('beforeend', modalHtml);
+
+    const modalEl = document.getElementById('versePickerModal');
+    if (!modalEl) return;
+
+    const closeModal = () => modalEl.remove();
+
+    document.getElementById('closeVersePickerBtn')?.addEventListener('click', closeModal);
+    document.getElementById('cancelVersePickerBtn')?.addEventListener('click', closeModal);
+
+    document.getElementById('confirmVerseInsertBtn')?.addEventListener('click', () => {
+        const inputEl = document.getElementById('customVerseRefInput');
+        const customRef = inputEl?.value.trim() || todayReference;
+        const quoteHtml = sampleVerse
+            ? `<blockquote style="margin: 8px 0;">"${this.escapeHtml(sampleVerse)}" — ${this.escapeHtml(customRef)}</blockquote>`
+            : `<blockquote style="margin: 8px 0;">"${this.escapeHtml(customRef)}"</blockquote>`;
+
+        editor.focus();
+
+        const sel = window.getSelection();
+        if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            range.deleteContents();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = quoteHtml;
+            const frag = document.createDocumentFragment();
+            let node;
+            while ((node = tempDiv.firstChild)) {
+                frag.appendChild(node);
+            }
+            range.insertNode(frag);
+        } else {
+            editor.innerHTML += quoteHtml;
+        }
+
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
+        closeModal();
+    });
 },
 
 getCommunityFeedState: function(mode = this.communityMode) {
@@ -2790,6 +3324,32 @@ async getRepliesSummary(posts) {
     }
 },
 
+createInAppNotification: async function(targetUserId, type, title, body, postId) {
+    if (!targetUserId || !this.currentUser?.uid) return;
+    if (targetUserId === this.currentUser.uid) return;
+
+    const db = window.firebaseDb;
+    const fns = window.firebaseFns;
+
+    if (!db || !fns?.collection || !fns?.addDoc) {
+        return;
+    }
+
+    try {
+        await fns.addDoc(fns.collection(db, 'notifications'), {
+            userId: targetUserId,
+            type: type,
+            title: title,
+            body: body,
+            postId: postId || null,
+            isRead: false,
+            createdAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
+        });
+    } catch (error) {
+        console.warn('[Notification] Error creando notificación in-app:', error);
+    }
+},
+
 async addCommunityReply(reply) {
     try {
         const cleanText = Sanitizer.sanitizeText(reply.text || '');
@@ -2811,6 +3371,18 @@ async addCommunityReply(reply) {
             text: cleanText,
             createdAt: serverTimestamp()
         });
+
+        const post = this.getCommunityFeedState().posts.find(p => p.id === reply.postId);
+        if (post && post.ownerUid) {
+            const replyName = reply.name || 'Alguien de la comunidad';
+            await this.createInAppNotification(
+                post.ownerUid,
+                'newReply',
+                'Nueva respuesta',
+                `${replyName} respondió a tu reflexión`,
+                reply.postId
+            );
+        }
 
         return { success: true, id: createdReply.id };
     } catch (error) {
@@ -2895,7 +3467,61 @@ saveCommunityPreferences: function(updates = {}) {
     next.isAnonymous = next.isAnonymous !== false;
     next.name = typeof next.name === 'string' ? next.name.slice(0, 30) : '';
     this.storage.set(this.getCommunityPreferencesKey(), next);
+    this.setUserCommunityPreferences({
+        isAnonymous: next.isAnonymous,
+        name: next.name
+    });
     return next;
+},
+
+getUserCommunityPreferences: function() {
+    const prefs = localStorage.getItem('communityPrefs');
+    if (prefs) {
+        try {
+            return JSON.parse(prefs);
+        } catch (e) {
+            console.warn('[Community] Error parsing communityPrefs', e);
+        }
+    }
+    const legacy = this.getCommunityPreferences();
+    return {
+        isAnonymous: legacy.isAnonymous !== false,
+        name: legacy.name || null,
+        lastUpdated: new Date().toISOString()
+    };
+},
+
+setUserCommunityPreferences: function(prefs) {
+    if (!prefs || typeof prefs !== 'object') return;
+    prefs.lastUpdated = new Date().toISOString();
+    localStorage.setItem('communityPrefs', JSON.stringify(prefs));
+},
+
+initializeCommunityPremium: async function() {
+    try {
+        if (typeof window.AvatarGenerator !== 'undefined') this.avatarGenerator = window.AvatarGenerator;
+        if (typeof window.RichTextEditor !== 'undefined') this.richTextEditor = window.RichTextEditor;
+        if (typeof window.VoiceReflectionRecorder !== 'undefined') this.voiceRecorder = new window.VoiceReflectionRecorder();
+        if (typeof window.LiveCommunityFeed !== 'undefined') this.liveFeed = new window.LiveCommunityFeed();
+        if (typeof window.ModerationSystem !== 'undefined') this.moderation = new window.ModerationSystem();
+        if (typeof window.UserMetrics !== 'undefined') this.userMetrics = new window.UserMetrics();
+        if (typeof window.NotificationCenter !== 'undefined') {
+            this.notificationCenter = new window.NotificationCenter();
+            this.notificationCenter.initialize();
+        }
+        if (typeof window.PerformanceOptimizer !== 'undefined') this.performanceOptimizer = new window.PerformanceOptimizer();
+        if (typeof window.AccessibilityManager !== 'undefined') {
+            this.accessibilityManager = new window.AccessibilityManager();
+            this.accessibilityManager.applyARIA();
+            this.accessibilityManager.handleKeyboardNavigation();
+        }
+        if (typeof window.I18nManager !== 'undefined') {
+            this.i18n = new window.I18nManager();
+            this.i18n.updateUI();
+        }
+    } catch (error) {
+        console.warn('Error en módulos premium:', error);
+    }
 },
 
 getDefaultCommunityDraftState: function() {
@@ -3086,7 +3712,7 @@ flushCommunityDraftFromDOM: function() {
         formOpen: this.communityFormOpen
     };
 
-    if (reflectionInput) updates.text = reflectionInput.value.slice(0, 1200);
+    if (reflectionInput) updates.text = (reflectionInput.innerHTML || '').slice(0, 3000);
     if (anonymousInput) updates.isAnonymous = anonymousInput.checked;
     if (nameInput) updates.name = nameInput.value.slice(0, 30);
 
@@ -3205,7 +3831,7 @@ renderReplyBlock: function(post, replies = []) {
     const draft = this.getReplyDraft(post.id);
     const replyCount = replies.length;
     const latestReply = replyCount ? replies[replyCount - 1] : null;
-    const latestReplyText = latestReply?.text || '';
+    const latestReplyText = (latestReply?.text || '').replace(/<[^>]*>/g, '');
     const latestReplyPreview = latestReplyText.length > 92
         ? `${latestReplyText.slice(0, 92).trim()}...`
         : latestReplyText;
@@ -3291,14 +3917,32 @@ renderReplyBlock: function(post, replies = []) {
             ${isOpen && replies.length ? `
                 <div class="community-reply-list">
                     <div class="community-reply-list-title">Conversación edificante</div>
-                    ${replies.map(reply => `
+                    ${replies.map(reply => {
+                        const replyProfile = reply.ownerUid ? this.userProfilesCache?.[reply.ownerUid] : null;
+                        const isReplyAnon = reply.isAnonymous || !reply.name || reply.name.trim().toLowerCase() === 'anónimo';
+                        const replyAuthorName = isReplyAnon
+                            ? 'Anónimo'
+                            : (replyProfile?.displayName?.trim() || reply.name?.trim() || 'Hermano(a)');
+
+                        const replyAvatarSvg = typeof AvatarGenerator !== 'undefined'
+                            ? AvatarGenerator.renderHtml(reply.avatarSeed || reply.ownerUid || reply.id, replyAuthorName, {
+                                isAnonymous: isReplyAnon,
+                                avatarType: reply.avatarType || replyProfile?.avatarType,
+                                avatarValue: reply.avatarValue || reply.avatarIcon || replyProfile?.avatarValue || replyProfile?.avatarIcon,
+                                avatarIcon: reply.avatarIcon || replyProfile?.avatarIcon,
+                                avatarColor: reply.avatarColor || replyProfile?.avatarColor
+                            })
+                            : '';
+
+                        return `
                         <div class="community-reply-item" data-reply-id="${this.escapeHtml(reply.id)}">
-                            <div class="community-reply-meta">
-                                ${this.escapeHtml(reply.name || 'Anónimo')} · ${this.escapeHtml(this.formatCommunityDateLabel(reply.date || ''))}
+                            <div class="community-reply-meta" style="display: flex; align-items: center; gap: 8px;">
+                                ${replyAvatarSvg}
+                                <span>${this.escapeHtml(replyAuthorName)} · ${this.escapeHtml(this.formatCommunityDateLabel(reply.date || ''))}</span>
                             </div>
 
                             <div class="community-reply-text">
-                                ${this.escapeHtml(reply.text || '')}
+                                ${this.formatCommunityRichText(reply.text || '')}
                             </div>
 
                             ${reply.ownerUid === this.currentUser?.uid ? `
@@ -3315,7 +3959,8 @@ renderReplyBlock: function(post, replies = []) {
                                 </div>
                             ` : ''}
                         </div>
-                    `).join('')}
+                    `;
+                }).join('')}
                 </div>
             ` : ''}
         </div>
@@ -3460,6 +4105,21 @@ toggleCommunityReaction: async function(postId, reaction) {
             reactions: currentReactions,
             updatedAt: serverTimestamp()
         });
+
+        if (currentReactions[reaction] === true) {
+            const post = this.getCommunityFeedState().posts.find(p => p.id === postId);
+            if (post && post.ownerUid) {
+                const prefs = this.getUserCommunityPreferences();
+                const userName = (prefs && !prefs.isAnonymous && prefs.name) ? prefs.name : 'Alguien de la comunidad';
+                await this.createInAppNotification(
+                    post.ownerUid,
+                    'newReaction',
+                    'Nueva reacción',
+                    `${userName} reaccionó a tu reflexión`,
+                    postId
+                );
+            }
+        }
 
         return { success: true, removed: false };
     } catch (error) {
@@ -6974,6 +7634,8 @@ if (view !== 'settings' && oldView !== 'settings') {
 	const usesSuVozHoyLayout = view === 'home' || view === 'reading';
 	this.$content.classList.toggle('su-voz-hoy-view', usesSuVozHoyLayout);
 	document.body.classList.toggle('su-voz-hoy-background', usesSuVozHoyLayout);
+	this.$content.classList.toggle('community-view', view === 'community');
+	document.body.classList.toggle('community-background', view === 'community');
 	this.updateNavUI();
     
     document.querySelectorAll('.version-btn').forEach(btn => {
@@ -12481,13 +13143,32 @@ renderCommunityLoadError: function(error) {
 renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayContext().reference) {
     return `
             <div class="community-composer-card">
-                <div class="community-composer-copy">
-                    <div class="community-composer-question">¿Qué escuchaste de su voz hoy?</div>
-                    <div class="community-composer-reference">${this.escapeHtml(reference)}</div>
+                <div class="community-composer-layout">
+                    <!-- 1. Círculo grande con contorno y 3 puntitos -->
+                    <div class="community-composer-circle-badge" aria-hidden="true" title="Comentarios de la comunidad">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <circle cx="6.5" cy="12" r="2" fill="currentColor"/>
+                            <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                            <circle cx="17.5" cy="12" r="2" fill="currentColor"/>
+                        </svg>
+                    </div>
+
+                    <!-- 2. Texto centrado reducido al 85% -->
+                    <div class="community-composer-copy">
+                        <div class="community-composer-question">Escuchaste de su voz hoy</div>
+                        <div class="community-composer-reference">${this.escapeHtml(reference)}</div>
+                    </div>
+
+                    <!-- 3. Botón de compartir con icono de cuadrado y lápiz DENTRO -->
+                    <button class="community-composer-btn" type="button" data-action="share-community-reflection">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="composer-btn-pencil-icon">
+                            <rect x="3" y="3" width="18" height="18" rx="3" ry="3"/>
+                            <line x1="8.5" y1="15.5" x2="15.5" y2="8.5"/>
+                            <path d="M12.5 7.5l4 4"/>
+                        </svg>
+                        <span>Compartir</span>
+                    </button>
                 </div>
-                <button class="community-composer-btn" type="button" data-action="share-community-reflection">
-                    Compartir
-                </button>
             </div>
     `;
 },
@@ -12545,14 +13226,23 @@ renderCommunityFormCardHtml: function(options = {}) {
 
                     <div class="community-form-group">
                         <label class="community-label" for="community-reflection">¿Qué escuchaste de su voz hoy?</label>
-                        <textarea
-                            class="community-textarea"
-                            id="community-reflection"
-                            placeholder="Escribe con sencillez lo que Dios te mostró en esta lectura..."
-                            maxlength="1200"
-                        >${this.escapeHtml(communityDraft)}</textarea>
 
-                        <div class="community-char-counter" id="community-char-counter">${communityDraft.length} / 1200</div>
+                        <div class="rich-editor-toolbar" role="toolbar" aria-label="Herramientas de formato">
+                            <button type="button" class="rich-toolbar-btn" data-format="bold" aria-label="Negrita" title="Negrita (<b>)"><b>B</b></button>
+                            <button type="button" class="rich-toolbar-btn" data-format="italic" aria-label="Cursiva" title="Cursiva (<i>)"><i>I</i></button>
+                            <button type="button" class="rich-toolbar-btn" data-format="underline" aria-label="Subrayado" title="Subrayado (<u>)"><u>U</u></button>
+                            <button type="button" class="rich-toolbar-btn" data-format="blockquote" aria-label="Cita" title="Cita bíblica">❝</button>
+                            <button type="button" class="rich-toolbar-btn" data-format="verse" aria-label="Versículo" title="Insertar versículo del día">📖</button>
+                        </div>
+
+                        <div
+                            class="community-textarea community-editor-content"
+                            id="community-reflection"
+                            contenteditable="true"
+                            data-placeholder="Escribe con sencillez lo que Dios te mostró en esta lectura..."
+                        >${communityDraft ? Sanitizer.sanitizeText(communityDraft) : ''}</div>
+
+                        <div class="community-char-counter" id="community-char-counter">${(communityDraft || '').replace(/<[^>]*>/g, '').length} / 1200</div>
                         ${showCommunityDraftRestored ? '<div class="community-draft-restored" role="status">Se restauró tu borrador anterior.</div>' : ''}
                     </div>
 
@@ -12703,6 +13393,11 @@ renderCommunityComposerLocally: function() {
             'La información de Comunidad tardó demasiado'
         );
 
+        const authorUids = posts.map(p => p.ownerUid).concat(
+            Object.values(repliesSummary).flat().map(r => r.ownerUid)
+        );
+        await this.getUserProfilesBatch(authorUids);
+
         loadingCompleted = true;
     } catch (error) {
         if (options.preserveOnError) {
@@ -12729,25 +13424,47 @@ const hasCommunityDraft = this.hasCommunityDraftContent(communityDraftState);
 const showCommunityDraftRestored =
     this.communityDraftRestoredNoticePending && hasCommunityDraft;
 const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
+const currentUserProfile = this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null;
+const userDisplayName = currentUserProfile?.displayName?.trim()
+    || this.currentUser?.displayName?.trim()
+    || 'Hermano(a)';
+const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
+    ? AvatarGenerator.generate(this.currentUser?.uid || 'user', this.currentUser?.displayName || 'Usuario', {
+        avatarType: currentUserProfile?.avatarType,
+        avatarValue: currentUserProfile?.avatarValue || currentUserProfile?.avatarIcon,
+        avatarIcon: currentUserProfile?.avatarIcon,
+        avatarColor: currentUserProfile?.avatarColor
+    })
+    : '';
     
     // Renderizar el contenido
     this.$content.innerHTML = `
         <div class="community-container">
             <section class="community-hero community-hero-compact">
-                <div class="community-hero-copy">
-                    <div class="community-hero-kicker">Su Voz a Diario</div>
-                    <h2>Comunidad</h2>
-                    <p>Comparte con sencillez lo que Dios te habló en esta lectura.</p>
-                </div>
-                <div class="community-hero-actions">
-                    <button
-                        class="community-rules-btn"
-                        type="button"
-                        data-action="toggle-community-guidelines"
-                        aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
+                <div class="hero-avatar-section">
+                    <div
+                        class="hero-avatar-large"
+                        data-action="open-avatar-picker"
+                        title="Cambiar mi avatar y nombre"
+                        style="background-image: url('${heroAvatarUri}');"
                     >
-                        Normas
-                    </button>
+                        <div class="hero-avatar-edit-badge">✏️</div>
+                    </div>
+                    <div class="hero-user-name">${this.escapeHtml(userDisplayName)}</div>
+                </div>
+                <div class="hero-info-section">
+                    <h2>Comunidad</h2>
+                    <p>Comparte con sencillez lo que Dios te habló</p>
+                    <div class="hero-actions-row">
+                        <button
+                            class="community-rules-btn"
+                            type="button"
+                            data-action="toggle-community-guidelines"
+                            aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
+                        >
+                            Normas
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -12780,67 +13497,136 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
                 </button>
             </div>
 
-            <div class="community-feed">
-                ${posts.length ? posts.map(post => {
-                    const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
-                    const replies = repliesSummary[post.id] || [];
-                    const authorName = post.name || 'Anónimo';
-                    const isAnonymous = !post.name || authorName.trim().toLowerCase() === 'anónimo';
-                    const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
-                    const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
+            <div class="community-tab-bar" role="tablist">
+                <button type="button" class="community-tab-btn ${(!this.communityTabFilter || this.communityTabFilter === 'all') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="all">Todas</button>
+                <button type="button" class="community-tab-btn ${this.communityTabFilter === 'my-posts' ? 'is-active' : ''}" data-action="set-community-tab" data-tab="my-posts">Mis reflexiones</button>
+                <button type="button" class="community-tab-btn ${this.communityTabFilter === 'favorites' ? 'is-active' : ''}" data-action="set-community-tab" data-tab="favorites">⭐ Favoritos</button>
+            </div>
 
-                    return `
-                        <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
-                            <div class="community-post-header">
-                                <div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">
-                                    ${this.escapeHtml(authorInitial)}
+            <div class="community-feed">
+                ${(() => {
+                    let visiblePosts = posts;
+                    if (this.communityTabFilter === 'my-posts' && this.currentUser?.uid) {
+                        visiblePosts = posts.filter(p => p.ownerUid === this.currentUser.uid);
+                    } else if (this.communityTabFilter === 'favorites') {
+                        visiblePosts = posts.filter(p => this.isPostFavorite(p.id));
+                    }
+
+                    if (!visiblePosts.length) {
+                        if (this.communityTabFilter === 'favorites') {
+                            return `
+                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                    <div style="font-size: 2.2rem; margin-bottom: 8px;">⭐</div>
+                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">No tienes reflexiones marcadas como favoritas</p>
+                                    <p style="font-size: 0.85rem; margin-top: 4px;">Presiona <strong style="color: var(--text-main);">⋮</strong> en cualquier publicación y elige <em>"⭐ Marcar favorito"</em>.</p>
+                                </div>
+                            `;
+                        } else if (this.communityTabFilter === 'my-posts') {
+                            return `
+                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                    <div style="font-size: 2.2rem; margin-bottom: 8px;">✍️</div>
+                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no has compartido publicaciones</p>
+                                    <p style="font-size: 0.85rem; margin-top: 4px;">¡Comparte con sencillez lo que Dios te mostró hoy!</p>
+                                </div>
+                            `;
+                        } else {
+                            return `
+                                <div class="community-empty-state">
+                                    <div class="community-empty-icon" aria-hidden="true">+</div>
+                                    <div class="community-empty-title">${
+                                        this.communityMode === 'history'
+                                            ? 'Todavía no hay publicaciones anteriores.'
+                                            : 'Sé la primera persona en compartir lo que Dios te habló en esta lectura.'
+                                    }</div>
+                                    <div class="community-empty-text">
+                                        ${
+                                            this.communityMode === 'history'
+                                                ? 'Aquí aparecerán las conversaciones cuya última respuesta tenga más de 15 días.'
+                                                : 'Comparte cómo escuchaste su voz en esta lectura.'
+                                        }
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }
+
+                    return visiblePosts.map(post => {
+                        const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
+                        const replies = repliesSummary[post.id] || [];
+                        const userProfile = post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
+                        const isAnonymous = post.isAnonymous || !post.name || post.name.trim().toLowerCase() === 'anónimo';
+                        const authorName = isAnonymous
+                            ? 'Anónimo'
+                            : (userProfile?.displayName?.trim() || post.name?.trim() || 'Hermano(a)');
+                        const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
+                        const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
+
+                        const avatarSvg = typeof AvatarGenerator !== 'undefined'
+                            ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {
+                                isAnonymous,
+                                avatarType: post.avatarType || userProfile?.avatarType,
+                                avatarValue: post.avatarValue || post.avatarIcon || userProfile?.avatarValue || userProfile?.avatarIcon,
+                                avatarIcon: post.avatarIcon || userProfile?.avatarIcon,
+                                avatarColor: post.avatarColor || userProfile?.avatarColor
+                            })
+                            : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
+
+                        return `
+                            <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
+                                <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋮</button>
+                                <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
+                                    <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar reflexión</button>
+                                    <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
+                                    <button type="button" data-action="speech-post" data-post-id="${post.id}">${this.currentlySpeakingPostId === post.id ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta'}</button>
+                                    <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar favorito'}</button>
+                                    ${post.ownerUid && post.ownerUid === this.currentUser?.uid ? `
+                                        <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
+                                    ` : ''}
                                 </div>
 
-                                <div class="community-post-heading">
-                                    <div class="community-author-row">
-                                        <span class="community-author ${isAnonymous ? 'is-anonymous' : 'has-name'}">${this.escapeHtml(displayAuthorName)}</span>
-                                        <span class="community-meta-dot" aria-hidden="true"></span>
-                                        <span class="community-date">${this.escapeHtml(this.formatCommunityDateLabel(post.date))}</span>
+                                <div class="community-post-header">
+                                    ${avatarSvg}
+
+                                    <div class="community-post-heading">
+                                        <div class="community-author-row">
+                                            <span class="community-author ${isAnonymous ? 'is-anonymous' : 'has-name'}">${this.escapeHtml(displayAuthorName)}</span>
+                                            <span class="community-meta-dot" aria-hidden="true"></span>
+                                            <span class="community-date">${this.escapeHtml(this.formatCommunityDateLabel(post.date))}</span>
+                                            ${this.isPostFavorite(post.id) ? '<span class="post-favorite-star" title="En tus favoritos">⭐</span>' : ''}
+                                        </div>
+
+                                        <div class="community-ref">Escuchó en ${this.escapeHtml(post.reference)}</div>
+                                    </div>
+                                </div>
+
+                               <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
+
+                               ${post.audioURL ? `
+                                   <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
+                                       <button type="button" class="audio-play-btn" aria-label="Reproducir audio">▶</button>
+                                       <div class="audio-progress-bar"><div class="audio-progress-fill" style="width: 0%;"></div></div>
+                                       <span class="audio-time">0:00 / 0:30</span>
+                                       <button type="button" class="audio-speed-btn">1x</button>
+                                   </div>
+                               ` : ''}
+
+                                    <div class="community-reaction-row">
+                                        ${this.renderCommunityReactionBar(post.id, reactionData)}
                                     </div>
 
-                                    <div class="community-ref">Escuchó en ${this.escapeHtml(post.reference)}</div>
-                                </div>
+                                    ${this.renderReplyBlock(post, replies)}
+
+                                      ${post.ownerUid === this.currentUser?.uid ? `
+        <div class="community-actions">
+            <button class="community-delete-main" data-action="delete-community-post" data-id="${post.id}">
+                🗑️ Eliminar
+            </button>
+        </div>
+    ` : ''}
                             </div>
-
-                           <div class="community-text">${this.escapeHtml(post.text)}</div>
-
-                                <div class="community-reaction-row">
-                                    ${this.renderCommunityReactionBar(post.id, reactionData)}
-                                </div>
-
-                                ${this.renderReplyBlock(post, replies)}
-
-                                  ${post.ownerUid === this.currentUser?.uid ? `
-    <div class="community-actions">
-        <button class="community-delete-main" data-action="delete-community-post" data-id="${post.id}">
-            🗑️ Eliminar
-        </button>
-    </div>
-` : ''}
-                        </div>
-                    `;
-                }).join('') : `
-                    <div class="community-empty-state">
-                        <div class="community-empty-icon" aria-hidden="true">+</div>
-                        <div class="community-empty-title">${
-                            this.communityMode === 'history'
-                                ? 'Todavía no hay publicaciones anteriores.'
-                                : 'Sé la primera persona en compartir lo que Dios te habló en esta lectura.'
-                        }</div>
-                        <div class="community-empty-text">
-                            ${
-                                this.communityMode === 'history'
-                                    ? 'Aquí aparecerán las conversaciones cuya última respuesta tenga más de 15 días.'
-                                    : 'Comparte cómo escuchaste su voz en esta lectura.'
-                            }
-                        </div>
-                    </div>
-                `}
+                        `;
+                    }).join('');
+                })()}
             </div>
 
             ${posts.length ? `
@@ -12861,6 +13647,8 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
             ` : ''}
         </div>
     `;
+
+
 
     if (showCommunityDraftRestored) {
         this.armCommunityDraftRestoredNoticeDismissal();
@@ -13412,13 +14200,22 @@ renderStats: function() {
                 </div>
                 
                 <div class="setting-card">
-                    <h3>💾 Datos</h3>
-                    <div class="setting-item">
-                        <button id="export-data" class="btn-secondary">📤 Exportar mis datos</button>
-                        <button id="import-data" class="btn-secondary">📥 Importar respaldo</button>
+                    <h3>💾 Datos y Respaldo</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+                        Guarda una copia completa de tus lecturas, racha, reflexiones, avatar y preferencias para restaurarlos en cualquier momento.
+                    </p>
+                    <div class="setting-item" style="display: flex; flex-direction: column; gap: 8px;">
+                        <button id="export-data" class="btn-primary" style="width: 100%; justify-content: center; font-weight: 700; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer;">
+                            💾 Exportar mis datos
+                        </button>
+                        <button id="import-data" class="btn-secondary" style="width: 100%; justify-content: center;">
+                            📥 Importar respaldo
+                        </button>
                     </div>
-                    <div class="setting-item">
-                        <button id="reset-data" class="btn-secondary danger">⚠️ Reiniciar todo</button>
+                    <div class="setting-item" style="margin-top: 8px;">
+                        <button id="reset-data" class="btn-secondary danger" style="width: 100%; justify-content: center;">
+                            ⚠️ Reiniciar todo
+                        </button>
                     </div>
                     <input type="file" id="import-file" accept=".json" style="display: none;">
                 </div>
@@ -13567,48 +14364,68 @@ if (notificationsToggle) {
         
         if (resetBtn) {
             resetBtn.addEventListener('click', () => {
-                if (confirm('⚠️ ¿Estás seguro? Se borrarán TODOS tus datos:\n- Lecturas marcadas\n- Rachas\n- Reflexiones\n- Resaltados\n\nEsta acción no se puede deshacer.')) {
-                    this.resetAllData();
-                }
+                this.resetAllData();
             });
         }
     },
     
    exportAllData: function() {
+    const uid = this.currentUser?.uid || null;
+    let userProfile = uid ? this.userProfilesCache?.[uid] : null;
+
+    if (!userProfile && uid) {
+        try {
+            const local = localStorage.getItem(`suvoz_avatar_profile_${uid}`);
+            if (local) userProfile = JSON.parse(local);
+        } catch (e) {}
+    }
+
+    if (!userProfile) {
+        userProfile = {
+            avatarIcon: this.selectedAvatarIcon || '🕊️',
+            avatarColor: this.selectedAvatarColor || '#4A90D9',
+            avatarCategory: window.AvatarPicker?.findCategoryForIcon(this.selectedAvatarIcon) || 'Símbolos Bíblicos'
+        };
+    }
+
+    const communityPrefs = this.getUserCommunityPreferences();
+
     const allData = {
-    version: '2.1',
-    exportDate: new Date().toISOString(),
-    readDates: this.getReadDates(),
-    streak: this.streak,
-    settings: this.settings,
-    notes: {},
-    highlights: {},
-    selectionNotes: {}
-};
+        version: '2.1',
+        exportDate: new Date().toISOString(),
+        userProfile: userProfile,
+        communityPreferences: communityPrefs,
+        readDates: this.getReadDates(),
+        streak: this.streak,
+        settings: this.settings,
+        notes: {},
+        highlights: {},
+        selectionNotes: {}
+    };
     
     for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
+        const key = localStorage.key(i);
 
-    if (key && key.startsWith('su-voz-note-')) {
-        const date = key.replace('su-voz-note-', '');
-        allData.notes[date] = this.storage.get(key, {
-            dios: '',
-            aprendizaje: '',
-            respuesta: '',
-            oracion: ''
-        });
-    }
+        if (key && key.startsWith('su-voz-note-')) {
+            const date = key.replace('su-voz-note-', '');
+            allData.notes[date] = this.storage.get(key, {
+                dios: '',
+                aprendizaje: '',
+                respuesta: '',
+                oracion: ''
+            });
+        }
 
-    if (key && key.startsWith('su-voz-highlights-')) {
-        const date = key.replace('su-voz-highlights-', '');
-        allData.highlights[date] = this.getHighlights(date);
-    }
+        if (key && key.startsWith('su-voz-highlights-')) {
+            const date = key.replace('su-voz-highlights-', '');
+            allData.highlights[date] = this.getHighlights(date);
+        }
 
-    if (key && key.startsWith('su-voz-selection-notes-')) {
-        const date = key.replace('su-voz-selection-notes-', '');
-        allData.selectionNotes[date] = this.getSelectionNotes(date);
+        if (key && key.startsWith('su-voz-selection-notes-')) {
+            const date = key.replace('su-voz-selection-notes-', '');
+            allData.selectionNotes[date] = this.getSelectionNotes(date);
+        }
     }
-}
 
     const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -13618,16 +14435,75 @@ if (notificationsToggle) {
     a.click();
     URL.revokeObjectURL(url);
 
-    this.showToast('Datos exportados correctamente');
+    alert('Este archivo contiene tu avatar, preferencias y datos. Guárdalo en un lugar seguro. Si cambias de dispositivo o desinstalas la app, podrás restaurar todo con este archivo.');
+    this.showToast('Datos y avatar exportados correctamente', 'success');
 },
     
     importData: function(file) {
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
                 const data = JSON.parse(e.target.result);
                 
+                if (!data || typeof data !== 'object') {
+                    throw new Error('Archivo de respaldo no válido');
+                }
+
+                const summaryItems = [
+                    data.userProfile ? '• Avatar y perfil personalizado' : null,
+                    data.communityPreferences ? '• Preferencias de comunidad' : null,
+                    data.readDates ? `• ${data.readDates.length || 0} lecturas marcadas` : null,
+                    data.streak ? '• Historial de racha' : null,
+                    data.notes ? `• ${Object.keys(data.notes || {}).length} reflexiones escritas` : null,
+                    data.highlights ? `• ${Object.keys(data.highlights || {}).length} versículos resaltados` : null
+                ].filter(Boolean).join('\n');
+
+                const confirmMsg = `📥 Se restaurará lo siguiente desde el respaldo:\n\n${summaryItems}\n\n¿Deseas restaurar tus datos ahora?`;
+                if (!confirm(confirmMsg)) {
+                    return;
+                }
+
+                if (data.userProfile) {
+                    const uid = this.currentUser?.uid;
+                    const profileData = {
+                        userId: uid || data.userProfile.userId || 'local_user',
+                        avatarIcon: data.userProfile.avatarIcon || '🕊️',
+                        avatarColor: data.userProfile.avatarColor || '#4A90D9',
+                        avatarCategory: data.userProfile.avatarCategory || window.AvatarPicker?.findCategoryForIcon(data.userProfile.avatarIcon) || 'Símbolos Bíblicos',
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    if (!this.userProfilesCache) this.userProfilesCache = {};
+                    if (uid) this.userProfilesCache[uid] = profileData;
+
+                    this.selectedAvatarIcon = profileData.avatarIcon;
+                    this.selectedAvatarColor = profileData.avatarColor;
+
+                    if (uid) {
+                        try {
+                            localStorage.setItem(`suvoz_avatar_profile_${uid}`, JSON.stringify(profileData));
+                        } catch (err) {}
+
+                        try {
+                            if (window.AvatarPicker) {
+                                await window.AvatarPicker.saveToFirestore(
+                                    uid,
+                                    profileData.avatarIcon,
+                                    profileData.avatarColor,
+                                    profileData.avatarCategory
+                                );
+                            }
+                        } catch (err) {
+                            console.warn('[Import] Sincronización en la nube diferida:', err);
+                        }
+                    }
+                }
+
+                if (data.communityPreferences) {
+                    this.setUserCommunityPreferences(data.communityPreferences);
+                }
+
                 if (data.readDates) {
                    this.storage.set('su-voz-read-dates', data.readDates);
                 }
@@ -13638,7 +14514,6 @@ if (notificationsToggle) {
                 if (data.settings) {
                     this.settings = { ...this.settings, ...data.settings };
                     this.saveSettings();
-                    // Recargar configuración visual
                     this.initTheme();
                     this.loadFontSize();
                 }
@@ -13655,25 +14530,25 @@ if (notificationsToggle) {
                 }
 
                 if (data.selectionNotes) {
-    Object.entries(data.selectionNotes).forEach(([date, selectionNotes]) => {
-        const normalized = Array.isArray(selectionNotes)
-            ? selectionNotes
-                .map(item => ({
-                    text: (item?.text || '').replace(/\s+/g, ' ').trim(),
-                    note: (item?.note || '').trim()
-                }))
-                .filter(item => item.text.length >= 3 && item.note.length > 0)
-            : [];
+                    Object.entries(data.selectionNotes).forEach(([date, selectionNotes]) => {
+                        const normalized = Array.isArray(selectionNotes)
+                            ? selectionNotes
+                                .map(item => ({
+                                    text: (item?.text || '').replace(/\s+/g, ' ').trim(),
+                                    note: (item?.note || '').trim()
+                                }))
+                                .filter(item => item.text.length >= 3 && item.note.length > 0)
+                            : [];
 
-        if (normalized.length > 0) {
-            this.storage.set(this.getSelectionNotesKey(date), normalized);
-        } else {
-            this.storage.remove(this.getSelectionNotesKey(date));
-        }
-    });
-}
+                        if (normalized.length > 0) {
+                            this.storage.set(this.getSelectionNotesKey(date), normalized);
+                        } else {
+                            this.storage.remove(this.getSelectionNotesKey(date));
+                        }
+                    });
+                }
                 
-                this.showToast('✅ Datos importados correctamente');
+                this.showToast('✅ Datos y avatar restaurados correctamente', 'success');
                 setTimeout(() => location.reload(), 1500);
             } catch (error) {
                 console.error('Error importando:', error);
@@ -13684,16 +14559,22 @@ if (notificationsToggle) {
     },
     
     resetAllData: function() {
+        const confirmWarning = '⚠️ Vas a borrar todos tus datos incluyendo tu avatar. ¿Has exportado tus datos primero?';
+        if (!confirm(confirmWarning)) {
+            return;
+        }
+
         const keys = [];
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && (key.startsWith('su-voz-') || key === 'theme' || key === 'reading-size' || key === 'current-version')) {
+            if (key && (key.startsWith('su-voz-') || key.startsWith('suvoz_') || key === 'communityPrefs' || key === 'theme' || key === 'reading-size' || key === 'current-version')) {
                 keys.push(key);
             }
         }
 
         keys.forEach(key => this.storage.remove(key));
 
+        this.userProfilesCache = {};
         this.streak = { ...DEFAULT_STREAK };
         this.settings = { ...DEFAULT_SETTINGS };
 
@@ -16074,13 +16955,14 @@ if (publishCommunityBtn) {
     const anonymousInput = document.getElementById('community-anonymous');
     const reflectionInput = document.getElementById('community-reflection');
 
-    let reflectionText = reflectionInput ? reflectionInput.value.trim() : '';
+    let reflectionText = reflectionInput ? (reflectionInput.innerHTML || '').trim() : '';
+    let plainTextLength = reflectionInput ? (reflectionInput.textContent || '').trim().length : 0;
 
-    if (reflectionText.length > 1200) {
-    this.showToast('Lo compartido no puede exceder 1200 caracteres');
-    if (reflectionInput) reflectionInput.focus();
-    return;
-}
+    if (plainTextLength > 1200) {
+        this.showToast('Lo compartido no puede exceder 1200 caracteres');
+        if (reflectionInput) reflectionInput.focus();
+        return;
+    }
 
     const validation = Sanitizer.validateText(reflectionText);
     if (!validation.valid) {
@@ -16189,6 +17071,59 @@ if (deleteCommunityBtn) {
     return;
 }
 
+const richToolbarBtn = e.target.closest('.rich-toolbar-btn');
+if (richToolbarBtn) {
+    e.preventDefault();
+    const format = richToolbarBtn.getAttribute('data-format');
+    if (format) {
+        this.applyRichFormatToComposer(format);
+    }
+    return;
+}
+
+const openAvatarPickerBtn = e.target.closest('[data-action="open-avatar-picker"]');
+if (openAvatarPickerBtn) {
+    this.openAvatarPickerModal();
+    return;
+}
+
+const closeAvatarPickerBtn = e.target.closest('[data-action="close-avatar-picker"]');
+if (closeAvatarPickerBtn) {
+    const modal = document.getElementById('avatarPickerModal');
+    if (modal) modal.remove();
+    return;
+}
+
+const avatarIconBtn = e.target.closest('.avatar-icon-btn');
+if (avatarIconBtn) {
+    const icon = avatarIconBtn.getAttribute('data-icon');
+    if (icon) {
+        this.selectedAvatarIcon = icon;
+        document.querySelectorAll('.avatar-icon-btn').forEach(b => b.classList.remove('is-selected'));
+        avatarIconBtn.classList.add('is-selected');
+        this.updateAvatarPickerPreview();
+    }
+    return;
+}
+
+const avatarColorBtn = e.target.closest('.avatar-color-btn');
+if (avatarColorBtn) {
+    const color = avatarColorBtn.getAttribute('data-color');
+    if (color) {
+        this.selectedAvatarColor = color;
+        document.querySelectorAll('.avatar-color-btn').forEach(b => b.classList.remove('is-selected'));
+        avatarColorBtn.classList.add('is-selected');
+        this.updateAvatarPickerPreview();
+    }
+    return;
+}
+
+const saveAvatarBtn = e.target.closest('[data-action="save-avatar-selection"]');
+if (saveAvatarBtn) {
+    this.saveAvatarSelection();
+    return;
+}
+
 const toggleReplyBtn = e.target.closest('[data-action="toggle-reply-form"]');
 if (toggleReplyBtn) {
     const postId = toggleReplyBtn.getAttribute('data-post-id');
@@ -16231,12 +17166,18 @@ if (publishReplyBtn) {
         return;
     }
 
+    const userPrefs = this.getUserCommunityPreferences();
+    const isAnonymous = userPrefs.isAnonymous ?? false;
+    const displayName = isAnonymous ? 'Anónimo' : 
+        (Sanitizer.sanitizeUsername(userPrefs.name || this.currentUser?.displayName) || 'Hermano(a)');
+
     const result = await this.addCommunityReply({
         postId,
-        name: 'Anónimo',
+        name: displayName,
         text,
         date: this.getTodayDateStr(),
-        ownerUid: this.currentUser.uid
+        ownerUid: this.currentUser.uid,
+        avatarSeed: this.currentUser.uid
     });
 
     if (!result.success) {
@@ -16281,8 +17222,74 @@ if (deleteReplyBtn) {
             console.error('[Community] Error actualizando respuestas:', error);
         });
     }
-
     return;
+}
+
+const toggleMenuBtn = e.target.closest('[data-action="toggle-post-menu"]');
+if (toggleMenuBtn) {
+    const postId = toggleMenuBtn.getAttribute('data-post-id');
+    const dropdown = document.getElementById(`post-menu-${postId}`);
+    if (dropdown) {
+        const isOpen = dropdown.classList.contains('open');
+        document.querySelectorAll('.post-menu-dropdown').forEach(d => {
+            d.classList.remove('open');
+            d.style.display = 'none';
+        });
+        if (!isOpen) {
+            dropdown.classList.add('open');
+            dropdown.style.display = 'flex';
+        }
+    }
+    return;
+}
+
+const setTabBtn = e.target.closest('[data-action="set-community-tab"]');
+if (setTabBtn) {
+    const tab = setTabBtn.getAttribute('data-tab');
+    if (tab && this.communityTabFilter !== tab) {
+        this.communityTabFilter = tab;
+        this.renderCommunity({ preserveOnError: true });
+    }
+    return;
+}
+
+const copyPostBtn = e.target.closest('[data-action="copy-post-text"]');
+if (copyPostBtn) {
+    const postId = copyPostBtn.getAttribute('data-post-id');
+    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.copyPostText(postId);
+    return;
+}
+
+const sharePostBtn = e.target.closest('[data-action="share-post"]');
+if (sharePostBtn) {
+    const postId = sharePostBtn.getAttribute('data-post-id');
+    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.sharePost(postId);
+    return;
+}
+
+const speechPostBtn = e.target.closest('[data-action="speech-post"]');
+if (speechPostBtn) {
+    const postId = speechPostBtn.getAttribute('data-post-id');
+    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.toggleSpeechPost(postId);
+    return;
+}
+
+const favPostBtn = e.target.closest('[data-action="favorite-post"]');
+if (favPostBtn) {
+    const postId = favPostBtn.getAttribute('data-post-id');
+    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.toggleFavoritePost(postId);
+    return;
+}
+
+const replyAnonCheckbox = e.target.closest('.reply-anonymous-checkbox');
+if (replyAnonCheckbox) {
+    const prefs = this.getUserCommunityPreferences();
+    prefs.isAnonymous = replyAnonCheckbox.checked;
+    this.setUserCommunityPreferences(prefs);
 }
 
 const communityReactionBtn = e.target.closest('[data-action="community-reaction-toggle"]');
@@ -16655,8 +17662,11 @@ if (navItem) {
     }
 
     if (e.target.id === 'community-reflection') {
+        const htmlContent = e.target.innerHTML || '';
+        const textContent = (e.target.textContent || '').trim();
+
         this.updateCommunityDraftState({
-            text: e.target.value.slice(0, 1200),
+            text: htmlContent.slice(0, 3000),
             formOpen: true
         });
 
@@ -16664,11 +17674,11 @@ if (navItem) {
         if (!counter) return;
         const draftRestoredNotice = document.querySelector('.community-draft-restored');
 
-        if (draftRestoredNotice && !e.target.value.trim()) {
+        if (draftRestoredNotice && !textContent) {
             draftRestoredNotice.remove();
         }
 
-        const currentLength = e.target.value.length;
+        const currentLength = textContent.length;
         const maxLength = 1200;
 
         counter.textContent = `${currentLength} / ${maxLength}`;
@@ -18290,20 +19300,16 @@ const Sanitizer = {
         if (!text || typeof text !== 'string') return '';
 
         let cleaned = text.trim();
-
-        // Limitar longitud
         cleaned = cleaned.substring(0, 1200);
 
-        // Eliminar HTML
-        cleaned = cleaned.replace(/<[^>]*>/g, '');
-
-        // Quitar scripts peligrosos
+        cleaned = cleaned.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
         cleaned = cleaned.replace(/javascript:/gi, '');
         cleaned = cleaned.replace(/on\w+=/gi, '');
 
-        // Normalizar espacios horizontales sin eliminar saltos de línea.
+        // Permitir únicamente etiquetas seguras de formato enriquecido
+        cleaned = cleaned.replace(/<(?!\/?(b|i|u|blockquote|br|span|p)\b)[^>]+>/gi, '');
+
         cleaned = cleaned.replace(/\r\n?/g, '\n');
-        cleaned = cleaned.replace(/[^\S\n]+/g, ' ');
 
         return cleaned.trim();
     },
@@ -18329,16 +19335,22 @@ const Sanitizer = {
     },
 
     validateText(text) {
-        if (!text || text.trim().length === 0) {
+        if (!text || typeof text !== 'string') {
             return { valid: false, message: 'Escribe tu reflexión' };
         }
 
-        if (text.length < 10) {
+        const plainText = text.replace(/<[^>]*>/g, '').trim();
+
+        if (plainText.length === 0) {
+            return { valid: false, message: 'Escribe tu reflexión' };
+        }
+
+        if (plainText.length < 10) {
             return { valid: false, message: 'Escribe un poco más (mínimo 10 caracteres)' };
         }
 
-        if (text.length > 1200) {
-            return { valid: false, message: 'Texto demasiado largo' };
+        if (plainText.length > 1200) {
+            return { valid: false, message: 'Texto demasiado largo (máximo 1200 caracteres)' };
         }
 
         return { valid: true };
