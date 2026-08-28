@@ -20090,20 +20090,26 @@ App.unpinReferenceIncrementally = function(stepId, refId) {
 
 App.positionReferencePreview = function(popover, chipElement) {
     const chipRect = chipElement.getBoundingClientRect();
-    const popoverWidth = 320;
+    const visualViewport = window.visualViewport;
+    const viewportLeft = Number(visualViewport?.offsetLeft) || 0;
+    const viewportWidth = Number(visualViewport?.width) || window.innerWidth;
+    const viewportRight = viewportLeft + viewportWidth;
+    const viewportPadding = Math.min(16, Math.max(10, viewportWidth * 0.04));
+    const popoverWidth = Math.max(0, Math.min(320, viewportWidth - viewportPadding * 2));
     
     // Attempt to position below the chip
     let top = chipRect.bottom + 10;
     let left = chipRect.left;
 
     // Adjust left if it overflows
-    if (left + popoverWidth > window.innerWidth - 16) {
-        left = window.innerWidth - popoverWidth - 16;
+    if (left + popoverWidth > viewportRight - viewportPadding) {
+        left = viewportRight - popoverWidth - viewportPadding;
     }
     
     // Prevent negative left
-    left = Math.max(16, left);
+    left = Math.max(viewportLeft + viewportPadding, left);
 
+    popover.style.width = `${popoverWidth}px`;
     popover.style.top = `${top}px`;
     popover.style.left = `${left}px`;
 };
@@ -20203,16 +20209,26 @@ App.toggleReferenceBubble = function(e, btn) {
         const rect = btn.getBoundingClientRect();
         const scrollX = window.scrollX || window.pageXOffset;
         const scrollY = window.scrollY || window.pageYOffset;
-        const bubbleWidth = Math.min(320, window.innerWidth - 32);
+        const visualViewport = window.visualViewport;
+        const viewportLeft = Number(visualViewport?.offsetLeft) || 0;
+        const viewportWidth = Number(visualViewport?.width) || window.innerWidth;
+        const viewportPadding = Math.min(16, Math.max(10, viewportWidth * 0.04));
+        const viewportDocumentLeft = scrollX + viewportLeft;
+        const viewportDocumentRight = viewportDocumentLeft + viewportWidth;
+        const bubbleWidth = Math.max(0, Math.min(320, viewportWidth - viewportPadding * 2));
 
         let left = rect.left + scrollX + (rect.width / 2) - (bubbleWidth / 2);
-        left = Math.max(16, Math.min(left, window.innerWidth - bubbleWidth - 16));
+        left = Math.max(
+            viewportDocumentLeft + viewportPadding,
+            Math.min(left, viewportDocumentRight - bubbleWidth - viewportPadding)
+        );
 
         let top = rect.top + scrollY - bubble.offsetHeight - 12;
         if (rect.top - bubble.offsetHeight - 12 < 50) {
             top = rect.bottom + scrollY + 12;
         }
 
+        bubble.style.width = `${bubbleWidth}px`;
         bubble.style.left = `${left}px`;
         bubble.style.top = `${top}px`;
 

@@ -4,11 +4,11 @@
 */
 
 .meditation-actions-panel {
-    --meditation-actions-width: min(248px, calc(100vw - 72px));
+    --meditation-actions-width: min(248px, calc(100dvi - var(--safe-area-left) - var(--safe-area-right) - 72px));
     --meditation-actions-tab-visible: 20px;
     position: absolute;
     top: 50%;
-    right: clamp(8px, 2.2vw, 16px);
+    right: max(8px, var(--safe-area-right));
     z-index: 5;
     display: flex;
     width: var(--meditation-actions-width);
@@ -118,8 +118,8 @@
 
 @media (max-width: 520px) {
     .meditation-actions-panel {
-        --meditation-actions-width: min(232px, calc(100vw - 64px));
-        right: 8px;
+        --meditation-actions-width: min(232px, calc(100dvi - var(--safe-area-left) - var(--safe-area-right) - 64px));
+        right: max(8px, var(--safe-area-right));
         max-height: min(40vh, 224px);
     }
 
