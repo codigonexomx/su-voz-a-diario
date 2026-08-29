@@ -96,15 +96,11 @@ service cloud.firestore {
     match /communityPosts/{postId} {
       allow read: if true;
 
-      allow create: if isSignedIn()
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.createdAt == request.time
-        && request.resource.data.lastActivityAt == request.time;
+      allow create, update, delete: if false;
+    }
 
-      allow delete: if isSignedIn()
-        && resource.data.ownerUid == request.auth.uid;
-
-      allow update: if false;
+    match /communityPostPrivate/{postId} {
+      allow read, write: if false;
     }
 
     match /communityClock/{uid} {
@@ -144,19 +140,11 @@ service cloud.firestore {
     match /communityReplies/{replyId} {
       allow read: if true;
 
-      allow create: if isSignedIn()
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.postId is string
-        && request.resource.data.name is string
-        && request.resource.data.text is string
-        && request.resource.data.text.size() > 0
-        && request.resource.data.text.size() <= 300
-        && request.resource.data.date is string;
+      allow create, update, delete: if false;
+    }
 
-      allow delete: if isSignedIn()
-        && resource.data.ownerUid == request.auth.uid;
-
-      allow update: if false;
+    match /communityReplyPrivate/{replyId} {
+      allow read, write: if false;
     }
 
     match /communityReports/{reportId} {
@@ -175,6 +163,15 @@ service cloud.firestore {
         ];
       allow update: if request.auth.token.moderator == true;
       allow delete: if request.auth.token.moderator == true;
+    }
+
+    match /communityProfiles/{uid} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    match /communityNames/{normalizedName} {
+      allow read, create, update, delete: if false;
     }
 
     match /userMetrics/{userId} {

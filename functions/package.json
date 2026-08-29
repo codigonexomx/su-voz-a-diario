@@ -8,7 +8,10 @@
   "scripts": {
     "check": "node --check index.js",
     "migrate:community:last-activity": "node migrateCommunityLastActivity.js",
+    "migrate:community:anonymous-legacy": "node migrateCommunityAnonymousLegacy.js",
     "test:bible-proxy": "node bibleProxy.test.js",
+    "test:community-identity": "node communityIdentity.test.js",
+    "test:community-identity-concurrency": "firebase emulators:exec --only firestore --project demo-su-voz-concurrency \"node communityIdentityConcurrency.test.js\"",
     "serve": "firebase emulators:start --only functions,firestore",
     "shell": "firebase functions:shell",
     "deploy": "firebase deploy --only functions",

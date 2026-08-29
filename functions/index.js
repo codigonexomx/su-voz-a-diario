@@ -15,6 +15,21 @@ const {
   getRemoteBibleChapter,
   searchRemoteBible,
 } = require("./bibleProxy");
+const {
+  canClaimNameReservation,
+  createAuthorSnapshot,
+  createAnonymousPostDocument,
+  createAnonymousReplyDocument,
+  createCommunityPostPrivateDocument,
+  createCommunityReplyPrivateDocument,
+  createIdentifiedPostDocument,
+  createIdentifiedReplyDocument,
+  isValidCommunityProfile,
+  normalizeDisplayName,
+  validateAvatarId,
+  validateColorId,
+  validateDisplayName,
+} = require("./communityIdentity");
 
 if (getApps().length === 0) {
   initializeApp();
@@ -259,6 +274,155 @@ function hasNewCommunityReaction(before, after) {
   );
 }
 
+function sanitizeCommunityText(value, maxLength) {
+  const text = String(value || "")
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+="[^"]*"/gi, "")
+    .replace(/\son\w+='[^']*'/gi, "")
+    .trim();
+
+  if (!text) {
+    throw new HttpsError("invalid-argument", "TEXT_REQUIRED");
+  }
+
+  const plainText = text.replace(/<[^>]+>/g, "").trim();
+  if (!plainText) {
+    throw new HttpsError("invalid-argument", "TEXT_REQUIRED");
+  }
+
+  if (plainText.length > maxLength) {
+    throw new HttpsError("invalid-argument", "TEXT_TOO_LONG");
+  }
+
+  return text;
+}
+
+function sanitizeCommunityReference(value) {
+  const reference = String(value || "Lectura del día")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+
+  return reference || "Lectura del día";
+}
+
+function sanitizeCommunityDate(value) {
+  const date = String(value || "").trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new HttpsError("invalid-argument", "DATE_INVALID");
+  }
+
+  return date;
+}
+
+async function getRequiredCommunityAuthorSnapshot(db, uid) {
+  const profileSnapshot = await db.collection("communityProfiles").doc(uid).get();
+  const profile = profileSnapshot.exists ? profileSnapshot.data() : null;
+  const authorSnapshot = createAuthorSnapshot(profile);
+
+  if (!authorSnapshot || !isValidCommunityProfile(profile)) {
+    throw new HttpsError("failed-precondition", "COMMUNITY_PROFILE_REQUIRED");
+  }
+
+  return authorSnapshot;
+}
+
+function getNameReservationState(nameSnapshot) {
+  if (!nameSnapshot.exists) {
+    return null;
+  }
+
+  const releaseAt = nameSnapshot.get("releaseAt");
+
+  return {
+    uid: nameSnapshot.get("uid") || null,
+    status: nameSnapshot.get("status") || "active",
+    releaseAtMillis: releaseAt instanceof Timestamp ? releaseAt.toMillis() : null,
+  };
+}
+
+function sanitizeCommunityDocumentId(value, fieldName = "ID_INVALID") {
+  const id = String(value || "").trim();
+
+  if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+    throw new HttpsError("invalid-argument", fieldName);
+  }
+
+  return id;
+}
+
+function getLimitedUniqueIds(values = []) {
+  if (!Array.isArray(values)) {
+    return [];
+  }
+
+  return [...new Set(
+    values
+      .map((value) => String(value || "").trim())
+      .filter((value) => /^[A-Za-z0-9_-]{1,128}$/.test(value))
+  )].slice(0, 50);
+}
+
+function isAnonymousSchema3(documentData) {
+  return documentData?.isAnonymous === true && documentData?.schemaVersion === 3;
+}
+
+function isOwnerOfPublicDocument(documentData, uid) {
+  return Boolean(documentData?.ownerUid && documentData.ownerUid === uid);
+}
+
+async function resolvePostOwnership(db, postId, uid) {
+  const postSnapshot = await db.collection("communityPosts").doc(postId).get();
+
+  if (!postSnapshot.exists) {
+    return false;
+  }
+
+  const post = postSnapshot.data();
+  if (isOwnerOfPublicDocument(post, uid)) {
+    return true;
+  }
+
+  if (!isAnonymousSchema3(post)) {
+    return false;
+  }
+
+  const privateSnapshot = await db.collection("communityPostPrivate").doc(postId).get();
+  return privateSnapshot.exists && privateSnapshot.get("ownerUid") === uid;
+}
+
+async function resolveReplyOwnership(db, replyId, uid) {
+  const replySnapshot = await db.collection("communityReplies").doc(replyId).get();
+
+  if (!replySnapshot.exists) {
+    return false;
+  }
+
+  const reply = replySnapshot.data();
+  if (isOwnerOfPublicDocument(reply, uid)) {
+    return true;
+  }
+
+  if (!isAnonymousSchema3(reply)) {
+    return false;
+  }
+
+  const privateSnapshot = await db.collection("communityReplyPrivate").doc(replyId).get();
+  return privateSnapshot.exists && privateSnapshot.get("ownerUid") === uid;
+}
+
+async function deleteDocumentsInBatches(db, refs) {
+  const uniqueRefs = [...new Map(refs.map((ref) => [ref.path, ref])).values()];
+
+  for (const refsBatch of chunk(uniqueRefs, MAX_FIRESTORE_BATCH_WRITES)) {
+    const writeBatch = db.batch();
+    refsBatch.forEach((ref) => writeBatch.delete(ref));
+    await writeBatch.commit();
+  }
+}
+
 async function deleteInvalidTokens(db, documents) {
   const batches = chunk(documents, MAX_MULTICAST_TOKENS);
 
@@ -392,6 +556,441 @@ exports.sendTestNotification = onCall(
     });
 
     return result;
+  }
+);
+
+exports.checkCommunityNameAvailability = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para comprobar un nombre."
+      );
+    }
+
+    const validation = validateDisplayName(request.data?.displayName);
+    if (!validation.valid) {
+      return {
+        available: false,
+        code: validation.code,
+        displayName: validation.displayName,
+        normalizedName: validation.normalizedName,
+      };
+    }
+
+    const db = getFirestore();
+    const nameSnapshot = await db
+      .collection("communityNames")
+      .doc(validation.normalizedName)
+      .get();
+
+    const now = Timestamp.now();
+    const claim = canClaimNameReservation(
+      getNameReservationState(nameSnapshot),
+      request.auth.uid,
+      now.toMillis()
+    );
+
+    return {
+      available: claim.canClaim,
+      code: claim.code,
+      displayName: validation.displayName,
+      normalizedName: validation.normalizedName,
+    };
+  }
+);
+
+exports.reserveCommunityNameAndProfile = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para crear tu distintivo."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const validation = validateDisplayName(request.data?.displayName);
+    if (!validation.valid) {
+      throw new HttpsError("invalid-argument", validation.code);
+    }
+
+    const avatarId = normalizeDisplayName(request.data?.avatarId);
+    const colorId = normalizeDisplayName(request.data?.colorId);
+
+    if (!validateAvatarId(avatarId)) {
+      throw new HttpsError("invalid-argument", "AVATAR_INVALID");
+    }
+
+    if (!validateColorId(colorId)) {
+      throw new HttpsError("invalid-argument", "COLOR_INVALID");
+    }
+
+    const db = getFirestore();
+    const nameRef = db.collection("communityNames").doc(validation.normalizedName);
+    const profileRef = db.collection("communityProfiles").doc(uid);
+
+    const result = await db.runTransaction(async (transaction) => {
+      const nameSnapshot = await transaction.get(nameRef);
+      const profileSnapshot = await transaction.get(profileRef);
+
+      const previousProfile = profileSnapshot.exists ? profileSnapshot.data() : null;
+      const previousNormalizedName = previousProfile?.normalizedName || null;
+      const nameChanged = Boolean(
+        previousNormalizedName &&
+        previousNormalizedName !== validation.normalizedName
+      );
+      const now = Timestamp.now();
+      const claim = canClaimNameReservation(
+        getNameReservationState(nameSnapshot),
+        uid,
+        now.toMillis()
+      );
+
+      if (!claim.canClaim) {
+        throw new HttpsError(
+          claim.code === "NAME_RESERVED" ? "failed-precondition" : "already-exists",
+          claim.code
+        );
+      }
+
+      if (
+        nameChanged &&
+        previousNormalizedName
+      ) {
+        const previousNameRef = db.collection("communityNames").doc(previousNormalizedName);
+        const previousNameSnapshot = await transaction.get(previousNameRef);
+        const previousNameUid = previousNameSnapshot.exists ? previousNameSnapshot.get("uid") : null;
+
+        if (previousNameUid === uid) {
+          const releaseAt = Timestamp.fromMillis(now.toMillis() + 30 * 24 * 60 * 60 * 1000);
+          transaction.set(previousNameRef, {
+            uid,
+            displayName: previousProfile.displayName || previousNormalizedName,
+            status: "cooldown",
+            releaseAt,
+            updatedAt: FieldValue.serverTimestamp(),
+          }, { merge: true });
+        }
+      }
+
+      const serverNow = FieldValue.serverTimestamp();
+
+      transaction.set(nameRef, {
+        uid,
+        displayName: validation.displayName,
+        status: "active",
+        releaseAt: FieldValue.delete(),
+        reservedAt: nameSnapshot.exists ? nameSnapshot.get("reservedAt") || serverNow : serverNow,
+        updatedAt: serverNow,
+      }, { merge: true });
+
+      transaction.set(profileRef, {
+        displayName: validation.displayName,
+        normalizedName: validation.normalizedName,
+        avatarId,
+        colorId,
+        createdAt: previousProfile?.createdAt || serverNow,
+        updatedAt: serverNow,
+        profileVersion: 1,
+      }, { merge: true });
+
+      return {
+        uid,
+        displayName: validation.displayName,
+        normalizedName: validation.normalizedName,
+        avatarId,
+        colorId,
+        profileVersion: 1,
+      };
+    });
+
+    return {
+      success: true,
+      profile: result,
+    };
+  }
+);
+
+exports.createCommunityPost = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para publicar en Comunidad."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const reference = sanitizeCommunityReference(request.data?.reference);
+    const text = sanitizeCommunityText(request.data?.text, 1200);
+    const date = sanitizeCommunityDate(request.data?.date);
+    const isAnonymous = request.data?.isAnonymous === true;
+    const db = getFirestore();
+
+    if (isAnonymous) {
+      const postRef = db.collection("communityPosts").doc();
+      const privateRef = db.collection("communityPostPrivate").doc(postRef.id);
+      const batch = db.batch();
+      const timestamp = FieldValue.serverTimestamp();
+
+      batch.set(postRef, createAnonymousPostDocument({
+        reference,
+        text,
+        date,
+        timestamp,
+      }));
+
+      batch.set(privateRef, createCommunityPostPrivateDocument({
+        ownerUid: uid,
+        timestamp,
+      }));
+
+      await batch.commit();
+
+      return {
+        success: true,
+        id: postRef.id,
+      };
+    }
+
+    const authorSnapshot = await getRequiredCommunityAuthorSnapshot(db, uid);
+
+    const timestamp = FieldValue.serverTimestamp();
+    const postRef = await db.collection("communityPosts").add(createIdentifiedPostDocument({
+      reference,
+      text,
+      date,
+      ownerUid: uid,
+      authorSnapshot,
+      timestamp,
+    }));
+
+    return {
+      success: true,
+      id: postRef.id,
+    };
+  }
+);
+
+exports.createCommunityReply = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para responder en Comunidad."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const postId = sanitizeCommunityDocumentId(request.data?.postId, "POST_ID_INVALID");
+    const text = sanitizeCommunityText(request.data?.text, 300);
+    const date = sanitizeCommunityDate(request.data?.date);
+    const isAnonymous = request.data?.isAnonymous === true;
+
+    const db = getFirestore();
+    const postSnapshot = await db.collection("communityPosts").doc(postId).get();
+
+    if (!postSnapshot.exists) {
+      throw new HttpsError("not-found", "POST_NOT_FOUND");
+    }
+
+    if (isAnonymous) {
+      const replyRef = db.collection("communityReplies").doc();
+      const privateRef = db.collection("communityReplyPrivate").doc(replyRef.id);
+      const batch = db.batch();
+      const timestamp = FieldValue.serverTimestamp();
+
+      batch.set(replyRef, createAnonymousReplyDocument({
+        postId,
+        text,
+        date,
+        timestamp,
+      }));
+
+      batch.set(privateRef, createCommunityReplyPrivateDocument({
+        ownerUid: uid,
+        postId,
+        timestamp,
+      }));
+
+      await batch.commit();
+      await updateCommunityPostActivity(db, postId, Timestamp.now());
+
+      return {
+        success: true,
+        id: replyRef.id,
+      };
+    }
+
+    const authorSnapshot = await getRequiredCommunityAuthorSnapshot(db, uid);
+
+    const timestamp = FieldValue.serverTimestamp();
+    const replyRef = await db.collection("communityReplies").add(createIdentifiedReplyDocument({
+      postId,
+      text,
+      date,
+      ownerUid: uid,
+      authorSnapshot,
+      timestamp,
+    }));
+
+    await updateCommunityPostActivity(db, postId, Timestamp.now());
+
+    return {
+      success: true,
+      id: replyRef.id,
+    };
+  }
+);
+
+exports.getCommunityOwnership = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para comprobar ownership."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const postIds = getLimitedUniqueIds(request.data?.postIds);
+    const replyIds = getLimitedUniqueIds(request.data?.replyIds);
+    const db = getFirestore();
+    const posts = {};
+    const replies = {};
+
+    await Promise.all(postIds.map(async (postId) => {
+      posts[postId] = await resolvePostOwnership(db, postId, uid);
+    }));
+
+    await Promise.all(replyIds.map(async (replyId) => {
+      replies[replyId] = await resolveReplyOwnership(db, replyId, uid);
+    }));
+
+    return {
+      posts,
+      replies,
+    };
+  }
+);
+
+exports.deleteCommunityPost = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para eliminar contenido."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const postId = sanitizeCommunityDocumentId(request.data?.postId, "POST_ID_INVALID");
+    const db = getFirestore();
+    const postRef = db.collection("communityPosts").doc(postId);
+    const postSnapshot = await postRef.get();
+
+    if (!postSnapshot.exists) {
+      throw new HttpsError("not-found", "POST_NOT_FOUND");
+    }
+
+    const post = postSnapshot.data();
+    const isOwner = isOwnerOfPublicDocument(post, uid)
+      || (
+        isAnonymousSchema3(post) &&
+        (await db.collection("communityPostPrivate").doc(postId).get()).get("ownerUid") === uid
+      );
+
+    if (!isOwner) {
+      throw new HttpsError("permission-denied", "NOT_OWNER");
+    }
+
+    const refsToDelete = [
+      postRef,
+      db.collection("communityPostPrivate").doc(postId),
+    ];
+
+    const [repliesSnapshot, reactionsSnapshot] = await Promise.all([
+      db.collection("communityReplies").where("postId", "==", postId).get(),
+      db.collection("communityReactions").where("postId", "==", postId).get(),
+    ]);
+
+    repliesSnapshot.docs.forEach((document) => {
+      refsToDelete.push(document.ref);
+      refsToDelete.push(db.collection("communityReplyPrivate").doc(document.id));
+    });
+
+    reactionsSnapshot.docs.forEach((document) => {
+      refsToDelete.push(document.ref);
+    });
+
+    await deleteDocumentsInBatches(db, refsToDelete);
+
+    return {
+      success: true,
+    };
+  }
+);
+
+exports.deleteCommunityReply = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para eliminar contenido."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const replyId = sanitizeCommunityDocumentId(request.data?.replyId, "REPLY_ID_INVALID");
+    const db = getFirestore();
+    const replyRef = db.collection("communityReplies").doc(replyId);
+    const replySnapshot = await replyRef.get();
+
+    if (!replySnapshot.exists) {
+      throw new HttpsError("not-found", "REPLY_NOT_FOUND");
+    }
+
+    const reply = replySnapshot.data();
+    const isOwner = isOwnerOfPublicDocument(reply, uid)
+      || (
+        isAnonymousSchema3(reply) &&
+        (await db.collection("communityReplyPrivate").doc(replyId).get()).get("ownerUid") === uid
+      );
+
+    if (!isOwner) {
+      throw new HttpsError("permission-denied", "NOT_OWNER");
+    }
+
+    await deleteDocumentsInBatches(db, [
+      replyRef,
+      db.collection("communityReplyPrivate").doc(replyId),
+    ]);
+
+    return {
+      success: true,
+    };
   }
 );
 
@@ -642,7 +1241,7 @@ exports.notifyPostOwnerInApp = onDocumentCreated(
     const postOwnerUid = await getCommunityPostOwner(db, reply.postId);
 
     if (postOwnerUid && postOwnerUid !== reply.ownerUid) {
-      const replyAuthor = reply.name || "Alguien de la comunidad";
+      const replyAuthor = reply.authorSnapshot?.displayName || reply.name || "Alguien de la comunidad";
       await db.collection("notifications").add({
         userId: postOwnerUid,
         type: "newReply",
@@ -691,5 +1290,3 @@ exports.cleanupOldData = onSchedule(
 exports.getRemoteBibleBooks = getRemoteBibleBooks;
 exports.getRemoteBibleChapter = getRemoteBibleChapter;
 exports.searchRemoteBible = searchRemoteBible;
-
-

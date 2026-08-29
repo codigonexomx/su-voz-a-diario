@@ -9,6 +9,7 @@
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
     "pwa:sync-version": "node scripts/sync-pwa-version.mjs",
     "community:migrate:last-activity": "npm --prefix functions run migrate:community:last-activity --",
+    "test:community-rules": "firebase emulators:exec --only firestore --project demo-su-voz-rules \"node scripts/test-community-rules.mjs\"",
     "import:tla": "node scripts/import-tla-readings.mjs",
     "test:tla": "node scripts/validate-tla-readings.mjs",
     "test:bible-phase3": "node scripts/validate-bible-phase3.mjs",
@@ -28,6 +29,7 @@
     "@capacitor/share": "^8.0.1"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5"
+    "@capacitor/assets": "^3.0.5",
+    "@firebase/rules-unit-testing": "^5.0.2"
   }
 }

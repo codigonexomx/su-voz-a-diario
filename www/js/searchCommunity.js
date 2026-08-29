@@ -37,7 +37,7 @@ class CommunitySearch {
         this.searchResults = posts.filter(post => {
             const text = (post.text || '').toLowerCase();
             const ref = (post.reference || '').toLowerCase();
-            const name = (post.name || '').toLowerCase();
+            const name = (post.authorSnapshot?.displayName || post.name || '').toLowerCase();
             return text.includes(cleanQuery) || ref.includes(cleanQuery) || name.includes(cleanQuery);
         });
 
@@ -83,7 +83,7 @@ class CommunitySearch {
 
         container.innerHTML = results.map(post => `
             <div class="search-result-item" data-post-id="${post.id}">
-                <strong>${this.escapeHtml(post.name || 'Anónimo')}</strong> · <small>${this.escapeHtml(post.reference || '')}</small>
+                <strong>${this.escapeHtml(post.authorSnapshot?.displayName || post.name || 'Anónimo')}</strong> · <small>${this.escapeHtml(post.reference || '')}</small>
                 <div class="search-result-snippet">${this.escapeHtml((post.text || '').substring(0, 80))}...</div>
             </div>
         `).join('');

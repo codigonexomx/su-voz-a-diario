@@ -837,6 +837,18 @@ const App = {
     communityTargetPostId: null,
     communityTargetReplyId: null,
     communityFeedStates: null,
+    communityIdentityProfile: null,
+    communityIdentityProfileLoaded: false,
+    communityIdentityAvailability: null,
+    communityIdentityAvailabilityTimer: null,
+    communityIdentityAvailabilityRequestId: 0,
+    communityIdentitySaving: false,
+    communityPostSubmitting: false,
+    communityReplySubmitting: false,
+    communityOwnedPosts: {},
+    communityOwnedReplies: {},
+    selectedCommunityAvatarId: 'dove',
+    selectedCommunityColorId: 'blue-01',
     communityLastVisible: null,
     communityHasMorePosts: true,
     communityLoadingMore: false,
@@ -2254,6 +2266,502 @@ getUserProfilesBatch: async function(uids = []) {
     return this.userProfilesCache;
 },
 
+isValidCommunityIdentityProfile: function(profile) {
+    return Boolean(
+        profile &&
+        typeof profile.displayName === 'string' &&
+        typeof profile.normalizedName === 'string' &&
+        typeof profile.avatarId === 'string' &&
+        typeof profile.colorId === 'string'
+    );
+},
+
+getCommunityIdentityStorageKey: function(uid = this.currentUser?.uid) {
+    return uid ? `suvoz_community_identity_profile_${uid}` : 'suvoz_community_identity_profile';
+},
+
+getCommunityIdentityCallable: async function(name) {
+    const firebaseReady = window.suVozFirebaseReady
+        ? await this.withTimeout(window.suVozFirebaseReady, 15000, 'Firebase tardó demasiado en inicializar')
+        : true;
+
+    if (!firebaseReady || !window.firebaseFns?.getApp || !window.firebaseFns?.getFunctions || !window.firebaseFns?.httpsCallable) {
+        throw new Error('Firebase Functions no está disponible');
+    }
+
+    const firebaseApp = window.firebaseFns.getApp();
+    const functions = window.firebaseFns.getFunctions(firebaseApp, 'us-central1');
+    return window.firebaseFns.httpsCallable(functions, name);
+},
+
+loadCurrentCommunityIdentityProfile: async function({ force = false } = {}) {
+    const user = this.currentUser || await this.initAuth();
+    if (!user?.uid) return null;
+
+    if (!force && this.communityIdentityProfileLoaded) {
+        return this.communityIdentityProfile;
+    }
+
+    try {
+        const stored = localStorage.getItem(this.getCommunityIdentityStorageKey(user.uid));
+        if (stored) {
+            const localProfile = JSON.parse(stored);
+            if (this.isValidCommunityIdentityProfile(localProfile)) {
+                this.communityIdentityProfile = localProfile;
+            }
+        }
+    } catch (error) {
+        console.warn('[Community Identity] No se pudo leer el perfil local:', error);
+    }
+
+    const dbRef = window.firebaseDb;
+    const fns = window.firebaseFns;
+    if (!dbRef || !fns?.doc || !fns?.getDoc) {
+        this.communityIdentityProfileLoaded = true;
+        return this.communityIdentityProfile;
+    }
+
+    try {
+        const snapshot = await fns.getDoc(fns.doc(dbRef, 'communityProfiles', user.uid));
+        this.communityIdentityProfileLoaded = true;
+
+        if (!snapshot.exists()) {
+            this.communityIdentityProfile = null;
+            return null;
+        }
+
+        const profile = {
+            uid: user.uid,
+            ...snapshot.data()
+        };
+
+        if (!this.isValidCommunityIdentityProfile(profile)) {
+            this.communityIdentityProfile = null;
+            return null;
+        }
+
+        this.communityIdentityProfile = profile;
+        try {
+            localStorage.setItem(this.getCommunityIdentityStorageKey(user.uid), JSON.stringify(profile));
+        } catch (error) {}
+        return profile;
+    } catch (error) {
+        console.warn('[Community Identity] No se pudo leer communityProfiles:', error);
+        this.communityIdentityProfileLoaded = true;
+        return this.communityIdentityProfile;
+    }
+},
+
+getCommunityIdentityInitialState: function() {
+    const uid = this.currentUser?.uid;
+    const identityProfile = this.communityIdentityProfile;
+    const legacyProfile = uid ? this.userProfilesCache?.[uid] : null;
+    const preferences = this.getCommunityPreferences();
+    const legacyAvatar = window.AvatarPicker?.resolveAvatar(
+        identityProfile?.avatarId ||
+        legacyProfile?.avatarId ||
+        legacyProfile?.avatarValue ||
+        legacyProfile?.avatarIcon ||
+        this.selectedAvatarValue ||
+        this.selectedAvatarIcon
+    );
+    const legacyColor = window.AvatarPicker?.resolveColor(
+        identityProfile?.colorId ||
+        legacyProfile?.colorId ||
+        legacyProfile?.avatarColor ||
+        this.selectedAvatarColor
+    );
+
+    return {
+        displayName: identityProfile?.displayName || legacyProfile?.displayName || preferences.name || '',
+        avatarId: legacyAvatar?.id || 'dove',
+        colorId: legacyColor?.id || 'blue-01'
+    };
+},
+
+validateCommunityIdentityName: function(rawName) {
+    if (!window.CommunityIdentity?.validateDisplayName) {
+        return {
+            valid: false,
+            code: 'IDENTITY_UNAVAILABLE',
+            message: 'La validación de nombres no está disponible',
+            displayName: String(rawName || '').trim(),
+            normalizedName: ''
+        };
+    }
+
+    return window.CommunityIdentity.validateDisplayName(rawName);
+},
+
+setCommunityIdentityStatus: function(state, message) {
+    const statusEl = document.getElementById('communityIdentityNameStatus');
+    const saveBtn = document.querySelector('[data-action="save-community-identity"]');
+    if (statusEl) {
+        statusEl.className = `community-identity-status is-${state}`;
+        statusEl.textContent = message || '';
+    }
+    if (saveBtn) {
+        saveBtn.disabled = state !== 'available' || this.communityIdentitySaving || !navigator.onLine;
+    }
+},
+
+scheduleCommunityNameAvailabilityCheck: function(rawName) {
+    if (this.communityIdentityAvailabilityTimer) {
+        clearTimeout(this.communityIdentityAvailabilityTimer);
+        this.communityIdentityAvailabilityTimer = null;
+    }
+
+    const requestId = ++this.communityIdentityAvailabilityRequestId;
+    const validation = this.validateCommunityIdentityName(rawName);
+    this.communityIdentityAvailability = {
+        ...validation,
+        available: false
+    };
+
+    if (!validation.valid) {
+        this.setCommunityIdentityStatus('invalid', validation.message || 'Nombre inválido');
+        return;
+    }
+
+    if (!navigator.onLine) {
+        this.setCommunityIdentityStatus('offline', 'Conéctate a internet para comprobar este nombre.');
+        return;
+    }
+
+    this.setCommunityIdentityStatus('checking', 'Comprobando...');
+    this.communityIdentityAvailabilityTimer = setTimeout(() => {
+        this.checkCommunityNameAvailability(validation.displayName, requestId);
+    }, 420);
+},
+
+checkCommunityNameAvailability: async function(displayName, requestId = ++this.communityIdentityAvailabilityRequestId) {
+    try {
+        await this.initAuth();
+        const callable = await this.getCommunityIdentityCallable('checkCommunityNameAvailability');
+        const response = await callable({ displayName });
+        const result = response?.data || {};
+        const currentInput = document.getElementById('communityIdentityNameInput');
+        const currentValidation = this.validateCommunityIdentityName(currentInput?.value || '');
+
+        if (
+            requestId !== this.communityIdentityAvailabilityRequestId ||
+            currentValidation.normalizedName !== result.normalizedName
+        ) {
+            return;
+        }
+
+        this.communityIdentityAvailability = result;
+
+        if (result.available) {
+            this.setCommunityIdentityStatus('available', '✓ Nombre disponible');
+        } else if (result.code === 'NAME_RESERVED') {
+            this.setCommunityIdentityStatus('invalid', '✕ Este nombre no está permitido');
+        } else if (result.code === 'NAME_TAKEN') {
+            this.setCommunityIdentityStatus('taken', '✕ Este nombre ya está en uso');
+        } else {
+            this.setCommunityIdentityStatus('invalid', result.message || '✕ Nombre inválido');
+        }
+    } catch (error) {
+        if (requestId !== this.communityIdentityAvailabilityRequestId) {
+            return;
+        }
+
+        console.warn('[Community Identity] No se pudo comprobar disponibilidad:', error);
+        const message = navigator.onLine
+            ? 'No se pudo comprobar este nombre'
+            : 'Conéctate a internet para comprobar este nombre.';
+        this.setCommunityIdentityStatus('offline', message);
+    }
+},
+
+openCommunityIdentityModal: async function() {
+    const user = this.currentUser || await this.initAuth();
+    if (!user?.uid) {
+        this.showToast('No se pudo identificar al usuario');
+        return;
+    }
+
+    await this.getUserProfilesBatch([user.uid]);
+    await this.loadCurrentCommunityIdentityProfile({ force: true });
+    const initial = this.getCommunityIdentityInitialState();
+    this.selectedCommunityAvatarId = initial.avatarId;
+    this.selectedCommunityColorId = initial.colorId;
+    this.communityIdentityAvailability = null;
+
+    document.getElementById('communityIdentityModal')?.remove();
+    const container = this.$content || document.body;
+    container.insertAdjacentHTML('beforeend', this.renderCommunityIdentityModalHtml(initial));
+    if (this.communityIdentityProfile?.normalizedName) {
+        const validation = this.validateCommunityIdentityName(initial.displayName);
+        this.communityIdentityAvailability = {
+            ...validation,
+            available: validation.valid
+        };
+        this.setCommunityIdentityStatus(
+            validation.valid ? 'available' : 'invalid',
+            validation.valid ? 'Nombre actual' : validation.message
+        );
+    } else {
+        this.scheduleCommunityNameAvailabilityCheck(initial.displayName);
+    }
+},
+
+renderCommunityIdentityModalHtml: function(initial = {}) {
+    const avatars = window.AvatarPicker?.getAllAvatars?.() || [];
+    const colors = window.AvatarPicker?.COLOR_OPTIONS || [];
+    const resolvedAvatar = window.AvatarPicker?.resolveAvatar?.(initial.avatarId) || avatars[0] || { id: 'dove', icon: '🕊️' };
+    const resolvedColor = window.AvatarPicker?.resolveColor?.(initial.colorId) || colors[0] || { id: 'blue-01', value: '#4A90D9' };
+    const previewUri = window.AvatarGenerator?.generate?.('community-identity-preview', initial.displayName || 'Usuario', {
+        avatarId: resolvedAvatar.id,
+        avatarValue: resolvedAvatar.icon,
+        avatarIcon: resolvedAvatar.icon,
+        colorId: resolvedColor.id,
+        avatarColor: resolvedColor.value
+    }) || '';
+
+    return `
+        <div class="avatar-picker-overlay community-identity-overlay" id="communityIdentityModal" role="dialog" aria-modal="true" aria-labelledby="communityIdentityTitle">
+            <div class="avatar-picker-modal community-identity-modal">
+                <button type="button" class="avatar-picker-close" data-action="close-community-identity" aria-label="Cerrar">×</button>
+                <h3 id="communityIdentityTitle">${this.communityIdentityProfile?.normalizedName ? 'Editar mi Distintivo' : 'Crea tu Distintivo'}</h3>
+                <p class="community-identity-intro">Así aparecerás cuando participes en Comunidad.</p>
+
+                <div class="avatar-picker-preview-container">
+                    <div class="avatar-picker-preview-img" id="communityIdentityPreview" style="background-image: url('${previewUri}');"></div>
+                    <span class="avatar-picker-preview-label" id="communityIdentityPreviewName">${this.escapeHtml(initial.displayName || 'Tu nombre')}</span>
+                </div>
+
+                <div class="avatar-picker-body">
+                    <div class="avatar-picker-section">
+                        <label class="avatar-picker-label" for="communityIdentityNameInput">Nombre</label>
+                        <input
+                            type="text"
+                            id="communityIdentityNameInput"
+                            class="profile-name-input"
+                            placeholder="Escribe tu nombre..."
+                            maxlength="24"
+                            value="${this.escapeHtml(initial.displayName || '')}"
+                        />
+                        <div class="community-identity-status" id="communityIdentityNameStatus" role="status"></div>
+                    </div>
+
+                    <div class="avatar-picker-section">
+                        <label class="avatar-picker-label">Avatar</label>
+                        <div class="avatar-icon-grid">
+                            ${avatars.map(avatar => `
+                                <button type="button" class="avatar-icon-btn ${avatar.id === resolvedAvatar.id ? 'is-selected' : ''}" data-action="select-community-avatar" data-avatar-id="${this.escapeHtml(avatar.id)}" title="${this.escapeHtml(avatar.label || avatar.id)}">
+                                    ${this.escapeHtml(avatar.icon)}
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="avatar-picker-section">
+                        <label class="avatar-picker-label">Color</label>
+                        <div class="avatar-color-grid">
+                            ${colors.map(color => `
+                                <button type="button" class="avatar-color-btn ${color.id === resolvedColor.id ? 'is-selected' : ''}" data-action="select-community-color" data-color-id="${this.escapeHtml(color.id)}" aria-label="${this.escapeHtml(color.label)}" title="${this.escapeHtml(color.label)}" style="background-color: ${this.escapeHtml(color.value)};"></button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="avatar-picker-actions">
+                    <button type="button" class="btn-secondary" data-action="close-community-identity">Cancelar</button>
+                    <button type="button" class="btn-primary" data-action="save-community-identity" disabled>Guardar Distintivo</button>
+                </div>
+            </div>
+        </div>
+    `;
+},
+
+updateCommunityIdentityPreview: function() {
+    const nameInput = document.getElementById('communityIdentityNameInput');
+    const previewEl = document.getElementById('communityIdentityPreview');
+    const previewNameEl = document.getElementById('communityIdentityPreviewName');
+    if (!previewEl || !window.AvatarPicker || !window.AvatarGenerator) return;
+
+    const avatar = window.AvatarPicker.resolveAvatar(this.selectedCommunityAvatarId);
+    const color = window.AvatarPicker.resolveColor(this.selectedCommunityColorId);
+    const displayName = this.validateCommunityIdentityName(nameInput?.value || '').displayName || 'Usuario';
+    const uri = window.AvatarGenerator.generate('community-identity-preview', displayName, {
+        avatarId: avatar?.id,
+        avatarValue: avatar?.icon,
+        avatarIcon: avatar?.icon,
+        colorId: color?.id,
+        avatarColor: color?.value
+    });
+
+    previewEl.style.backgroundImage = `url('${uri}')`;
+    if (previewNameEl) previewNameEl.textContent = displayName || 'Tu nombre';
+},
+
+saveCommunityIdentity: async function() {
+    if (this.communityIdentitySaving) return;
+
+    const nameInput = document.getElementById('communityIdentityNameInput');
+    const validation = this.validateCommunityIdentityName(nameInput?.value || '');
+    if (!validation.valid) {
+        this.setCommunityIdentityStatus('invalid', validation.message || 'Nombre inválido');
+        return;
+    }
+
+    if (!navigator.onLine) {
+        this.setCommunityIdentityStatus('offline', 'Conéctate a internet para guardar tu distintivo.');
+        return;
+    }
+
+    if (
+        !this.communityIdentityAvailability?.available ||
+        this.communityIdentityAvailability.normalizedName !== validation.normalizedName
+    ) {
+        const isSameCurrentName = this.communityIdentityProfile?.normalizedName === validation.normalizedName;
+        if (isSameCurrentName) {
+            this.communityIdentityAvailability = {
+                ...validation,
+                available: true
+            };
+        } else {
+        this.scheduleCommunityNameAvailabilityCheck(validation.displayName);
+        return;
+        }
+    }
+
+    this.communityIdentitySaving = true;
+    this.setCommunityIdentityStatus('checking', 'Guardando...');
+
+    try {
+        await this.initAuth();
+        const callable = await this.getCommunityIdentityCallable('reserveCommunityNameAndProfile');
+        const response = await callable({
+            displayName: validation.displayName,
+            avatarId: this.selectedCommunityAvatarId,
+            colorId: this.selectedCommunityColorId
+        });
+        const profile = response?.data?.profile;
+
+        if (!profile) {
+            throw new Error('La función no devolvió un perfil válido');
+        }
+
+        this.communityIdentityProfile = profile;
+        this.communityIdentityProfileLoaded = true;
+        try {
+            localStorage.setItem(this.getCommunityIdentityStorageKey(profile.uid), JSON.stringify(profile));
+        } catch (error) {}
+
+        this.saveCommunityPreferences({
+            isAnonymous: false,
+            name: profile.displayName
+        });
+
+        document.getElementById('communityIdentityModal')?.remove();
+        this.showToast('Distintivo guardado correctamente');
+        await this.renderCommunity({ showSkeleton: false, preserveAnchor: true });
+    } catch (error) {
+        const code = error?.code || error?.message || '';
+        if (String(code).includes('already-exists') || String(code).includes('NAME_TAKEN')) {
+            this.setCommunityIdentityStatus('taken', '✕ Este nombre ya está en uso');
+        } else if (String(error?.message || '').includes('NAME_RESERVED')) {
+            this.setCommunityIdentityStatus('invalid', '✕ Este nombre no está permitido');
+        } else {
+            console.warn('[Community Identity] No se pudo guardar el distintivo:', error);
+            this.setCommunityIdentityStatus('invalid', 'No se pudo guardar el distintivo');
+        }
+    } finally {
+        this.communityIdentitySaving = false;
+    }
+},
+
+ensureCommunityIdentityForParticipation: async function() {
+    const profile = await this.loadCurrentCommunityIdentityProfile();
+    if (this.isValidCommunityIdentityProfile(profile)) {
+        return true;
+    }
+
+    await this.openCommunityIdentityModal();
+    this.showToast('Crea tu Distintivo para participar en Comunidad');
+    return false;
+},
+
+getCommunityAuthorDisplayName: function(item, legacyProfile = null) {
+    const snapshotName = item?.authorSnapshot?.displayName?.trim();
+    if (snapshotName) return snapshotName;
+
+    return legacyProfile?.displayName?.trim()
+        || item?.name?.trim()
+        || 'Hermano(a)';
+},
+
+getCommunityAuthorAvatarOptions: function(item, legacyProfile = null, isAnonymous = false) {
+    const snapshot = item?.authorSnapshot || null;
+
+    return {
+        isAnonymous,
+        avatarId: snapshot?.avatarId,
+        colorId: snapshot?.colorId,
+        avatarType: item?.avatarType || legacyProfile?.avatarType,
+        avatarValue: item?.avatarValue || item?.avatarIcon || legacyProfile?.avatarValue || legacyProfile?.avatarIcon,
+        avatarIcon: item?.avatarIcon || legacyProfile?.avatarIcon,
+        avatarColor: item?.avatarColor || legacyProfile?.avatarColor
+    };
+},
+
+isCommunityLegacyIdentityItem: function(item) {
+    return Boolean(
+        item?.ownerUid &&
+        !item?.authorSnapshot &&
+        !(item?.isAnonymous || !item?.name || item.name.trim().toLowerCase() === 'anónimo')
+    );
+},
+
+isCommunityOwnPost: function(post) {
+    return Boolean(
+        (post?.ownerUid && post.ownerUid === this.currentUser?.uid) ||
+        this.communityOwnedPosts?.[post?.id] === true
+    );
+},
+
+isCommunityOwnReply: function(reply) {
+    return Boolean(
+        (reply?.ownerUid && reply.ownerUid === this.currentUser?.uid) ||
+        this.communityOwnedReplies?.[reply?.id] === true
+    );
+},
+
+loadCommunityOwnershipForItems: async function(posts = [], repliesSummary = {}) {
+    if (!this.currentUser?.uid || !navigator.onLine) {
+        this.communityOwnedPosts = {};
+        this.communityOwnedReplies = {};
+        return;
+    }
+
+    const postIds = posts
+        .filter(post => post?.isAnonymous === true && post?.schemaVersion === 3 && post?.id)
+        .map(post => post.id);
+    const replyIds = Object.values(repliesSummary)
+        .flat()
+        .filter(reply => reply?.isAnonymous === true && reply?.schemaVersion === 3 && reply?.id)
+        .map(reply => reply.id);
+
+    if (!postIds.length && !replyIds.length) {
+        this.communityOwnedPosts = {};
+        this.communityOwnedReplies = {};
+        return;
+    }
+
+    try {
+        const callable = await this.getCommunityIdentityCallable('getCommunityOwnership');
+        const response = await callable({ postIds, replyIds });
+        this.communityOwnedPosts = response?.data?.posts || {};
+        this.communityOwnedReplies = response?.data?.replies || {};
+    } catch (error) {
+        console.warn('[Community] No se pudo comprobar ownership privado:', error);
+        this.communityOwnedPosts = {};
+        this.communityOwnedReplies = {};
+    }
+},
+
 openAvatarPickerModal: async function() {
     if (!this.currentUser?.uid) {
         this.showToast('Inicia sesión para personalizar tu avatar');
@@ -3187,6 +3695,14 @@ promoteCommunityPostAfterReply: function(postId) {
 
 async addCommunityPost(post) {
     try {
+        if (!navigator.onLine) {
+            return {
+                success: false,
+                code: 'offline',
+                message: 'Necesitas conexión a internet para publicar en Comunidad.'
+            };
+        }
+
         const validation = Sanitizer.validateText(post.text);
         if (!validation.valid) {
             this.showToast(validation.message);
@@ -3197,18 +3713,18 @@ async addCommunityPost(post) {
             };
         }
 
-        const safePost = {
+        const callable = await this.getCommunityIdentityCallable('createCommunityPost');
+        const response = await callable({
             reference: Sanitizer.sanitizeReference(post.reference),
-            name: Sanitizer.sanitizeUsername(post.name),
             text: Sanitizer.sanitizeText(post.text),
             date: post.date,
-            ownerUid: post.ownerUid,
-            createdAt: serverTimestamp(),
-            lastActivityAt: serverTimestamp()
-        };
+            isAnonymous: post.isAnonymous === true
+        });
+        const createdPost = response?.data || {};
 
-        const createdPost = await addDoc(collection(db, "communityPosts"), safePost);
-        return { success: true, id: createdPost.id };
+        return createdPost.success && createdPost.id
+            ? { success: true, id: createdPost.id }
+            : { success: false, code: 'function-failed', message: 'No se pudo compartir lo que Dios te habló' };
     } catch (error) {
         const errorDetails = {
             name: error?.name || null,
@@ -3221,40 +3737,28 @@ async addCommunityPost(post) {
         };
 
         console.error('[Community] Error creando communityPosts:', errorDetails, error);
+        if (String(errorDetails.message || '').includes('COMMUNITY_PROFILE_REQUIRED')) {
+            await this.openCommunityIdentityModal();
+        }
         return {
             success: false,
             code: errorDetails.code,
-            message: errorDetails.message
+            message: String(errorDetails.message || '').includes('COMMUNITY_PROFILE_REQUIRED')
+                ? 'Crea tu Distintivo para publicar con tu nombre'
+                : errorDetails.message
         };
     }
 },
 
 async deleteCommunityPost(postId) {
     try {
-        const repliesSnapshot = await getDocs(
-            query(collection(db, "communityReplies"), orderBy("createdAt", "asc"))
-        );
+        if (!navigator.onLine) {
+            this.showToast('Necesitas conexión a internet para eliminar contenido.');
+            return false;
+        }
 
-        const reactionSnapshot = await getDocs(collection(db, "communityReactions"));
-
-        const replyDeletes = [];
-        repliesSnapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            if (data.postId === postId) {
-                replyDeletes.push(deleteDoc(doc(db, "communityReplies", docSnap.id)));
-            }
-        });
-
-        const reactionDeletes = [];
-        reactionSnapshot.forEach(docSnap => {
-            const data = docSnap.data();
-            if (data.postId === postId) {
-                reactionDeletes.push(deleteDoc(doc(db, "communityReactions", docSnap.id)));
-            }
-        });
-
-        await Promise.all([...replyDeletes, ...reactionDeletes]);
-        await deleteDoc(doc(db, "communityPosts", postId));
+        const callable = await this.getCommunityIdentityCallable('deleteCommunityPost');
+        await callable({ postId });
 
         return true;
     } catch (error) {
@@ -3352,6 +3856,10 @@ createInAppNotification: async function(targetUserId, type, title, body, postId)
 
 async addCommunityReply(reply) {
     try {
+        if (!navigator.onLine) {
+            return { success: false, code: 'offline', message: 'Necesitas conexión a internet para publicar en Comunidad.' };
+        }
+
         const cleanText = Sanitizer.sanitizeText(reply.text || '');
 
         if (!cleanText) {
@@ -3366,11 +3874,18 @@ async addCommunityReply(reply) {
             return { success: false, message: `Máximo ${this.replyCharLimit} caracteres` };
         }
 
-        const createdReply = await addDoc(collection(db, "communityReplies"), {
-            ...reply,
+        const callable = await this.getCommunityIdentityCallable('createCommunityReply');
+        const response = await callable({
+            postId: reply.postId,
             text: cleanText,
-            createdAt: serverTimestamp()
+            date: reply.date,
+            isAnonymous: reply.isAnonymous === true
         });
+        const createdReply = response?.data || {};
+
+        if (!createdReply.success || !createdReply.id) {
+            return { success: false, code: 'function-failed', message: 'No se pudo guardar la respuesta' };
+        }
 
         const post = this.getCommunityFeedState().posts.find(p => p.id === reply.postId);
         if (post && post.ownerUid) {
@@ -3387,13 +3902,23 @@ async addCommunityReply(reply) {
         return { success: true, id: createdReply.id };
     } catch (error) {
         console.error("Error guardando respuesta:", error);
+        if (String(error?.message || '').includes('COMMUNITY_PROFILE_REQUIRED')) {
+            await this.openCommunityIdentityModal();
+            return { success: false, message: 'Crea tu Distintivo para responder con tu nombre' };
+        }
         return { success: false, message: 'No se pudo guardar la respuesta' };
     }
 },
 
 async deleteCommunityReply(replyId) {
     try {
-        await deleteDoc(doc(db, "communityReplies", replyId));
+        if (!navigator.onLine) {
+            this.showToast('Necesitas conexión a internet para eliminar contenido.');
+            return false;
+        }
+
+        const callable = await this.getCommunityIdentityCallable('deleteCommunityReply');
+        await callable({ replyId });
         return true;
     } catch (error) {
         console.error("Error eliminando respuesta:", error);
@@ -3829,6 +4354,11 @@ renderCommunityReactionBar: function(postId, reactionData = null) {
 renderReplyBlock: function(post, replies = []) {
     const isOpen = this.openReplyPostId === post.id;
     const draft = this.getReplyDraft(post.id);
+    const replyPreferences = this.getUserCommunityPreferences();
+    const replyIsAnonymous = replyPreferences.isAnonymous !== false;
+    const replyIdentityLabel = replyIsAnonymous
+        ? 'Responder como Anónimo'
+        : `Responder como ${this.escapeHtml(this.communityIdentityProfile?.displayName || replyPreferences.name || 'tu Distintivo')}`;
     const replyCount = replies.length;
     const latestReply = replyCount ? replies[replyCount - 1] : null;
     const latestReplyText = (latestReply?.text || '').replace(/<[^>]*>/g, '');
@@ -3886,6 +4416,15 @@ renderReplyBlock: function(post, replies = []) {
                         maxlength="${this.replyCharLimit}"
                     >${this.escapeHtml(draft)}</textarea>
 
+                    <label class="reply-anonymous-toggle">
+                        <input
+                            type="checkbox"
+                            class="reply-anonymous-checkbox"
+                            ${replyIsAnonymous ? 'checked' : ''}
+                        >
+                        <span>${replyIdentityLabel}</span>
+                    </label>
+
                     <div class="community-reply-form-footer">
                         <div class="community-reply-counter">
                             ${draft.length}/${this.replyCharLimit}
@@ -3918,19 +4457,15 @@ renderReplyBlock: function(post, replies = []) {
                 <div class="community-reply-list">
                     <div class="community-reply-list-title">Conversación edificante</div>
                     ${replies.map(reply => {
-                        const replyProfile = reply.ownerUid ? this.userProfilesCache?.[reply.ownerUid] : null;
+                        const replyProfile = this.isCommunityLegacyIdentityItem(reply) && reply.ownerUid ? this.userProfilesCache?.[reply.ownerUid] : null;
                         const isReplyAnon = reply.isAnonymous || !reply.name || reply.name.trim().toLowerCase() === 'anónimo';
                         const replyAuthorName = isReplyAnon
                             ? 'Anónimo'
-                            : (replyProfile?.displayName?.trim() || reply.name?.trim() || 'Hermano(a)');
+                            : this.getCommunityAuthorDisplayName(reply, replyProfile);
 
                         const replyAvatarSvg = typeof AvatarGenerator !== 'undefined'
                             ? AvatarGenerator.renderHtml(reply.avatarSeed || reply.ownerUid || reply.id, replyAuthorName, {
-                                isAnonymous: isReplyAnon,
-                                avatarType: reply.avatarType || replyProfile?.avatarType,
-                                avatarValue: reply.avatarValue || reply.avatarIcon || replyProfile?.avatarValue || replyProfile?.avatarIcon,
-                                avatarIcon: reply.avatarIcon || replyProfile?.avatarIcon,
-                                avatarColor: reply.avatarColor || replyProfile?.avatarColor
+                                ...this.getCommunityAuthorAvatarOptions(reply, replyProfile, isReplyAnon)
                             })
                             : '';
 
@@ -3945,7 +4480,7 @@ renderReplyBlock: function(post, replies = []) {
                                 ${this.formatCommunityRichText(reply.text || '')}
                             </div>
 
-                            ${reply.ownerUid === this.currentUser?.uid ? `
+                            ${this.isCommunityOwnReply(reply) ? `
                                 <div class="community-reply-actions">
                                     <button
                                         class="community-reply-delete"
@@ -13393,10 +13928,18 @@ renderCommunityComposerLocally: function() {
             'La información de Comunidad tardó demasiado'
         );
 
-        const authorUids = posts.map(p => p.ownerUid).concat(
-            Object.values(repliesSummary).flat().map(r => r.ownerUid)
-        );
+        const authorUids = posts
+            .filter(post => this.isCommunityLegacyIdentityItem(post))
+            .map(post => post.ownerUid)
+            .concat(
+                Object.values(repliesSummary)
+                    .flat()
+                    .filter(reply => this.isCommunityLegacyIdentityItem(reply))
+                    .map(reply => reply.ownerUid)
+            );
         await this.getUserProfilesBatch(authorUids);
+        await this.loadCurrentCommunityIdentityProfile();
+        await this.loadCommunityOwnershipForItems(posts, repliesSummary);
 
         loadingCompleted = true;
     } catch (error) {
@@ -13424,17 +13967,19 @@ const hasCommunityDraft = this.hasCommunityDraftContent(communityDraftState);
 const showCommunityDraftRestored =
     this.communityDraftRestoredNoticePending && hasCommunityDraft;
 const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
-const currentUserProfile = this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null;
-const userDisplayName = currentUserProfile?.displayName?.trim()
-    || this.currentUser?.displayName?.trim()
-    || 'Hermano(a)';
-const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
-    ? AvatarGenerator.generate(this.currentUser?.uid || 'user', this.currentUser?.displayName || 'Usuario', {
-        avatarType: currentUserProfile?.avatarType,
-        avatarValue: currentUserProfile?.avatarValue || currentUserProfile?.avatarIcon,
-        avatarIcon: currentUserProfile?.avatarIcon,
-        avatarColor: currentUserProfile?.avatarColor
-    })
+	const currentUserProfile = this.communityIdentityProfile || (this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null);
+	const userDisplayName = currentUserProfile?.displayName?.trim()
+	    || this.currentUser?.displayName?.trim()
+	    || 'Hermano(a)';
+	const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
+	    ? AvatarGenerator.generate(this.currentUser?.uid || 'user', userDisplayName || 'Usuario', {
+	        avatarId: currentUserProfile?.avatarId,
+	        avatarType: currentUserProfile?.avatarType,
+	        avatarValue: currentUserProfile?.avatarValue || currentUserProfile?.avatarIcon,
+	        avatarIcon: currentUserProfile?.avatarIcon,
+	        colorId: currentUserProfile?.colorId,
+	        avatarColor: currentUserProfile?.avatarColor
+	    })
     : '';
     
     // Renderizar el contenido
@@ -13444,8 +13989,8 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                 <div class="hero-avatar-section">
                     <div
                         class="hero-avatar-large"
-                        data-action="open-avatar-picker"
-                        title="Cambiar mi avatar y nombre"
+                        data-action="open-community-identity"
+                        title="Editar mi Distintivo"
                         style="background-image: url('${heroAvatarUri}');"
                     >
                         <div class="hero-avatar-edit-badge">✏️</div>
@@ -13463,6 +14008,13 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                             aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
                         >
                             Normas
+                        </button>
+                        <button
+                            class="community-rules-btn"
+                            type="button"
+                            data-action="open-community-identity"
+                        >
+                            Editar mi Distintivo
                         </button>
                     </div>
                 </div>
@@ -13507,7 +14059,7 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                 ${(() => {
                     let visiblePosts = posts;
                     if (this.communityTabFilter === 'my-posts' && this.currentUser?.uid) {
-                        visiblePosts = posts.filter(p => p.ownerUid === this.currentUser.uid);
+                        visiblePosts = posts.filter(p => this.isCommunityOwnPost(p));
                     } else if (this.communityTabFilter === 'favorites') {
                         visiblePosts = posts.filter(p => this.isPostFavorite(p.id));
                     }
@@ -13553,21 +14105,17 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                     return visiblePosts.map(post => {
                         const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
                         const replies = repliesSummary[post.id] || [];
-                        const userProfile = post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
+                        const userProfile = this.isCommunityLegacyIdentityItem(post) && post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
                         const isAnonymous = post.isAnonymous || !post.name || post.name.trim().toLowerCase() === 'anónimo';
                         const authorName = isAnonymous
                             ? 'Anónimo'
-                            : (userProfile?.displayName?.trim() || post.name?.trim() || 'Hermano(a)');
+                            : this.getCommunityAuthorDisplayName(post, userProfile);
                         const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
                         const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
 
                         const avatarSvg = typeof AvatarGenerator !== 'undefined'
                             ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {
-                                isAnonymous,
-                                avatarType: post.avatarType || userProfile?.avatarType,
-                                avatarValue: post.avatarValue || post.avatarIcon || userProfile?.avatarValue || userProfile?.avatarIcon,
-                                avatarIcon: post.avatarIcon || userProfile?.avatarIcon,
-                                avatarColor: post.avatarColor || userProfile?.avatarColor
+                                ...this.getCommunityAuthorAvatarOptions(post, userProfile, isAnonymous)
                             })
                             : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
 
@@ -13579,7 +14127,7 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
                                     <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
                                     <button type="button" data-action="speech-post" data-post-id="${post.id}">${this.currentlySpeakingPostId === post.id ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta'}</button>
                                     <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar favorito'}</button>
-                                    ${post.ownerUid && post.ownerUid === this.currentUser?.uid ? `
+                                    ${this.isCommunityOwnPost(post) ? `
                                         <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
                                     ` : ''}
                                 </div>
@@ -13616,7 +14164,7 @@ const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
 
                                     ${this.renderReplyBlock(post, replies)}
 
-                                      ${post.ownerUid === this.currentUser?.uid ? `
+                                      ${this.isCommunityOwnPost(post) ? `
         <div class="community-actions">
             <button class="community-delete-main" data-action="delete-community-post" data-id="${post.id}">
                 🗑️ Eliminar
@@ -16951,6 +17499,15 @@ if (discardCommunityDraftBtn) {
            
 const publishCommunityBtn = e.target.closest('[data-action="publish-community-reflection"]');
 if (publishCommunityBtn) {
+    if (this.communityPostSubmitting) {
+        return;
+    }
+
+    if (!navigator.onLine) {
+        this.showToast('Necesitas conexión a internet para publicar en Comunidad.');
+        return;
+    }
+
     const nameInput = document.getElementById('community-name');
     const anonymousInput = document.getElementById('community-anonymous');
     const reflectionInput = document.getElementById('community-reflection');
@@ -16987,6 +17544,11 @@ if (publishCommunityBtn) {
     const displayName = isAnonymous
         ? 'Anónimo'
         : (Sanitizer.sanitizeUsername(typedName) || 'Anónimo');
+
+    if (!isAnonymous && !(await this.ensureCommunityIdentityForParticipation())) {
+        return;
+    }
+
     this.saveCommunityPreferences({
         isAnonymous,
         name: typedName
@@ -17006,13 +17568,21 @@ if (publishCommunityBtn) {
         name: displayName,
         text: reflectionText,
         date: todayStr,
-        ownerUid: this.currentUser.uid
+        isAnonymous
     };
+
+    this.communityPostSubmitting = true;
+    publishCommunityBtn.disabled = true;
+    const originalPublishText = publishCommunityBtn.textContent;
+    publishCommunityBtn.textContent = 'Publicando...';
 
     const result = await this.addCommunityPost(newPost);
 
     if (!result.success) {
-        this.showToast('No se pudo compartir lo que Dios te habló');
+        this.communityPostSubmitting = false;
+        publishCommunityBtn.disabled = false;
+        publishCommunityBtn.textContent = originalPublishText;
+        this.showToast(result.message || 'No se pudo compartir lo que Dios te habló');
         return;
     }
 
@@ -17041,12 +17611,13 @@ if (publishCommunityBtn) {
     }).catch(error => {
         console.warn('[Community] No se pudo sincronizar la publicación en segundo plano:', error);
     });
+    this.communityPostSubmitting = false;
     return;
 }
            
 const deleteCommunityBtn = e.target.closest('[data-action="delete-community-post"]');
 if (deleteCommunityBtn) {
-    const postId = deleteCommunityBtn.getAttribute('data-id');
+    const postId = deleteCommunityBtn.getAttribute('data-id') || deleteCommunityBtn.getAttribute('data-post-id');
 
     if (confirm('¿Deseas eliminar este eco de la lectura?')) {
         const success = await this.deleteCommunityPost(postId);
@@ -17087,10 +17658,52 @@ if (openAvatarPickerBtn) {
     return;
 }
 
+const openCommunityIdentityBtn = e.target.closest('[data-action="open-community-identity"]');
+if (openCommunityIdentityBtn) {
+    await this.openCommunityIdentityModal();
+    return;
+}
+
 const closeAvatarPickerBtn = e.target.closest('[data-action="close-avatar-picker"]');
 if (closeAvatarPickerBtn) {
     const modal = document.getElementById('avatarPickerModal');
     if (modal) modal.remove();
+    return;
+}
+
+const closeCommunityIdentityBtn = e.target.closest('[data-action="close-community-identity"]');
+if (closeCommunityIdentityBtn || e.target.id === 'communityIdentityModal') {
+    document.getElementById('communityIdentityModal')?.remove();
+    return;
+}
+
+const communityIdentityAvatarBtn = e.target.closest('[data-action="select-community-avatar"]');
+if (communityIdentityAvatarBtn) {
+    const avatarId = communityIdentityAvatarBtn.getAttribute('data-avatar-id');
+    if (avatarId && window.AvatarPicker?.isValidAvatarId?.(avatarId)) {
+        this.selectedCommunityAvatarId = avatarId;
+        document.querySelectorAll('[data-action="select-community-avatar"]').forEach(btn => btn.classList.remove('is-selected'));
+        communityIdentityAvatarBtn.classList.add('is-selected');
+        this.updateCommunityIdentityPreview();
+    }
+    return;
+}
+
+const communityIdentityColorBtn = e.target.closest('[data-action="select-community-color"]');
+if (communityIdentityColorBtn) {
+    const colorId = communityIdentityColorBtn.getAttribute('data-color-id');
+    if (colorId && window.AvatarPicker?.isValidColorId?.(colorId)) {
+        this.selectedCommunityColorId = colorId;
+        document.querySelectorAll('[data-action="select-community-color"]').forEach(btn => btn.classList.remove('is-selected'));
+        communityIdentityColorBtn.classList.add('is-selected');
+        this.updateCommunityIdentityPreview();
+    }
+    return;
+}
+
+const saveCommunityIdentityBtn = e.target.closest('[data-action="save-community-identity"]');
+if (saveCommunityIdentityBtn) {
+    await this.saveCommunityIdentity();
     return;
 }
 
@@ -17127,6 +17740,7 @@ if (saveAvatarBtn) {
 const toggleReplyBtn = e.target.closest('[data-action="toggle-reply-form"]');
 if (toggleReplyBtn) {
     const postId = toggleReplyBtn.getAttribute('data-post-id');
+
     this.toggleReplyForm(postId);
     this.renderCommunity({
         showSkeleton: false,
@@ -17153,6 +17767,15 @@ if (cancelReplyBtn) {
 
 const publishReplyBtn = e.target.closest('[data-action="publish-reply"]');
 if (publishReplyBtn) {
+    if (this.communityReplySubmitting) {
+        return;
+    }
+
+    if (!navigator.onLine) {
+        this.showToast('Necesitas conexión a internet para publicar en Comunidad.');
+        return;
+    }
+
     const postId = publishReplyBtn.getAttribute('data-post-id');
     const text = this.getReplyDraft(postId).trim();
 
@@ -17171,16 +17794,27 @@ if (publishReplyBtn) {
     const displayName = isAnonymous ? 'Anónimo' : 
         (Sanitizer.sanitizeUsername(userPrefs.name || this.currentUser?.displayName) || 'Hermano(a)');
 
+    if (!isAnonymous && !(await this.ensureCommunityIdentityForParticipation())) {
+        return;
+    }
+
+    this.communityReplySubmitting = true;
+    publishReplyBtn.disabled = true;
+    const originalReplyText = publishReplyBtn.textContent;
+    publishReplyBtn.textContent = 'Enviando...';
+
     const result = await this.addCommunityReply({
         postId,
         name: displayName,
         text,
         date: this.getTodayDateStr(),
-        ownerUid: this.currentUser.uid,
-        avatarSeed: this.currentUser.uid
+        isAnonymous
     });
 
     if (!result.success) {
+        this.communityReplySubmitting = false;
+        publishReplyBtn.disabled = false;
+        publishReplyBtn.textContent = originalReplyText;
         this.showToast(result.message || 'No se pudo guardar la respuesta');
         return;
     }
@@ -17201,6 +17835,7 @@ if (publishReplyBtn) {
     }).catch(error => {
         console.warn('[Community] No se pudo sincronizar la respuesta en segundo plano:', error);
     });
+    this.communityReplySubmitting = false;
     return;
 }
 
@@ -17290,6 +17925,12 @@ if (replyAnonCheckbox) {
     const prefs = this.getUserCommunityPreferences();
     prefs.isAnonymous = replyAnonCheckbox.checked;
     this.setUserCommunityPreferences(prefs);
+    const label = replyAnonCheckbox.closest('.reply-anonymous-toggle')?.querySelector('span');
+    if (label) {
+        label.textContent = replyAnonCheckbox.checked
+            ? 'Responder como Anónimo'
+            : `Responder como ${this.communityIdentityProfile?.displayName || prefs.name || 'tu Distintivo'}`;
+    }
 }
 
 const communityReactionBtn = e.target.closest('[data-action="community-reaction-toggle"]');
@@ -17702,7 +18343,12 @@ if (navItem) {
         });
     }
 
-// ✅ NUEVO: Búsqueda en la Biblia
+    if (e.target.id === 'communityIdentityNameInput') {
+        this.scheduleCommunityNameAvailabilityCheck(e.target.value);
+        this.updateCommunityIdentityPreview();
+    }
+
+	// ✅ NUEVO: Búsqueda en la Biblia
 if (e.target.id === 'bible-search-input') {
     const query = e.target.value;
     this.bibleSearchRequestId += 1;

@@ -3962,6 +3962,36 @@ body.dark-mode .devotional-step-tab.active {
     display: none;
 }
 
+.community-identity-intro {
+    margin: -4px 0 16px;
+    color: var(--text-muted);
+    font-size: 0.92rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.community-identity-status {
+    min-height: 20px;
+    margin-top: 7px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.community-identity-status.is-available {
+    color: #2f855a;
+}
+
+.community-identity-status.is-taken,
+.community-identity-status.is-invalid {
+    color: #c53030;
+}
+
+.community-identity-status.is-checking,
+.community-identity-status.is-offline {
+    color: #b7791f;
+}
+
 .community-check-label {
     width: fit-content;
     display: flex;

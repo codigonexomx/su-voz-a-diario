@@ -1,4 +1,4 @@
-const APP_VERSION = "202";
+const APP_VERSION = "203";
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -27,6 +27,7 @@ const STATIC_ASSETS = [
   './js/KeyboardManager.js?v=173',
   './js/DeepeningShell.js?v=173',
   './js/utils/dompurify.min.js?v=173',
+  './js/communityIdentity.js?v=173',
   './js/avatarGenerator.js?v=173',
   './js/richTextEditor.js?v=173',
   './js/voiceReflections.js?v=173',
@@ -87,26 +88,27 @@ const STATIC_ASSETS = [
 const REQUIRED_ASSETS = new Set([
   './',
   './index.html',
-  './manifest.json?v=157',
-  './css/styles.css?v=157',
-  './css/deepening-mode.css?v=157',
-  './css/deepening-shell.css?v=157',
-  './css/meditation-document-viewer.css?v=157',
-  './css/meditation-actions-panel.css?v=157',
-  './js/NotebookGestureController.js?v=157',
-  './js/app.js?v=157',
-  './js/ReadingPositionManager.js?v=157',
-  './js/ReadingDocument.js?v=157',
-  './js/DocumentFactory.js?v=157',
-  './js/DocumentExporter.js?v=157',
-  './js/PdfDocumentBuilder.js?v=157',
-  './js/PdfExporter.js?v=157',
-  './js/ShareService.js?v=157',
-  './js/MeditationDocumentViewer.js?v=157',
-  './js/MeditationActionsPanel.js?v=157',
-  './js/MeditationDocument.js?v=157',
-  './js/KeyboardManager.js?v=157',
-  './js/DeepeningShell.js?v=157'
+  './manifest.json?v=173',
+  './css/styles.css?v=173',
+  './css/deepening-mode.css?v=173',
+  './css/deepening-shell.css?v=173',
+  './css/meditation-document-viewer.css?v=173',
+  './css/meditation-actions-panel.css?v=173',
+  './js/NotebookGestureController.js?v=173',
+  './js/app.js?v=173',
+  './js/ReadingPositionManager.js?v=173',
+  './js/ReadingDocument.js?v=173',
+  './js/DocumentFactory.js?v=173',
+  './js/DocumentExporter.js?v=173',
+  './js/PdfDocumentBuilder.js?v=173',
+  './js/PdfExporter.js?v=173',
+  './js/ShareService.js?v=173',
+  './js/MeditationDocumentViewer.js?v=173',
+  './js/MeditationActionsPanel.js?v=173',
+  './js/MeditationDocument.js?v=173',
+  './js/KeyboardManager.js?v=173',
+  './js/DeepeningShell.js?v=173',
+  './js/communityIdentity.js?v=173'
 ]);
 
 // Firebase compat en Service Worker.

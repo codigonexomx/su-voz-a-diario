@@ -38,49 +38,16 @@ class OfflineManager {
     }
 
     async createPostOffline(postData) {
-        const item = {
-            ...postData,
-            createdAt: new Date().toISOString(),
-            offlineId: `offline_${Date.now()}`
-        };
-        this.pendingPosts.push(item);
-        this.savePendingPosts();
-
         if (window.app?.showToast) {
-            window.app.showToast('Guardado sin conexión. Se publicará automáticamente al reconectarse.');
+            window.app.showToast('Necesitas conexión a internet para publicar en Comunidad.');
         }
 
-        return { success: true, offline: true, id: item.offlineId };
+        return { success: false, offline: true, message: 'Necesitas conexión a internet para publicar en Comunidad.' };
     }
 
     async syncPending() {
         if (!this.isOnline || this.pendingPosts.length === 0) return;
-
-        const db = window.firebaseDb;
-        const fns = window.firebaseFns;
-        if (!db || !fns?.addDoc || !fns?.collection) return;
-
-        const toSync = [...this.pendingPosts];
-        for (const post of toSync) {
-            try {
-                const { offlineId, ...safePost } = post;
-                safePost.createdAt = fns.serverTimestamp();
-                safePost.lastActivityAt = fns.serverTimestamp();
-
-                await fns.addDoc(fns.collection(db, 'communityPosts'), safePost);
-                this.pendingPosts = this.pendingPosts.filter(p => p.offlineId !== offlineId);
-                this.savePendingPosts();
-            } catch (error) {
-                console.error('[OfflineManager] Error al sincronizar post pendiente:', error);
-            }
-        }
-
-        if (toSync.length > 0 && window.app?.showToast) {
-            window.app.showToast('Publicaciones offline sincronizadas con éxito.');
-            if (window.app?.renderCommunity) {
-                window.app.renderCommunity({ forceRefresh: true });
-            }
-        }
+        console.warn('[OfflineManager] La cola legacy de Comunidad queda deshabilitada; publicar requiere Functions y conexión.');
     }
 
     showOfflineBanner() {
