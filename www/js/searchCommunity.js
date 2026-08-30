@@ -83,7 +83,7 @@ class CommunitySearch {
 
         container.innerHTML = results.map(post => `
             <div class="search-result-item" data-post-id="${post.id}">
-                <strong>${this.escapeHtml(post.authorSnapshot?.displayName || post.name || 'Anónimo')}</strong> · <small>${this.escapeHtml(post.reference || '')}</small>
+                <strong>${this.escapeHtml(this.getDisplayName(post))}</strong> · <small>${this.escapeHtml(post.reference || '')}</small>
                 <div class="search-result-snippet">${this.escapeHtml((post.text || '').substring(0, 80))}...</div>
             </div>
         `).join('');
@@ -99,6 +99,18 @@ class CommunitySearch {
                 container.style.display = 'none';
             });
         });
+    }
+
+    getDisplayName(post) {
+        if (
+            post?.isAnonymous === true ||
+            !post?.name ||
+            post.name.trim().toLowerCase() === 'anónimo'
+        ) {
+            return 'Anónimo';
+        }
+
+        return post.authorSnapshot?.displayName || post.name || 'Anónimo';
     }
 
     escapeHtml(str) {

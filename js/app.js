@@ -2346,10 +2346,23 @@ loadCurrentCommunityIdentityProfile: async function({ force = false } = {}) {
         } catch (error) {}
         return profile;
     } catch (error) {
-        console.warn('[Community Identity] No se pudo leer communityProfiles:', error);
         this.communityIdentityProfileLoaded = true;
+        if (this.isCommunityPermissionDeniedError(error)) {
+            console.debug('[Community Identity] communityProfiles no disponible temporalmente por Rules de transición.');
+            return this.communityIdentityProfile;
+        }
+
+        console.warn('[Community Identity] No se pudo leer communityProfiles:', error);
         return this.communityIdentityProfile;
     }
+},
+
+isCommunityPermissionDeniedError: function(error) {
+    const code = String(error?.code || '').toLowerCase();
+    const message = String(error?.message || error || '').toLowerCase();
+    return code.includes('permission-denied') ||
+        message.includes('permission-denied') ||
+        message.includes('missing or insufficient permissions');
 },
 
 getCommunityIdentityInitialState: function() {
@@ -2693,6 +2706,14 @@ getCommunityAuthorDisplayName: function(item, legacyProfile = null) {
         || 'Hermano(a)';
 },
 
+isCommunityAnonymousIdentity: function(item) {
+    return Boolean(
+        item?.isAnonymous === true ||
+        !item?.name ||
+        item.name.trim().toLowerCase() === 'anónimo'
+    );
+},
+
 getCommunityAuthorAvatarOptions: function(item, legacyProfile = null, isAnonymous = false) {
     const snapshot = item?.authorSnapshot || null;
 
@@ -2711,7 +2732,7 @@ isCommunityLegacyIdentityItem: function(item) {
     return Boolean(
         item?.ownerUid &&
         !item?.authorSnapshot &&
-        !(item?.isAnonymous || !item?.name || item.name.trim().toLowerCase() === 'anónimo')
+        !this.isCommunityAnonymousIdentity(item)
     );
 },
 
@@ -4458,7 +4479,7 @@ renderReplyBlock: function(post, replies = []) {
                     <div class="community-reply-list-title">Conversación edificante</div>
                     ${replies.map(reply => {
                         const replyProfile = this.isCommunityLegacyIdentityItem(reply) && reply.ownerUid ? this.userProfilesCache?.[reply.ownerUid] : null;
-                        const isReplyAnon = reply.isAnonymous || !reply.name || reply.name.trim().toLowerCase() === 'anónimo';
+                        const isReplyAnon = this.isCommunityAnonymousIdentity(reply);
                         const replyAuthorName = isReplyAnon
                             ? 'Anónimo'
                             : this.getCommunityAuthorDisplayName(reply, replyProfile);
@@ -14106,11 +14127,11 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
                         const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
                         const replies = repliesSummary[post.id] || [];
                         const userProfile = this.isCommunityLegacyIdentityItem(post) && post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
-                        const isAnonymous = post.isAnonymous || !post.name || post.name.trim().toLowerCase() === 'anónimo';
+                        const isAnonymous = this.isCommunityAnonymousIdentity(post);
                         const authorName = isAnonymous
                             ? 'Anónimo'
                             : this.getCommunityAuthorDisplayName(post, userProfile);
-                        const displayAuthorName = isAnonymous ? 'Alguien de la comunidad' : authorName;
+                        const displayAuthorName = authorName;
                         const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
 
                         const avatarSvg = typeof AvatarGenerator !== 'undefined'
