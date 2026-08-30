@@ -9,18 +9,37 @@ if (getApps().length === 0) {
 
 const db = getFirestore();
 const dryRun = !process.argv.includes("--write");
+const MODERN_IDENTITY_FIELDS = [
+  "authorSnapshot",
+  "avatarId",
+  "colorId",
+  "normalizedName",
+  "profileId",
+];
+
+function hasOwn(data, field) {
+  return Object.prototype.hasOwnProperty.call(data || {}, field);
+}
+
+function hasNonEmptyString(data, field) {
+  return typeof data?.[field] === "string" && data[field].trim().length > 0;
+}
+
+function hasModernIdentityFields(data) {
+  return MODERN_IDENTITY_FIELDS.some((field) => hasOwn(data, field));
+}
 
 function isLegacyAnonymousPost(data) {
   return Boolean(
     data &&
     data.name === "Anónimo" &&
-    typeof data.ownerUid === "string" &&
-    data.ownerUid.length > 0 &&
-    data.isAnonymous === true &&
+    hasNonEmptyString(data, "ownerUid") &&
+    data.isAnonymous !== false &&
     data.schemaVersion !== 3 &&
-    typeof data.text === "string" &&
-    typeof data.reference === "string" &&
-    typeof data.date === "string"
+    hasNonEmptyString(data, "text") &&
+    hasNonEmptyString(data, "reference") &&
+    hasNonEmptyString(data, "date") &&
+    !hasModernIdentityFields(data)
   );
 }
 
@@ -28,13 +47,13 @@ function isLegacyAnonymousReply(data) {
   return Boolean(
     data &&
     data.name === "Anónimo" &&
-    typeof data.ownerUid === "string" &&
-    data.ownerUid.length > 0 &&
-    data.isAnonymous === true &&
+    hasNonEmptyString(data, "ownerUid") &&
+    data.isAnonymous !== false &&
     data.schemaVersion !== 3 &&
-    typeof data.postId === "string" &&
-    typeof data.text === "string" &&
-    typeof data.date === "string"
+    hasNonEmptyString(data, "postId") &&
+    hasNonEmptyString(data, "text") &&
+    hasNonEmptyString(data, "date") &&
+    !hasModernIdentityFields(data)
   );
 }
 
@@ -45,6 +64,8 @@ function isAlreadyMigrated(data, privateExists) {
 function publicPostUpdate() {
   return {
     ownerUid: FieldValue.delete(),
+    authorUid: FieldValue.delete(),
+    uid: FieldValue.delete(),
     authorSnapshot: FieldValue.delete(),
     avatarSeed: FieldValue.delete(),
     avatarId: FieldValue.delete(),
@@ -60,6 +81,8 @@ function publicPostUpdate() {
 function publicReplyUpdate() {
   return {
     ownerUid: FieldValue.delete(),
+    authorUid: FieldValue.delete(),
+    uid: FieldValue.delete(),
     authorSnapshot: FieldValue.delete(),
     avatarSeed: FieldValue.delete(),
     avatarId: FieldValue.delete(),
@@ -211,8 +234,6 @@ async function main() {
     repliesMigrable: replies.migrable.length,
     repliesAmbiguous: replies.ambiguous.length,
     repliesAlreadyMigrated: replies.alreadyMigrated.length,
-    postIds: posts,
-    replyIds: replies,
   };
 
   console.log(JSON.stringify(summary, null, 2));
@@ -229,7 +250,20 @@ async function main() {
   await migrateReplies(replies.migrable);
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  hasModernIdentityFields,
+  isAlreadyMigrated,
+  isLegacyAnonymousPost,
+  isLegacyAnonymousReply,
+  privatePostDocument,
+  privateReplyDocument,
+  publicPostUpdate,
+  publicReplyUpdate,
+};
