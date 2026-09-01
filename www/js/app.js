@@ -4139,10 +4139,18 @@ hasCommunityDraftContent: function(draft = this.loadCommunityDraftState()) {
 getCommunityTodayContext: function() {
     const readingDate = this.getTodayDateStr();
     const reading = this.getReadingMetadataByDate(readingDate);
+    const reference = reading?.reference || 'Lectura del día';
+    const isToday = readingDate === this.getTodayDateStr();
+    const dateLabel = this.formatCommunityReadingDateLabel(readingDate);
 
     return {
         readingDate,
-        reference: reading?.reference || 'Lectura del día'
+        reference,
+        dateLabel,
+        contextLabel: isToday ? 'Lectura de hoy' : `Lectura del ${dateLabel.toLowerCase()}`,
+        isToday,
+        isHistorical: !isToday,
+        metadata: reading
     };
 },
 
@@ -9085,6 +9093,18 @@ updateDailyReadingVoiceUI: function() {
     });
 },
 
+formatCommunityReadingDateLabel: function(dateStr) {
+    if (!dateStr) return '';
+
+    const date = new Date(`${dateStr}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return '';
+
+    return date.toLocaleDateString('es-ES', {
+        day: 'numeric',
+        month: 'short'
+    }).replace('.', '').toUpperCase();
+},
+
 
 // ========================================
 // NUEVO SISTEMA DE VERSÍCULOS SELECCIONABLES
@@ -13992,7 +14012,9 @@ const showCommunityDraftRestored =
 		const userDisplayName = currentUserProfile?.displayName?.trim()
 		    || this.currentUser?.displayName?.trim()
 		    || 'Hermano(a)';
-        const todayReadingDateLabel = this.formatDateEs(todayStr);
+        const todayReadingDateLabel = todayContext.dateLabel || this.formatCommunityReadingDateLabel(todayStr);
+        const todayReadingContextLabel = todayContext.contextLabel || 'Lectura de hoy';
+        const todayReadingAriaLabel = `${todayContext.isToday ? 'Abrir lectura de hoy' : 'Abrir lectura'}: ${todayReference}`;
 		const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
 		    ? AvatarGenerator.generate(this.currentUser?.uid || 'user', userDisplayName || 'Usuario', {
 		        avatarId: currentUserProfile?.avatarId,
@@ -14051,11 +14073,18 @@ const showCommunityDraftRestored =
 	                </section>
 	            ` : ''}
 
-	            <aside class="community-reading-context" aria-label="Lectura de hoy en Comunidad">
-	                <span class="community-reading-context-label">Lectura de hoy</span>
+	            <button
+	                class="community-reading-context"
+	                type="button"
+	                data-nav="reading"
+	                data-param="${this.escapeHtml(todayStr)}"
+	                aria-label="${this.escapeHtml(todayReadingAriaLabel)}"
+	                title="Ver lectura"
+	            >
+	                <span class="community-reading-context-label">${this.escapeHtml(todayReadingContextLabel)}</span>
 	                <strong class="community-reading-context-reference">${this.escapeHtml(todayReference)}</strong>
 	                <span class="community-reading-context-date">${this.escapeHtml(todayReadingDateLabel)}</span>
-	            </aside>
+	            </button>
 
 	            ${this.communityFormOpen
 	                ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
