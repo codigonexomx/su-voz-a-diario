@@ -3537,14 +3537,54 @@ body.dark-mode .devotional-step-tab.active {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    padding: 14px;
-    border: 1px solid color-mix(in srgb, var(--border-color) 78%, transparent);
-    border-radius: 16px;
-    background:
-        linear-gradient(135deg, rgba(49, 130, 206, 0.045), transparent 46%),
-        var(--surface-color);
-    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.045);
+    gap: 16px;
+    padding: 18px 22px;
+    border: 1px solid var(--community-border, #E8DED0);
+    border-radius: 20px;
+    background: var(--community-surface, #FDFBF7);
+    box-shadow: var(--community-shadow, 0 8px 24px rgba(23, 47, 85, 0.04));
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.community-composer-layout {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    width: 100%;
+}
+
+.community-composer-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+}
+
+.community-composer-identity {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.community-composer-identity-avatar {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
+}
+
+.community-composer-identity-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--community-text-secondary, #5C6B82);
+    text-transform: capitalize;
 }
 
 .community-composer-copy {
@@ -3552,38 +3592,41 @@ body.dark-mode .devotional-step-tab.active {
 }
 
 .community-composer-question {
-    color: var(--text-main);
-    font-size: 0.96rem;
-    font-weight: 750;
-    line-height: 1.25;
+    color: var(--community-text, #172F55);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.3;
 }
 
-.community-composer-reference {
-    margin-top: 4px;
-    color: var(--text-muted);
-    font-size: 0.78rem;
-    font-weight: 650;
-    line-height: 1.25;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.community-composer-subtitle {
+    margin-top: 3px;
+    color: var(--community-text-secondary, #5C6B82);
+    font-family: var(--font-ui);
+    font-size: 0.84rem;
+    font-weight: 500;
+    line-height: 1.35;
 }
 
 .community-composer-btn {
     flex: 0 0 auto;
-    min-height: 40px;
-    max-width: 13.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 20px;
     border: none;
-    border-radius: 12px;
-    padding: 8px 14px;
-    background: var(--accent);
-    color: #fff;
-    box-shadow: 0 7px 16px rgba(49, 130, 206, 0.22);
+    border-radius: 14px;
+    background: var(--community-navy, #172F55);
+    color: #FFFFFF;
+    box-shadow: 0 6px 16px rgba(23, 47, 85, 0.16);
     cursor: pointer;
     font-family: var(--font-ui);
-    font-size: 0.86rem;
-    font-weight: 750;
+    font-size: 0.88rem;
+    font-weight: 650;
     line-height: 1.15;
+    transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .community-guidelines {
@@ -3952,24 +3995,26 @@ body.dark-mode .devotional-step-tab.active {
 }
 
 .community-form-card {
-    background:
-        linear-gradient(135deg, rgba(49, 130, 206, 0.035), transparent 48%),
-        var(--surface-color);
-    border: 1px solid color-mix(in srgb, var(--border-color) 82%, transparent);
-    border-radius: 16px;
-    padding: 15px 14px;
-    box-shadow: 0 7px 20px rgba(15, 23, 42, 0.045);
+    background: var(--community-surface, #FDFBF7);
+    border: 1px solid var(--community-border, #E8DED0);
+    border-radius: 20px;
+    padding: 20px 22px;
+    box-shadow: var(--community-shadow, 0 8px 24px rgba(23, 47, 85, 0.04));
     display: flex;
     flex-direction: column;
-    gap: 11px;
-    animation: fadeNote 0.22s ease;
+    gap: 16px;
+    animation: composerExpand 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.community-form-title {
-    font-size: 0.96rem;
-    font-weight: 800;
-    color: var(--text-main);
-    margin-bottom: 0;
+@keyframes composerExpand {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .community-passage-context {
@@ -3977,25 +4022,23 @@ body.dark-mode .devotional-step-tab.active {
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 10px;
-    padding: 9px 11px;
-    border: 1px solid var(--community-border-soft);
-    border-radius: 13px;
-    background: var(--community-surface-soft);
-    color: var(--community-text-tertiary);
-    box-shadow: none;
-    font-size: 0.78rem;
-    font-weight: 700;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid color-mix(in srgb, var(--community-border, #E8DED0) 60%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--community-border, #E8DED0) 20%, transparent);
+    font-size: 0.8rem;
+    font-weight: 500;
 }
 
-.community-passage-context strong {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--community-text-secondary);
-    font-size: 0.84rem;
-    font-weight: 800;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.community-passage-label {
+    color: var(--community-text-secondary, #5C6B82);
+    font-weight: 500;
+}
+
+.community-passage-ref {
+    color: var(--community-text, #172F55);
+    font-weight: 700;
 }
 
 .community-update-context {
@@ -4003,16 +4046,25 @@ body.dark-mode .devotional-step-tab.active {
     border: 0;
     padding: 0;
     background: transparent;
-    color: var(--accent);
+    color: var(--accent, #3182CE);
     cursor: pointer;
     font-family: var(--font-ui);
     font-size: 0.76rem;
-    font-weight: 750;
+    font-weight: 650;
     text-align: right;
 }
 
 .community-update-context:hover {
     text-decoration: underline;
+}
+
+.community-form-title {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.22rem;
+    font-weight: 700;
+    color: var(--community-text, #172F55);
+    line-height: 1.3;
+    margin: 0;
 }
 
 .community-form-group {
@@ -4022,29 +4074,111 @@ body.dark-mode .devotional-step-tab.active {
 }
 
 .community-label {
-    font-size: 0.84rem;
-    font-weight: 750;
-    color: var(--text-main);
+    font-size: 0.82rem;
+    font-weight: 650;
+    color: var(--community-text-secondary, #5C6B82);
+}
+
+/* Editor Wrapper & Content */
+.community-editor-wrapper {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--community-border, #E8DED0);
+    border-radius: 16px;
+    background: #FFFFFF;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.community-editor-wrapper:focus-within {
+    border-color: var(--accent, #3182CE);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #3182CE) 16%, transparent);
+}
+
+.rich-editor-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-bottom: 1px solid color-mix(in srgb, var(--community-border, #E8DED0) 50%, transparent);
+    background: color-mix(in srgb, var(--community-surface, #FDFBF7) 80%, transparent);
+}
+
+.rich-toolbar-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    color: var(--community-text-secondary, #5C6B82);
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.rich-toolbar-btn:hover {
+    background: color-mix(in srgb, var(--community-text, #172F55) 8%, transparent);
+    color: var(--community-text, #172F55);
+}
+
+.rich-toolbar-btn:active,
+.rich-toolbar-btn.is-active {
+    background: color-mix(in srgb, var(--accent, #3182CE) 15%, transparent);
+    color: var(--accent, #3182CE);
 }
 
 .community-input,
 .community-textarea {
     width: 100%;
-    border: 1px solid var(--border-color);
-    border-radius: 13px;
-    padding: 11px 12px;
+    border: 1px solid var(--community-border, #E8DED0);
+    border-radius: 12px;
+    padding: 11px 14px;
     font-size: 0.92rem;
     font-family: var(--font-ui);
-    background: var(--bg-color);
-    color: var(--text-main);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    background: #FFFFFF;
+    color: var(--community-text, #172F55);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.community-textarea.community-editor-content {
+    width: 100%;
+    min-height: 140px;
+    padding: 16px 18px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--community-text, #172F55);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 1.05rem;
+    line-height: 1.65;
+    outline: none;
+    box-shadow: none;
+}
+
+.community-textarea.community-editor-content:empty:before,
+.community-textarea.community-editor-content[data-placeholder]:empty:before {
+    content: attr(data-placeholder);
+    color: var(--community-text-secondary, #9EABC0);
+    opacity: 0.75;
+}
+
+.community-editor-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px 10px;
+    font-size: 0.76rem;
+    color: var(--community-text-secondary, #5C6B82);
 }
 
 .community-char-counter {
-    margin-top: 4px;
     text-align: right;
-    font-size: 0.74rem;
-    color: var(--text-muted);
+    font-size: 0.76rem;
+    color: var(--community-text-secondary, #5C6B82);
     font-weight: 600;
     transition: color 0.2s ease;
 }
@@ -4054,107 +4188,162 @@ body.dark-mode .devotional-step-tab.active {
 }
 
 .community-char-counter.danger {
-    color: var(--danger);
+    color: var(--danger, #e53e3e);
 }
 
 .community-draft-restored {
-    margin-top: 2px;
-    color: var(--text-muted);
-    font-size: 0.72rem;
-    font-weight: 650;
-}
-
-.community-input:focus,
-.community-textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.12);
-}
-
-.community-input[readonly] {
-    opacity: 0.9;
+    color: var(--community-text-secondary, #5C6B82);
+    font-size: 0.74rem;
     font-weight: 600;
 }
 
-.community-textarea {
-    min-height: 124px;
-    resize: vertical;
-    line-height: 1.58;
-}
-
-.community-check-group {
-    padding-top: 0;
+.community-input:focus {
+    outline: none;
+    border-color: var(--accent, #3182CE);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #3182CE) 16%, transparent);
 }
 
 .community-name-group.is-hidden {
     display: none;
 }
 
-.community-identity-intro {
-    margin: -4px 0 16px;
-    color: var(--text-muted);
-    font-size: 0.92rem;
-    line-height: 1.45;
-    text-align: center;
-}
-
-.community-identity-status {
-    min-height: 20px;
-    margin-top: 7px;
-    font-size: 0.84rem;
-    font-weight: 700;
-    color: var(--text-muted);
-}
-
-.community-identity-status.is-available {
-    color: #2f855a;
-}
-
-.community-identity-status.is-taken,
-.community-identity-status.is-invalid {
-    color: #c53030;
-}
-
-.community-identity-status.is-checking,
-.community-identity-status.is-offline {
-    color: #b7791f;
+/* Anonymity Switch & Identity Section */
+.community-form-identity-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 .community-check-label {
     width: fit-content;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 9px;
-    min-height: 34px;
-    padding: 0 11px;
-    border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+    gap: 12px;
+    min-height: 44px;
+    padding: 4px 14px 4px 4px;
+    border: 1px solid color-mix(in srgb, var(--community-border, #E8DED0) 70%, transparent);
     border-radius: 999px;
-    background: rgba(148, 163, 184, 0.06);
-    font-size: 0.84rem;
-    color: var(--text-main);
-    font-weight: 700;
+    background: color-mix(in srgb, var(--community-border, #E8DED0) 25%, transparent);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .community-check-label input[type="checkbox"] {
-    transform: scale(1.05);
-    accent-color: var(--accent);
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.community-toggle-switch {
+    width: 38px;
+    height: 22px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--community-text-secondary, #5C6B82) 30%, transparent);
+    position: relative;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.community-toggle-knob {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.community-check-label input[type="checkbox"]:checked + .community-toggle-switch {
+    background: var(--community-navy, #172F55);
+}
+
+.community-check-label input[type="checkbox"]:checked + .community-toggle-switch .community-toggle-knob {
+    transform: translateX(16px);
+}
+
+.community-check-text {
+    font-family: var(--font-ui);
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: var(--community-text, #172F55);
 }
 
 .community-form-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
     gap: 10px;
-    margin-top: 2px;
+    margin-top: 4px;
+}
+
+.community-cancel-btn {
+    min-height: 44px;
+    padding: 10px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--community-border, #E8DED0);
+    background: transparent;
+    color: var(--community-text-secondary, #5C6B82);
+    font-family: var(--font-ui);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.community-cancel-btn:hover {
+    background: color-mix(in srgb, var(--community-text, #172F55) 6%, transparent);
+    color: var(--community-text, #172F55);
+}
+
+.community-submit-btn {
+    min-height: 44px;
+    padding: 10px 22px;
+    border-radius: 14px;
+    border: none;
+    background: var(--community-navy, #172F55);
+    color: #FFFFFF;
+    font-family: var(--font-ui);
+    font-size: 0.88rem;
+    font-weight: 650;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(23, 47, 85, 0.16);
+    transition: background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.community-submit-btn:hover {
+    background: var(--community-navy-hover, #1E3A66);
+}
+
+.community-submit-btn:active {
+    transform: scale(0.98);
 }
 
 .community-discard-draft {
-    grid-column: 1 / -1;
-    justify-self: center;
-    border: 0;
-    padding: 4px 8px;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: none;
     background: transparent;
-    color: var(--text-muted);
+    color: var(--community-text-secondary, #5C6B82);
+    font-family: var(--font-ui);
+    font-size: 0.82rem;
+    font-weight: 500;
     cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    opacity: 0.85;
+    margin-right: auto;
+    transition: opacity 0.15s ease;
+}
+
+.community-discard-draft:hover {
+    opacity: 1;
+}
     font-family: var(--font-ui);
     font-size: 0.74rem;
     font-weight: 650;
@@ -17099,56 +17288,10 @@ body:not(.dark-mode) .community-rules-btn:hover {
     color: var(--community-text);
 }
 
-/* 4. Bloque Composer "¿Qué escuchaste de su voz hoy?" */
-body:not(.dark-mode) .community-composer-card,
-body:not(.dark-mode) .community-form-card {
-    background: var(--community-surface) !important;
-    border: 1px solid var(--community-border) !important;
-    border-radius: 20px !important;
-    box-shadow: var(--community-shadow) !important;
-    padding: 18px 20px !important;
-}
-
-body:not(.dark-mode) .community-composer-question,
-body:not(.dark-mode) .community-form-title {
-    color: var(--community-text) !important;
-    font-weight: 700 !important;
-    font-size: 1.05rem !important;
-}
-
-body:not(.dark-mode) .community-composer-reference,
-body:not(.dark-mode) .community-passage-context strong {
-    color: var(--community-text-secondary);
-    font-weight: 600 !important;
-}
-
+/* 4. Bloque Composer y Hero Badges */
 body:not(.dark-mode) .hero-avatar-edit-badge {
-    background: var(--community-navy) !important;
-    color: #FFFFFF !important;
-}
-
-/* 5. Botón "Compartir" */
-body:not(.dark-mode) .community-composer-btn,
-body:not(.dark-mode) .community-submit-btn,
-body:not(.dark-mode) .community-form-card button[type="submit"] {
-    background: var(--community-navy) !important;
-    color: #FFFFFF !important;
-    border: none !important;
-    border-radius: 16px !important;
-    box-shadow: 0 6px 16px rgba(23, 47, 85, 0.16) !important;
-    font-weight: 600 !important;
-    padding: 10px 22px !important;
-    transition: all 0.18s ease !important;
-}
-
-body:not(.dark-mode) .community-composer-btn:hover,
-body:not(.dark-mode) .community-submit-btn:hover {
-    background: var(--community-navy-hover) !important;
-}
-
-body:not(.dark-mode) .community-composer-btn:active,
-body:not(.dark-mode) .community-submit-btn:active {
-    transform: scale(0.98) !important;
+    background: var(--community-navy);
+    color: #FFFFFF;
 }
 
 /* 6. Sección "Ecos de su voz" */
@@ -17445,58 +17588,11 @@ body.dark-mode .community-rules-btn:hover {
     color: var(--community-text);
 }
 
-/* 4. Bloque Composer "¿Qué escuchaste de su voz hoy?" (Modo Oscuro) */
-body.dark-mode .community-composer-card,
-body.dark-mode .community-form-card {
-    background: #0D1D2D !important;
-    border: 1px solid rgba(199, 171, 130, 0.22) !important;
-    border-radius: 20px !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18) !important;
-    padding: 18px 20px !important;
-}
-
-body.dark-mode .community-composer-question,
-body.dark-mode .community-form-title {
-    color: #F1EEE9 !important;
-    font-weight: 700 !important;
-    font-size: 1.05rem !important;
-}
-
-body.dark-mode .community-composer-reference,
-body.dark-mode .community-passage-context strong {
-    color: var(--community-text-secondary);
-    font-weight: 600 !important;
-}
-
-body.dark-mode .hero-avatar-edit-badge,
-body.dark-mode .community-composer-icon-badge {
-    background: rgba(213, 154, 66, 0.10) !important;
-    color: #E5E2DD !important;
-    border: 1px solid rgba(213, 154, 66, 0.20) !important;
-}
-
-/* 5. Botón "Compartir" (Modo Oscuro) */
-body.dark-mode .community-composer-btn,
-body.dark-mode .community-submit-btn,
-body.dark-mode .community-form-card button[type="submit"] {
-    background: #152B48 !important;
-    color: #FFFFFF !important;
-    border: 1px solid rgba(93, 125, 166, 0.28) !important;
-    border-radius: 16px !important;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.20) !important;
-    font-weight: 600 !important;
-    padding: 10px 22px !important;
-    transition: all 0.18s ease !important;
-}
-
-body.dark-mode .community-composer-btn:hover,
-body.dark-mode .community-submit-btn:hover {
-    background: #1B3658 !important;
-}
-
-body.dark-mode .community-composer-btn:active,
-body.dark-mode .community-submit-btn:active {
-    transform: scale(0.98) !important;
+/* 4. Bloque Composer (Modo Oscuro) */
+body.dark-mode .hero-avatar-edit-badge {
+    background: rgba(213, 154, 66, 0.10);
+    color: #E5E2DD;
+    border: 1px solid rgba(213, 154, 66, 0.20);
 }
 
 /* 6. Sección "Ecos de su voz" (Modo Oscuro) */
@@ -17731,66 +17827,131 @@ body.dark-mode .profile-name-input {
 }
 
 /* Layout del bloque Composer con Círculo de 3 Puntos e Icono de Lápiz Interno en Botón */
-.community-composer-layout {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    width: 100%;
+/* Community Composer Dark Mode Theme Overrides */
+body.dark-mode .community-composer-card,
+body.dark-mode .community-form-card {
+    background: #0D1D2D;
+    border-color: rgba(199, 171, 130, 0.22);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
 }
 
-.community-composer-circle-badge {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    transition: all 0.2s ease;
+body.dark-mode .community-composer-question,
+body.dark-mode .community-form-title {
+    color: #F1EEE9;
 }
 
-.community-composer-circle-badge svg {
-    width: 22px;
-    height: 22px;
-    display: block;
+body.dark-mode .community-composer-subtitle,
+body.dark-mode .community-composer-identity-name,
+body.dark-mode .community-passage-label,
+body.dark-mode .community-editor-meta,
+body.dark-mode .community-cancel-btn,
+body.dark-mode .community-discard-draft {
+    color: #9EABC0;
 }
 
-body:not(.dark-mode) .community-composer-circle-badge {
-    border: 2px solid var(--community-border, #E8DED0);
-    background: transparent;
-    color: var(--community-navy, #172F55);
+body.dark-mode .community-passage-ref,
+body.dark-mode .community-textarea.community-editor-content,
+body.dark-mode .community-check-text {
+    color: #F1EEE9;
 }
 
-body.dark-mode .community-composer-circle-badge {
-    border: 2px solid #FFFFFF;
-    background: transparent;
+body.dark-mode .community-composer-identity-avatar {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+body.dark-mode .community-passage-context {
+    border-color: rgba(199, 171, 130, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+body.dark-mode .community-editor-wrapper {
+    border-color: rgba(199, 171, 130, 0.22);
+    background: #081420;
+}
+
+body.dark-mode .rich-editor-toolbar {
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+body.dark-mode .rich-toolbar-btn {
+    color: #9EABC0;
+}
+
+body.dark-mode .rich-toolbar-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #F1EEE9;
+}
+
+body.dark-mode .community-check-label {
+    border-color: rgba(199, 171, 130, 0.18);
+    background: rgba(255, 255, 255, 0.04);
+}
+
+body.dark-mode .community-check-label input[type="checkbox"]:checked + .community-toggle-switch {
+    background: #3182CE;
+}
+
+body.dark-mode .community-composer-btn,
+body.dark-mode .community-submit-btn {
+    background: #152B48;
     color: #FFFFFF;
+    border: 1px solid rgba(93, 125, 166, 0.28);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.20);
 }
 
-.community-composer-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
+body.dark-mode .community-composer-btn:hover,
+body.dark-mode .community-submit-btn:hover {
+    background: #1B3658;
 }
 
-.composer-btn-pencil-icon {
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    display: block;
+body.dark-mode .community-cancel-btn {
+    border-color: rgba(199, 171, 130, 0.22);
+    color: #9EABC0;
 }
 
-body:not(.dark-mode) .community-composer-question,
-body.dark-mode .community-composer-question {
-    font-size: 0.85rem !important; /* Reducido al 80-85% */
+body.dark-mode .community-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #F1EEE9;
+}
+
+@media (max-width: 480px) {
+    .community-composer-layout {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .community-composer-btn {
+        width: 100%;
+    }
+
+    .community-form-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .community-discard-draft {
+        grid-column: 1 / -1;
+        justify-self: center;
+        text-align: center;
+        order: 3;
+        margin-right: 0;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .community-identity-chip,
     .community-rules-btn,
-    .community-reading-context {
+    .community-reading-context,
+    .community-form-card,
+    .community-toggle-knob,
+    .community-toggle-switch,
+    .rich-toolbar-btn,
+    .community-composer-btn,
+    .community-submit-btn,
+    .community-cancel-btn {
+        animation: none;
         transition: none;
     }
 }

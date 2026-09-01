@@ -13717,32 +13717,32 @@ renderCommunityLoadError: function(error) {
 },
 
 renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayContext().reference) {
+    const identityState = this.getCommunityIdentityInitialState();
+    const userDisplayName = identityState?.displayName;
+    const avatarUri = window.AvatarPicker?.getAvatarDataUri(identityState?.avatarId, identityState?.colorId) || '';
+
     return `
-            <div class="community-composer-card">
+            <div class="community-composer-card" role="region" aria-label="Escribir reflexión">
                 <div class="community-composer-layout">
-                    <!-- 1. Círculo grande con contorno y 3 puntitos -->
-                    <div class="community-composer-circle-badge" aria-hidden="true" title="Comentarios de la comunidad">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                            <circle cx="6.5" cy="12" r="2" fill="currentColor"/>
-                            <circle cx="12" cy="12" r="2" fill="currentColor"/>
-                            <circle cx="17.5" cy="12" r="2" fill="currentColor"/>
-                        </svg>
+                    <div class="community-composer-main">
+                        ${userDisplayName ? `
+                            <div class="community-composer-identity">
+                                <span class="community-composer-identity-avatar" style="background-image: url('${avatarUri}');" aria-hidden="true"></span>
+                                <span class="community-composer-identity-name">${this.escapeHtml(userDisplayName)}</span>
+                            </div>
+                        ` : ''}
+                        <div class="community-composer-copy">
+                            <div class="community-composer-question">¿Qué te habló Dios hoy?</div>
+                            <div class="community-composer-subtitle">Comparte una reflexión de la lectura con la comunidad.</div>
+                        </div>
                     </div>
 
-                    <!-- 2. Texto centrado reducido al 85% -->
-                    <div class="community-composer-copy">
-                        <div class="community-composer-question">Escuchaste de su voz hoy</div>
-                        <div class="community-composer-reference">${this.escapeHtml(reference)}</div>
-                    </div>
-
-                    <!-- 3. Botón de compartir con icono de cuadrado y lápiz DENTRO -->
-                    <button class="community-composer-btn" type="button" data-action="share-community-reflection">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="composer-btn-pencil-icon">
-                            <rect x="3" y="3" width="18" height="18" rx="3" ry="3"/>
-                            <line x1="8.5" y1="15.5" x2="15.5" y2="8.5"/>
-                            <path d="M12.5 7.5l4 4"/>
+                    <button class="community-composer-btn" type="button" data-action="share-community-reflection" aria-label="Escribir reflexión">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="composer-btn-pencil-icon" aria-hidden="true">
+                            <path d="M12 20h9"/>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
                         </svg>
-                        <span>Compartir</span>
+                        <span>Escribir reflexión</span>
                     </button>
                 </div>
             </div>
@@ -13760,12 +13760,10 @@ renderCommunityFormCardHtml: function(options = {}) {
     const draftContextOutdated = this.isCommunityDraftContextOutdated(communityDraftState, todayContext);
 
     return `
-                <div class="community-form-card">
-                    <div class="community-form-title">¿Qué escuchaste de su voz hoy?</div>
-
+                <div class="community-form-card" role="region" aria-label="Editor de reflexión">
                     <div class="community-passage-context">
-                        <span>${draftContextOutdated ? 'Borrador iniciado con la lectura' : 'Lectura de hoy'}</span>
-                        <strong>${this.escapeHtml(communityDraftState.reference || todayReference)}</strong>
+                        <span class="community-passage-label">${draftContextOutdated ? 'Borrador iniciado con la lectura:' : 'Lectura de hoy:'}</span>
+                        <strong class="community-passage-ref">${this.escapeHtml(communityDraftState.reference || todayReference)}</strong>
                         ${draftContextOutdated ? `
                             <button
                                 class="community-update-context"
@@ -13777,63 +13775,73 @@ renderCommunityFormCardHtml: function(options = {}) {
                         ` : ''}
                     </div>
 
-                    <div class="community-form-group community-check-group">
-                        <label class="community-check-label">
-                            <input
-                                type="checkbox"
-                                id="community-anonymous"
-                                ${communityDraftState.isAnonymous ? 'checked' : ''}
-                            >
-                            <span>Publicar como Anónimo</span>
-                        </label>
-                    </div>
+                    <div class="community-form-title">¿Qué te habló Dios hoy?</div>
 
-                    <div class="community-form-group community-name-group ${communityDraftState.isAnonymous ? 'is-hidden' : ''}">
-                        <label class="community-label" for="community-name">Nombre</label>
-                        <input
-                            type="text"
-                            class="community-input"
-                            id="community-name"
-                            placeholder="${communityDraftState.isAnonymous ? 'Se publicará como Anónimo' : 'Escribe tu nombre'}"
-                            value="${this.escapeHtml(communityDraftState.name)}"
-                            ${communityDraftState.isAnonymous ? 'disabled' : ''}
-                        >
-                    </div>
-
-                    <div class="community-form-group">
-                        <label class="community-label" for="community-reflection">¿Qué escuchaste de su voz hoy?</label>
-
+                    <div class="community-editor-wrapper">
                         <div class="rich-editor-toolbar" role="toolbar" aria-label="Herramientas de formato">
                             <button type="button" class="rich-toolbar-btn" data-format="bold" aria-label="Negrita" title="Negrita (<b>)"><b>B</b></button>
                             <button type="button" class="rich-toolbar-btn" data-format="italic" aria-label="Cursiva" title="Cursiva (<i>)"><i>I</i></button>
                             <button type="button" class="rich-toolbar-btn" data-format="underline" aria-label="Subrayado" title="Subrayado (<u>)"><u>U</u></button>
-                            <button type="button" class="rich-toolbar-btn" data-format="blockquote" aria-label="Cita" title="Cita bíblica">❝</button>
-                            <button type="button" class="rich-toolbar-btn" data-format="verse" aria-label="Versículo" title="Insertar versículo del día">📖</button>
+                            <button type="button" class="rich-toolbar-btn" data-format="blockquote" aria-label="Cita bíblica" title="Cita bíblica">❝</button>
+                            <button type="button" class="rich-toolbar-btn" data-format="verse" aria-label="Versículo del día" title="Insertar versículo del día">📖</button>
                         </div>
 
                         <div
                             class="community-textarea community-editor-content"
                             id="community-reflection"
                             contenteditable="true"
-                            data-placeholder="Escribe con sencillez lo que Dios te mostró en esta lectura..."
+                            role="textbox"
+                            aria-multiline="true"
+                            aria-label="Reflexión de la lectura"
+                            data-placeholder="Escribe lo que recibiste de la Palabra…"
                         >${communityDraft ? Sanitizer.sanitizeText(communityDraft) : ''}</div>
 
-                        <div class="community-char-counter" id="community-char-counter">${(communityDraft || '').replace(/<[^>]*>/g, '').length} / 1200</div>
-                        ${showCommunityDraftRestored ? '<div class="community-draft-restored" role="status">Se restauró tu borrador anterior.</div>' : ''}
+                        <div class="community-editor-meta">
+                            <div class="community-char-counter" id="community-char-counter">${(communityDraft || '').replace(/<[^>]*>/g, '').length} / 1200</div>
+                            ${showCommunityDraftRestored ? '<div class="community-draft-restored" role="status">Se restauró tu borrador anterior.</div>' : ''}
+                        </div>
+                    </div>
+
+                    <div class="community-form-identity-section">
+                        <div class="community-form-group community-check-group">
+                            <label class="community-check-label" for="community-anonymous">
+                                <input
+                                    type="checkbox"
+                                    id="community-anonymous"
+                                    ${communityDraftState.isAnonymous ? 'checked' : ''}
+                                >
+                                <span class="community-toggle-switch" aria-hidden="true">
+                                    <span class="community-toggle-knob"></span>
+                                </span>
+                                <span class="community-check-text">Publicar de forma anónima</span>
+                            </label>
+                        </div>
+
+                        <div class="community-form-group community-name-group ${communityDraftState.isAnonymous ? 'is-hidden' : ''}">
+                            <label class="community-label" for="community-name">Publicar como</label>
+                            <input
+                                type="text"
+                                class="community-input"
+                                id="community-name"
+                                placeholder="${communityDraftState.isAnonymous ? 'Se publicará como Anónimo' : 'Escribe tu nombre'}"
+                                value="${this.escapeHtml(communityDraftState.name)}"
+                                ${communityDraftState.isAnonymous ? 'disabled' : ''}
+                            >
+                        </div>
                     </div>
 
                     <div class="community-form-actions">
-                        <button class="btn-secondary" data-action="cancel-community-form">
-                            Cerrar
-                        </button>
-                        <button class="btn-primary" data-action="publish-community-reflection">
-                            Publicar
-                        </button>
                         ${hasCommunityDraft ? `
                             <button class="community-discard-draft" type="button" data-action="discard-community-draft">
                                 Descartar borrador
                             </button>
                         ` : ''}
+                        <button class="btn-secondary community-cancel-btn" type="button" data-action="cancel-community-form">
+                            Cerrar
+                        </button>
+                        <button class="btn-primary community-submit-btn" type="button" data-action="publish-community-reflection">
+                            Publicar en Comunidad
+                        </button>
                     </div>
                 </div>
     `;
