@@ -13719,7 +13719,12 @@ renderCommunityLoadError: function(error) {
 renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayContext().reference) {
     const identityState = this.getCommunityIdentityInitialState();
     const userDisplayName = identityState?.displayName;
-    const avatarUri = window.AvatarPicker?.getAvatarDataUri(identityState?.avatarId, identityState?.colorId) || '';
+    const avatarUri = (typeof AvatarGenerator !== 'undefined' && userDisplayName)
+        ? AvatarGenerator.generate(this.currentUser?.uid || 'user', userDisplayName, {
+            avatarId: identityState?.avatarId,
+            colorId: identityState?.colorId
+        })
+        : '';
 
     return `
             <div class="community-composer-card" role="region" aria-label="Escribir reflexión">
@@ -14011,92 +14016,93 @@ renderCommunityComposerLocally: function() {
 
 if (this.currentView !== 'community') return;
 
-const communityDraftState = this.ensureCommunityDraftContext(this.loadCommunityDraftState());
-const hasCommunityDraft = this.hasCommunityDraftContent(communityDraftState);
-const showCommunityDraftRestored =
-    this.communityDraftRestoredNoticePending && hasCommunityDraft;
-	const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
-		const currentUserProfile = this.communityIdentityProfile || (this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null);
-		const userDisplayName = currentUserProfile?.displayName?.trim()
-		    || this.currentUser?.displayName?.trim()
-		    || 'Hermano(a)';
-        const todayReadingDateLabel = todayContext.dateLabel || this.formatCommunityReadingDateLabel(todayStr);
-        const todayReadingContextLabel = todayContext.contextLabel || 'Lectura de hoy';
-        const todayReadingAriaLabel = `${todayContext.isToday ? 'Abrir lectura de hoy' : 'Abrir lectura'}: ${todayReference}`;
-		const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
-		    ? AvatarGenerator.generate(this.currentUser?.uid || 'user', userDisplayName || 'Usuario', {
-		        avatarId: currentUserProfile?.avatarId,
-		        avatarType: currentUserProfile?.avatarType,
-	        avatarValue: currentUserProfile?.avatarValue || currentUserProfile?.avatarIcon,
-	        avatarIcon: currentUserProfile?.avatarIcon,
-	        colorId: currentUserProfile?.colorId,
-	        avatarColor: currentUserProfile?.avatarColor
-	    })
-    : '';
-    
-	    // Renderizar el contenido
-	    this.$content.innerHTML = `
-	        <div class="community-container">
-	            <section class="community-hero community-hero-compact" aria-labelledby="communityTitle">
-	                <div class="community-hero-copy">
-	                    <h2 id="communityTitle">Comunidad</h2>
-	                    <p>Compartimos lo que recibimos de la Palabra.</p>
-	                </div>
-	                <div class="community-hero-actions" aria-label="Acciones de Comunidad">
-	                    <button
-	                        class="community-identity-chip"
-	                        type="button"
-	                        data-action="open-community-identity"
-	                        aria-label="Editar mi Distintivo"
-	                        title="Editar mi Distintivo"
-	                    >
-	                        <span
-	                            class="community-identity-chip-avatar"
-	                            aria-hidden="true"
-	                            style="background-image: url('${heroAvatarUri}');"
-	                        ></span>
-	                        <span class="community-identity-chip-label">${this.escapeHtml(userDisplayName)}</span>
-	                    </button>
-	                    <button
-	                        class="community-rules-btn"
-	                        type="button"
-	                        data-action="toggle-community-guidelines"
-	                        aria-label="${communityGuidelinesOpen ? 'Cerrar normas de Comunidad' : 'Abrir normas de Comunidad'}"
-	                        aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
-	                    >
-	                        Normas
-	                    </button>
-	                </div>
-	            </section>
+try {
+    const communityDraftState = this.ensureCommunityDraftContext(this.loadCommunityDraftState());
+    const hasCommunityDraft = this.hasCommunityDraftContent(communityDraftState);
+    const showCommunityDraftRestored =
+        this.communityDraftRestoredNoticePending && hasCommunityDraft;
+    const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
+    const currentUserProfile = this.communityIdentityProfile || (this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null);
+    const userDisplayName = currentUserProfile?.displayName?.trim()
+        || this.currentUser?.displayName?.trim()
+        || 'Hermano(a)';
+    const todayReadingDateLabel = todayContext.dateLabel || this.formatCommunityReadingDateLabel(todayStr);
+    const todayReadingContextLabel = todayContext.contextLabel || 'Lectura de hoy';
+    const todayReadingAriaLabel = `${todayContext.isToday ? 'Abrir lectura de hoy' : 'Abrir lectura'}: ${todayReference}`;
+    const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
+        ? AvatarGenerator.generate(this.currentUser?.uid || 'user', userDisplayName || 'Usuario', {
+            avatarId: currentUserProfile?.avatarId,
+            avatarType: currentUserProfile?.avatarType,
+            avatarValue: currentUserProfile?.avatarValue || currentUserProfile?.avatarIcon,
+            avatarIcon: currentUserProfile?.avatarIcon,
+            colorId: currentUserProfile?.colorId,
+            avatarColor: currentUserProfile?.avatarColor
+        })
+        : '';
 
-	            ${communityGuidelinesOpen ? `
-	                <section class="community-guidelines-popover" role="note" aria-label="Normas de la comunidad">
-	                    <button class="community-guidelines-close" type="button" data-action="toggle-community-guidelines" aria-label="Cerrar normas">×</button>
+    // Renderizar el contenido
+    this.$content.innerHTML = `
+        <div class="community-container">
+            <section class="community-hero community-hero-compact" aria-labelledby="communityTitle">
+                <div class="community-hero-copy">
+                    <h2 id="communityTitle">Comunidad</h2>
+                    <p>Compartimos lo que recibimos de la Palabra.</p>
+                </div>
+                <div class="community-hero-actions" aria-label="Acciones de Comunidad">
+                    <button
+                        class="community-identity-chip"
+                        type="button"
+                        data-action="open-community-identity"
+                        aria-label="Editar mi Distintivo"
+                        title="Editar mi Distintivo"
+                    >
+                        <span
+                            class="community-identity-chip-avatar"
+                            aria-hidden="true"
+                            style="background-image: url('${heroAvatarUri}');"
+                        ></span>
+                        <span class="community-identity-chip-label">${this.escapeHtml(userDisplayName)}</span>
+                    </button>
+                    <button
+                        class="community-rules-btn"
+                        type="button"
+                        data-action="toggle-community-guidelines"
+                        aria-label="${communityGuidelinesOpen ? 'Cerrar normas de Comunidad' : 'Abrir normas de Comunidad'}"
+                        aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
+                    >
+                        Normas
+                    </button>
+                </div>
+            </section>
+
+            ${communityGuidelinesOpen ? `
+                <section class="community-guidelines-popover" role="note" aria-label="Normas de la comunidad">
+                    <button class="community-guidelines-close" type="button" data-action="toggle-community-guidelines" aria-label="Cerrar normas">×</button>
                     <strong>Antes de compartir</strong>
                     <p>
                         Comparte con respeto, claridad y sencillez. Evita discusiones, ataques personales,
                         lenguaje ofensivo o contenido ajeno al propósito de esta comunidad.
                     </p>
-	                    <p>Lo que publiques aquí podrá ser visible para otros usuarios y moderado por la aplicación.</p>
-	                </section>
-	            ` : ''}
+                    <p>Lo que publiques aquí podrá ser visible para otros usuarios y moderado por la aplicación.</p>
+                </section>
+            ` : ''}
 
-	            <button
-	                class="community-reading-context"
-	                type="button"
-	                data-nav="reading"
-	                data-param="${this.escapeHtml(todayStr)}"
-	                aria-label="${this.escapeHtml(todayReadingAriaLabel)}"
-	                title="Ver lectura"
-	            >
-	                <span class="community-reading-context-label">${this.escapeHtml(todayReadingContextLabel)}</span>
-	                <strong class="community-reading-context-reference">${this.escapeHtml(todayReference)}</strong>
-	                <span class="community-reading-context-date">${this.escapeHtml(todayReadingDateLabel)}</span>
-	            </button>
+            <button
+                class="community-reading-context"
+                type="button"
+                data-nav="reading"
+                data-param="${this.escapeHtml(todayStr)}"
+                aria-label="${this.escapeHtml(todayReadingAriaLabel)}"
+                title="Ver lectura"
+            >
+                <span class="community-reading-context-label">${this.escapeHtml(todayReadingContextLabel)}</span>
+                <strong class="community-reading-context-reference">${this.escapeHtml(todayReference)}</strong>
+                <span class="community-reading-context-date">${this.escapeHtml(todayReadingDateLabel)}</span>
+            </button>
 
-	            ${this.communityFormOpen
-	                ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
-	                : this.renderCommunityComposerCardHtml(todayReference)}
+            ${this.communityFormOpen
+                ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
+                : this.renderCommunityComposerCardHtml(todayReference)}
 
             <div class="community-feed-heading">
                 <div>
@@ -14200,7 +14206,7 @@ const showCommunityDraftRestored =
                                     <div class="community-post-heading">
                                         <div class="community-author-row">
                                             <span class="community-author ${isAnonymous ? 'is-anonymous' : 'has-name'}">${this.escapeHtml(displayAuthorName)}</span>
-                                            <span class="community-meta-dot" aria-hidden="true"></span>
+                                            <span class="community-meta-dot" aria-hidden="true">•</span>
                                             <span class="community-date">${this.escapeHtml(this.formatCommunityDateLabel(post.date))}</span>
                                             ${this.isPostFavorite(post.id) ? '<span class="post-favorite-star" title="En tus favoritos">⭐</span>' : ''}
                                         </div>
@@ -14209,30 +14215,22 @@ const showCommunityDraftRestored =
                                     </div>
                                 </div>
 
-                               <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
+                                <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
 
-                               ${post.audioURL ? `
-                                   <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
-                                       <button type="button" class="audio-play-btn" aria-label="Reproducir audio">▶</button>
-                                       <div class="audio-progress-bar"><div class="audio-progress-fill" style="width: 0%;"></div></div>
-                                       <span class="audio-time">0:00 / 0:30</span>
-                                       <button type="button" class="audio-speed-btn">1x</button>
-                                   </div>
-                               ` : ''}
-
-                                    <div class="community-reaction-row">
-                                        ${this.renderCommunityReactionBar(post.id, reactionData)}
+                                ${post.audioURL ? `
+                                    <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
+                                        <button type="button" class="audio-play-btn" aria-label="Reproducir audio">▶</button>
+                                        <div class="audio-progress-bar"><div class="audio-progress-fill" style="width: 0%;"></div></div>
+                                        <span class="audio-time">0:00 / 0:30</span>
+                                        <button type="button" class="audio-speed-btn">1x</button>
                                     </div>
+                                ` : ''}
 
-                                    ${this.renderReplyBlock(post, replies)}
+                                <div class="community-reaction-row">
+                                    ${this.renderCommunityReactionBar(post.id, reactionData)}
+                                </div>
 
-                                      ${this.isCommunityOwnPost(post) ? `
-        <div class="community-actions">
-            <button class="community-delete-main" data-action="delete-community-post" data-id="${post.id}">
-                🗑️ Eliminar
-            </button>
-        </div>
-    ` : ''}
+                                ${this.renderReplyBlock(post, replies)}
                             </div>
                         `;
                     }).join('');
@@ -14258,8 +14256,6 @@ const showCommunityDraftRestored =
         </div>
     `;
 
-
-
     if (showCommunityDraftRestored) {
         this.armCommunityDraftRestoredNoticeDismissal();
     }
@@ -14280,6 +14276,10 @@ const showCommunityDraftRestored =
     } else if (options.restoreSavedScroll === true) {
         this.restoreCommunityScrollPosition();
     }
+} catch (renderError) {
+    console.error('[Community] Error inesperado durante el renderizado visual de Comunidad:', renderError);
+    this.renderCommunityLoadError(renderError);
+}
 },
 
 getStatsMonthDays: function(stats) {
