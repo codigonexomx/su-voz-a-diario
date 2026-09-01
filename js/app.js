@@ -13731,26 +13731,23 @@ renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayCont
     return `
             <div class="community-composer-card" role="region" aria-label="Escribir reflexión">
                 <div class="community-composer-layout">
-                    <div class="community-composer-main">
-                        ${userDisplayName ? `
-                            <div class="community-composer-identity">
-                                <span class="community-composer-identity-avatar" style="background-image: url('${avatarUri}');" aria-hidden="true"></span>
-                                <span class="community-composer-identity-name">${this.escapeHtml(userDisplayName)}</span>
-                            </div>
-                        ` : ''}
-                        <div class="community-composer-copy">
-                            <div class="community-composer-question">¿Qué te habló Dios hoy?</div>
-                            <div class="community-composer-subtitle">Comparte una reflexión de la lectura con la comunidad.</div>
+                    ${userDisplayName ? `
+                        <div class="community-composer-identity">
+                            <span class="community-composer-identity-avatar" style="background-image: url('${avatarUri}');" aria-hidden="true"></span>
+                            <span class="community-composer-identity-name">${this.escapeHtml(userDisplayName)}</span>
                         </div>
+                    ` : ''}
+                    <div class="community-composer-question">¿Qué te habló Dios hoy?</div>
+                    <div class="community-composer-bottom-row">
+                        <div class="community-composer-subtitle">Comparte una reflexión de la lectura con la comunidad.</div>
+                        <button class="community-composer-btn" type="button" data-action="share-community-reflection" aria-label="Escribir reflexión">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="composer-btn-pencil-icon" aria-hidden="true">
+                                <path d="M12 20h9"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                            </svg>
+                            <span>Escribir reflexión</span>
+                        </button>
                     </div>
-
-                    <button class="community-composer-btn" type="button" data-action="share-community-reflection" aria-label="Escribir reflexión">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="composer-btn-pencil-icon" aria-hidden="true">
-                            <path d="M12 20h9"/>
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                        </svg>
-                        <span>Escribir reflexión</span>
-                    </button>
                 </div>
             </div>
     `;
