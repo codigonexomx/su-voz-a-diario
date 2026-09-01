@@ -3253,7 +3253,9 @@ formatCommunityRichText: function(text) {
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'");
 
-    const clean = Sanitizer.sanitizeText(unescaped);
+    let clean = Sanitizer.sanitizeText(unescaped);
+    clean = clean.replace(/(?:<blockquote[^>]*>\s*){2,}/gi, '<blockquote>');
+    clean = clean.replace(/(?:\s*<\/blockquote>){2,}/gi, '<\/blockquote>');
     return clean.replace(/\n/g, '<br>');
 },
 
