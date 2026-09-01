@@ -282,8 +282,12 @@ async function cacheFirstStrategy(request) {
   if (cached) return cached;
 
   const response = await fetch(request);
-  if (response && response.ok) {
-    await cache.put(request, response.clone());
+  if (response && response.ok && response.status !== 206) {
+    try {
+      await cache.put(request, response.clone());
+    } catch (e) {
+      console.warn('[SW] No se pudo guardar en caché:', request.url, e);
+    }
   }
   return response;
 }
@@ -294,9 +298,13 @@ async function networkFirstStrategy(request, options = {}) {
       ? new Request(request, { cache: 'reload' })
       : request;
     const response = await fetch(networkRequest);
-    if (response && response.ok) {
-      const cache = await caches.open(DYNAMIC_CACHE);
-      await cache.put(request, response.clone());
+    if (response && response.ok && response.status !== 206) {
+      try {
+        const cache = await caches.open(DYNAMIC_CACHE);
+        await cache.put(request, response.clone());
+      } catch (e) {
+        console.warn('[SW] No se pudo guardar en caché dinámico:', request.url, e);
+      }
     }
     return response;
   } catch (error) {
@@ -320,8 +328,12 @@ async function staleWhileRevalidateStrategy(request) {
 
   const networkFetch = fetch(request)
     .then(response => {
-      if (response && response.ok) {
-        cache.put(request, response.clone());
+      if (response && response.ok && response.status !== 206) {
+        try {
+          cache.put(request, response.clone());
+        } catch (e) {
+          console.warn('[SW] No se pudo actualizar caché stale-while-revalidate:', request.url, e);
+        }
       }
       return response;
     })

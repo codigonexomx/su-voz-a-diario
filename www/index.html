@@ -731,7 +731,7 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const appVersion = "158";
+                const appVersion = "159";
                 const versionKey = 'su-voz-app-version';
                 const reloadKey = `su-voz-update-reloaded-${appVersion}`;
                 const currentCacheNames = new Set([
@@ -793,7 +793,7 @@
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=158', {
+                const registration = await navigator.serviceWorker.register('./sw.js?v=159', {
                     scope: './',
                     updateViaCache: 'none'
                 });
