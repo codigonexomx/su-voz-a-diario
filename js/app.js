@@ -13987,15 +13987,16 @@ const communityDraftState = this.ensureCommunityDraftContext(this.loadCommunityD
 const hasCommunityDraft = this.hasCommunityDraftContent(communityDraftState);
 const showCommunityDraftRestored =
     this.communityDraftRestoredNoticePending && hasCommunityDraft;
-const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
-	const currentUserProfile = this.communityIdentityProfile || (this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null);
-	const userDisplayName = currentUserProfile?.displayName?.trim()
-	    || this.currentUser?.displayName?.trim()
-	    || 'Hermano(a)';
-	const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
-	    ? AvatarGenerator.generate(this.currentUser?.uid || 'user', userDisplayName || 'Usuario', {
-	        avatarId: currentUserProfile?.avatarId,
-	        avatarType: currentUserProfile?.avatarType,
+	const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
+		const currentUserProfile = this.communityIdentityProfile || (this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null);
+		const userDisplayName = currentUserProfile?.displayName?.trim()
+		    || this.currentUser?.displayName?.trim()
+		    || 'Hermano(a)';
+        const todayReadingDateLabel = this.formatDateEs(todayStr);
+		const heroAvatarUri = typeof AvatarGenerator !== 'undefined'
+		    ? AvatarGenerator.generate(this.currentUser?.uid || 'user', userDisplayName || 'Usuario', {
+		        avatarId: currentUserProfile?.avatarId,
+		        avatarType: currentUserProfile?.avatarType,
 	        avatarValue: currentUserProfile?.avatarValue || currentUserProfile?.avatarIcon,
 	        avatarIcon: currentUserProfile?.avatarIcon,
 	        colorId: currentUserProfile?.colorId,
@@ -14003,59 +14004,62 @@ const communityGuidelinesOpen = this.communityGuidelinesOpen === true;
 	    })
     : '';
     
-    // Renderizar el contenido
-    this.$content.innerHTML = `
-        <div class="community-container">
-            <section class="community-hero community-hero-compact">
-                <div class="hero-avatar-section">
-                    <div
-                        class="hero-avatar-large"
-                        data-action="open-community-identity"
-                        title="Editar mi Distintivo"
-                        style="background-image: url('${heroAvatarUri}');"
-                    >
-                        <div class="hero-avatar-edit-badge">✏️</div>
-                    </div>
-                    <div class="hero-user-name">${this.escapeHtml(userDisplayName)}</div>
-                </div>
-                <div class="hero-info-section">
-                    <h2>Comunidad</h2>
-                    <p>Comparte con sencillez lo que Dios te habló</p>
-                    <div class="hero-actions-row">
-                        <button
-                            class="community-rules-btn"
-                            type="button"
-                            data-action="toggle-community-guidelines"
-                            aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
-                        >
-                            Normas
-                        </button>
-                        <button
-                            class="community-rules-btn"
-                            type="button"
-                            data-action="open-community-identity"
-                        >
-                            Editar mi Distintivo
-                        </button>
-                    </div>
-                </div>
-            </section>
+	    // Renderizar el contenido
+	    this.$content.innerHTML = `
+	        <div class="community-container">
+	            <section class="community-hero community-hero-compact" aria-labelledby="communityTitle">
+	                <div class="community-hero-copy">
+	                    <h2 id="communityTitle">Comunidad</h2>
+	                    <p>Compartimos lo que recibimos de la Palabra.</p>
+	                </div>
+	                <div class="community-hero-actions" aria-label="Acciones de Comunidad">
+	                    <button
+	                        class="community-identity-chip"
+	                        type="button"
+	                        data-action="open-community-identity"
+	                        aria-label="Editar mi Distintivo"
+	                        title="Editar mi Distintivo"
+	                    >
+	                        <span
+	                            class="community-identity-chip-avatar"
+	                            aria-hidden="true"
+	                            style="background-image: url('${heroAvatarUri}');"
+	                        ></span>
+	                        <span class="community-identity-chip-label">${this.escapeHtml(userDisplayName)}</span>
+	                    </button>
+	                    <button
+	                        class="community-rules-btn"
+	                        type="button"
+	                        data-action="toggle-community-guidelines"
+	                        aria-label="${communityGuidelinesOpen ? 'Cerrar normas de Comunidad' : 'Abrir normas de Comunidad'}"
+	                        aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
+	                    >
+	                        Normas
+	                    </button>
+	                </div>
+	            </section>
 
-            ${communityGuidelinesOpen ? `
-                <section class="community-guidelines-popover" role="note" aria-label="Normas de la comunidad">
-                    <button class="community-guidelines-close" type="button" data-action="toggle-community-guidelines" aria-label="Cerrar normas">×</button>
+	            ${communityGuidelinesOpen ? `
+	                <section class="community-guidelines-popover" role="note" aria-label="Normas de la comunidad">
+	                    <button class="community-guidelines-close" type="button" data-action="toggle-community-guidelines" aria-label="Cerrar normas">×</button>
                     <strong>Antes de compartir</strong>
                     <p>
                         Comparte con respeto, claridad y sencillez. Evita discusiones, ataques personales,
                         lenguaje ofensivo o contenido ajeno al propósito de esta comunidad.
                     </p>
-                    <p>Lo que publiques aquí podrá ser visible para otros usuarios y moderado por la aplicación.</p>
-                </section>
-            ` : ''}
+	                    <p>Lo que publiques aquí podrá ser visible para otros usuarios y moderado por la aplicación.</p>
+	                </section>
+	            ` : ''}
 
-            ${this.communityFormOpen
-                ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
-                : this.renderCommunityComposerCardHtml(todayReference)}
+	            <aside class="community-reading-context" aria-label="Lectura de hoy en Comunidad">
+	                <span class="community-reading-context-label">Lectura de hoy</span>
+	                <strong class="community-reading-context-reference">${this.escapeHtml(todayReference)}</strong>
+	                <span class="community-reading-context-date">${this.escapeHtml(todayReadingDateLabel)}</span>
+	            </aside>
+
+	            ${this.communityFormOpen
+	                ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
+	                : this.renderCommunityComposerCardHtml(todayReference)}
 
             <div class="community-feed-heading">
                 <div>
