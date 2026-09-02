@@ -710,7 +710,7 @@
 <script src="js/searchCommunity.js?v=174"></script>
 <script src="js/filters.js?v=173"></script>
 <script src="js/offlineSupport.js?v=173"></script>
-<script type="module" src="js/app.js?v=176"></script>
+<script type="module" src="js/app.js?v=177"></script>
 
 <script>
 (function () {
@@ -731,7 +731,7 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const appVersion = "160";
+                const appVersion = "161";
                 const versionKey = 'su-voz-app-version';
                 const reloadKey = `su-voz-update-reloaded-${appVersion}`;
                 const currentCacheNames = new Set([
@@ -793,7 +793,7 @@
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=160', {
+                const registration = await navigator.serviceWorker.register('./sw.js?v=161', {
                     scope: './',
                     updateViaCache: 'none'
                 });

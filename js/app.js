@@ -703,6 +703,25 @@ const App = {
         return null;
     },
 
+    passagesOverlap: function(refA, refB) {
+        const pA = this.parseBibleReferenceQuery(refA);
+        const pB = this.parseBibleReferenceQuery(refB);
+        if (!pA || !pB) return false;
+        if (pA.bookId !== pB.bookId || pA.chapter !== pB.chapter) return false;
+
+        if (pA.verse === null || pB.verse === null) {
+            return true;
+        }
+
+        const startA = pA.verse;
+        const endA = pA.endVerse !== null ? pA.endVerse : pA.verse;
+
+        const startB = pB.verse;
+        const endB = pB.endVerse !== null ? pB.endVerse : pB.verse;
+
+        return (startA <= endB && startB <= endA);
+    },
+
     tokenizeVerseText: function(text, tokens = []) {
 
     if (!tokens || tokens.length === 0) {
@@ -3509,6 +3528,111 @@ getCommunityPostsCached: async function(options = {}) {
     return state.posts;
 },
 
+getCommunityEcosPosts: async function(passageFilter, options = {}) {
+    if (!passageFilter || (!passageFilter.date && !passageFilter.reference)) {
+        return [];
+    }
+
+    if (!this.communityEcosFeedState) {
+        this.communityEcosFeedState = {
+            posts: [],
+            lastVisible: null,
+            hasMore: false,
+            loadingMore: false,
+            loaded: false,
+            key: null,
+            error: null
+        };
+    }
+
+    const filterKey = `${passageFilter.date || ''}_${passageFilter.reference || ''}`;
+    const state = this.communityEcosFeedState;
+    const isLoadMore = options.loadMore === true;
+    const pageSize = options.pageSize || 20;
+
+    if (!isLoadMore && !options.forceRefresh && state.loaded && state.key === filterKey && !state.error) {
+        return state.posts;
+    }
+
+    if (!isLoadMore) {
+        state.key = filterKey;
+        state.posts = [];
+        state.lastVisible = null;
+        state.hasMore = true;
+        state.loaded = false;
+        state.error = null;
+    } else {
+        if (state.loadingMore || !state.hasMore) {
+            return state.posts;
+        }
+        state.loadingMore = true;
+    }
+
+    try {
+        const filterDate = passageFilter.date;
+        const filterRef = passageFilter.reference;
+        let attempts = 0;
+        const maxAttempts = isLoadMore ? 1 : 5;
+
+        while (state.hasMore && attempts < maxAttempts) {
+            attempts++;
+            let fetchedPosts = [];
+            let rawLastDoc = null;
+            let rawHasMore = false;
+
+            if (filterDate && window.firebaseDb && window.firebaseFns?.query) {
+                const constraints = [
+                    where("date", "==", filterDate),
+                    orderBy("lastActivityAt", "desc")
+                ];
+                if (state.lastVisible) {
+                    constraints.push(startAfter(state.lastVisible));
+                }
+                constraints.push(limit(pageSize));
+
+                const qDate = query(collection(db, "communityPosts"), ...constraints);
+                const snapDate = await getDocs(qDate);
+
+                snapDate.docs.forEach(docSnap => {
+                    fetchedPosts.push({ id: docSnap.id, ...docSnap.data() });
+                });
+                rawLastDoc = snapDate.docs[snapDate.docs.length - 1] || null;
+                rawHasMore = snapDate.docs.length === pageSize;
+            }
+
+            state.lastVisible = rawLastDoc || state.lastVisible;
+            state.hasMore = rawHasMore;
+
+            // Policy A matching: Must have exact reading date. If reference is present, must be compatible.
+            const matchedFetched = fetchedPosts.filter(p => {
+                if (!p.date || p.date !== filterDate) return false;
+                if (filterRef && p.reference) {
+                    return this.passagesOverlap(filterRef, p.reference) || p.reference === filterRef;
+                }
+                return true;
+            });
+
+            if (matchedFetched.length > 0) {
+                const existingIds = new Set(state.posts.map(p => p.id));
+                const newPosts = matchedFetched.filter(p => !existingIds.has(p.id));
+                state.posts = [...state.posts, ...newPosts];
+                break;
+            }
+        }
+
+        state.loaded = true;
+        state.error = null;
+        return state.posts;
+    } catch (err) {
+        console.error('[Community] Error consultando Ecos en Firestore:', err);
+        state.error = err;
+        state.loaded = true;
+        return state.posts;
+    } finally {
+        state.loadingMore = false;
+    }
+},
+
 loadMoreCommunityPosts: async function() {
     const state = this.getCommunityFeedState();
 
@@ -3584,6 +3708,7 @@ invalidateCommunityCache: function(mode = null) {
         };
     });
 
+    this.communityEcosCache = {};
     this.syncCommunityLegacyState();
     console.log('[Community] Caché invalidada');
 },
@@ -10638,6 +10763,21 @@ restoreCalendarPosition: function() {
                         <span class="reading-action-subtitle">${this.isRead(reading.date) ? '¡Buen trabajo! Sigue así' : 'Guarda tu avance de hoy'}</span>
                     </span>
                 </button>
+                <button class="reading-action-card reading-action-community" type="button" data-action="open-reading-community-ecos" data-date="${reading.date}" data-reference="${this.escapeHtml(reading.reference)}">
+                    <span class="reading-action-icon" aria-hidden="true">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                            <line x1="8" y1="7" x2="16" y2="7"/>
+                            <line x1="8" y1="11" x2="14" y2="11"/>
+                        </svg>
+                    </span>
+                    <span class="reading-action-content">
+                        <span class="reading-action-title">Ecos de esta lectura</span>
+                        <span class="reading-action-subtitle">Ver reflexiones compartidas</span>
+                    </span>
+                    <span class="reading-action-chevron"></span>
+                </button>
                 <button class="reading-action-card reading-action-share" data-action="share-reading" data-date="${reading.date}">
                     <span class="reading-action-icon">📤</span>
                     <span class="reading-action-content">
@@ -14016,6 +14156,16 @@ renderCommunityComposerLocally: function() {
             'La consulta de Comunidad tardó demasiado'
         );
 
+        if (this.communityPassageFilter) {
+            const ecosPosts = await this.getCommunityEcosPosts(this.communityPassageFilter);
+            if (ecosPosts && ecosPosts.length > 0) {
+                const postsMap = new Map();
+                posts.forEach(p => postsMap.set(p.id, p));
+                ecosPosts.forEach(p => postsMap.set(p.id, p));
+                posts = Array.from(postsMap.values());
+            }
+        }
+
         if (targetPost && !posts.some(post => post.id === targetPost.id)) {
             posts = this.sortCommunityPostsByActivity([targetPost, ...posts]);
             const state = this.getCommunityFeedState();
@@ -14167,23 +14317,60 @@ try {
                 </button>
             </div>
 
+            ${this.communityPassageFilter ? `
+                <div class="community-passage-filter-banner" role="status" aria-live="polite">
+                    <div class="community-passage-filter-info">
+                        <span class="community-passage-filter-label">Filtrado por lectura:</span>
+                        <strong class="community-passage-filter-title">${this.escapeHtml(this.communityPassageFilter.reference || this.communityPassageFilter.label)}</strong>
+                    </div>
+                    <button class="community-passage-filter-clear" type="button" data-action="clear-community-passage-filter" aria-label="Ver todas las reflexiones">
+                        ✕ Ver todas
+                    </button>
+                </div>
+            ` : ''}
+
             <div class="community-tab-bar" role="tablist">
-                <button type="button" class="community-tab-btn ${(!this.communityTabFilter || this.communityTabFilter === 'all') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="all">Todas</button>
-                <button type="button" class="community-tab-btn ${this.communityTabFilter === 'my-posts' ? 'is-active' : ''}" data-action="set-community-tab" data-tab="my-posts">Mis reflexiones</button>
-                <button type="button" class="community-tab-btn ${this.communityTabFilter === 'favorites' ? 'is-active' : ''}" data-action="set-community-tab" data-tab="favorites">⭐ Favoritos</button>
+                <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && (!this.communityTabFilter || this.communityTabFilter === 'all')) ? 'is-active' : ''}" data-action="set-community-tab" data-tab="all">Todas</button>
+                <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'my-posts') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="my-posts">Mis reflexiones</button>
+                <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'favorites') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="favorites">⭐ Favoritos</button>
             </div>
 
             <div class="community-feed">
                 ${(() => {
                     let visiblePosts = posts;
-                    if (this.communityTabFilter === 'my-posts' && this.currentUser?.uid) {
+                    if (this.communityPassageFilter) {
+                        const filterDate = this.communityPassageFilter.date;
+                        const filterRef = this.communityPassageFilter.reference;
+
+                        visiblePosts = posts.filter(p => {
+                            if (filterDate && p.date === filterDate) return true;
+                            if (filterRef && p.reference === filterRef) return true;
+                            if (filterRef && p.reference && this.passagesOverlap(filterRef, p.reference)) return true;
+                            return false;
+                        });
+                    } else if (this.communityTabFilter === 'my-posts' && this.currentUser?.uid) {
                         visiblePosts = posts.filter(p => this.isCommunityOwnPost(p));
                     } else if (this.communityTabFilter === 'favorites') {
                         visiblePosts = posts.filter(p => this.isPostFavorite(p.id));
                     }
 
                     if (!visiblePosts.length) {
-                        if (this.communityTabFilter === 'favorites') {
+                        if (this.communityPassageFilter) {
+                            return `
+                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                    <div class="community-ecos-empty-icon" aria-hidden="true" style="margin-bottom: 12px; opacity: 0.7;">
+                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--community-gold-dark, #98631F)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                            <line x1="8" y1="7" x2="16" y2="7"/>
+                                            <line x1="8" y1="11" x2="14" y2="11"/>
+                                        </svg>
+                                    </div>
+                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no se han compartido reflexiones sobre esta lectura</p>
+                                    <p style="font-size: 0.85rem; margin-top: 4px;">Sé la primera persona en compartir lo que Dios te mostró.</p>
+                                </div>
+                            `;
+                        } else if (this.communityTabFilter === 'favorites') {
                             return `
                                 <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
                                     <div style="font-size: 2.2rem; margin-bottom: 8px;">⭐</div>
@@ -17972,6 +18159,26 @@ if (deleteReplyBtn) {
     return;
 }
 
+const openEcosBtn = e.target.closest('[data-action="open-reading-community-ecos"]');
+if (openEcosBtn) {
+    const readingDate = openEcosBtn.getAttribute('data-date');
+    const reference = openEcosBtn.getAttribute('data-reference');
+    this.communityPassageFilter = {
+        date: readingDate,
+        reference: reference,
+        label: reference || 'Lectura de hoy'
+    };
+    this.navigate('community');
+    return;
+}
+
+const clearPassageFilterBtn = e.target.closest('[data-action="clear-community-passage-filter"]');
+if (clearPassageFilterBtn) {
+    this.communityPassageFilter = null;
+    this.renderCommunity({ preserveOnError: true });
+    return;
+}
+
 const openCommunityRefBtn = e.target.closest('[data-action="open-community-bible-reference"]');
 if (openCommunityRefBtn) {
     e.preventDefault();
@@ -18002,7 +18209,8 @@ if (toggleMenuBtn) {
 const setTabBtn = e.target.closest('[data-action="set-community-tab"]');
 if (setTabBtn) {
     const tab = setTabBtn.getAttribute('data-tab');
-    if (tab && this.communityTabFilter !== tab) {
+    if (tab) {
+        this.communityPassageFilter = null;
         this.communityTabFilter = tab;
         this.renderCommunity({ preserveOnError: true });
     }
