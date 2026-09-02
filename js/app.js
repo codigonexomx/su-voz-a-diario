@@ -14924,6 +14924,8 @@ renderCommunityComposerLocally: function() {
     let posts;
     let reactionSummary;
     let repliesSummary;
+    let prayers = [];
+    let testimonies = [];
     let loadingCompleted = false;
 
     try {
@@ -15000,8 +15002,6 @@ renderCommunityComposerLocally: function() {
         await this.loadCommunityOwnershipForItems(posts, repliesSummary);
 
         this.communitySection = options.section || this.communitySection || 'reflections';
-        let prayers = [];
-        let testimonies = [];
         if (this.communitySection === 'prayer') {
             try {
                 if (this.prayerTabFilter === 'testimonies') {
