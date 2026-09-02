@@ -1379,6 +1379,45 @@ body.dark-mode .badge-corona {
     background: rgba(255, 255, 255, 0.04);
 }
 
+/* ECOS DE ESTA LECTURA (DARK MODE) */
+.reading-action-community {
+    background: linear-gradient(180deg, rgba(22, 40, 58, 0.95), rgba(16, 30, 44, 0.98));
+    border: 1px solid rgba(190, 164, 110, 0.20);
+    box-shadow:
+        0 10px 26px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    color: #F3F0E8;
+    overflow: hidden;
+}
+
+.reading-action-community:active {
+    transform: scale(0.985);
+    background: linear-gradient(180deg, rgba(26, 46, 66, 0.98), rgba(18, 34, 50, 0.98));
+}
+
+.reading-action-community .reading-action-icon {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(190, 164, 110, 0.22);
+    color: #C7AD78;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.reading-action-community .reading-action-icon svg {
+    stroke: #C7AD78;
+}
+
+.reading-action-community .reading-action-title {
+    color: #F3F0E8;
+}
+
+.reading-action-community .reading-action-subtitle {
+    color: #AEB9C4;
+}
+
+.reading-action-community .reading-action-chevron {
+    border-color: rgba(190, 164, 110, 0.5);
+}
+
 @media (max-width: 480px) {
     .reading-action-card {
         min-height: 86px;
@@ -8604,6 +8643,36 @@ body.light-mode .reading-action-share {
 
     box-shadow:
         0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+/* ECOS DE ESTA LECTURA (MODO CLARO) */
+body.light-mode .reading-action-community {
+    background: linear-gradient(180deg, #ffffff, #f1f5f9);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+}
+
+body.light-mode .reading-action-community .reading-action-icon {
+    background: #f1f5f9;
+    border: 1px solid rgba(15, 23, 42, 0.06);
+    color: #0f172a;
+    box-shadow: none;
+}
+
+body.light-mode .reading-action-community .reading-action-icon svg {
+    stroke: #0f172a;
+}
+
+body.light-mode .reading-action-community .reading-action-title {
+    color: #0f172a;
+}
+
+body.light-mode .reading-action-community .reading-action-subtitle {
+    color: #64748b;
+}
+
+body.light-mode .reading-action-community .reading-action-chevron {
+    border-color: rgba(15, 23, 42, 0.35);
 }
 
 /* ========================================

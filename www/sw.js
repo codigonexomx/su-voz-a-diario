@@ -7,7 +7,7 @@ const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json?v=173',
-  './css/styles.css?v=176',
+  './css/styles.css?v=177',
   './css/deepening-mode.css?v=173',
   './css/deepening-shell.css?v=173',
   './css/meditation-document-viewer.css?v=173',
