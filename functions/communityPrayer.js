@@ -158,12 +158,105 @@ async function deletePrayerRequestLogic(db, uid, requestId) {
     throw new HttpsError("permission-denied", "NOT_OWNER");
   }
 
-  const batch = db.batch();
-  batch.delete(db.collection("communityPrayerRequests").doc(cleanRequestId));
-  batch.delete(db.collection("communityPrayerPrivate").doc(cleanRequestId));
-  await batch.commit();
+  const commitmentsSnap = await db
+    .collection("communityPrayerCommitments")
+    .where("requestId", "==", cleanRequestId)
+    .get();
+
+  const BATCH_SIZE = 450;
+  const docsToDelete = [
+    db.collection("communityPrayerRequests").doc(cleanRequestId),
+    db.collection("communityPrayerPrivate").doc(cleanRequestId),
+    ...commitmentsSnap.docs.map((docSnap) => docSnap.ref),
+  ];
+
+  for (let i = 0; i < docsToDelete.length; i += BATCH_SIZE) {
+    const batch = db.batch();
+    const chunk = docsToDelete.slice(i, i + BATCH_SIZE);
+    chunk.forEach((ref) => batch.delete(ref));
+    await batch.commit();
+  }
 
   return { success: true };
+}
+
+async function togglePrayerCommitmentLogic(db, FieldValue, uid, requestId) {
+  if (!uid || typeof uid !== "string") {
+    throw new HttpsError("unauthenticated", "AUTH_REQUIRED");
+  }
+
+  if (!requestId || typeof requestId !== "string") {
+    throw new HttpsError("invalid-argument", "REQUEST_ID_INVALID");
+  }
+
+  const cleanRequestId = requestId.trim();
+  if (!cleanRequestId) {
+    throw new HttpsError("invalid-argument", "REQUEST_ID_INVALID");
+  }
+
+  const requestRef = db.collection("communityPrayerRequests").doc(cleanRequestId);
+  const commitmentRef = db.collection("communityPrayerCommitments").doc(`${cleanRequestId}_${uid}`);
+
+  return db.runTransaction(async (transaction) => {
+    const requestSnap = await transaction.get(requestRef);
+    if (!requestSnap.exists) {
+      throw new HttpsError("not-found", "PRAYER_REQUEST_NOT_FOUND");
+    }
+
+    if (requestSnap.get("status") === "answered") {
+      throw new HttpsError("failed-precondition", "PRAYER_REQUEST_ANSWERED");
+    }
+
+    const commitmentSnap = await transaction.get(commitmentRef);
+    const currentCount = Number.isInteger(requestSnap.get("prayingCount"))
+      ? requestSnap.get("prayingCount")
+      : 0;
+
+    if (commitmentSnap.exists) {
+      const newCount = Math.max(0, currentCount - 1);
+      transaction.delete(commitmentRef);
+      transaction.update(requestRef, { prayingCount: newCount });
+      return { success: true, active: false, prayingCount: newCount };
+    } else {
+      const newCount = currentCount + 1;
+      transaction.set(commitmentRef, {
+        requestId: cleanRequestId,
+        ownerUid: uid,
+        createdAt: FieldValue.serverTimestamp(),
+        schemaVersion: 1,
+      });
+      transaction.update(requestRef, { prayingCount: newCount });
+      return { success: true, active: true, prayingCount: newCount };
+    }
+  });
+}
+
+async function getPrayerCommitmentStatusLogic(db, uid, rawRequestIds) {
+  if (!uid || typeof uid !== "string") {
+    return { commitments: {} };
+  }
+
+  if (!Array.isArray(rawRequestIds)) {
+    return { commitments: {} };
+  }
+
+  const uniqueIds = Array.from(
+    new Set(rawRequestIds.filter(id => typeof id === "string" && id.trim().length > 0))
+  ).slice(0, 50);
+
+  const commitments = {};
+
+  await Promise.all(
+    uniqueIds.map(async (requestId) => {
+      const commitmentSnap = await db
+        .collection("communityPrayerCommitments")
+        .doc(`${requestId}_${uid}`)
+        .get();
+      commitments[requestId] = commitmentSnap.exists;
+    })
+  );
+
+  return { commitments };
 }
 
 async function markPrayerRequestAnsweredLogic(db, FieldValue, uid, requestId, rawAnsweredText) {
@@ -206,4 +299,6 @@ module.exports = {
   getPrayerOwnershipLogic,
   deletePrayerRequestLogic,
   markPrayerRequestAnsweredLogic,
+  togglePrayerCommitmentLogic,
+  getPrayerCommitmentStatusLogic,
 };

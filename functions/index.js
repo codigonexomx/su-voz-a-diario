@@ -35,6 +35,8 @@ const {
   getPrayerOwnershipLogic,
   deletePrayerRequestLogic,
   markPrayerRequestAnsweredLogic,
+  togglePrayerCommitmentLogic,
+  getPrayerCommitmentStatusLogic,
 } = require("./communityPrayer");
 
 if (getApps().length === 0) {
@@ -152,6 +154,49 @@ async function getCommunityPostOwner(db, postId) {
   const postSnapshot = await db.collection("communityPosts").doc(postId).get();
   return postSnapshot.exists ? postSnapshot.get("ownerUid") : null;
 }
+
+exports.togglePrayerCommitment = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para indicar que estás orando."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const db = getFirestore();
+
+    return togglePrayerCommitmentLogic(
+      db,
+      FieldValue,
+      uid,
+      request.data?.requestId
+    );
+  }
+);
+
+exports.getPrayerCommitmentStatus = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para verificar tus compromisos de oración."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const db = getFirestore();
+
+    return getPrayerCommitmentStatusLogic(db, uid, request.data?.requestIds);
+  }
+);
 
 async function getActiveRecipientsByUid(db, uids) {
   const recipientsByUid = new Map();

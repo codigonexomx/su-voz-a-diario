@@ -173,7 +173,22 @@ try {
   // CASO R12: Public query/list on communityPrayerRequests (ALLOW)
   await assertSucceeds(getDocs(collection(anonDb, 'communityPrayerRequests')));
 
-  console.log('community rules tests passed (including Oración R1-R12)');
+  // CASO R13: Unauthenticated user attempts read on communityPrayerCommitments (DENY)
+  await assertFails(getDoc(doc(anonDb, 'communityPrayerCommitments/prayer-public_user-a')));
+
+  // CASO R14: Authenticated user attempts read on communityPrayerCommitments (DENY)
+  await assertFails(getDoc(doc(userDb, 'communityPrayerCommitments/prayer-public_user-a')));
+
+  // CASO R15: Authenticated user attempts write on communityPrayerCommitments (DENY)
+  await assertFails(setDoc(doc(userDb, 'communityPrayerCommitments/prayer-public_user-a'), {
+    requestId: 'prayer-public',
+    ownerUid: 'user-a',
+  }));
+
+  // CASO R16: User attempts to list entire collection communityPrayerCommitments (DENY)
+  await assertFails(getDocs(collection(userDb, 'communityPrayerCommitments')));
+
+  console.log('community rules tests passed (including Oración R1-R16)');
 } finally {
   await testEnv.cleanup();
 }

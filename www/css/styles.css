@@ -18382,6 +18382,92 @@ body.light-mode .prayer-card-footer {
     gap: 8px;
 }
 
+/* Estoy Orando Styles */
+.prayer-commitment-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.light-mode .prayer-commitment-bar {
+    border-top-color: #EDF2F7;
+}
+
+.prayer-commitment-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(199, 171, 130, 0.35);
+    background: rgba(199, 171, 130, 0.08);
+    color: #C7AD78;
+    font-family: inherit;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.light-mode .prayer-commitment-btn {
+    background: #F4EFE6;
+    border-color: rgba(184, 153, 90, 0.40);
+    color: #8C6D2E;
+}
+
+.prayer-commitment-btn.is-active {
+    background: rgba(199, 171, 130, 0.25);
+    border-color: #C7AD78;
+    color: #FFF;
+    box-shadow: 0 2px 8px rgba(199, 171, 130, 0.20);
+}
+
+body.light-mode .prayer-commitment-btn.is-active {
+    background: #8C6D2E;
+    border-color: #8C6D2E;
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(140, 109, 46, 0.25);
+}
+
+.prayer-commitment-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.community-prayer-count {
+    font-size: 0.80rem;
+    color: #AEB9C4;
+    font-weight: 500;
+}
+
+body.light-mode .community-prayer-count {
+    color: #718096;
+}
+
+.prayer-testimony-prayed-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.80rem;
+    color: #5CD67C;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+body.light-mode .prayer-testimony-prayed-count {
+    color: #1E7E34;
+}
+    justify-content: flex-end;
+    gap: 8px;
+}
+
 .prayer-action-btn {
     background: transparent;
     border: 1px solid rgba(199, 171, 130, 0.25);

@@ -112,6 +112,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /communityPrayerCommitments/{commitmentId} {
+      allow read, write: if false;
+    }
+
     match /communityClock/{uid} {
       allow read, delete: if isSignedIn() && request.auth.uid == uid;
 

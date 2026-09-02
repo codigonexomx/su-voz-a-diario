@@ -4123,6 +4123,159 @@ loadCommunityPrayerOwnership: async function(prayers = []) {
     }
 },
 
+loadCommunityPrayerCommitments: async function(prayers = []) {
+    if (!this.currentUser?.uid || !Array.isArray(prayers) || prayers.length === 0) {
+        this.prayerCommitmentMap = this.prayerCommitmentMap || {};
+        return this.prayerCommitmentMap;
+    }
+
+    this.prayerCommitmentMap = this.prayerCommitmentMap || {};
+    const missingIds = prayers.map(p => p.id).filter(id => typeof this.prayerCommitmentMap[id] !== 'boolean');
+
+    if (missingIds.length === 0) {
+        return this.prayerCommitmentMap;
+    }
+
+    try {
+        const callable = await this.getCommunityIdentityCallable('getPrayerCommitmentStatus');
+        const res = await callable({ requestIds: missingIds });
+        const commitmentsData = res?.data?.commitments || {};
+
+        Object.assign(this.prayerCommitmentMap, commitmentsData);
+        return this.prayerCommitmentMap;
+    } catch (error) {
+        console.error('[CommunityPrayer] Error cargando compromisos de oración:', error);
+        return this.prayerCommitmentMap;
+    }
+},
+
+formatPrayerCountText: function(count) {
+    if (!count || count <= 0) return '';
+    if (count === 1) return '1 persona está orando';
+    return `${count} personas están orando`;
+},
+
+formatAnsweredPrayerCountText: function(count) {
+    if (!count || count <= 0) return '';
+    if (count === 1) return '1 persona oró';
+    return `${count} personas oraron`;
+},
+
+togglePrayerCommitment: async function(requestId) {
+    if (!requestId) return;
+
+    if (!this.currentUser?.uid) {
+        this.showToast('Debes iniciar sesión para indicar que estás orando.');
+        return;
+    }
+
+    if (!navigator.onLine) {
+        this.showToast('Necesitas conexión a internet para indicar que estás orando.');
+        return;
+    }
+
+    this.prayerCommitmentPendingIds = this.prayerCommitmentPendingIds || new Set();
+    if (this.prayerCommitmentPendingIds.has(requestId)) {
+        return; // Prevent duplicate rapid taps
+    }
+
+    this.prayerCommitmentPendingIds.add(requestId);
+    this.prayerCommitmentMap = this.prayerCommitmentMap || {};
+    const isCurrentlyActive = this.prayerCommitmentMap[requestId] === true;
+
+    // Optimistic local state update across all views
+    const state = this.getCommunityPrayerState();
+    const prayer = (state.posts || []).find(p => p.id === requestId);
+    const prevCount = prayer ? (prayer.prayingCount || 0) : 0;
+    const nextActive = !isCurrentlyActive;
+    const nextCount = nextActive ? prevCount + 1 : Math.max(0, prevCount - 1);
+
+    this.updatePrayerRequestLocalState(requestId, nextActive, nextCount);
+
+    try {
+        const callable = await this.getCommunityIdentityCallable('togglePrayerCommitment');
+        const res = await callable({ requestId });
+
+        if (res?.data?.success) {
+            const serverActive = res.data.active === true;
+            const serverCount = typeof res.data.prayingCount === 'number' ? res.data.prayingCount : nextCount;
+
+            this.updatePrayerRequestLocalState(requestId, serverActive, serverCount);
+        } else {
+            throw new Error('Toggle returned unsuccessful');
+        }
+    } catch (error) {
+        console.error('[CommunityPrayer] Error en toggle de compromiso:', error);
+        // Rollback global state across all views
+        this.updatePrayerRequestLocalState(requestId, isCurrentlyActive, prevCount);
+        this.showToast('No se pudo actualizar. Inténtalo nuevamente.');
+    } finally {
+        this.prayerCommitmentPendingIds.delete(requestId);
+        this.updatePrayerCardPendingUi(requestId, false);
+    }
+},
+
+updatePrayerRequestLocalState: function(requestId, active, count) {
+    this.prayerCommitmentMap = this.prayerCommitmentMap || {};
+    this.prayerCommitmentMap[requestId] = active;
+
+    // Update in prayer state posts array
+    const state = this.getCommunityPrayerState();
+    if (Array.isArray(state.posts)) {
+        const p = state.posts.find(item => item.id === requestId);
+        if (p) p.prayingCount = count;
+    }
+
+    this.updatePrayerCardCommitmentUi(requestId, active, count);
+},
+
+updatePrayerCardPendingUi: function(requestId, isPending) {
+    const cardElements = document.querySelectorAll(`[data-request-id="${requestId}"]`);
+    cardElements.forEach(cardEl => {
+        const btnEl = cardEl.querySelector('[data-action="toggle-prayer-commitment"]');
+        if (btnEl) {
+            btnEl.disabled = isPending;
+            btnEl.setAttribute('aria-busy', isPending ? 'true' : 'false');
+        }
+    });
+},
+
+updatePrayerCardCommitmentUi: function(requestId, active, count) {
+    const cardElements = document.querySelectorAll(`[data-request-id="${requestId}"]`);
+    if (!cardElements || cardElements.length === 0) return;
+
+    cardElements.forEach(cardEl => {
+        const btnEl = cardEl.querySelector('[data-action="toggle-prayer-commitment"]');
+        if (btnEl) {
+            btnEl.setAttribute('aria-pressed', active ? 'true' : 'false');
+            btnEl.classList.toggle('is-active', active);
+            const labelEl = btnEl.querySelector('.community-prayer-btn-label');
+            if (labelEl) {
+                labelEl.textContent = active ? 'Orando' : 'Estoy orando';
+            }
+        }
+
+        const countEl = cardEl.querySelector('.community-prayer-count');
+        if (countEl) {
+            if (count > 0) {
+                countEl.textContent = this.formatPrayerCountText(count);
+                countEl.style.display = 'inline-flex';
+            } else {
+                countEl.textContent = '';
+                countEl.style.display = 'none';
+            }
+        } else if (count > 0) {
+            const barEl = cardEl.querySelector('.prayer-commitment-bar');
+            if (barEl) {
+                const newCountSpan = document.createElement('span');
+                newCountSpan.className = 'community-prayer-count';
+                newCountSpan.textContent = this.formatPrayerCountText(count);
+                barEl.appendChild(newCountSpan);
+            }
+        }
+    });
+},
+
 addCommunityPrayerPost: async function(prayerData) {
     try {
         if (!navigator.onLine) {
@@ -4370,6 +4523,8 @@ renderCommunityPrayerCardHtml: function(prayer) {
     const authorSnapshot = prayer.authorSnapshot || {};
     const authorName = isAnonymous ? 'Anónimo' : (prayer.name || authorSnapshot.displayName || 'Hermano(a)');
     const isOwner = this.prayerOwnershipMap && this.prayerOwnershipMap[prayer.id] === true;
+    const prayingCount = typeof prayer.prayingCount === 'number' ? prayer.prayingCount : 0;
+    const isCommitmentActive = this.prayerCommitmentMap && this.prayerCommitmentMap[prayer.id] === true;
 
     let avatarUri = '';
     if (isAnonymous) {
@@ -4408,6 +4563,23 @@ renderCommunityPrayerCardHtml: function(prayer) {
 
             <div class="prayer-card-body">
                 <p class="prayer-card-text">${this.escapeHtml(prayer.text || '')}</p>
+
+                <div class="prayer-commitment-bar">
+                    <button
+                        type="button"
+                        class="prayer-commitment-btn ${isCommitmentActive ? 'is-active' : ''}"
+                        data-action="toggle-prayer-commitment"
+                        data-request-id="${this.escapeHtml(prayer.id)}"
+                        aria-pressed="${isCommitmentActive ? 'true' : 'false'}"
+                        aria-label="${isCommitmentActive ? 'Estás orando por esta petición' : 'Indicar que estás orando por esta petición'}"
+                    >
+                        <span class="prayer-commitment-icon" aria-hidden="true">🙏</span>
+                        <span class="community-prayer-btn-label">${isCommitmentActive ? 'Orando' : 'Estoy orando'}</span>
+                    </button>
+                    ${prayingCount > 0 ? `
+                        <span class="community-prayer-count">${this.escapeHtml(this.formatPrayerCountText(prayingCount))}</span>
+                    ` : ''}
+                </div>
             </div>
 
             ${prayer.status === 'answered' ? `
@@ -4553,6 +4725,7 @@ renderCommunityPrayerTestimonyCardHtml: function(prayer) {
     const isAnonymous = prayer.isAnonymous === true;
     const authorSnapshot = prayer.authorSnapshot || {};
     const authorName = isAnonymous ? 'Anónimo' : (prayer.name || authorSnapshot.displayName || 'Hermano(a)');
+    const prayingCount = typeof prayer.prayingCount === 'number' ? prayer.prayingCount : 0;
 
     let avatarUri = '';
     if (isAnonymous) {
@@ -4627,11 +4800,15 @@ renderCommunityPrayerTestimonyCardHtml: function(prayer) {
                 ` : ''}
             </div>
 
-            ${answeredDateStr ? `
-                <footer class="prayer-card-footer prayer-testimony-footer">
-                    <span class="prayer-answered-date">Respondida el ${this.escapeHtml(answeredDateStr)}</span>
-                </footer>
-            ` : ''}
+            <footer class="prayer-card-footer prayer-testimony-footer">
+                ${answeredDateStr ? `<span class="prayer-answered-date">Respondida el ${this.escapeHtml(answeredDateStr)}</span>` : ''}
+                ${prayingCount > 0 ? `
+                    <div class="prayer-testimony-prayed-count">
+                        <span aria-hidden="true">🙏</span>
+                        <span>${this.escapeHtml(this.formatAnsweredPrayerCountText(prayingCount))}</span>
+                    </div>
+                ` : ''}
+            </footer>
         </article>
     `;
 },
@@ -15010,6 +15187,7 @@ renderCommunityComposerLocally: function() {
                 } else {
                     prayers = await this.getCommunityPrayerPostsCached({ forceRefresh: options.forceRefresh === true });
                     await this.loadCommunityPrayerOwnership(prayers);
+                    await this.loadCommunityPrayerCommitments(prayers);
                 }
             } catch(pErr) {
                 console.error('[CommunityPrayer] Error cargando peticiones/testimonios:', pErr);
@@ -19274,6 +19452,15 @@ if (publishPrayerBtn) {
         publishPrayerBtn.textContent = 'Publicar petición';
         this.showToast('Error al publicar petición');
     });
+    return;
+}
+
+const toggleCommitmentBtn = e.target.closest('[data-action="toggle-prayer-commitment"]');
+if (toggleCommitmentBtn) {
+    const requestId = toggleCommitmentBtn.getAttribute('data-request-id');
+    if (requestId) {
+        this.togglePrayerCommitment(requestId);
+    }
     return;
 }
 

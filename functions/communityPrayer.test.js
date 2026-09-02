@@ -15,6 +15,8 @@ const {
   getPrayerOwnershipLogic,
   deletePrayerRequestLogic,
   markPrayerRequestAnsweredLogic,
+  togglePrayerCommitmentLogic,
+  getPrayerCommitmentStatusLogic,
 } = require("./communityPrayer");
 
 describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
@@ -270,6 +272,13 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
               },
             };
           },
+          where() {
+            return {
+              async get() {
+                return { docs: [] };
+              },
+            };
+          },
         };
       },
       batch() {
@@ -418,5 +427,277 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
     assert.equal(docAnon.prayingCount, 0);
     assert.equal(docAnon.status, "active");
     assert.deepEqual(docAnon.createdAt, timestamp);
+  });
+
+  // 26: usuario autenticado activa compromiso (OFF -> ON)
+  it("Test 26: usuario autenticado activa compromiso (OFF -> ON)", async () => {
+    let commitmentCreated = null;
+    let requestUpdated = null;
+    let currentCount = 0;
+
+    const mockDb = {
+      collection(col) {
+        return {
+          doc(id) {
+            return { id, col };
+          },
+        };
+      },
+      async runTransaction(updateFunction) {
+        const transaction = {
+          async get(ref) {
+            if (ref.col === "communityPrayerRequests" && ref.id === "req_1") {
+              return { exists: true, get: (f) => (f === "status" ? "active" : f === "prayingCount" ? currentCount : null) };
+            }
+            if (ref.col === "communityPrayerCommitments") {
+              return { exists: false };
+            }
+            return { exists: false };
+          },
+          set(ref, data) { commitmentCreated = data; },
+          update(ref, data) { requestUpdated = data; },
+          delete() {},
+        };
+        return updateFunction(transaction);
+      },
+    };
+    const mockFieldValue = { serverTimestamp: () => timestamp };
+
+    const res = await togglePrayerCommitmentLogic(mockDb, mockFieldValue, "user_123", "req_1");
+    assert.equal(res.success, true);
+    assert.equal(res.active, true);
+    assert.equal(res.prayingCount, 1);
+    assert.equal(commitmentCreated.requestId, "req_1");
+    assert.equal(commitmentCreated.ownerUid, "user_123");
+    assert.equal(requestUpdated.prayingCount, 1);
+  });
+
+  // 27: usuario autenticado desactiva compromiso (ON -> OFF)
+  it("Test 27: usuario autenticado desactiva compromiso (ON -> OFF)", async () => {
+    let commitmentDeleted = false;
+    let requestUpdated = null;
+
+    const mockDb = {
+      collection(col) {
+        return {
+          doc(id) {
+            return { id, col };
+          },
+        };
+      },
+      async runTransaction(updateFunction) {
+        const transaction = {
+          async get(ref) {
+            if (ref.col === "communityPrayerRequests" && ref.id === "req_1") {
+              return { exists: true, get: (f) => (f === "status" ? "active" : f === "prayingCount" ? 5 : null) };
+            }
+            if (ref.col === "communityPrayerCommitments") {
+              return { exists: true };
+            }
+            return { exists: false };
+          },
+          set() {},
+          update(ref, data) { requestUpdated = data; },
+          delete() { commitmentDeleted = true; },
+        };
+        return updateFunction(transaction);
+      },
+    };
+    const mockFieldValue = { serverTimestamp: () => timestamp };
+
+    const res = await togglePrayerCommitmentLogic(mockDb, mockFieldValue, "user_123", "req_1");
+    assert.equal(res.success, true);
+    assert.equal(res.active, false);
+    assert.equal(res.prayingCount, 4);
+    assert.equal(commitmentDeleted, true);
+    assert.equal(requestUpdated.prayingCount, 4);
+  });
+
+  // 28: usuario sin Distintivo puede usarlo
+  it("Test 28: usuario sin Distintivo puede usar toggle", async () => {
+    const mockDb = {
+      collection() { return { doc() { return {}; } }; },
+      async runTransaction(fn) {
+        return fn({
+          async get(ref) {
+            return { exists: true, get: (f) => (f === "status" ? "active" : 0) };
+          },
+          set() {}, update() {}, delete() {},
+        });
+      },
+    };
+    const res = await togglePrayerCommitmentLogic(mockDb, { serverTimestamp: () => timestamp }, "user_no_badge", "req_1");
+    assert.equal(res.success, true);
+  });
+
+  // 29: petición anónima acepta compromiso
+  it("Test 29: petición anónima acepta compromiso igual que identificada", async () => {
+    const mockDb = {
+      collection() { return { doc() { return {}; } }; },
+      async runTransaction(fn) {
+        return fn({
+          async get() { return { exists: true, get: (f) => (f === "status" ? "active" : 2) }; },
+          set() {}, update() {}, delete() {},
+        });
+      },
+    };
+    const res = await togglePrayerCommitmentLogic(mockDb, { serverTimestamp: () => timestamp }, "user_abc", "req_anon_99");
+    assert.equal(res.success, true);
+  });
+
+  // 30: unauthenticated sin auth rechazado
+  it("Test 30: sin auth es rechazado", async () => {
+    await assert.rejects(
+      async () => togglePrayerCommitmentLogic({}, {}, null, "req_1"),
+      (err) => err instanceof HttpsError && err.code === "unauthenticated"
+    );
+  });
+
+  // 31: requestId inválido rechazado
+  it("Test 31: requestId inválido es rechazado", async () => {
+    await assert.rejects(
+      async () => togglePrayerCommitmentLogic({}, {}, "user_1", ""),
+      (err) => err instanceof HttpsError && err.code === "invalid-argument"
+    );
+  });
+
+  // 32: petición inexistente rechazada
+  it("Test 32: petición inexistente es rechazada", async () => {
+    const mockDb = {
+      collection() { return { doc() { return {}; } }; },
+      async runTransaction(fn) {
+        return fn({
+          async get() { return { exists: false }; },
+        });
+      },
+    };
+    await assert.rejects(
+      async () => togglePrayerCommitmentLogic(mockDb, {}, "user_1", "req_ghost"),
+      (err) => err instanceof HttpsError && err.code === "not-found"
+    );
+  });
+
+  // 33: petición answered no acepta nuevos compromisos
+  it("Test 33: petición answered no acepta compromisos", async () => {
+    const mockDb = {
+      collection() { return { doc() { return {}; } }; },
+      async runTransaction(fn) {
+        return fn({
+          async get() { return { exists: true, get: (f) => (f === "status" ? "answered" : 10) }; },
+        });
+      },
+    };
+    await assert.rejects(
+      async () => togglePrayerCommitmentLogic(mockDb, {}, "user_1", "req_answered_123"),
+      (err) => err instanceof HttpsError && err.code === "failed-precondition"
+    );
+  });
+
+  // 34: decremento nunca negativo
+  it("Test 34: decremento nunca produce prayingCount negativo", async () => {
+    let updatedCount = null;
+    const mockDb = {
+      collection() { return { doc() { return {}; } }; },
+      async runTransaction(fn) {
+        return fn({
+          async get(ref) {
+            // Count is 0 but commitment exists accidentally
+            return { exists: true, get: (f) => (f === "status" ? "active" : 0) };
+          },
+          delete() {},
+          update(ref, data) { updatedCount = data.prayingCount; },
+        });
+      },
+    };
+    const res = await togglePrayerCommitmentLogic(mockDb, { serverTimestamp: () => timestamp }, "user_1", "req_zero");
+    assert.equal(res.prayingCount, 0);
+    assert.equal(updatedCount, 0);
+  });
+
+  // 35: respuesta toggle no contiene UID ni datos privados
+  it("Test 35: respuesta toggle no contiene UIDs ni datos privados", async () => {
+    const mockDb = {
+      collection() { return { doc() { return {}; } }; },
+      async runTransaction(fn) {
+        return fn({
+          async get() { return { exists: true, get: (f) => (f === "status" ? "active" : 3) }; },
+          set() {}, update() {}, delete() {},
+        });
+      },
+    };
+    const res = await togglePrayerCommitmentLogic(mockDb, { serverTimestamp: () => timestamp }, "user_123", "req_1");
+    assert.equal(res.ownerUid, undefined);
+    assert.equal(res.uid, undefined);
+    assert.equal(res.userId, undefined);
+    assert.deepEqual(Object.keys(res).sort(), ["active", "prayingCount", "success"]);
+  });
+
+  // 36: getPrayerCommitmentStatusLogic batch status no contiene UIDs
+  it("Test 36: getPrayerCommitmentStatusLogic batch status no contiene UIDs", async () => {
+    const mockDb = {
+      collection() {
+        return {
+          doc(docId) {
+            return {
+              async get() {
+                if (docId === "req_1_user_abc") return { exists: true };
+                return { exists: false };
+              },
+            };
+          },
+        };
+      },
+    };
+
+    const res = await getPrayerCommitmentStatusLogic(mockDb, "user_abc", ["req_1", "req_2"]);
+    assert.deepEqual(res.commitments, {
+      req_1: true,
+      req_2: false,
+    });
+    assert.equal(res.ownerUid, undefined);
+    assert.equal(res.uid, undefined);
+  });
+
+  // 37: eliminación de petición limpia compromisos asociados
+  it("Test 37: eliminación de petición limpia compromisos privados asociados", async () => {
+    let deletedDocs = [];
+    const mockDb = {
+      collection(col) {
+        return {
+          doc(docId) {
+            return {
+              async get() {
+                if (col === "communityPrayerPrivate" && docId === "req_del") {
+                  return { exists: true, get: (f) => (f === "ownerUid" ? "user_owner" : null) };
+                }
+                return { exists: false };
+              },
+            };
+          },
+          where() {
+            return {
+              async get() {
+                return {
+                  docs: [
+                    { ref: { id: "req_del_user1" } },
+                    { ref: { id: "req_del_user2" } },
+                  ],
+                };
+              },
+            };
+          },
+        };
+      },
+      batch() {
+        return {
+          delete(ref) { deletedDocs.push(ref); },
+          async commit() {},
+        };
+      },
+    };
+
+    const res = await deletePrayerRequestLogic(mockDb, "user_owner", "req_del");
+    assert.equal(res.success, true);
+    assert.equal(deletedDocs.length, 4); // main doc + private doc + 2 commitment docs
   });
 });
