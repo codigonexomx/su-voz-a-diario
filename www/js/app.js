@@ -14658,14 +14658,54 @@ renderCommunityLoadError: function(error) {
     };
 
     console.error(`[Community] No se pudo completar la carga: ${JSON.stringify(errorDetails)}`);
+    const isPrayer = this.communitySection === 'prayer';
+
     this.$content.innerHTML = `
         <div class="community-container">
-            <div class="community-empty-state">
-                <div class="community-empty-title">No se pudo cargar Comunidad</div>
+            <section class="community-hero community-hero-compact" aria-labelledby="communityTitle">
+                <div class="community-hero-copy">
+                    <h2 id="communityTitle">${isPrayer ? 'Comunidad de Oración' : 'Comunidad'}</h2>
+                    <p>${isPrayer ? 'Unidos en fe intercediendo unos por otros.' : 'Compartimos lo que recibimos de la Palabra.'}</p>
+                </div>
+            </section>
+
+            <div class="community-section-segmented" role="tablist" aria-label="Secciones de Comunidad">
+                <button
+                    type="button"
+                    class="community-section-btn ${!isPrayer ? 'is-active' : ''}"
+                    data-action="set-community-section"
+                    data-section="reflections"
+                    role="tab"
+                    aria-selected="${!isPrayer ? 'true' : 'false'}"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <span>Reflexiones</span>
+                </button>
+                <button
+                    type="button"
+                    class="community-section-btn ${isPrayer ? 'is-active' : ''}"
+                    data-action="set-community-section"
+                    data-section="prayer"
+                    role="tab"
+                    aria-selected="${isPrayer ? 'true' : 'false'}"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 7v5l3 3"/>
+                    </svg>
+                    <span>Oración</span>
+                </button>
+            </div>
+
+            <div class="community-empty-state" style="margin-top: 24px;">
+                <div class="community-empty-title">${isPrayer ? 'No se pudieron cargar las peticiones de oración' : 'No se pudo cargar Comunidad'}</div>
                 <div class="community-empty-text">
                     Revisa tu conexión e inténtalo nuevamente.
                 </div>
-                <button class="btn-primary" type="button" data-action="retry-community">
+                <button class="btn-primary" type="button" data-action="${isPrayer ? 'retry-community-prayer' : 'retry-community'}">
                     Reintentar
                 </button>
             </div>
@@ -15112,7 +15152,23 @@ try {
 
                 <div class="community-feed community-prayer-feed">
                     ${(() => {
+                        const prayerState = this.getCommunityPrayerState();
+                        const testimonyState = this.getCommunityPrayerTestimonyState();
+
                         if (this.prayerTabFilter === 'testimonies') {
+                            if (testimonyState.error && !testimonies.length) {
+                                return `
+                                    <div class="community-empty-state" style="text-align: center; padding: 36px 16px;">
+                                        <div style="font-size: 2.2rem; margin-bottom: 8px;">✨</div>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">No se pudieron cargar los testimonios</p>
+                                        <p style="font-size: 0.85rem; margin-top: 4px; color: var(--text-muted);">Revisa tu conexión a internet e inténtalo nuevamente.</p>
+                                        <button class="btn-primary" type="button" data-action="retry-community-prayer" style="margin-top: 16px;">
+                                            Reintentar
+                                        </button>
+                                    </div>
+                                `;
+                            }
+
                             if (!testimonies.length) {
                                 return `
                                     <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
@@ -15124,7 +15180,6 @@ try {
                             }
 
                             const testimonyCardsHtml = testimonies.map(p => this.renderCommunityPrayerTestimonyCardHtml(p)).join('');
-                            const testimonyState = this.getCommunityPrayerTestimonyState();
                             const showLoadMore = testimonyState.hasMore === true;
 
                             return testimonyCardsHtml + (showLoadMore ? `
@@ -15139,6 +15194,19 @@ try {
                         let visiblePrayers = prayers;
                         if (this.prayerTabFilter === 'my-prayers') {
                             visiblePrayers = prayers.filter(p => this.prayerOwnershipMap && this.prayerOwnershipMap[p.id] === true);
+                        }
+
+                        if (prayerState.error && !visiblePrayers.length) {
+                            return `
+                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px;">
+                                    <div style="font-size: 2.2rem; margin-bottom: 8px;">🙏</div>
+                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">No se pudieron cargar las peticiones de oración</p>
+                                    <p style="font-size: 0.85rem; margin-top: 4px; color: var(--text-muted);">Revisa tu conexión a internet e inténtalo nuevamente.</p>
+                                    <button class="btn-primary" type="button" data-action="retry-community-prayer" style="margin-top: 16px;">
+                                        Reintentar
+                                    </button>
+                                </div>
+                            `;
                         }
 
                         if (!visiblePrayers.length) {
@@ -19108,8 +19176,18 @@ if (setSectionBtn) {
     const section = setSectionBtn.getAttribute('data-section');
     if (section) {
         this.communitySection = section;
-        this.renderCommunity({ preserveOnError: true });
+        this.renderCommunity();
     }
+    return;
+}
+
+const retryPrayerBtn = e.target.closest('[data-action="retry-community-prayer"]');
+if (retryPrayerBtn) {
+    this.resetCommunityPrayerState();
+    this.resetCommunityPrayerTestimonyState();
+    this.renderCommunity({ forceRefresh: true }).catch(error => {
+        console.error('[CommunityPrayer] Error en reintento de oración:', error);
+    });
     return;
 }
 
