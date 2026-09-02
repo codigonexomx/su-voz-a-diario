@@ -3961,6 +3961,52 @@ body.dark-mode .devotional-step-tab.active {
     font-size: 0.8rem;
     font-weight: 600;
     letter-spacing: 0.01em;
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.community-reference-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: none;
+    padding: 2px 6px;
+    margin: -2px 0;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 700;
+    color: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+    text-decoration: underline;
+    text-decoration-color: rgba(213, 154, 66, 0.4);
+    text-underline-offset: 3px;
+    transition: all 0.18s ease;
+    min-height: 36px;
+    touch-action: manipulation;
+}
+
+.community-reference-btn:hover,
+.community-reference-btn:focus-visible {
+    color: var(--community-gold-dark, #98631F);
+    background: rgba(213, 154, 66, 0.10);
+    text-decoration-color: currentColor;
+    outline: none;
+}
+
+.community-ref-icon {
+    opacity: 0.75;
+    flex-shrink: 0;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.community-reference-btn:hover .community-ref-icon,
+.community-reference-btn:focus-visible .community-ref-icon {
+    opacity: 1;
+    transform: translate(1px, -1px);
 }
 
 .community-meta {

@@ -671,12 +671,13 @@ const App = {
             }
 
             const remainder = normalizedQuery.slice(item.alias.length).trim();
-            const match = remainder.match(/^(\d{1,3})(?:\s*[: ]\s*(\d{1,3}))?$/);
+            const match = remainder.match(/^(\d{1,3})(?:\s*[: ]\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?)?$/);
 
             if (!match) continue;
 
             const chapter = Number(match[1]);
             const verse = match[2] ? Number(match[2]) : null;
+            const endVerse = match[3] ? Number(match[3]) : null;
 
             if (!Number.isInteger(chapter) || chapter < 1 || chapter > item.book.chapters) {
                 return null;
@@ -686,11 +687,16 @@ const App = {
                 return null;
             }
 
+            if (endVerse !== null && (!Number.isInteger(endVerse) || endVerse < verse)) {
+                return null;
+            }
+
             return {
                 bookId: item.book.id,
                 bookName: item.book.name,
                 chapter,
-                verse
+                verse,
+                endVerse
             };
         }
 
@@ -3632,6 +3638,44 @@ restoreCommunityViewportAnchor: function(anchor) {
         const difference = element.getBoundingClientRect().top - anchor.top;
         window.scrollBy(0, difference);
     });
+},
+
+renderCommunityInteractiveReferenceHtml: function(reference) {
+    const rawRef = String(reference || '').trim();
+    if (!rawRef) return '';
+
+    return `
+        <button
+            type="button"
+            class="community-reference-btn"
+            data-action="open-community-bible-reference"
+            data-reference="${this.escapeHtml(rawRef)}"
+            aria-label="Abrir ${this.escapeHtml(rawRef)} en la Biblia"
+            title="Abrir ${this.escapeHtml(rawRef)} en la Biblia"
+        >
+            <span>${this.escapeHtml(rawRef)}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="community-ref-icon" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <line x1="10" y1="14" x2="21" y2="3"></line>
+            </svg>
+        </button>
+    `;
+},
+
+openCommunityBibleReference: function(reference) {
+    const rawRef = String(reference || '').trim();
+    if (!rawRef) return;
+
+    const parsed = this.parseBibleReferenceQuery(rawRef);
+    if (!parsed || !parsed.bookId || !parsed.chapter) {
+        console.warn('[Community] Referencia bíblica no reconocida:', reference);
+        this.showToast('No se pudo encontrar el pasaje en la Biblia', 'info');
+        return;
+    }
+
+    this.saveCommunityScrollPosition();
+    this.navigateToVerse(parsed.bookId, parsed.chapter, parsed.verse, parsed.endVerse);
 },
 
 focusCommunityTarget: function(postId, replyId = null, highlight = false) {
@@ -11482,7 +11526,7 @@ updateBibleSearchResults: function() {
     this.updateBibleSearchClearButton();
 },
 
-navigateToVerse: function(apiBookId, chapter, verse) {
+navigateToVerse: function(apiBookId, chapter, verse, endVerse = null) {
     // Convertir ID de API a nuestro ID
     const rawBookId = String(apiBookId || '');
     const ourBookId = this.bibleApiIdMap[rawBookId.toUpperCase()] || rawBookId.toLowerCase();
@@ -11498,9 +11542,16 @@ navigateToVerse: function(apiBookId, chapter, verse) {
     this.selectedBibleBook = ourBookId;
     this.selectedBibleChapter = Number.parseInt(chapter, 10);
     const targetVerse = Number.parseInt(verse, 10);
+    const targetEnd = Number.parseInt(endVerse, 10);
+
     this.targetVerse = Number.isInteger(targetVerse) && targetVerse > 0
         ? targetVerse
         : null;
+    this.targetVerseStart = this.targetVerse;
+    this.targetVerseEnd = Number.isInteger(targetEnd) && targetEnd >= (this.targetVerse || 0)
+        ? targetEnd
+        : this.targetVerse;
+
     this.saveBibleLastLocation(this.selectedBibleBook, this.selectedBibleChapter);
     
     // Navegar directamente a bible-reading
@@ -14210,7 +14261,7 @@ try {
                                             ${this.isPostFavorite(post.id) ? '<span class="post-favorite-star" title="En tus favoritos">⭐</span>' : ''}
                                         </div>
 
-                                        <div class="community-ref">Escuchó en ${this.escapeHtml(post.reference)}</div>
+                                        <div class="community-ref">Escuchó en ${this.renderCommunityInteractiveReferenceHtml(post.reference)}</div>
                                     </div>
                                 </div>
 
@@ -17918,6 +17969,15 @@ if (deleteReplyBtn) {
             console.error('[Community] Error actualizando respuestas:', error);
         });
     }
+    return;
+}
+
+const openCommunityRefBtn = e.target.closest('[data-action="open-community-bible-reference"]');
+if (openCommunityRefBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const reference = openCommunityRefBtn.getAttribute('data-reference');
+    this.openCommunityBibleReference(reference);
     return;
 }
 
