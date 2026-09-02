@@ -1,4 +1,4 @@
-const APP_VERSION = "209";
+const APP_VERSION = "210";
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -7,7 +7,7 @@ const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json?v=173',
-  './css/styles.css?v=179',
+  './css/styles.css?v=180',
   './css/deepening-mode.css?v=173',
   './css/deepening-shell.css?v=173',
   './css/meditation-document-viewer.css?v=173',

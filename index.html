@@ -66,7 +66,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
     <link rel="preload" as="image" href="./icons/splash%202.png">
-    <link rel="stylesheet" href="./css/styles.css?v=179">
+    <link rel="stylesheet" href="./css/styles.css?v=180">
     <link rel="stylesheet" href="./css/deepening-mode.css?v=173">
     <link rel="stylesheet" href="./css/deepening-shell.css?v=173">
     <link rel="stylesheet" href="./css/meditation-document-viewer.css?v=173">
@@ -731,7 +731,7 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const appVersion = "167";
+                const appVersion = "168";
                 const versionKey = 'su-voz-app-version';
                 const reloadKey = `su-voz-update-reloaded-${appVersion}`;
                 const currentCacheNames = new Set([
@@ -793,7 +793,7 @@
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=167', {
+                const registration = await navigator.serviceWorker.register('./sw.js?v=168', {
                     scope: './',
                     updateViaCache: 'none'
                 });
