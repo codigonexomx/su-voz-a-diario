@@ -1,4 +1,4 @@
-const APP_VERSION = "205";
+const APP_VERSION = "206";
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -7,13 +7,13 @@ const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json?v=173',
-  './css/styles.css?v=177',
+  './css/styles.css?v=178',
   './css/deepening-mode.css?v=173',
   './css/deepening-shell.css?v=173',
   './css/meditation-document-viewer.css?v=173',
   './css/meditation-actions-panel.css?v=173',
   './js/NotebookGestureController.js?v=173',
-  './js/app.js?v=178',
+  './js/app.js?v=179',
   './js/ReadingPositionManager.js?v=173',
   './js/ReadingDocument.js?v=173',
   './js/DocumentFactory.js?v=173',

@@ -1115,6 +1115,26 @@ console.log('[App] Inicialización completada');
             return;
         }
 
+        if (this.prayerAnsweredModalRequestId) {
+            this.prayerAnsweredModalRequestId = null;
+            this.renderCommunity({ preserveOnError: true });
+            return;
+        }
+
+        if (this.prayerDeleteModalRequestId) {
+            this.prayerDeleteModalRequestId = null;
+            this.renderCommunity({ preserveOnError: true });
+            return;
+        }
+
+        if (this.prayerFormOpen) {
+            this.prayerFormOpen = false;
+            this.handleRoute().catch(error => {
+                console.error('[Back] Error cerrando formulario de oración:', error);
+            });
+            return;
+        }
+
         if (this.communityFormOpen) {
             this.communityFormOpen = false;
             this.updateCommunityDraftState({ formOpen: false }, { immediate: true });
@@ -3957,6 +3977,734 @@ async deleteCommunityPost(postId) {
         console.error("Error eliminando post:", error);
         return false;
     }
+},
+
+getCommunityPrayerState: function() {
+    if (!this.communityPrayerState) {
+        this.communityPrayerState = {
+            posts: [],
+            lastVisible: null,
+            hasMore: true,
+            loading: false,
+            loaded: false,
+            error: null,
+            mode: 'all'
+        };
+    }
+    return this.communityPrayerState;
+},
+
+resetCommunityPrayerState: function() {
+    this.communityPrayerState = {
+        posts: [],
+        lastVisible: null,
+        hasMore: true,
+        loading: false,
+        loaded: false,
+        error: null,
+        mode: 'all'
+    };
+    this.prayerOwnershipMap = {};
+},
+
+getCommunityPrayerPostsCached: async function(options = {}) {
+    const state = this.getCommunityPrayerState();
+    const forceRefresh = options.forceRefresh === true;
+
+    if (state.loaded && !forceRefresh) {
+        return state.posts;
+    }
+
+    if (state.loading) {
+        return state.posts;
+    }
+
+    state.loading = true;
+    state.error = null;
+
+    try {
+        const pageSize = 20;
+        const q = query(
+            collection(db, "communityPrayerRequests"),
+            where("status", "==", "active"),
+            orderBy("createdAt", "desc"),
+            limit(pageSize)
+        );
+
+        const snapshot = await getDocs(q);
+        const rawDocs = snapshot.docs;
+        const fetched = rawDocs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        state.posts = fetched;
+        state.lastVisible = rawDocs.length > 0 ? rawDocs[rawDocs.length - 1] : null;
+        state.hasMore = rawDocs.length >= pageSize;
+        state.loaded = true;
+        state.loading = false;
+
+        return state.posts;
+    } catch (error) {
+        console.error('[CommunityPrayer] Error consultando peticiones:', error);
+        state.loading = false;
+        state.error = error;
+        if (!state.loaded) {
+            state.posts = [];
+        }
+        throw error;
+    }
+},
+
+loadMoreCommunityPrayerPosts: async function() {
+    const state = this.getCommunityPrayerState();
+    if (state.loading || !state.hasMore || !state.lastVisible) {
+        return state.posts;
+    }
+
+    state.loading = true;
+
+    try {
+        const pageSize = 20;
+        const q = query(
+            collection(db, "communityPrayerRequests"),
+            where("status", "==", "active"),
+            orderBy("createdAt", "desc"),
+            startAfter(state.lastVisible),
+            limit(pageSize)
+        );
+
+        const snapshot = await getDocs(q);
+        const rawDocs = snapshot.docs;
+        const newPosts = rawDocs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        const existingIds = new Set(state.posts.map(p => p.id));
+        const filteredNew = newPosts.filter(p => !existingIds.has(p.id));
+
+        state.posts = [...state.posts, ...filteredNew];
+        state.lastVisible = rawDocs.length > 0 ? rawDocs[rawDocs.length - 1] : state.lastVisible;
+        state.hasMore = rawDocs.length >= pageSize;
+        state.loading = false;
+
+        return state.posts;
+    } catch (error) {
+        console.error('[CommunityPrayer] Error cargando más peticiones:', error);
+        state.loading = false;
+        throw error;
+    }
+},
+
+loadCommunityPrayerOwnership: async function(prayers = []) {
+    if (!this.currentUser?.uid || !Array.isArray(prayers) || prayers.length === 0) {
+        this.prayerOwnershipMap = this.prayerOwnershipMap || {};
+        return this.prayerOwnershipMap;
+    }
+
+    this.prayerOwnershipMap = this.prayerOwnershipMap || {};
+    const missingIds = prayers.map(p => p.id).filter(id => typeof this.prayerOwnershipMap[id] !== 'boolean');
+
+    if (missingIds.length === 0) {
+        return this.prayerOwnershipMap;
+    }
+
+    try {
+        const callable = await this.getCommunityIdentityCallable('getPrayerOwnership');
+        const res = await callable({ requestIds: missingIds });
+        const ownershipData = res?.data?.requests || {};
+
+        Object.assign(this.prayerOwnershipMap, ownershipData);
+        return this.prayerOwnershipMap;
+    } catch (error) {
+        console.error('[CommunityPrayer] Error resolviendo ownership:', error);
+        return this.prayerOwnershipMap;
+    }
+},
+
+addCommunityPrayerPost: async function(prayerData) {
+    try {
+        if (!navigator.onLine) {
+            return {
+                success: false,
+                code: 'offline',
+                message: 'Necesitas conexión a internet para pedir oración.'
+            };
+        }
+
+        const validation = Sanitizer.validateText(prayerData.text);
+        if (!validation.valid) {
+            this.showToast(validation.message);
+            return {
+                success: false,
+                code: 'validation-failed',
+                message: validation.message
+            };
+        }
+
+        const callable = await this.getCommunityIdentityCallable('createPrayerRequest');
+        const response = await callable({
+            text: Sanitizer.sanitizeText(prayerData.text, 800),
+            isAnonymous: prayerData.isAnonymous === true
+        });
+        const created = response?.data || {};
+
+        if (created.success && created.id) {
+            this.clearCommunityPrayerDraft();
+            this.resetCommunityPrayerState();
+            return { success: true, id: created.id };
+        }
+
+        return {
+            success: false,
+            code: 'function-failed',
+            message: 'No se pudo publicar tu petición de oración'
+        };
+    } catch (error) {
+        const errorDetails = {
+            name: error?.name || null,
+            code: error?.code || null,
+            message: error?.message || String(error)
+        };
+
+        console.error('[CommunityPrayer] Error en createPrayerRequest:', errorDetails);
+        if (String(errorDetails.message || '').includes('COMMUNITY_PROFILE_REQUIRED')) {
+            await this.openCommunityIdentityModal();
+        }
+        return {
+            success: false,
+            code: errorDetails.code,
+            message: String(errorDetails.message || '').includes('COMMUNITY_PROFILE_REQUIRED')
+                ? 'Crea tu Distintivo para pedir oración con tu nombre'
+                : errorDetails.message
+        };
+    }
+},
+
+deleteCommunityPrayerPost: async function(requestId) {
+    try {
+        if (!navigator.onLine) {
+            this.showToast('Necesitas conexión a internet para eliminar tu petición.');
+            return false;
+        }
+
+        const callable = await this.getCommunityIdentityCallable('deletePrayerRequest');
+        await callable({ requestId });
+
+        if (this.communityPrayerState?.posts) {
+            this.communityPrayerState.posts = this.communityPrayerState.posts.filter(p => p.id !== requestId);
+        }
+        if (this.prayerOwnershipMap) {
+            delete this.prayerOwnershipMap[requestId];
+        }
+
+        this.showToast('Petición de oración eliminada.');
+        return true;
+    } catch (error) {
+        console.error('[CommunityPrayer] Error eliminando petición:', error);
+        this.showToast('No se pudo eliminar la petición de oración.');
+        return false;
+    }
+},
+
+markCommunityPrayerAnswered: async function(requestId, answeredText) {
+    try {
+        if (!navigator.onLine) {
+            this.showToast('Necesitas conexión a internet para actualizar la petición.');
+            return false;
+        }
+
+        const callable = await this.getCommunityIdentityCallable('markPrayerRequestAnswered');
+        await callable({
+            requestId,
+            answeredText: answeredText ? Sanitizer.sanitizeText(answeredText, 400) : null
+        });
+
+        if (this.communityPrayerState?.posts) {
+            this.communityPrayerState.posts = this.communityPrayerState.posts.filter(p => p.id !== requestId);
+        }
+
+        this.showToast('¡Gloria a Dios! Petición marcada como respondida.');
+        return true;
+    } catch (error) {
+        console.error('[CommunityPrayer] Error en markPrayerRequestAnswered:', error);
+        this.showToast('No se pudo actualizar la petición.');
+        return false;
+    }
+},
+
+loadCommunityPrayerDraftState: function() {
+    try {
+        const raw = localStorage.getItem('su_voz_community_prayer_draft');
+        if (!raw) return { text: '', isAnonymous: false };
+        const parsed = JSON.parse(raw);
+        return {
+            text: typeof parsed.text === 'string' ? parsed.text : '',
+            isAnonymous: Boolean(parsed.isAnonymous)
+        };
+    } catch (e) {
+        return { text: '', isAnonymous: false };
+    }
+},
+
+saveCommunityPrayerDraftState: function(draft) {
+    try {
+        localStorage.setItem('su_voz_community_prayer_draft', JSON.stringify({
+            text: draft.text || '',
+            isAnonymous: Boolean(draft.isAnonymous),
+            updatedAt: Date.now()
+        }));
+    } catch (e) {}
+},
+
+clearCommunityPrayerDraft: function() {
+    try {
+        localStorage.removeItem('su_voz_community_prayer_draft');
+    } catch (e) {}
+},
+
+getAnonymousPrayerAvatarUri: function() {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100"><circle cx="50" cy="50" r="50" fill="#1C3047"/><circle cx="50" cy="50" r="46" fill="none" stroke="#C7AD78" stroke-width="2" opacity="0.6"/><path d="M50 25 C55 35, 65 40, 65 52 C65 62, 58 68, 50 68 C42 68, 35 62, 35 52 C35 40, 45 35, 50 25 Z" fill="#C7AD78" opacity="0.85"/><path d="M50 72 L50 82" stroke="#C7AD78" stroke-width="3" stroke-linecap="round"/></svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+},
+
+renderCommunityPrayerComposerCardHtml: function() {
+    const identityState = this.communityIdentityProfile || (this.currentUser?.uid ? this.userProfilesCache?.[this.currentUser.uid] : null);
+    const userDisplayName = identityState?.displayName || 'Hermano(a)';
+    const avatarUri = (typeof AvatarGenerator !== 'undefined' && userDisplayName)
+        ? AvatarGenerator.generate(this.currentUser?.uid || 'user', userDisplayName, {
+            avatarId: identityState?.avatarId,
+            colorId: identityState?.colorId
+        })
+        : '';
+
+    return `
+        <div class="community-composer-card community-prayer-composer-card" role="region" aria-label="Pedir oración">
+            <div class="community-composer-layout">
+                ${userDisplayName ? `
+                    <div class="community-composer-identity">
+                        <span class="community-composer-identity-avatar" style="background-image: url('${avatarUri}');" aria-hidden="true"></span>
+                        <span class="community-composer-identity-name">${this.escapeHtml(userDisplayName)}</span>
+                    </div>
+                ` : ''}
+                <div class="community-composer-question">¿Necesitas oración hoy?</div>
+                <div class="community-composer-bottom-row">
+                    <div class="community-composer-subtitle">Comparte tu petición para que la comunidad te acompañe en fe.</div>
+                    <button class="community-composer-btn community-prayer-btn" type="button" data-action="open-community-prayer-form" aria-label="Pedir oración">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="9"/>
+                            <path d="M12 7v5l3 3"/>
+                        </svg>
+                        <span>Pedir oración</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+},
+
+renderCommunityPrayerFormCardHtml: function(options = {}) {
+    const draftState = this.loadCommunityPrayerDraftState();
+    const draftText = draftState.text || '';
+
+    return `
+        <div class="community-form-card community-prayer-form-card" role="region" aria-label="Editor de petición de oración">
+            <div class="community-form-title">Pedir oración</div>
+            <div class="community-form-subtitle">Comparte tu petición para que la comunidad pueda acompañarte en oración.</div>
+
+            <div class="community-privacy-notice" role="note">
+                💬 <strong>Consejo de fraternidad:</strong> Evita compartir apellidos, teléfonos, direcciones u otros datos personales tuyos o de terceros.
+            </div>
+
+            <div class="community-editor-wrapper">
+                <textarea
+                    class="community-textarea community-prayer-textarea"
+                    id="community-prayer-text"
+                    aria-label="Escribe tu petición de oración"
+                    placeholder="¿Por qué te gustaría que oráramos?…"
+                    maxlength="800"
+                    rows="4"
+                >${this.escapeHtml(draftText)}</textarea>
+
+                <div class="community-editor-meta">
+                    <div class="community-char-counter" id="community-prayer-char-counter">${draftText.length} / 800</div>
+                </div>
+            </div>
+
+            <div class="community-form-identity-section">
+                <div class="community-form-group community-check-group">
+                    <label class="community-check-label" for="community-prayer-anonymous">
+                        <input
+                            type="checkbox"
+                            id="community-prayer-anonymous"
+                            ${draftState.isAnonymous ? 'checked' : ''}
+                        >
+                        <span class="community-toggle-switch" aria-hidden="true">
+                            <span class="community-toggle-knob"></span>
+                        </span>
+                        <span class="community-check-text">Publicar como Anónimo</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="community-form-actions">
+                ${draftText.length > 0 ? `
+                    <button class="community-discard-draft" type="button" data-action="discard-community-prayer-draft">
+                        Descartar borrador
+                    </button>
+                ` : ''}
+                <button class="btn-secondary community-cancel-btn" type="button" data-action="cancel-community-prayer-form">
+                    Cerrar
+                </button>
+                <button class="btn-primary community-submit-btn" type="button" data-action="publish-community-prayer">
+                    Publicar petición
+                </button>
+            </div>
+        </div>
+    `;
+},
+
+renderCommunityPrayerCardHtml: function(prayer) {
+    const isAnonymous = prayer.isAnonymous === true;
+    const authorSnapshot = prayer.authorSnapshot || {};
+    const authorName = isAnonymous ? 'Anónimo' : (prayer.name || authorSnapshot.displayName || 'Hermano(a)');
+    const isOwner = this.prayerOwnershipMap && this.prayerOwnershipMap[prayer.id] === true;
+
+    let avatarUri = '';
+    if (isAnonymous) {
+        avatarUri = this.getAnonymousPrayerAvatarUri();
+    } else {
+        avatarUri = typeof AvatarGenerator !== 'undefined'
+            ? AvatarGenerator.generate('prayer_' + prayer.id, authorName, {
+                avatarId: authorSnapshot.avatarId,
+                colorId: authorSnapshot.colorId
+            })
+            : '';
+    }
+
+    let createdDateStr = '';
+    try {
+        if (prayer.createdAt?.seconds) {
+            const d = new Date(prayer.createdAt.seconds * 1000);
+            createdDateStr = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+        }
+    } catch(e) {}
+
+    return `
+        <article class="community-card prayer-card" data-request-id="${this.escapeHtml(prayer.id)}">
+            <header class="prayer-card-header">
+                <div class="prayer-card-author">
+                    <span class="prayer-card-avatar ${isAnonymous ? 'is-anonymous' : ''}" style="background-image: url('${avatarUri}');" aria-hidden="true"></span>
+                    <div class="prayer-card-author-info">
+                        <div class="prayer-card-author-name">
+                            <span>${this.escapeHtml(authorName)}</span>
+                            ${isAnonymous ? '<span class="prayer-anonymous-badge">Anónimo</span>' : ''}
+                        </div>
+                        ${createdDateStr ? `<time class="prayer-card-date">${this.escapeHtml(createdDateStr)}</time>` : ''}
+                    </div>
+                </div>
+            </header>
+
+            <div class="prayer-card-body">
+                <p class="prayer-card-text">${this.escapeHtml(prayer.text || '')}</p>
+            </div>
+
+            ${prayer.status === 'answered' ? `
+                <div class="prayer-answered-badge" role="status">
+                    <span class="prayer-answered-icon">✓</span>
+                    <span>Oración respondida</span>
+                    ${prayer.answeredText ? `<div class="prayer-answered-text">${this.escapeHtml(prayer.answeredText)}</div>` : ''}
+                </div>
+            ` : ''}
+
+            ${isOwner ? `
+                <footer class="prayer-card-footer">
+                    <div class="prayer-owner-actions">
+                        <button type="button" class="prayer-action-btn prayer-action-delete" data-action="delete-community-prayer" data-request-id="${this.escapeHtml(prayer.id)}">
+                            🗑️ Eliminar
+                        </button>
+                        <button type="button" class="prayer-action-btn prayer-action-answered" data-action="mark-community-prayer-answered" data-request-id="${this.escapeHtml(prayer.id)}">
+                            ✓ Marcar como respondida
+                        </button>
+                    </div>
+                </footer>
+            ` : ''}
+        </article>
+    `;
+},
+
+getCommunityPrayerTestimonyState: function() {
+    if (!this.communityPrayerTestimonyState) {
+        this.communityPrayerTestimonyState = {
+            posts: [],
+            lastVisible: null,
+            hasMore: true,
+            loading: false,
+            loaded: false,
+            error: null
+        };
+    }
+    return this.communityPrayerTestimonyState;
+},
+
+resetCommunityPrayerTestimonyState: function() {
+    this.communityPrayerTestimonyState = {
+        posts: [],
+        lastVisible: null,
+        hasMore: true,
+        loading: false,
+        loaded: false,
+        error: null
+    };
+},
+
+getCommunityPrayerTestimoniesCached: async function(options = {}) {
+    const state = this.getCommunityPrayerTestimonyState();
+    const forceRefresh = options.forceRefresh === true;
+
+    if (state.loaded && !forceRefresh) {
+        return state.posts;
+    }
+
+    if (state.loading) {
+        return state.posts;
+    }
+
+    state.loading = true;
+    state.error = null;
+
+    try {
+        const pageSize = 20;
+        const q = query(
+            collection(db, "communityPrayerRequests"),
+            where("status", "==", "answered"),
+            orderBy("createdAt", "desc"),
+            limit(pageSize)
+        );
+
+        const snapshot = await getDocs(q);
+        const rawDocs = snapshot.docs;
+        const fetched = rawDocs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        state.posts = fetched;
+        state.lastVisible = rawDocs.length > 0 ? rawDocs[rawDocs.length - 1] : null;
+        state.hasMore = rawDocs.length >= pageSize;
+        state.loaded = true;
+        state.loading = false;
+
+        return state.posts;
+    } catch (error) {
+        console.error('[CommunityPrayer] Error consultando testimonios:', error);
+        state.loading = false;
+        state.error = error;
+        if (!state.loaded) {
+            state.posts = [];
+        }
+        throw error;
+    }
+},
+
+loadMoreCommunityPrayerTestimonies: async function() {
+    const state = this.getCommunityPrayerTestimonyState();
+    if (state.loading || !state.hasMore || !state.lastVisible) {
+        return state.posts;
+    }
+
+    state.loading = true;
+
+    try {
+        const pageSize = 20;
+        const q = query(
+            collection(db, "communityPrayerRequests"),
+            where("status", "==", "answered"),
+            orderBy("createdAt", "desc"),
+            startAfter(state.lastVisible),
+            limit(pageSize)
+        );
+
+        const snapshot = await getDocs(q);
+        const rawDocs = snapshot.docs;
+        const newPosts = rawDocs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        const existingIds = new Set(state.posts.map(p => p.id));
+        const filteredNew = newPosts.filter(p => !existingIds.has(p.id));
+
+        state.posts = [...state.posts, ...filteredNew];
+        state.lastVisible = rawDocs.length > 0 ? rawDocs[rawDocs.length - 1] : state.lastVisible;
+        state.hasMore = rawDocs.length >= pageSize;
+        state.loading = false;
+
+        return state.posts;
+    } catch (error) {
+        console.error('[CommunityPrayer] Error cargando más testimonios:', error);
+        state.loading = false;
+        throw error;
+    }
+},
+
+renderCommunityPrayerTestimonyCardHtml: function(prayer) {
+    const isAnonymous = prayer.isAnonymous === true;
+    const authorSnapshot = prayer.authorSnapshot || {};
+    const authorName = isAnonymous ? 'Anónimo' : (prayer.name || authorSnapshot.displayName || 'Hermano(a)');
+
+    let avatarUri = '';
+    if (isAnonymous) {
+        avatarUri = this.getAnonymousPrayerAvatarUri();
+    } else {
+        avatarUri = typeof AvatarGenerator !== 'undefined'
+            ? AvatarGenerator.generate('prayer_testimony_' + prayer.id, authorName, {
+                avatarId: authorSnapshot.avatarId,
+                colorId: authorSnapshot.colorId
+            })
+            : '';
+    }
+
+    let createdDateStr = '';
+    try {
+        let d = null;
+        if (prayer.createdAt?.seconds) d = new Date(prayer.createdAt.seconds * 1000);
+        else if (prayer.createdAt instanceof Date) d = prayer.createdAt;
+        else if (typeof prayer.createdAt === 'string' || typeof prayer.createdAt === 'number') {
+            const parsed = new Date(prayer.createdAt);
+            if (!isNaN(parsed.getTime())) d = parsed;
+        }
+        if (d) {
+            createdDateStr = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+        }
+    } catch(e) {}
+
+    let answeredDateStr = '';
+    try {
+        let d = null;
+        if (prayer.answeredAt?.seconds) d = new Date(prayer.answeredAt.seconds * 1000);
+        else if (prayer.answeredAt instanceof Date) d = prayer.answeredAt;
+        else if (typeof prayer.answeredAt === 'string' || typeof prayer.answeredAt === 'number') {
+            const parsed = new Date(prayer.answeredAt);
+            if (!isNaN(parsed.getTime())) d = parsed;
+        }
+        if (d) {
+            answeredDateStr = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
+        }
+    } catch(e) {}
+
+    const hasTestimony = typeof prayer.answeredText === 'string' && prayer.answeredText.trim().length > 0;
+
+    return `
+        <article class="community-card prayer-card prayer-testimony-card" data-request-id="${this.escapeHtml(prayer.id)}">
+            <header class="prayer-card-header">
+                <div class="prayer-card-author">
+                    <span class="prayer-card-avatar ${isAnonymous ? 'is-anonymous' : ''}" style="background-image: url('${avatarUri}');" aria-hidden="true"></span>
+                    <div class="prayer-card-author-info">
+                        <div class="prayer-card-author-name">
+                            <span>${this.escapeHtml(authorName)}</span>
+                            ${isAnonymous ? '<span class="prayer-anonymous-badge">Anónimo</span>' : ''}
+                        </div>
+                        ${createdDateStr ? `<time class="prayer-card-date">Pedido el ${this.escapeHtml(createdDateStr)}</time>` : ''}
+                    </div>
+                </div>
+                <div class="prayer-answered-badge" role="status">
+                    <span class="prayer-answered-icon">✓</span>
+                    <span>Oración respondida</span>
+                </div>
+            </header>
+
+            <div class="prayer-card-body">
+                <div class="prayer-original-text-label">Petición original:</div>
+                <p class="prayer-card-text">${this.escapeHtml(prayer.text || '')}</p>
+
+                ${hasTestimony ? `
+                    <div class="prayer-testimony-box">
+                        <div class="prayer-testimony-label">Testimonio</div>
+                        <p class="prayer-testimony-text">${this.escapeHtml(prayer.answeredText.trim())}</p>
+                    </div>
+                ` : ''}
+            </div>
+
+            ${answeredDateStr ? `
+                <footer class="prayer-card-footer prayer-testimony-footer">
+                    <span class="prayer-answered-date">Respondida el ${this.escapeHtml(answeredDateStr)}</span>
+                </footer>
+            ` : ''}
+        </article>
+    `;
+},
+
+renderCommunityPrayerAnsweredModalHtml: function() {
+    if (!this.prayerAnsweredModalRequestId) return '';
+
+    return `
+        <div class="community-modal-backdrop" id="community-prayer-answered-modal" role="dialog" aria-modal="true" aria-labelledby="prayer-answered-title">
+            <div class="community-modal-card">
+                <div class="community-modal-header">
+                    <h3 id="prayer-answered-title" class="community-modal-title">Oración respondida</h3>
+                    <button class="community-modal-close" type="button" data-action="close-prayer-answered-modal" aria-label="Cerrar modal">×</button>
+                </div>
+                <div class="community-modal-body">
+                    <p class="community-modal-desc">
+                        Nos alegra saber que esta petición ha sido respondida. Si deseas, puedes compartir brevemente lo que Dios hizo.
+                    </p>
+                    <div class="community-privacy-notice" role="note" style="margin-bottom: 12px;">
+                        Evita compartir nombres completos o información privada de otras personas.
+                    </div>
+                    <div class="community-editor-wrapper">
+                        <textarea
+                            class="community-textarea community-modal-textarea"
+                            id="community-prayer-answered-input"
+                            placeholder="Comparte tu testimonio (opcional)…"
+                            maxlength="400"
+                            rows="3"
+                            aria-label="Comparte tu testimonio (opcional)"
+                        ></textarea>
+                        <div class="community-editor-meta">
+                            <div class="community-char-counter" id="community-prayer-answered-counter">0 / 400</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="community-modal-actions">
+                    <button class="btn-secondary community-modal-cancel-btn" type="button" data-action="close-prayer-answered-modal">
+                        Cancelar
+                    </button>
+                    <button class="btn-primary community-modal-submit-btn" type="button" data-action="submit-prayer-answered-modal" data-request-id="${this.escapeHtml(this.prayerAnsweredModalRequestId)}">
+                        Marcar como respondida
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+},
+
+renderCommunityPrayerDeleteModalHtml: function() {
+    if (!this.prayerDeleteModalRequestId) return '';
+
+    return `
+        <div class="community-modal-backdrop" id="community-prayer-delete-modal" role="dialog" aria-modal="true" aria-labelledby="prayer-delete-title">
+            <div class="community-modal-card">
+                <div class="community-modal-header">
+                    <h3 id="prayer-delete-title" class="community-modal-title">Eliminar petición</h3>
+                    <button class="community-modal-close" type="button" data-action="close-prayer-delete-modal" aria-label="Cerrar modal">×</button>
+                </div>
+                <div class="community-modal-body">
+                    <p class="community-modal-desc">¿Deseas eliminar esta petición de oración?</p>
+                    <p class="community-modal-subdesc">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="community-modal-actions">
+                    <button class="btn-secondary community-modal-cancel-btn" type="button" data-action="close-prayer-delete-modal">
+                        Cancelar
+                    </button>
+                    <button class="btn-danger community-modal-delete-btn" type="button" data-action="submit-prayer-delete-modal" data-request-id="${this.escapeHtml(this.prayerDeleteModalRequestId)}">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
 },
 
 async getRepliesByPostId(postId) {
@@ -14211,6 +14959,23 @@ renderCommunityComposerLocally: function() {
         await this.loadCurrentCommunityIdentityProfile();
         await this.loadCommunityOwnershipForItems(posts, repliesSummary);
 
+        this.communitySection = options.section || this.communitySection || 'reflections';
+        let prayers = [];
+        let testimonies = [];
+        if (this.communitySection === 'prayer') {
+            try {
+                if (this.prayerTabFilter === 'testimonies') {
+                    testimonies = await this.getCommunityPrayerTestimoniesCached({ forceRefresh: options.forceRefresh === true });
+                    await this.loadCommunityPrayerOwnership(testimonies);
+                } else {
+                    prayers = await this.getCommunityPrayerPostsCached({ forceRefresh: options.forceRefresh === true });
+                    await this.loadCommunityPrayerOwnership(prayers);
+                }
+            } catch(pErr) {
+                console.error('[CommunityPrayer] Error cargando peticiones/testimonios:', pErr);
+            }
+        }
+
         loadingCompleted = true;
     } catch (error) {
         if (options.preserveOnError) {
@@ -14261,8 +15026,8 @@ try {
         <div class="community-container">
             <section class="community-hero community-hero-compact" aria-labelledby="communityTitle">
                 <div class="community-hero-copy">
-                    <h2 id="communityTitle">Comunidad</h2>
-                    <p>Compartimos lo que recibimos de la Palabra.</p>
+                    <h2 id="communityTitle">${this.communitySection === 'prayer' ? 'Comunidad de Oración' : 'Comunidad'}</h2>
+                    <p>${this.communitySection === 'prayer' ? 'Unidos en fe intercediendo unos por otros.' : 'Compartimos lo que recibimos de la Palabra.'}</p>
                 </div>
                 <div class="community-hero-actions" aria-label="Acciones de Comunidad">
                     <button
@@ -14291,6 +15056,37 @@ try {
                 </div>
             </section>
 
+            <div class="community-section-segmented" role="tablist" aria-label="Secciones de Comunidad">
+                <button
+                    type="button"
+                    class="community-section-btn ${this.communitySection !== 'prayer' ? 'is-active' : ''}"
+                    data-action="set-community-section"
+                    data-section="reflections"
+                    role="tab"
+                    aria-selected="${this.communitySection !== 'prayer' ? 'true' : 'false'}"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                    <span>Reflexiones</span>
+                </button>
+                <button
+                    type="button"
+                    class="community-section-btn ${this.communitySection === 'prayer' ? 'is-active' : ''}"
+                    data-action="set-community-section"
+                    data-section="prayer"
+                    role="tab"
+                    aria-selected="${this.communitySection === 'prayer' ? 'true' : 'false'}"
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 7v5l3 3"/>
+                    </svg>
+                    <span>Oración</span>
+                </button>
+            </div>
+
             ${communityGuidelinesOpen ? `
                 <section class="community-guidelines-popover" role="note" aria-label="Normas de la comunidad">
                     <button class="community-guidelines-close" type="button" data-action="toggle-community-guidelines" aria-label="Cerrar normas">×</button>
@@ -14303,192 +15099,274 @@ try {
                 </section>
             ` : ''}
 
-            <button
-                class="community-reading-context"
-                type="button"
-                data-nav="reading"
-                data-param="${this.escapeHtml(todayStr)}"
-                aria-label="${this.escapeHtml(todayReadingAriaLabel)}"
-                title="Ver lectura"
-            >
-                <span class="community-reading-context-label">${this.escapeHtml(todayReadingContextLabel)}</span>
-                <strong class="community-reading-context-reference">${this.escapeHtml(todayReference)}</strong>
-                <span class="community-reading-context-date">${this.escapeHtml(todayReadingDateLabel)}</span>
-            </button>
+            ${this.communitySection === 'prayer' ? `
+                ${this.prayerFormOpen
+                    ? this.renderCommunityPrayerFormCardHtml()
+                    : this.renderCommunityPrayerComposerCardHtml()}
 
-            ${this.communityFormOpen
-                ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
-                : this.renderCommunityComposerCardHtml(todayReference)}
-
-            <div class="community-feed-heading">
-                <div>
-                    <h3>${this.communityMode === 'history' ? 'Publicaciones anteriores' : 'Ecos de su voz'}</h3>
+                <div class="community-tab-bar" role="tablist">
+                    <button type="button" class="community-tab-btn ${(!this.prayerTabFilter || this.prayerTabFilter === 'all') ? 'is-active' : ''}" data-action="set-prayer-tab" data-tab="all">Peticiones</button>
+                    <button type="button" class="community-tab-btn ${(this.prayerTabFilter === 'my-prayers') ? 'is-active' : ''}" data-action="set-prayer-tab" data-tab="my-prayers">Mis peticiones</button>
+                    <button type="button" class="community-tab-btn ${(this.prayerTabFilter === 'testimonies') ? 'is-active' : ''}" data-action="set-prayer-tab" data-tab="testimonies">Testimonios</button>
                 </div>
-                <button
-                    class="community-history-toggle"
-                    type="button"
-                    data-action="toggle-community-history"
-                >
-                    ${this.communityMode === 'history' ? 'Volver a recientes' : 'Ver publicaciones anteriores'}
-                </button>
-            </div>
 
-            ${this.communityPassageFilter ? `
-                <div class="community-passage-filter-banner" role="status" aria-live="polite">
-                    <div class="community-passage-filter-info">
-                        <span class="community-passage-filter-label">Filtrado por lectura:</span>
-                        <strong class="community-passage-filter-title">${this.escapeHtml(this.communityPassageFilter.reference || this.communityPassageFilter.label)}</strong>
+                <div class="community-feed community-prayer-feed">
+                    ${(() => {
+                        if (this.prayerTabFilter === 'testimonies') {
+                            if (!testimonies.length) {
+                                return `
+                                    <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                        <div style="font-size: 2.2rem; margin-bottom: 8px;">✨</div>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no hay testimonios</p>
+                                        <p style="font-size: 0.85rem; margin-top: 4px;">Cuando una petición sea marcada como respondida, podrá aparecer aquí.</p>
+                                    </div>
+                                `;
+                            }
+
+                            const testimonyCardsHtml = testimonies.map(p => this.renderCommunityPrayerTestimonyCardHtml(p)).join('');
+                            const testimonyState = this.getCommunityPrayerTestimonyState();
+                            const showLoadMore = testimonyState.hasMore === true;
+
+                            return testimonyCardsHtml + (showLoadMore ? `
+                                <div class="community-load-more-container" style="text-align: center; margin: 20px 0 10px 0;">
+                                    <button class="btn-secondary community-load-more-btn" type="button" data-action="load-more-community-testimonies" style="min-height: 44px; padding: 10px 20px; font-weight: 600;">
+                                        ${testimonyState.loading ? 'Cargando más testimonios…' : 'Cargar más testimonios'}
+                                    </button>
+                                </div>
+                            ` : '');
+                        }
+
+                        let visiblePrayers = prayers;
+                        if (this.prayerTabFilter === 'my-prayers') {
+                            visiblePrayers = prayers.filter(p => this.prayerOwnershipMap && this.prayerOwnershipMap[p.id] === true);
+                        }
+
+                        if (!visiblePrayers.length) {
+                            if (this.prayerTabFilter === 'my-prayers') {
+                                return `
+                                    <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                        <div style="font-size: 2.2rem; margin-bottom: 8px;">🙏</div>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">No tienes peticiones de oración registradas</p>
+                                        <p style="font-size: 0.85rem; margin-top: 4px;">Comparte tu petición para que la comunidad te acompañe en oración.</p>
+                                    </div>
+                                `;
+                            } else {
+                                return `
+                                    <div class="community-empty-state">
+                                        <div class="community-empty-icon" aria-hidden="true">🙏</div>
+                                        <div class="community-empty-title">Aún no hay peticiones de oración</div>
+                                        <div class="community-empty-text">
+                                            Puedes compartir una petición para que la comunidad te acompañe en oración.
+                                        </div>
+                                        <button class="btn-primary" type="button" data-action="open-community-prayer-form" style="margin-top: 16px;">
+                                            Pedir oración
+                                        </button>
+                                    </div>
+                                `;
+                            }
+                        }
+
+                        const prayerCardsHtml = visiblePrayers.map(p => this.renderCommunityPrayerCardHtml(p)).join('');
+                        const state = this.getCommunityPrayerState();
+                        const showLoadMore = this.prayerTabFilter !== 'my-prayers' && state.hasMore === true;
+
+                        return prayerCardsHtml + (showLoadMore ? `
+                            <div class="community-load-more-container" style="text-align: center; margin: 20px 0 10px 0;">
+                                <button class="btn-secondary community-load-more-btn" type="button" data-action="load-more-community-prayers" style="min-height: 44px; padding: 10px 20px; font-weight: 600;">
+                                    ${state.loading ? 'Cargando más peticiones…' : 'Cargar más peticiones'}
+                                </button>
+                            </div>
+                        ` : '');
+                    })()}
+                </div>
+            ` : `
+                <button
+                    class="community-reading-context"
+                    type="button"
+                    data-nav="reading"
+                    data-param="${this.escapeHtml(todayStr)}"
+                    aria-label="${this.escapeHtml(todayReadingAriaLabel)}"
+                    title="Ver lectura"
+                >
+                    <span class="community-reading-context-label">${this.escapeHtml(todayReadingContextLabel)}</span>
+                    <strong class="community-reading-context-reference">${this.escapeHtml(todayReference)}</strong>
+                    <span class="community-reading-context-date">${this.escapeHtml(todayReadingDateLabel)}</span>
+                </button>
+
+                ${this.communityFormOpen
+                    ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
+                    : this.renderCommunityComposerCardHtml(todayReference)}
+
+                <div class="community-feed-heading">
+                    <div>
+                        <h3>${this.communityMode === 'history' ? 'Publicaciones anteriores' : 'Ecos de su voz'}</h3>
                     </div>
-                    <button class="community-passage-filter-clear" type="button" data-action="clear-community-passage-filter" aria-label="Ver todas las reflexiones">
-                        ✕ Ver todas
+                    <button
+                        class="community-history-toggle"
+                        type="button"
+                        data-action="toggle-community-history"
+                    >
+                        ${this.communityMode === 'history' ? 'Volver a recientes' : 'Ver publicaciones anteriores'}
                     </button>
                 </div>
-            ` : ''}
 
-            <div class="community-tab-bar" role="tablist">
-                <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && (!this.communityTabFilter || this.communityTabFilter === 'all')) ? 'is-active' : ''}" data-action="set-community-tab" data-tab="all">Todas</button>
-                <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'my-posts') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="my-posts">Mis reflexiones</button>
-                <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'favorites') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="favorites">⭐ Favoritos</button>
-            </div>
+                ${this.communityPassageFilter ? `
+                    <div class="community-passage-filter-banner" role="status" aria-live="polite">
+                        <div class="community-passage-filter-info">
+                            <span class="community-passage-filter-label">Filtrado por lectura:</span>
+                            <strong class="community-passage-filter-title">${this.escapeHtml(this.communityPassageFilter.reference || this.communityPassageFilter.label)}</strong>
+                        </div>
+                        <button class="community-passage-filter-clear" type="button" data-action="clear-community-passage-filter" aria-label="Ver todas las reflexiones">
+                            ✕ Ver todas
+                        </button>
+                    </div>
+                ` : ''}
 
-            <div class="community-feed">
-                ${(() => {
-                    let visiblePosts = posts;
-                    if (this.communityPassageFilter) {
-                        const filterDate = this.communityPassageFilter.date;
-                        const filterRef = this.communityPassageFilter.reference;
+                <div class="community-tab-bar" role="tablist">
+                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && (!this.communityTabFilter || this.communityTabFilter === 'all')) ? 'is-active' : ''}" data-action="set-community-tab" data-tab="all">Todas</button>
+                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'my-posts') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="my-posts">Mis reflexiones</button>
+                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'favorites') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="favorites">⭐ Favoritos</button>
+                </div>
 
-                        visiblePosts = posts.filter(p => {
-                            if (filterDate && p.date === filterDate) return true;
-                            if (filterRef && p.reference === filterRef) return true;
-                            if (filterRef && p.reference && this.passagesOverlap(filterRef, p.reference)) return true;
-                            return false;
-                        });
-                    } else if (this.communityTabFilter === 'my-posts' && this.currentUser?.uid) {
-                        visiblePosts = posts.filter(p => this.isCommunityOwnPost(p));
-                    } else if (this.communityTabFilter === 'favorites') {
-                        visiblePosts = posts.filter(p => this.isPostFavorite(p.id));
-                    }
-
-                    if (!visiblePosts.length) {
+                <div class="community-feed">
+                    ${(() => {
+                        let visiblePosts = posts;
                         if (this.communityPassageFilter) {
-                            return `
-                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
-                                    <div class="community-ecos-empty-icon" aria-hidden="true" style="margin-bottom: 12px; opacity: 0.7;">
-                                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--community-gold-dark, #98631F)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                                            <line x1="8" y1="7" x2="16" y2="7"/>
-                                            <line x1="8" y1="11" x2="14" y2="11"/>
-                                        </svg>
-                                    </div>
-                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no se han compartido reflexiones sobre esta lectura</p>
-                                    <p style="font-size: 0.85rem; margin-top: 4px;">Sé la primera persona en compartir lo que Dios te mostró.</p>
-                                </div>
-                            `;
+                            const filterDate = this.communityPassageFilter.date;
+                            const filterRef = this.communityPassageFilter.reference;
+
+                            visiblePosts = posts.filter(p => {
+                                if (filterDate && p.date === filterDate) return true;
+                                if (filterRef && p.reference === filterRef) return true;
+                                if (filterRef && p.reference && this.passagesOverlap(filterRef, p.reference)) return true;
+                                return false;
+                            });
+                        } else if (this.communityTabFilter === 'my-posts' && this.currentUser?.uid) {
+                            visiblePosts = posts.filter(p => this.isCommunityOwnPost(p));
                         } else if (this.communityTabFilter === 'favorites') {
-                            return `
-                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
-                                    <div style="font-size: 2.2rem; margin-bottom: 8px;">⭐</div>
-                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">No tienes reflexiones marcadas como favoritas</p>
-                                    <p style="font-size: 0.85rem; margin-top: 4px;">Presiona <strong style="color: var(--text-main);">⋮</strong> en cualquier publicación y elige <em>"⭐ Marcar favorito"</em>.</p>
-                                </div>
-                            `;
-                        } else if (this.communityTabFilter === 'my-posts') {
-                            return `
-                                <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
-                                    <div style="font-size: 2.2rem; margin-bottom: 8px;">✍️</div>
-                                    <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no has compartido publicaciones</p>
-                                    <p style="font-size: 0.85rem; margin-top: 4px;">¡Comparte con sencillez lo que Dios te mostró hoy!</p>
-                                </div>
-                            `;
-                        } else {
-                            return `
-                                <div class="community-empty-state">
-                                    <div class="community-empty-icon" aria-hidden="true">+</div>
-                                    <div class="community-empty-title">${
-                                        this.communityMode === 'history'
-                                            ? 'Todavía no hay publicaciones anteriores.'
-                                            : 'Sé la primera persona en compartir lo que Dios te habló en esta lectura.'
-                                    }</div>
-                                    <div class="community-empty-text">
-                                        ${
-                                            this.communityMode === 'history'
-                                                ? 'Aquí aparecerán las conversaciones cuya última respuesta tenga más de 15 días.'
-                                                : 'Comparte cómo escuchaste su voz en esta lectura.'
-                                        }
-                                    </div>
-                                </div>
-                            `;
+                            visiblePosts = posts.filter(p => this.isPostFavorite(p.id));
                         }
-                    }
 
-                    return visiblePosts.map(post => {
-                        const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
-                        const replies = repliesSummary[post.id] || [];
-                        const userProfile = this.isCommunityLegacyIdentityItem(post) && post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
-                        const isAnonymous = this.isCommunityAnonymousIdentity(post);
-                        const authorName = isAnonymous
-                            ? 'Anónimo'
-                            : this.getCommunityAuthorDisplayName(post, userProfile);
-                        const displayAuthorName = authorName;
-                        const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
-
-                        const avatarSvg = typeof AvatarGenerator !== 'undefined'
-                            ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {
-                                ...this.getCommunityAuthorAvatarOptions(post, userProfile, isAnonymous)
-                            })
-                            : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
-
-                        return `
-                            <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
-                                <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋮</button>
-                                <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
-                                    <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar reflexión</button>
-                                    <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
-                                    <button type="button" data-action="speech-post" data-post-id="${post.id}">${this.currentlySpeakingPostId === post.id ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta'}</button>
-                                    <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar favorito'}</button>
-                                    ${this.isCommunityOwnPost(post) ? `
-                                        <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
-                                    ` : ''}
-                                </div>
-
-                                <div class="community-post-header">
-                                    ${avatarSvg}
-
-                                    <div class="community-post-heading">
-                                        <div class="community-author-row">
-                                            <span class="community-author ${isAnonymous ? 'is-anonymous' : 'has-name'}">${this.escapeHtml(displayAuthorName)}</span>
-                                            <span class="community-meta-dot" aria-hidden="true">•</span>
-                                            <span class="community-date">${this.escapeHtml(this.formatCommunityDateLabel(post.date))}</span>
-                                            ${this.isPostFavorite(post.id) ? '<span class="post-favorite-star" title="En tus favoritos">⭐</span>' : ''}
+                        if (!visiblePosts.length) {
+                            if (this.communityPassageFilter) {
+                                return `
+                                    <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                        <div class="community-ecos-empty-icon" aria-hidden="true" style="margin-bottom: 12px; opacity: 0.7;">
+                                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--community-gold-dark, #98631F)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                                                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                                                <line x1="8" y1="7" x2="16" y2="7"/>
+                                                <line x1="8" y1="11" x2="14" y2="11"/>
+                                            </svg>
                                         </div>
-
-                                        <div class="community-ref">Escuchó en ${this.renderCommunityInteractiveReferenceHtml(post.reference)}</div>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no se han compartido reflexiones sobre esta lectura</p>
+                                        <p style="font-size: 0.85rem; margin-top: 4px;">Sé la primera persona en compartir lo que Dios te mostró.</p>
                                     </div>
-                                </div>
-
-                                <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
-
-                                ${post.audioURL ? `
-                                    <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
-                                        <button type="button" class="audio-play-btn" aria-label="Reproducir audio">▶</button>
-                                        <div class="audio-progress-bar"><div class="audio-progress-fill" style="width: 0%;"></div></div>
-                                        <span class="audio-time">0:00 / 0:30</span>
-                                        <button type="button" class="audio-speed-btn">1x</button>
+                                `;
+                            } else if (this.communityTabFilter === 'favorites') {
+                                return `
+                                    <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                        <div style="font-size: 2.2rem; margin-bottom: 8px;">⭐</div>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">No tienes reflexiones marcadas como favoritas</p>
+                                        <p style="font-size: 0.85rem; margin-top: 4px;">Presiona <strong style="color: var(--text-main);">⋮</strong> en cualquier publicación y elige <em>"⭐ Marcar favorito"</em>.</p>
                                     </div>
-                                ` : ''}
+                                `;
+                            } else if (this.communityTabFilter === 'my-posts') {
+                                return `
+                                    <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                        <div style="font-size: 2.2rem; margin-bottom: 8px;">✍️</div>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no has compartido publicaciones</p>
+                                        <p style="font-size: 0.85rem; margin-top: 4px;">¡Comparte con sencillez lo que Dios te mostró hoy!</p>
+                                    </div>
+                                `;
+                            } else {
+                                return `
+                                    <div class="community-empty-state">
+                                        <div class="community-empty-icon" aria-hidden="true">+</div>
+                                        <div class="community-empty-title">${
+                                            this.communityMode === 'history'
+                                                ? 'Todavía no hay publicaciones anteriores.'
+                                                : 'Sé la primera persona en compartir lo que Dios te habló en esta lectura.'
+                                        }</div>
+                                        <div class="community-empty-text">
+                                            ${
+                                                this.communityMode === 'history'
+                                                    ? 'Aquí aparecerán las conversaciones cuya última respuesta tenga más de 15 días.'
+                                                    : 'Comparte cómo escuchaste su voz en esta lectura.'
+                                            }
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        }
 
-                                <div class="community-reaction-row">
-                                    ${this.renderCommunityReactionBar(post.id, reactionData)}
+                        return visiblePosts.map(post => {
+                            const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
+                            const replies = repliesSummary[post.id] || [];
+                            const userProfile = this.isCommunityLegacyIdentityItem(post) && post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
+                            const isAnonymous = this.isCommunityAnonymousIdentity(post);
+                            const authorName = isAnonymous
+                                ? 'Anónimo'
+                                : this.getCommunityAuthorDisplayName(post, userProfile);
+                            const displayAuthorName = authorName;
+                            const authorInitial = (displayAuthorName.trim().charAt(0) || 'S').toUpperCase();
+
+                            const avatarSvg = typeof AvatarGenerator !== 'undefined'
+                                ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, post.name || displayAuthorName, {
+                                    ...this.getCommunityAuthorAvatarOptions(post, userProfile, isAnonymous)
+                                })
+                                : `<div class="community-avatar ${isAnonymous ? 'is-anonymous' : 'has-name'}" aria-hidden="true">${this.escapeHtml(authorInitial)}</div>`;
+
+                            return `
+                                <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
+                                    <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋮</button>
+                                    <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
+                                        <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar reflexión</button>
+                                        <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
+                                        <button type="button" data-action="speech-post" data-post-id="${post.id}">${this.currentlySpeakingPostId === post.id ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta'}</button>
+                                        <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar favorito'}</button>
+                                        ${this.isCommunityOwnPost(post) ? `
+                                            <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
+                                        ` : ''}
+                                    </div>
+
+                                    <div class="community-post-header">
+                                        ${avatarSvg}
+
+                                        <div class="community-post-heading">
+                                            <div class="community-author-row">
+                                                <span class="community-author ${isAnonymous ? 'is-anonymous' : 'has-name'}">${this.escapeHtml(displayAuthorName)}</span>
+                                                <span class="community-meta-dot" aria-hidden="true">•</span>
+                                                <span class="community-date">${this.escapeHtml(this.formatCommunityDateLabel(post.date))}</span>
+                                                ${this.isPostFavorite(post.id) ? '<span class="post-favorite-star" title="En tus favoritos">⭐</span>' : ''}
+                                            </div>
+
+                                            <div class="community-ref">Escuchó en ${this.renderCommunityInteractiveReferenceHtml(post.reference)}</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
+
+                                    ${post.audioURL ? `
+                                        <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
+                                            <button type="button" class="audio-play-btn" aria-label="Reproducir audio">▶</button>
+                                            <div class="audio-progress-bar"><div class="audio-progress-fill" style="width: 0%;"></div></div>
+                                            <span class="audio-time">0:00 / 0:30</span>
+                                            <button type="button" class="audio-speed-btn">1x</button>
+                                        </div>
+                                    ` : ''}
+
+                                    <div class="community-reaction-row">
+                                        ${this.renderCommunityReactionBar(post.id, reactionData)}
+                                    </div>
+
+                                    ${this.renderReplyBlock(post, replies)}
                                 </div>
-
-                                ${this.renderReplyBlock(post, replies)}
-                            </div>
-                        `;
-                    }).join('');
-                })()}
-            </div>
+                            `;
+                        }).join('');
+                    })()}
+                </div>
+            `}
 
             ${posts.length ? `
                 <div class="community-load-more">
@@ -14506,6 +15384,9 @@ try {
                     `}
                 </div>
             ` : ''}
+
+            ${this.renderCommunityPrayerAnsweredModalHtml()}
+            ${this.renderCommunityPrayerDeleteModalHtml()}
         </div>
     `;
 
@@ -18218,6 +19099,183 @@ if (toggleMenuBtn) {
             dropdown.classList.add('open');
             dropdown.style.display = 'flex';
         }
+    }
+    return;
+}
+
+const setSectionBtn = e.target.closest('[data-action="set-community-section"]');
+if (setSectionBtn) {
+    const section = setSectionBtn.getAttribute('data-section');
+    if (section) {
+        this.communitySection = section;
+        this.renderCommunity({ preserveOnError: true });
+    }
+    return;
+}
+
+const setPrayerTabBtn = e.target.closest('[data-action="set-prayer-tab"]');
+if (setPrayerTabBtn) {
+    const tab = setPrayerTabBtn.getAttribute('data-tab');
+    if (tab) {
+        this.prayerTabFilter = tab;
+        this.renderCommunity({ preserveOnError: true });
+    }
+    return;
+}
+
+const loadMorePrayersBtn = e.target.closest('[data-action="load-more-community-prayers"]');
+if (loadMorePrayersBtn) {
+    loadMorePrayersBtn.disabled = true;
+    loadMorePrayersBtn.textContent = 'Cargando más…';
+    this.loadMoreCommunityPrayerPosts().then(() => {
+        this.renderCommunity({ preserveOnError: true, showSkeleton: false });
+    }).catch(() => {
+        this.showToast('No se pudieron cargar más peticiones');
+        this.renderCommunity({ preserveOnError: true, showSkeleton: false });
+    });
+    return;
+}
+
+const loadMoreTestimoniesBtn = e.target.closest('[data-action="load-more-community-testimonies"]');
+if (loadMoreTestimoniesBtn) {
+    loadMoreTestimoniesBtn.disabled = true;
+    loadMoreTestimoniesBtn.textContent = 'Cargando más testimonios…';
+    this.loadMoreCommunityPrayerTestimonies().then(() => {
+        this.renderCommunity({ preserveOnError: true, showSkeleton: false });
+    }).catch(() => {
+        this.showToast('No se pudieron cargar más testimonios');
+        this.renderCommunity({ preserveOnError: true, showSkeleton: false });
+    });
+    return;
+}
+
+const openPrayerFormBtn = e.target.closest('[data-action="open-community-prayer-form"]');
+if (openPrayerFormBtn) {
+    this.prayerFormOpen = true;
+    this.renderCommunity({ preserveOnError: true });
+    return;
+}
+
+const cancelPrayerFormBtn = e.target.closest('[data-action="cancel-community-prayer-form"]');
+if (cancelPrayerFormBtn) {
+    this.prayerFormOpen = false;
+    this.renderCommunity({ preserveOnError: true });
+    return;
+}
+
+const discardPrayerDraftBtn = e.target.closest('[data-action="discard-community-prayer-draft"]');
+if (discardPrayerDraftBtn) {
+    this.clearCommunityPrayerDraft();
+    this.prayerFormOpen = false;
+    this.renderCommunity({ preserveOnError: true });
+    return;
+}
+
+const publishPrayerBtn = e.target.closest('[data-action="publish-community-prayer"]');
+if (publishPrayerBtn) {
+    const textEl = document.getElementById('community-prayer-text');
+    const anonEl = document.getElementById('community-prayer-anonymous');
+    const text = textEl ? textEl.value : '';
+    const isAnonymous = anonEl ? anonEl.checked : false;
+
+    publishPrayerBtn.disabled = true;
+    publishPrayerBtn.textContent = 'Publicando…';
+
+    this.addCommunityPrayerPost({ text, isAnonymous }).then(res => {
+        if (res.success) {
+            this.prayerFormOpen = false;
+            this.showToast('¡Petición de oración compartida!');
+            this.renderCommunity({ forceRefresh: true });
+        } else {
+            publishPrayerBtn.disabled = false;
+            publishPrayerBtn.textContent = 'Publicar petición';
+            this.showToast(res.message || 'No se pudo publicar la petición');
+        }
+    }).catch(err => {
+        publishPrayerBtn.disabled = false;
+        publishPrayerBtn.textContent = 'Publicar petición';
+        this.showToast('Error al publicar petición');
+    });
+    return;
+}
+
+const deletePrayerBtn = e.target.closest('[data-action="delete-community-prayer"]');
+if (deletePrayerBtn) {
+    const requestId = deletePrayerBtn.getAttribute('data-request-id');
+    if (requestId) {
+        this.prayerDeleteModalRequestId = requestId;
+        this.renderCommunity({ preserveOnError: true });
+    }
+    return;
+}
+
+const closeDeleteModalBtn = e.target.closest('[data-action="close-prayer-delete-modal"]');
+if (closeDeleteModalBtn) {
+    this.prayerDeleteModalRequestId = null;
+    this.renderCommunity({ preserveOnError: true });
+    return;
+}
+
+const submitDeleteModalBtn = e.target.closest('[data-action="submit-prayer-delete-modal"]');
+if (submitDeleteModalBtn) {
+    const requestId = submitDeleteModalBtn.getAttribute('data-request-id') || this.prayerDeleteModalRequestId;
+    if (requestId) {
+        submitDeleteModalBtn.disabled = true;
+        submitDeleteModalBtn.textContent = 'Eliminando…';
+        this.deleteCommunityPrayerPost(requestId).then(ok => {
+            if (ok) {
+                this.prayerDeleteModalRequestId = null;
+                this.renderCommunity({ preserveOnError: true });
+            } else {
+                submitDeleteModalBtn.disabled = false;
+                submitDeleteModalBtn.textContent = 'Eliminar';
+            }
+        }).catch(() => {
+            submitDeleteModalBtn.disabled = false;
+            submitDeleteModalBtn.textContent = 'Eliminar';
+        });
+    }
+    return;
+}
+
+const markAnsweredBtn = e.target.closest('[data-action="mark-community-prayer-answered"]');
+if (markAnsweredBtn) {
+    const requestId = markAnsweredBtn.getAttribute('data-request-id');
+    if (requestId) {
+        this.prayerAnsweredModalRequestId = requestId;
+        this.renderCommunity({ preserveOnError: true });
+    }
+    return;
+}
+
+const closeAnsweredModalBtn = e.target.closest('[data-action="close-prayer-answered-modal"]');
+if (closeAnsweredModalBtn) {
+    this.prayerAnsweredModalRequestId = null;
+    this.renderCommunity({ preserveOnError: true });
+    return;
+}
+
+const submitAnsweredModalBtn = e.target.closest('[data-action="submit-prayer-answered-modal"]');
+if (submitAnsweredModalBtn) {
+    const requestId = submitAnsweredModalBtn.getAttribute('data-request-id') || this.prayerAnsweredModalRequestId;
+    const answeredInput = document.getElementById('community-prayer-answered-input');
+    const answeredText = answeredInput ? answeredInput.value : '';
+
+    if (requestId) {
+        submitAnsweredModalBtn.disabled = true;
+        submitAnsweredModalBtn.textContent = 'Guardando…';
+        this.markCommunityPrayerAnswered(requestId, answeredText).then(ok => {
+            if (ok) {
+                this.prayerAnsweredModalRequestId = null;
+                this.renderCommunity({ preserveOnError: true });
+            } else {
+                submitAnsweredModalBtn.disabled = false;
+                submitAnsweredModalBtn.textContent = 'Marcar como respondida';
+            }
+        }).catch(() => {
+            submitAnsweredModalBtn.disabled = false;
+            submitAnsweredModalBtn.textContent = 'Marcar como respondida';
+        });
     }
     return;
 }

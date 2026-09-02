@@ -18139,3 +18139,457 @@ body.dark-mode .community-cancel-btn:hover {
         transition: none;
     }
 }
+
+/* ==========================================================================
+   COMMUNITY PREMIUM 3 — FASE 3D: MÓDULO DE ORACIÓN
+   ========================================================================== */
+
+/* Segmented Control Header [ Reflexiones | Oración ] */
+.community-section-segmented {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(22, 40, 58, 0.60);
+    border: 1px solid rgba(199, 171, 130, 0.20);
+    border-radius: 12px;
+    padding: 3px;
+    margin: 12px 0 16px 0;
+    gap: 4px;
+}
+
+.community-section-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #AEB9C4;
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+}
+
+.community-section-btn:hover {
+    color: #F3F0E8;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.community-section-btn.is-active {
+    color: #F3F0E8;
+    background: linear-gradient(180deg, rgba(30, 56, 82, 0.95), rgba(22, 42, 62, 0.98));
+    border: 1px solid rgba(199, 171, 130, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.community-section-btn svg {
+    stroke: currentColor;
+}
+
+.community-section-btn.is-active svg {
+    stroke: #C7AD78;
+}
+
+/* Light Mode Segmented Control */
+body.light-mode .community-section-segmented {
+    background: #F4F1EA;
+    border-color: rgba(184, 153, 90, 0.25);
+}
+
+body.light-mode .community-section-btn {
+    color: #5A6A7B;
+}
+
+body.light-mode .community-section-btn.is-active {
+    color: #1A2838;
+    background: #FFFFFF;
+    border-color: rgba(184, 153, 90, 0.40);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+body.light-mode .community-section-btn.is-active svg {
+    stroke: #98631F;
+}
+
+/* Oración Composer CTA & Form */
+.community-prayer-composer-card {
+    border-color: rgba(199, 171, 130, 0.28);
+    background: linear-gradient(180deg, rgba(20, 36, 54, 0.90), rgba(14, 26, 38, 0.95));
+}
+
+.community-privacy-notice {
+    background: rgba(199, 171, 130, 0.10);
+    border: 1px solid rgba(199, 171, 130, 0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: #E2DACB;
+}
+
+body.light-mode .community-privacy-notice {
+    background: #FFF9EE;
+    border-color: rgba(184, 153, 90, 0.30);
+    color: #4A3B22;
+}
+
+/* Tarjetas de Petición de Oración */
+.prayer-card {
+    background: linear-gradient(180deg, rgba(22, 40, 58, 0.90), rgba(16, 30, 44, 0.95));
+    border: 1px solid rgba(199, 171, 130, 0.22);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+body.light-mode .prayer-card {
+    background: #FFFFFF;
+    border-color: rgba(184, 153, 90, 0.25);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.prayer-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.prayer-card-author {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.prayer-card-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid rgba(199, 171, 130, 0.30);
+    flex-shrink: 0;
+}
+
+.prayer-card-author-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    color: #F3F0E8;
+}
+
+body.light-mode .prayer-card-author-name {
+    color: #1A2838;
+}
+
+.prayer-anonymous-badge {
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(199, 171, 130, 0.15);
+    color: #C7AD78;
+    border: 1px solid rgba(199, 171, 130, 0.30);
+}
+
+body.light-mode .prayer-anonymous-badge {
+    background: #F4EFE6;
+    color: #8C6D2E;
+    border-color: rgba(184, 153, 90, 0.30);
+}
+
+.prayer-card-date {
+    font-size: 0.78rem;
+    color: #AEB9C4;
+}
+
+body.light-mode .prayer-card-date {
+    color: #718096;
+}
+
+.prayer-card-body {
+    margin-bottom: 12px;
+}
+
+.prayer-card-text {
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    color: #F3F0E8;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+body.light-mode .prayer-card-text {
+    color: #2D3748;
+}
+
+.prayer-answered-badge {
+    background: rgba(40, 167, 69, 0.12);
+    border: 1px solid rgba(40, 167, 69, 0.30);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: #5CD67C;
+}
+
+body.light-mode .prayer-answered-badge {
+    background: #EBFBEE;
+    border-color: #A3E6AF;
+    color: #1E7E34;
+}
+
+.prayer-answered-icon {
+    font-weight: bold;
+    margin-right: 4px;
+}
+
+.prayer-answered-text {
+    margin-top: 6px;
+    font-style: italic;
+    color: #D4EDDA;
+    font-size: 0.88rem;
+}
+
+body.light-mode .prayer-answered-text {
+    color: #2B5435;
+}
+
+.prayer-card-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 10px;
+    margin-top: 10px;
+}
+
+body.light-mode .prayer-card-footer {
+    border-top-color: #EDF2F7;
+}
+
+.prayer-owner-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.prayer-action-btn {
+    background: transparent;
+    border: 1px solid rgba(199, 171, 130, 0.25);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.80rem;
+    font-weight: 500;
+    color: #AEB9C4;
+    cursor: pointer;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+}
+
+.prayer-action-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #F3F0E8;
+}
+
+.prayer-action-delete:hover {
+    border-color: rgba(220, 53, 69, 0.5);
+    color: #FF7884;
+}
+
+body.light-mode .prayer-action-btn {
+    border-color: #CBD5E0;
+    color: #4A5568;
+}
+
+body.light-mode .prayer-action-btn:hover {
+    background: #F7FAFC;
+    color: #1A202C;
+}
+
+body.light-mode .prayer-action-delete:hover {
+    border-color: #E53E3E;
+    color: #C53030;
+}
+
+/* ==========================================================================
+   COMMUNITY PREMIUM 3 - TESTIMONIOS & MODALS
+   ========================================================================== */
+
+/* Testimonios Cards */
+.prayer-testimony-card {
+    border-color: color-mix(in srgb, var(--accent, #3182CE) 22%, var(--community-border, #E8DED0));
+}
+
+.prayer-original-text-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--community-text-tertiary, #8A99AD);
+    margin-bottom: 4px;
+}
+
+.prayer-testimony-box {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--accent, #3182CE) 7%, var(--community-surface, #FDFBF7));
+    border: 1px solid color-mix(in srgb, var(--accent, #3182CE) 20%, transparent);
+}
+
+.prayer-testimony-label {
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent, #3182CE);
+    margin-bottom: 4px;
+}
+
+.prayer-testimony-text {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: var(--community-text, #172F55);
+    font-style: italic;
+}
+
+.prayer-testimony-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid color-mix(in srgb, var(--community-border, #E8DED0) 50%, transparent);
+}
+
+.prayer-answered-date {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--community-text-tertiary, #8A99AD);
+}
+
+/* Modals */
+.community-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: communityModalFadeIn 0.2s ease-out;
+}
+
+@keyframes communityModalFadeIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.community-modal-card {
+    background: var(--community-surface, #FDFBF7);
+    border: 1px solid var(--community-border, #E8DED0);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 440px;
+    padding: 20px 22px;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.28);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    color: var(--community-text, #172F55);
+    box-sizing: border-box;
+}
+
+.community-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.community-modal-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--community-text, #172F55);
+}
+
+.community-modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    color: var(--community-text-tertiary, #8A99AD);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.community-modal-close:hover {
+    color: var(--community-text, #172F55);
+    background: color-mix(in srgb, var(--community-text, #172F55) 8%, transparent);
+}
+
+.community-modal-desc {
+    margin: 0;
+    font-size: 0.90rem;
+    line-height: 1.45;
+    color: var(--community-text-secondary, #5C6B82);
+}
+
+.community-modal-subdesc {
+    margin: 4px 0 0 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--community-text-tertiary, #8A99AD);
+}
+
+.community-modal-textarea {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.community-modal-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.btn-danger {
+    min-height: 44px;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 12px;
+    background: #E53E3E;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 0.86rem;
+    cursor: pointer;
+    transition: background-color 0.18s ease;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #C53030;
+}
+
+.btn-danger:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
