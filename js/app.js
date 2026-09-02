@@ -671,7 +671,7 @@ const App = {
             }
 
             const remainder = normalizedQuery.slice(item.alias.length).trim();
-            const match = remainder.match(/^(\d{1,3})(?:\s*[: ]\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?)?$/);
+            const match = remainder.match(/^(\d{1,3})(?:[\s:]+(\d{1,3})(?:[\s\-–]+(\d{1,3}))?)?$/);
 
             if (!match) continue;
 

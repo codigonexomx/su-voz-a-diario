@@ -3985,7 +3985,7 @@ body.dark-mode .devotional-step-tab.active {
     text-decoration-color: rgba(213, 154, 66, 0.4);
     text-underline-offset: 3px;
     transition: all 0.18s ease;
-    min-height: 36px;
+    min-height: 44px;
     touch-action: manipulation;
 }
 
