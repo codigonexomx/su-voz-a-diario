@@ -11,6 +11,7 @@
     "migrate:community:anonymous-legacy": "node migrateCommunityAnonymousLegacy.js",
     "test:bible-proxy": "node bibleProxy.test.js",
     "test:community-identity": "node communityIdentity.test.js",
+    "test:community-prayer": "node communityPrayer.test.js",
     "test:community-migration": "node migrateCommunityAnonymousLegacy.test.js",
     "test:community-identity-concurrency": "firebase emulators:exec --only firestore --project demo-su-voz-concurrency \"node communityIdentityConcurrency.test.js\"",
     "serve": "firebase emulators:start --only functions,firestore",

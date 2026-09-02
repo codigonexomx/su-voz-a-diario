@@ -25,6 +25,14 @@
       ]
     },
     {
+      "collectionGroup": "communityPrayerRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "communityReplies",
       "queryScope": "COLLECTION",
       "fields": [

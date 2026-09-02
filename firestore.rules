@@ -103,6 +103,15 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    match /communityPrayerRequests/{requestId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
+    match /communityPrayerPrivate/{requestId} {
+      allow read, write: if false;
+    }
+
     match /communityClock/{uid} {
       allow read, delete: if isSignedIn() && request.auth.uid == uid;
 

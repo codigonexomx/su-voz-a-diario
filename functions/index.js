@@ -30,6 +30,12 @@ const {
   validateColorId,
   validateDisplayName,
 } = require("./communityIdentity");
+const {
+  createPrayerRequestLogic,
+  getPrayerOwnershipLogic,
+  deletePrayerRequestLogic,
+  markPrayerRequestAnsweredLogic,
+} = require("./communityPrayer");
 
 if (getApps().length === 0) {
   initializeApp();
@@ -947,6 +953,94 @@ exports.deleteCommunityPost = onCall(
     return {
       success: true,
     };
+  }
+);
+
+exports.createPrayerRequest = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para publicar una petición de oración."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const db = getFirestore();
+
+    return createPrayerRequestLogic(
+      db,
+      FieldValue,
+      uid,
+      request.data,
+      getRequiredCommunityAuthorSnapshot
+    );
+  }
+);
+
+exports.getPrayerOwnership = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para comprobar ownership de peticiones."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const db = getFirestore();
+
+    return getPrayerOwnershipLogic(db, uid, request.data?.requestIds);
+  }
+);
+
+exports.deletePrayerRequest = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para eliminar tu petición de oración."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const db = getFirestore();
+
+    return deletePrayerRequestLogic(db, uid, request.data?.requestId);
+  }
+);
+
+exports.markPrayerRequestAnswered = onCall(
+  {
+    region: "us-central1",
+  },
+  async (request) => {
+    if (!request.auth?.uid) {
+      throw new HttpsError(
+        "unauthenticated",
+        "Debes iniciar sesión para actualizar tu petición de oración."
+      );
+    }
+
+    const uid = request.auth.uid;
+    const db = getFirestore();
+
+    return markPrayerRequestAnsweredLogic(
+      db,
+      FieldValue,
+      uid,
+      request.data?.requestId,
+      request.data?.answeredText
+    );
   }
 );
 
