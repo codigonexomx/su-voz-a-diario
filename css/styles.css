@@ -18912,9 +18912,15 @@ body.dark-mode .community-thread-reply-card {
     font-size: 0.78rem;
     font-weight: 600;
     cursor: pointer;
-    padding: 4px 8px;
+    padding: 8px 12px;
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 6px;
     transition: color 0.18s ease, background-color 0.18s ease;
+    touch-action: manipulation;
 }
 
 .community-thread-reply-delete-btn:hover {

@@ -5151,8 +5151,13 @@ getUserCommunityPreferences: function() {
 
 setUserCommunityPreferences: function(prefs) {
     if (!prefs || typeof prefs !== 'object') return;
-    prefs.lastUpdated = new Date().toISOString();
-    localStorage.setItem('communityPrefs', JSON.stringify(prefs));
+    const current = this.getUserCommunityPreferences();
+    const updated = {
+        ...current,
+        ...prefs,
+        lastUpdated: new Date().toISOString()
+    };
+    localStorage.setItem('communityPrefs', JSON.stringify(updated));
 },
 
 initializeCommunityPremium: async function() {
@@ -5620,6 +5625,11 @@ renderCommunityThread: async function(postId) {
         const reactionSummary = await this.getCommunityReactionSummary([post]);
         const reactionData = reactionSummary[post.id] || null;
 
+        post.isOwner = this.isCommunityOwnPost(post);
+        replies.forEach(reply => {
+            reply.isOwner = this.isCommunityOwnReply(reply);
+        });
+
         // Guard against race conditions if user navigated away or switched threads during async loading
         const currentHash = (window.location.hash || '').substring(1);
         if (this.currentView !== 'community-thread' || currentHash !== `community-thread/${postId}`) {
@@ -5636,9 +5646,6 @@ renderCommunityThread: async function(postId) {
 
         const replyPreferences = this.getUserCommunityPreferences();
         const replyIsAnonymous = replyPreferences.isAnonymous !== false;
-        const replyIdentityLabel = replyIsAnonymous
-            ? 'Responder como Anónimo'
-            : `Responder como ${this.escapeHtml(this.communityIdentityProfile?.displayName || replyPreferences.name || 'tu Distintivo')}`;
 
         const isPostAnon = this.isCommunityAnonymousIdentity(post);
         const postProfile = this.isCommunityLegacyIdentityItem(post) && post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
@@ -5671,7 +5678,7 @@ renderCommunityThread: async function(postId) {
                                 <div class="community-post-date">${this.formatDateEs(post.date || post.createdAt)}</div>
                             </div>
                         </div>
-                        ${post.isOwner ? `
+                        ${this.isCommunityOwnPost(post) ? `
                             <button type="button" class="community-delete-btn" data-action="delete-community-post" data-post-id="${this.escapeHtml(post.id)}" aria-label="Eliminar publicación">
                                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
@@ -5724,7 +5731,7 @@ renderCommunityThread: async function(postId) {
                                             <div class="community-thread-reply-date">${this.formatDateEs(reply.date || reply.createdAt)}</div>
                                         </div>
                                     </div>
-                                    ${reply.isOwner ? `
+                                    ${this.isCommunityOwnReply(reply) ? `
                                         <button
                                             type="button"
                                             class="community-thread-reply-delete-btn"
@@ -5760,7 +5767,7 @@ renderCommunityThread: async function(postId) {
                                 class="reply-anonymous-checkbox"
                                 ${replyIsAnonymous ? 'checked' : ''}
                             >
-                            <span id="communityThreadAnonLabel">${replyIdentityLabel}</span>
+                            <span id="communityThreadAnonLabel">Responder como anónimo</span>
                         </label>
 
                         <div class="community-thread-composer-actions">
@@ -5791,15 +5798,9 @@ renderCommunityThread: async function(postId) {
         }
 
         const anonCheckbox = document.getElementById('communityThreadAnonCheckbox');
-        const anonLabel = document.getElementById('communityThreadAnonLabel');
-        if (anonCheckbox && anonLabel) {
+        if (anonCheckbox) {
             anonCheckbox.addEventListener('change', () => {
                 this.setUserCommunityPreferences({ isAnonymous: anonCheckbox.checked });
-                const isAnon = anonCheckbox.checked;
-                const newLabel = isAnon
-                    ? 'Responder como Anónimo'
-                    : `Responder como ${this.escapeHtml(this.communityIdentityProfile?.displayName || replyPreferences.name || 'tu Distintivo')}`;
-                anonLabel.textContent = newLabel;
             });
         }
 
@@ -19794,14 +19795,10 @@ if (favPostBtn) {
 
 const replyAnonCheckbox = e.target.closest('.reply-anonymous-checkbox');
 if (replyAnonCheckbox) {
-    const prefs = this.getUserCommunityPreferences();
-    prefs.isAnonymous = replyAnonCheckbox.checked;
-    this.setUserCommunityPreferences(prefs);
+    this.setUserCommunityPreferences({ isAnonymous: replyAnonCheckbox.checked });
     const label = replyAnonCheckbox.closest('.reply-anonymous-toggle')?.querySelector('span');
     if (label) {
-        label.textContent = replyAnonCheckbox.checked
-            ? 'Responder como Anónimo'
-            : `Responder como ${this.communityIdentityProfile?.displayName || prefs.name || 'tu Distintivo'}`;
+        label.textContent = 'Responder como anónimo';
     }
 }
 
