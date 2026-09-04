@@ -1170,6 +1170,18 @@ console.log('[App] Inicialización completada');
             return;
         }
 
+        if (this.currentView === 'community-thread') {
+            if (event.canGoBack) {
+                history.back();
+                return;
+            }
+            history.replaceState(null, '', '#community');
+            this.handleRoute().catch(error => {
+                console.error('[Android Back] Error volviendo a Comunidad desde Thread:', error);
+            });
+            return;
+        }
+
         if (this.currentView !== 'home') {
             if (event.canGoBack) {
                 history.back();
@@ -5477,117 +5489,221 @@ renderCommunityReactionBar: function(postId, reactionData = null) {
 },
 
 renderReplyBlock: function(post, replies = []) {
-    const isOpen = this.openReplyPostId === post.id;
-    const draft = this.getReplyDraft(post.id);
-    const replyPreferences = this.getUserCommunityPreferences();
-    const replyIsAnonymous = replyPreferences.isAnonymous !== false;
-    const replyIdentityLabel = replyIsAnonymous
-        ? 'Responder como Anónimo'
-        : `Responder como ${this.escapeHtml(this.communityIdentityProfile?.displayName || replyPreferences.name || 'tu Distintivo')}`;
-    const replyCount = replies.length;
-    const latestReply = replyCount ? replies[replyCount - 1] : null;
-    const latestReplyText = (latestReply?.text || '').replace(/<[^>]*>/g, '');
-    const latestReplyPreview = latestReplyText.length > 92
-        ? `${latestReplyText.slice(0, 92).trim()}...`
-        : latestReplyText;
-    const replyCountLabel = replyCount === 1
-        ? '1 hermano participó'
-        : `${replyCount} hermanos participaron`;
-    const replyToggleLabel = isOpen
-        ? 'Cerrar conversación'
-        : (replyCount > 0 ? 'Ver conversación' : 'Responder a este eco');
+    const replyCount = typeof post.replyCount === 'number' ? post.replyCount : (replies ? replies.length : 0);
+    const replyCountLabel = replyCount === 0
+        ? 'Conversación (0)'
+        : (replyCount === 1 ? '1 respuesta · Ver conversación' : `${replyCount} respuestas · Ver conversación`);
 
     return `
         <div class="community-reply-block">
             <div class="community-reply-toolbar">
-                ${replyCount > 0 ? `
-                    <div class="community-reply-count">
-                        ${replyCountLabel}
-                        <span>La comunidad está conversando</span>
-                    </div>
-                ` : (isOpen ? '<div class="community-reply-count is-empty">Sé el primero en responder</div>' : '<div></div>')}
-
                 <button
                     class="community-reply-toggle"
                     type="button"
-                    data-action="toggle-reply-form"
+                    data-action="open-community-thread"
                     data-post-id="${post.id}"
+                    aria-label="Abrir conversación de este eco"
                 >
-                    ${replyToggleLabel}
+                    <span class="community-reply-icon">💬</span>
+                    <span>${replyCountLabel}</span>
                 </button>
             </div>
+        </div>
+    `;
+},
 
-            ${replyCount > 0 && !isOpen ? `
-                <button
-                    class="community-reply-preview"
-                    type="button"
-                    data-action="toggle-reply-form"
-                    data-post-id="${post.id}"
-                    aria-label="Ver último eco de la conversación"
-                >
-                    <span>Último eco</span>
-                    <strong>“${this.escapeHtml(latestReplyPreview)}”</strong>
+openCommunityThread: function(postId) {
+    if (!postId) return;
+    this.saveCommunityScrollPosition();
+    window.location.hash = `#community-thread/${postId}`;
+},
+
+renderCommunityThread: async function(postId) {
+    if (!postId) {
+        window.location.hash = '#community';
+        return;
+    }
+
+    this.currentView = 'community-thread';
+    this.updateNavUI();
+
+    this.$content.innerHTML = `
+        <div class="community-container community-thread-container">
+            <div class="community-thread-header">
+                <button type="button" class="community-thread-back-btn" data-action="back-to-community">
+                    ← Volver a Comunidad
                 </button>
-            ` : ''}
+            </div>
+            <div class="skeleton-loading">
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+            </div>
+        </div>
+    `;
 
-            ${isOpen ? `
-                <div class="community-reply-form">
-                    <div class="community-reply-form-title">Comparte cómo este eco te edificó</div>
-                    <textarea
-                        class="community-reply-textarea"
-                        data-action="reply-input"
-                        data-post-id="${post.id}"
-                        placeholder="Escribe una respuesta breve que anime a la comunidad..."
-                        maxlength="${this.replyCharLimit}"
-                    >${this.escapeHtml(draft)}</textarea>
+    try {
+        const user = await this.initAuth();
+        if (!user?.uid) {
+            throw new Error('No se pudo identificar al usuario');
+        }
 
-                    <label class="reply-anonymous-toggle">
-                        <input
-                            type="checkbox"
-                            class="reply-anonymous-checkbox"
-                            ${replyIsAnonymous ? 'checked' : ''}
-                        >
-                        <span>${replyIdentityLabel}</span>
-                    </label>
+        const db = window.firebaseDb;
+        const fns = window.firebaseFns;
+        if (!db || !fns) {
+            throw new Error('Firebase no está disponible');
+        }
 
-                    <div class="community-reply-form-footer">
-                        <div class="community-reply-counter">
-                            ${draft.length}/${this.replyCharLimit}
-                        </div>
+        let post = null;
+        const feedState = this.getCommunityFeedState();
+        if (feedState) {
+            post = feedState.recent?.posts?.find(p => p.id === postId) ||
+                   feedState.history?.posts?.find(p => p.id === postId) || null;
+        }
 
-                        <div class="community-reply-form-actions">
-                            <button
-                                class="btn-secondary"
-                                type="button"
-                                data-action="cancel-reply-form"
-                                data-post-id="${post.id}"
-                            >
-                                Cancelar
+        if (!post) {
+            const postDocRef = fns.doc(db, "communityPosts", postId);
+            const postSnap = await fns.getDoc(postDocRef);
+            if (postSnap.exists()) {
+                post = { id: postSnap.id, ...postSnap.data() };
+            }
+        }
+
+        if (!post) {
+            this.$content.innerHTML = `
+                <div class="community-container community-thread-container">
+                    <div class="community-thread-header">
+                        <button type="button" class="community-thread-back-btn" data-action="back-to-community">
+                            ← Volver a Comunidad
+                        </button>
+                    </div>
+                    <div class="community-thread-empty">
+                        <p>Esta reflexión no existe o ha sido eliminada.</p>
+                        <p class="subtext">
+                            <button type="button" class="btn-primary" style="margin-top:12px; width:auto;" data-action="back-to-community">
+                                Volver a Comunidad
                             </button>
-
-                            <button
-                                class="btn-primary"
-                                type="button"
-                                data-action="publish-reply"
-                                data-post-id="${post.id}"
-                            >
-                                Responder
-                            </button>
-                        </div>
+                        </p>
                     </div>
                 </div>
-            ` : ''}
+            `;
+            return;
+        }
 
-            ${isOpen && replies.length ? `
-                <div class="community-reply-list">
-                    <div class="community-reply-list-title">Conversación edificante</div>
-                    ${replies.map(reply => {
+        const repliesQuery = fns.query(
+            fns.collection(db, "communityReplies"),
+            fns.where("postId", "==", postId)
+        );
+        const replySnaps = await fns.getDocs(repliesQuery);
+        const replies = replySnaps.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        replies.sort((a, b) => {
+            const aSec = a.createdAt?.seconds || 0;
+            const bSec = b.createdAt?.seconds || 0;
+            return aSec - bSec;
+        });
+
+        const authorUids = [post]
+            .concat(replies)
+            .filter(item => this.isCommunityLegacyIdentityItem(item))
+            .map(item => item.ownerUid);
+
+        await this.getUserProfilesBatch(authorUids);
+        await this.loadCurrentCommunityIdentityProfile();
+        await this.loadCommunityOwnershipForItems([post], { [postId]: replies });
+        const reactionSummary = await this.getCommunityReactionSummary([post]);
+        const reactionData = reactionSummary[post.id] || null;
+
+        // Guard against race conditions if user navigated away or switched threads during async loading
+        const currentHash = (window.location.hash || '').substring(1);
+        if (this.currentView !== 'community-thread' || currentHash !== `community-thread/${postId}`) {
+            return;
+        }
+
+        this.communityThreadState = {
+            postId: post.id,
+            post: post,
+            replies: replies,
+            loading: false,
+            error: null
+        };
+
+        const replyPreferences = this.getUserCommunityPreferences();
+        const replyIsAnonymous = replyPreferences.isAnonymous !== false;
+        const replyIdentityLabel = replyIsAnonymous
+            ? 'Responder como Anónimo'
+            : `Responder como ${this.escapeHtml(this.communityIdentityProfile?.displayName || replyPreferences.name || 'tu Distintivo')}`;
+
+        const isPostAnon = this.isCommunityAnonymousIdentity(post);
+        const postProfile = this.isCommunityLegacyIdentityItem(post) && post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
+        const postAuthorName = isPostAnon
+            ? 'Anónimo'
+            : this.getCommunityAuthorDisplayName(post, postProfile);
+        const postAvatarSvg = typeof AvatarGenerator !== 'undefined'
+            ? AvatarGenerator.renderHtml(post.avatarSeed || post.ownerUid || post.id, postAuthorName, {
+                ...this.getCommunityAuthorAvatarOptions(post, postProfile, isPostAnon)
+            })
+            : '';
+
+        const replyCount = typeof post.replyCount === 'number' ? post.replyCount : replies.length;
+        const replyCountLabel = replyCount === 1 ? '1 respuesta' : `${replyCount} respuestas`;
+
+        const html = `
+            <div class="community-container community-thread-container">
+                <div class="community-thread-header">
+                    <button type="button" class="community-thread-back-btn" data-action="back-to-community">
+                        ← Volver a Comunidad
+                    </button>
+                </div>
+
+                <div class="community-card community-thread-main-card" data-post-id="${this.escapeHtml(post.id)}">
+                    <div class="community-card-header">
+                        <div class="community-author-info">
+                            ${postAvatarSvg}
+                            <div>
+                                <div class="community-author-name">${this.escapeHtml(postAuthorName)}</div>
+                                <div class="community-post-date">${this.formatDateEs(post.date || post.createdAt)}</div>
+                            </div>
+                        </div>
+                        ${post.isOwner ? `
+                            <button type="button" class="community-delete-btn" data-action="delete-community-post" data-post-id="${this.escapeHtml(post.id)}" aria-label="Eliminar publicación">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <div class="community-card-body">
+                        <div class="community-post-text">${this.escapeHtml(post.text || '')}</div>
+                        ${post.reference ? `
+                            <div class="community-ref">Escuchó en ${this.renderCommunityInteractiveReferenceHtml(post.reference)}</div>
+                        ` : ''}
+                    </div>
+
+                    <div class="community-card-footer">
+                        ${this.renderCommunityReactionBar(post.id, reactionData)}
+                    </div>
+                </div>
+
+                <div class="community-thread-divider">
+                    Conversación edificante · <span id="threadReplyCountLabel">${replyCountLabel}</span>
+                </div>
+
+                <div class="community-thread-stream" id="communityThreadStream">
+                    ${replies.length === 0 ? `
+                        <div class="community-thread-empty" id="communityThreadEmpty">
+                            <p>Aún no hay respuestas en esta conversación.</p>
+                            <p class="subtext">Sé el primero en compartir cómo este eco te edificó.</p>
+                        </div>
+                    ` : replies.map(reply => {
                         const replyProfile = this.isCommunityLegacyIdentityItem(reply) && reply.ownerUid ? this.userProfilesCache?.[reply.ownerUid] : null;
                         const isReplyAnon = this.isCommunityAnonymousIdentity(reply);
                         const replyAuthorName = isReplyAnon
                             ? 'Anónimo'
                             : this.getCommunityAuthorDisplayName(reply, replyProfile);
-
                         const replyAvatarSvg = typeof AvatarGenerator !== 'undefined'
                             ? AvatarGenerator.renderHtml(reply.avatarSeed || reply.ownerUid || reply.id, replyAuthorName, {
                                 ...this.getCommunityAuthorAvatarOptions(reply, replyProfile, isReplyAnon)
@@ -5595,36 +5711,114 @@ renderReplyBlock: function(post, replies = []) {
                             : '';
 
                         return `
-                        <div class="community-reply-item" data-reply-id="${this.escapeHtml(reply.id)}">
-                            <div class="community-reply-meta" style="display: flex; align-items: center; gap: 8px;">
-                                ${replyAvatarSvg}
-                                <span>${this.escapeHtml(replyAuthorName)} · ${this.escapeHtml(this.formatCommunityDateLabel(reply.date || ''))}</span>
-                            </div>
-
-                            <div class="community-reply-text">
-                                ${this.formatCommunityRichText(reply.text || '')}
-                            </div>
-
-                            ${this.isCommunityOwnReply(reply) ? `
-                                <div class="community-reply-actions">
-                                    <button
-                                        class="community-reply-delete"
-                                        type="button"
-                                        data-action="delete-community-reply"
-                                        data-reply-id="${reply.id}"
-                                        data-post-id="${post.id}"
-                                    >
-                                        Eliminar
-                                    </button>
+                            <div class="community-thread-reply-card" data-reply-id="${this.escapeHtml(reply.id)}">
+                                <div class="community-thread-reply-header">
+                                    <div class="community-thread-reply-author">
+                                        ${replyAvatarSvg}
+                                        <div>
+                                            <div class="community-thread-reply-author-name">${this.escapeHtml(replyAuthorName)}</div>
+                                            <div class="community-thread-reply-date">${this.formatDateEs(reply.date || reply.createdAt)}</div>
+                                        </div>
+                                    </div>
+                                    ${reply.isOwner ? `
+                                        <button
+                                            type="button"
+                                            class="community-thread-reply-delete-btn"
+                                            data-action="delete-thread-reply"
+                                            data-reply-id="${this.escapeHtml(reply.id)}"
+                                            data-post-id="${this.escapeHtml(post.id)}"
+                                        >
+                                            Eliminar
+                                        </button>
+                                    ` : ''}
                                 </div>
-                            ` : ''}
-                        </div>
-                    `;
-                }).join('')}
+                                <div class="community-thread-reply-text">${this.escapeHtml(reply.text || '')}</div>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
-            ` : ''}
-        </div>
-    `;
+
+                <div class="community-thread-composer" id="communityThreadComposer">
+                    <div class="community-thread-composer-title">Comparte cómo este eco te edificó</div>
+                    <textarea
+                        class="community-thread-textarea"
+                        id="communityThreadTextarea"
+                        placeholder="Escribe una respuesta edificante..."
+                        maxlength="${this.replyCharLimit || 500}"
+                        style="font-size: 16px;"
+                    ></textarea>
+
+                    <div class="community-thread-composer-footer">
+                        <label class="reply-anonymous-toggle">
+                            <input
+                                type="checkbox"
+                                id="communityThreadAnonCheckbox"
+                                class="reply-anonymous-checkbox"
+                                ${replyIsAnonymous ? 'checked' : ''}
+                            >
+                            <span id="communityThreadAnonLabel">${replyIdentityLabel}</span>
+                        </label>
+
+                        <div class="community-thread-composer-actions">
+                            <span class="community-reply-counter" id="communityThreadCounter">0/${this.replyCharLimit || 500}</span>
+                            <button
+                                type="button"
+                                class="btn-primary"
+                                data-action="publish-thread-reply"
+                                data-post-id="${this.escapeHtml(post.id)}"
+                            >
+                                Responder
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.$content.innerHTML = html;
+
+        const textarea = document.getElementById('communityThreadTextarea');
+        const counter = document.getElementById('communityThreadCounter');
+        if (textarea && counter) {
+            textarea.addEventListener('input', () => {
+                const len = textarea.value.length;
+                counter.textContent = `${len}/${this.replyCharLimit || 500}`;
+            });
+        }
+
+        const anonCheckbox = document.getElementById('communityThreadAnonCheckbox');
+        const anonLabel = document.getElementById('communityThreadAnonLabel');
+        if (anonCheckbox && anonLabel) {
+            anonCheckbox.addEventListener('change', () => {
+                this.updateUserCommunityPreferences({ isAnonymous: anonCheckbox.checked });
+                const isAnon = anonCheckbox.checked;
+                const newLabel = isAnon
+                    ? 'Responder como Anónimo'
+                    : `Responder como ${this.escapeHtml(this.communityIdentityProfile?.displayName || replyPreferences.name || 'tu Distintivo')}`;
+                anonLabel.textContent = newLabel;
+            });
+        }
+
+    } catch (error) {
+        console.error('[CommunityThread] Error cargando conversación:', error);
+        this.$content.innerHTML = `
+            <div class="community-container community-thread-container">
+                <div class="community-thread-header">
+                    <button type="button" class="community-thread-back-btn" data-action="back-to-community">
+                        ← Volver a Comunidad
+                    </button>
+                </div>
+                <div class="community-thread-empty">
+                    <p>No se pudo cargar la conversación en este momento.</p>
+                    <p class="subtext">
+                        <button type="button" class="btn-primary" style="margin-top:12px; width:auto;" data-action="back-to-community">
+                            Volver a Comunidad
+                        </button>
+                    </p>
+                </div>
+            </div>
+        `;
+    }
 },
 
 getReactionIcon: function(type) {
@@ -9379,6 +9573,11 @@ if (view !== 'settings' && oldView !== 'settings') {
         resetScrollTop: oldView !== 'community' && !notificationPostId
     });
     await this.markCommunityAsSeen();
+} else if (view === 'community-thread') {
+    if (oldView === 'community') {
+        this.saveCommunityScrollPosition();
+    }
+    await this.renderCommunityThread(param);
 } else if (view === 'stats') {
     this.renderStats();
 } else if (view === 'settings') {
@@ -9407,7 +9606,7 @@ updateNavUI: function() {
         { btn: this.$navHome, views: ['home', 'reading'] },
         { btn: this.$navBible, views: ['bible', 'bible-reading', 'bible-search', 'bible-memory', 'strong-dictionary'] },
         { btn: this.$navCalendar, views: ['calendar'] },
-        { btn: this.$navCommunity, views: ['community'] },
+        { btn: this.$navCommunity, views: ['community', 'community-thread'] },
         { btn: this.$navStats, views: ['stats'] }
     ];
     
@@ -19179,47 +19378,31 @@ if (saveAvatarBtn) {
     return;
 }
 
-const toggleReplyBtn = e.target.closest('[data-action="toggle-reply-form"]');
-if (toggleReplyBtn) {
-    const postId = toggleReplyBtn.getAttribute('data-post-id');
-
-    this.toggleReplyForm(postId);
-    this.renderCommunity({
-        showSkeleton: false,
-        preserveAnchor: true
-    }).catch(error => {
-        console.error('[Community] Error actualizando formulario de respuesta:', error);
-    });
+const openThreadBtn = e.target.closest('[data-action="open-community-thread"]');
+if (openThreadBtn) {
+    const postId = openThreadBtn.getAttribute('data-post-id');
+    this.openCommunityThread(postId);
     return;
 }
 
-const cancelReplyBtn = e.target.closest('[data-action="cancel-reply-form"]');
-if (cancelReplyBtn) {
-    const postId = cancelReplyBtn.getAttribute('data-post-id');
-    this.openReplyPostId = null;
-    this.clearReplyDraft(postId);
-    this.renderCommunity({
-        showSkeleton: false,
-        preserveAnchor: true
-    }).catch(error => {
-        console.error('[Community] Error cerrando formulario de respuesta:', error);
-    });
+const backToCommunityBtn = e.target.closest('[data-action="back-to-community"]');
+if (backToCommunityBtn) {
+    window.location.hash = '#community';
     return;
 }
 
-const publishReplyBtn = e.target.closest('[data-action="publish-reply"]');
-if (publishReplyBtn) {
-    if (this.communityReplySubmitting) {
-        return;
-    }
+const publishThreadReplyBtn = e.target.closest('[data-action="publish-thread-reply"]');
+if (publishThreadReplyBtn) {
+    if (this.communityReplySubmitting) return;
 
     if (!navigator.onLine) {
         this.showToast('Necesitas conexión a internet para publicar en Comunidad.');
         return;
     }
 
-    const postId = publishReplyBtn.getAttribute('data-post-id');
-    const text = this.getReplyDraft(postId).trim();
+    const postId = publishThreadReplyBtn.getAttribute('data-post-id');
+    const textarea = document.getElementById('communityThreadTextarea');
+    const text = (textarea?.value || '').trim();
 
     if (!text) {
         this.showToast('Escribe una respuesta');
@@ -19241,9 +19424,9 @@ if (publishReplyBtn) {
     }
 
     this.communityReplySubmitting = true;
-    publishReplyBtn.disabled = true;
-    const originalReplyText = publishReplyBtn.textContent;
-    publishReplyBtn.textContent = 'Enviando...';
+    publishThreadReplyBtn.disabled = true;
+    const originalText = publishThreadReplyBtn.textContent;
+    publishThreadReplyBtn.textContent = 'Enviando...';
 
     const result = await this.addCommunityReply({
         postId,
@@ -19255,49 +19438,62 @@ if (publishReplyBtn) {
 
     if (!result.success) {
         this.communityReplySubmitting = false;
-        publishReplyBtn.disabled = false;
-        publishReplyBtn.textContent = originalReplyText;
+        publishThreadReplyBtn.disabled = false;
+        publishThreadReplyBtn.textContent = originalText;
         this.showToast(result.message || 'No se pudo guardar la respuesta');
         return;
     }
 
-    this.clearReplyDraft(postId);
-    this.openReplyPostId = postId;
-    this.promoteCommunityPostAfterReply(postId);
+    if (this.communityThreadState && this.communityThreadState.post) {
+        this.communityThreadState.post.replyCount = (this.communityThreadState.post.replyCount || 0) + 1;
+    }
+    const feedState = this.getCommunityFeedState();
+    if (feedState) {
+        [feedState.recent?.posts, feedState.history?.posts].forEach(postsArr => {
+            if (postsArr) {
+                const targetP = postsArr.find(p => p.id === postId);
+                if (targetP) {
+                    targetP.replyCount = (targetP.replyCount || 0) + 1;
+                }
+            }
+        });
+    }
+
     this.showToast('Respuesta publicada');
-
-    publishReplyBtn.closest('.community-reply-form')?.remove();
-
-    this.renderCommunity({
-        showSkeleton: false,
-        preserveOnError: true,
-        targetPostId: postId,
-        targetReplyId: result.id,
-        skipTargetLookup: true
-    }).catch(error => {
-        console.warn('[Community] No se pudo sincronizar la respuesta en segundo plano:', error);
-    });
     this.communityReplySubmitting = false;
+    await this.renderCommunityThread(postId);
     return;
 }
 
-const deleteReplyBtn = e.target.closest('[data-action="delete-community-reply"]');
-if (deleteReplyBtn) {
-    const replyId = deleteReplyBtn.getAttribute('data-reply-id');
+const deleteThreadReplyBtn = e.target.closest('[data-action="delete-thread-reply"]');
+if (deleteThreadReplyBtn) {
+    const replyId = deleteThreadReplyBtn.getAttribute('data-reply-id');
+    const postId = deleteThreadReplyBtn.getAttribute('data-post-id');
 
     if (confirm('¿Deseas eliminar esta respuesta?')) {
         const success = await this.deleteCommunityReply(replyId);
-
         if (!success) {
             this.showToast('No se pudo eliminar la respuesta');
             return;
         }
 
-        this.invalidateCommunityCache();
+        if (this.communityThreadState && this.communityThreadState.post) {
+            this.communityThreadState.post.replyCount = Math.max(0, (this.communityThreadState.post.replyCount || 1) - 1);
+        }
+        const feedState = this.getCommunityFeedState();
+        if (feedState) {
+            [feedState.recent?.posts, feedState.history?.posts].forEach(postsArr => {
+                if (postsArr) {
+                    const targetP = postsArr.find(p => p.id === postId);
+                    if (targetP) {
+                        targetP.replyCount = Math.max(0, (targetP.replyCount || 1) - 1);
+                    }
+                }
+            });
+        }
+
         this.showToast('Respuesta eliminada');
-        this.renderCommunity().catch(error => {
-            console.error('[Community] Error actualizando respuestas:', error);
-        });
+        await this.renderCommunityThread(postId);
     }
     return;
 }
