@@ -1054,14 +1054,16 @@
     "reference": "1 Samuel 2:12-26",
     "bookId": "1sa",
     "month": "2026-09",
-    "file": "data/readings/2026-09.json"
+    "file": "data/readings/2026-09.json",
+    "dailyQuestion": "¿Qué te enseña el contraste entre el crecimiento de Samuel y la conducta de los hijos de Elí?"
   },
   {
     "date": "2026-09-05",
     "reference": "1 Samuel 2:27-36",
     "bookId": "1sa",
     "month": "2026-09",
-    "file": "data/readings/2026-09.json"
+    "file": "data/readings/2026-09.json",
+    "dailyQuestion": "¿En qué áreas de tu vida necesitas recordar que Dios honra a quienes le honran?"
   },
   {
     "date": "2026-09-06",

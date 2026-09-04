@@ -5485,6 +5485,7 @@ getCommunityTodayContext: function() {
     const reference = reading?.reference || 'Lectura del día';
     const isToday = readingDate === this.getTodayDateStr();
     const dateLabel = this.formatCommunityReadingDateLabel(readingDate);
+    const dailyQuestion = reading?.dailyQuestion || null;
 
     return {
         readingDate,
@@ -5493,6 +5494,7 @@ getCommunityTodayContext: function() {
         contextLabel: isToday ? 'Lectura de hoy' : `Lectura del ${dateLabel.toLowerCase()}`,
         isToday,
         isHistorical: !isToday,
+        dailyQuestion,
         metadata: reading
     };
 },
@@ -9507,20 +9509,28 @@ renderDailyVersionSelector: function() {
 
         if (!targetDate) return null;
 
-        const metadataSource = this.readingIndexLoaded && this.readingIndex.length > 0
+        const metadataSource = this.readingIndexLoaded && Array.isArray(this.readingIndex) && this.readingIndex.length > 0
             ? this.readingIndex
-            : this.data;
+            : (Array.isArray(this.data) ? this.data : []);
 
         const item = metadataSource.find(reading => reading.date === targetDate);
 
         if (!item) return null;
 
+        const monthKey = item.month || String(item.date || '').slice(0, 7);
+        const cachedMonthly = this.monthlyReadingsCache ? this.monthlyReadingsCache[monthKey] : null;
+        const detailedItem = Array.isArray(cachedMonthly) ? cachedMonthly.find(reading => reading.date === targetDate) : null;
+
+        const rawQuestion = (detailedItem && detailedItem.dailyQuestion) || item.dailyQuestion || null;
+        const dailyQuestion = typeof rawQuestion === 'string' && rawQuestion.trim() ? rawQuestion.trim() : null;
+
         return {
             date: item.date,
             reference: item.reference,
             bookId: item.bookId || null,
-            month: item.month || String(item.date || '').slice(0, 7),
-            file: item.file || null
+            month: monthKey,
+            file: item.file || null,
+            dailyQuestion
         };
     },
 
@@ -12108,6 +12118,8 @@ restoreCalendarPosition: function() {
                 </div>
             </div>
 
+            ${this.renderDailyQuestionCardHtml(reading.date)}
+
             <div class="main-action">
                 <button class="reading-action-card reading-action-primary ${this.hasNote(reading.date) ? 'has-note' : ''}" data-action="toggle-note" data-date="${reading.date}">
                     <span class="reading-action-icon">🔎</span>
@@ -12196,6 +12208,29 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
     await this.renderReading(targetDate);
 },
     
+    renderDailyQuestionCardHtml: function(dateStr) {
+        const metadata = this.getReadingMetadataByDate(dateStr);
+        const dailyQuestion = metadata?.dailyQuestion || null;
+
+        if (!dailyQuestion) return '';
+
+        return `
+            <section class="daily-question-card" data-daily-question-date="${this.escapeHtml(metadata.date)}">
+                <div class="daily-question-badge">
+                    <span class="daily-question-badge-icon" aria-hidden="true">💡</span>
+                    <span class="daily-question-badge-label">Pregunta del día</span>
+                </div>
+                <p class="daily-question-text">${this.escapeHtml(dailyQuestion)}</p>
+                <div class="daily-question-actions">
+                    <button type="button" class="daily-question-btn" data-action="respond-daily-question" data-date="${this.escapeHtml(metadata.date)}" data-reference="${this.escapeHtml(metadata.reference || '')}">
+                        <span class="daily-question-btn-icon" aria-hidden="true">✍️</span>
+                        <span>Compartir mi reflexión</span>
+                    </button>
+                </div>
+            </section>
+        `;
+    },
+
     renderViewContent: function(reading, isHome = false) {
         
         if (!reading) {
@@ -12259,6 +12294,8 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
     </div>
 </div>
                </div>
+
+            ${this.renderDailyQuestionCardHtml(reading.date)}
             
             <div class="main-action">
     <button class="reading-action-card reading-action-primary ${this.hasNote(reading.date) ? 'has-note' : ''}" data-action="toggle-note" data-date="${reading.date}">
@@ -15342,6 +15379,8 @@ renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayCont
             colorId: identityState?.colorId
         })
         : '';
+    const todayContext = this.getCommunityTodayContext();
+    const dailyQuestion = todayContext.dailyQuestion || null;
 
     return `
             <div class="community-composer-card" role="region" aria-label="Escribir reflexión">
@@ -15352,7 +15391,15 @@ renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayCont
                             <span class="community-composer-identity-name">${this.escapeHtml(userDisplayName)}</span>
                         </div>
                     ` : ''}
-                    <div class="community-composer-question">¿Qué te habló Dios hoy?</div>
+                    ${dailyQuestion ? `
+                        <div class="community-composer-daily-question-context">
+                            <div class="daily-question-badge">
+                                <span class="daily-question-badge-icon" aria-hidden="true">💡</span>
+                                <span class="daily-question-badge-label">Pregunta del día</span>
+                            </div>
+                            <div class="daily-question-context-text">${this.escapeHtml(dailyQuestion)}</div>
+                        </div>
+                    ` : '<div class="community-composer-question">¿Qué te habló Dios hoy?</div>'}
                     <div class="community-composer-bottom-row">
                         <div class="community-composer-subtitle">Comparte una reflexión de la lectura con la comunidad.</div>
                         <button class="community-composer-btn" type="button" data-action="share-community-reflection" aria-label="Escribir reflexión">
@@ -15377,6 +15424,9 @@ renderCommunityFormCardHtml: function(options = {}) {
     const showCommunityDraftRestored = options.showRestoredNotice === true
         || (this.communityDraftRestoredNoticePending && hasCommunityDraft);
     const draftContextOutdated = this.isCommunityDraftContextOutdated(communityDraftState, todayContext);
+    const draftReadingDate = communityDraftState.readingDate || todayContext.readingDate;
+    const draftMetadata = this.getReadingMetadataByDate(draftReadingDate);
+    const dailyQuestion = draftMetadata?.dailyQuestion || null;
 
     return `
                 <div class="community-form-card" role="region" aria-label="Editor de reflexión">
@@ -15393,6 +15443,16 @@ renderCommunityFormCardHtml: function(options = {}) {
                             </button>
                         ` : ''}
                     </div>
+
+                    ${dailyQuestion ? `
+                        <div class="community-composer-daily-question-context">
+                            <div class="daily-question-badge">
+                                <span class="daily-question-badge-icon" aria-hidden="true">💡</span>
+                                <span class="daily-question-badge-label">Pregunta del día</span>
+                            </div>
+                            <div class="daily-question-context-text">${this.escapeHtml(dailyQuestion)}</div>
+                        </div>
+                    ` : ''}
 
                     <div class="community-form-title">¿Qué te habló Dios hoy?</div>
 
@@ -19849,6 +19909,23 @@ if (deleteThreadReplyBtn) {
         this.showToast('Respuesta eliminada');
         await this.renderCommunityThread(postId);
     }
+    return;
+}
+
+const respondDailyQuestionBtn = e.target.closest('[data-action="respond-daily-question"]');
+if (respondDailyQuestionBtn) {
+    const readingDate = respondDailyQuestionBtn.getAttribute('data-date');
+    const reference = respondDailyQuestionBtn.getAttribute('data-reference');
+    const readingMetadata = this.getReadingMetadataByDate(readingDate);
+
+    this.updateCommunityDraftState({
+        readingDate: readingDate,
+        reference: reference || readingMetadata?.reference || 'Lectura del día',
+        formOpen: true
+    }, { immediate: true });
+
+    this.communityFormOpen = true;
+    this.navigate('community');
     return;
 }
 

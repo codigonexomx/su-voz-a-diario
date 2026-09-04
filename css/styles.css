@@ -19081,3 +19081,140 @@ body.dark-mode .community-discovery-chip.is-active {
     border-color: rgba(255, 255, 255, 0.12);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
+
+/* ==========================================================================
+   COMMUNITY PREMIUM 6C — PREGUNTA DEL DÍA UI STYLES
+   ========================================================================== */
+
+.daily-question-card {
+    width: 100%;
+    margin: 20px 0 24px 0;
+    padding: 20px 22px;
+    border-radius: 22px;
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-sizing: border-box;
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.daily-question-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-color, #2b6cb0);
+}
+
+.daily-question-badge-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.daily-question-text {
+    font-family: var(--font-devotional, Georgia, serif);
+    font-size: 1.12rem;
+    line-height: 1.55;
+    color: var(--text-main, #1a202c);
+    margin: 0;
+    font-style: normal;
+    word-break: break-word;
+}
+
+.daily-question-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 4px;
+}
+
+.daily-question-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    background: var(--accent-color, #2b6cb0);
+    color: #ffffff;
+    font-family: var(--font-ui, system-ui, sans-serif);
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(43, 108, 176, 0.25);
+    transition: transform 0.16s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.daily-question-btn:hover {
+    background: var(--accent-hover, #2c5282);
+    transform: translateY(-1px);
+}
+
+.daily-question-btn:active {
+    transform: scale(0.97);
+}
+
+.daily-question-btn:focus-visible {
+    outline: 2px solid var(--accent-color, #2b6cb0);
+    outline-offset: 2px;
+}
+
+.community-composer-daily-question-context {
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(74, 144, 217, 0.08);
+    border-left: 4px solid var(--accent-color, #4A90D9);
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.daily-question-context-text {
+    font-family: var(--font-devotional, Georgia, serif);
+    font-size: 1.02rem;
+    line-height: 1.45;
+    color: var(--text-main, #2d3748);
+    font-weight: 500;
+}
+
+body.dark-mode .daily-question-card {
+    background: rgba(30, 41, 59, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+body.dark-mode .daily-question-badge {
+    color: #63b3ed;
+}
+
+body.dark-mode .daily-question-text {
+    color: #e2e8f0;
+}
+
+body.dark-mode .daily-question-btn {
+    background: #3182ce;
+    color: #ffffff;
+    box-shadow: 0 2px 10px rgba(49, 130, 206, 0.35);
+}
+
+body.dark-mode .daily-question-btn:hover {
+    background: #2b6cb0;
+}
+
+body.dark-mode .community-composer-daily-question-context {
+    background: rgba(99, 179, 237, 0.08);
+    border-left-color: #63b3ed;
+}
+
+body.dark-mode .daily-question-context-text {
+    color: #e2e8f0;
+}

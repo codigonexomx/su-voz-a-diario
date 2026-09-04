@@ -17,6 +17,8 @@
     "test:community-identity-concurrency": "firebase emulators:exec --only firestore --project demo-su-voz-concurrency \"node communityIdentityConcurrency.test.js\"",
     "test:community-reply-counts": "node backfillCommunityReplyCounts.test.js",
     "test:community-discovery": "node communityDiscovery.test.js",
+    "test:community-editorial-model": "node communityEditorialModel.test.js",
+    "test:community-ui-integration-6c": "node communityUIIntegration6C.test.js",
     "test:community-reply-counts-concurrency": "firebase emulators:exec --only firestore --project demo-su-voz-concurrency \"node communityReplyCountsConcurrency.test.js\"",
     "serve": "firebase emulators:start --only functions,firestore",
     "shell": "firebase functions:shell",
