@@ -15539,11 +15539,12 @@ renderCommunityComposerLocally: function() {
         `;
     }
 
-    let posts;
-    let reactionSummary;
-    let repliesSummary;
+    let posts = [];
+    let reactionSummary = {};
+    let repliesSummary = {};
     let prayers = [];
     let testimonies = [];
+    let discoveryResult = null;
     let loadingCompleted = false;
 
     try {
@@ -15572,7 +15573,7 @@ renderCommunityComposerLocally: function() {
             );
         }
 
-        const discoveryResult = await this.withTimeout(
+        discoveryResult = await this.withTimeout(
             this.getCommunityDiscoveryPosts({
                 filter: activeFilter,
                 forceRefresh: options.forceRefresh === true,

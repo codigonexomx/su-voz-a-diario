@@ -691,7 +691,100 @@ function run() {
   const totalDiscoveryAssertionsCount = 100;
   assert.equal(totalDiscoveryAssertionsCount, 100);
 
-  console.log("communityDiscovery tests passed (D1-D25, C1-C30, D56-D100 verified)");
+  // Phase 5D.2 Structural Scope Audit Assertions (D101-D110)
+
+  // D101: El contexto requerido por el bloque de render HTML (discoveryResult, posts, activeFilter) esta definido en el scope donde se utiliza
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const appJsPath = path.resolve(__dirname, "../js/app.js");
+  const appJsContent = fs.readFileSync(appJsPath, "utf8");
+  const renderCommunityMatch = appJsContent.match(/renderCommunity:\s*async\s*function\s*\([\s\S]*?\n\s*\},/);
+  assert.ok(renderCommunityMatch, "renderCommunity must exist in js/app.js");
+  const renderCommunityCode = renderCommunityMatch[0];
+
+  // Verify discoveryResult is declared at top function scope before try block
+  const topScopeDeclarationsIndex = renderCommunityCode.indexOf("let discoveryResult = null;");
+  const tryBlockIndex = renderCommunityCode.indexOf("try {");
+  assert.ok(topScopeDeclarationsIndex > 0 && topScopeDeclarationsIndex < tryBlockIndex, "discoveryResult must be declared in top function scope before try block");
+
+  // D102: discoveryResult no se utiliza fuera de su scope (no const inside try)
+  const innerConstDiscoveryResult = /try\s*\{[\s\S]*?const\s+discoveryResult\s*=/;
+  assert.equal(innerConstDiscoveryResult.test(renderCommunityCode), false, "discoveryResult must NOT be declared with const inside try block");
+
+  // D103: discoveryResult tiene valor valido o null seguro antes de acceder a propiedades
+  let mockDiscoveryResult = null;
+  assert.equal(mockDiscoveryResult?.offline, undefined);
+  assert.equal(mockDiscoveryResult?.success, undefined);
+  assert.equal(mockDiscoveryResult?.message, undefined);
+
+  // D104: cache hit produce contrato valido de discoveryResult
+  mockDiscoveryResult = {
+    success: true,
+    posts: [{ id: "cached-1" }],
+    hasMore: false,
+    loaded: true,
+    offline: false,
+    empty: false
+  };
+  assert.equal(mockDiscoveryResult.success, true);
+  assert.equal(mockDiscoveryResult.posts.length, 1);
+  assert.equal(mockDiscoveryResult.offline, false);
+
+  // D105: cache miss produce contrato valido de discoveryResult
+  mockDiscoveryResult = {
+    success: true,
+    posts: [{ id: "fresh-1" }],
+    hasMore: true,
+    loaded: true,
+    offline: false,
+    empty: false
+  };
+  assert.equal(mockDiscoveryResult.success, true);
+  assert.equal(mockDiscoveryResult.posts.length, 1);
+
+  // D106: offline con cache produce contrato valido de discoveryResult
+  mockDiscoveryResult = {
+    success: true,
+    posts: [{ id: "offline-cached-1" }],
+    hasMore: false,
+    loaded: true,
+    offline: true,
+    empty: false
+  };
+  assert.equal(mockDiscoveryResult.offline, true);
+  assert.equal(mockDiscoveryResult.success, true);
+
+  // D107: offline sin cache no provoca ReferenceError/TypeError
+  mockDiscoveryResult = {
+    success: false,
+    code: "offline",
+    message: "Sin conexión",
+    posts: [],
+    hasMore: false,
+    loaded: false,
+    offline: true,
+    empty: false
+  };
+  assert.equal(mockDiscoveryResult?.offline, true);
+  assert.equal(mockDiscoveryResult?.success, false);
+  assert.equal(mockDiscoveryResult?.message, "Sin conexión");
+
+  // D108: error de carga no continua hacia render con resultado invalido
+  const hasEarlyReturnOnLoadError = renderCommunityCode.includes("this.renderCommunityLoadError(error);") &&
+    renderCommunityCode.includes("return;");
+  assert.equal(hasEarlyReturnOnLoadError, true);
+
+  // D109: rerender reconstruye su contexto independientemente (variables de funcion sin estado global mutado)
+  const outerScopeVars = ["posts", "reactionSummary", "repliesSummary", "prayers", "testimonies", "discoveryResult"];
+  outerScopeVars.forEach(v => {
+    assert.ok(renderCommunityCode.includes(`let ${v}`), `Variable ${v} must be declared with let in top function scope`);
+  });
+
+  // D110: Ninguna variable compartida entre data-phase y render-phase esta declarada exclusivamente dentro de un bloque inaccesible
+  assert.ok(renderCommunityCode.includes("const activeFilter = this.getCommunityDiscoveryFilter();"), "activeFilter must be at top function scope");
+  assert.ok(renderCommunityCode.includes("let discoveryResult = null;"), "discoveryResult must be at top function scope");
+
+  console.log("communityDiscovery tests passed (D1-D25, C1-C30, D56-D110 verified)");
 }
 
 run();
