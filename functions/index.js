@@ -861,6 +861,7 @@ exports.createCommunityReply = onCall(
     if (isAnonymous) {
       const replyRef = db.collection("communityReplies").doc();
       const privateRef = db.collection("communityReplyPrivate").doc(replyRef.id);
+      const postRef = db.collection("communityPosts").doc(postId);
       const batch = db.batch();
       const timestamp = FieldValue.serverTimestamp();
 
@@ -877,8 +878,12 @@ exports.createCommunityReply = onCall(
         timestamp,
       }));
 
+      batch.update(postRef, {
+        replyCount: FieldValue.increment(1),
+        lastActivityAt: timestamp,
+      });
+
       await batch.commit();
-      await updateCommunityPostActivity(db, postId, Timestamp.now());
 
       return {
         success: true,
@@ -889,7 +894,11 @@ exports.createCommunityReply = onCall(
     const authorSnapshot = await getRequiredCommunityAuthorSnapshot(db, uid);
 
     const timestamp = FieldValue.serverTimestamp();
-    const replyRef = await db.collection("communityReplies").add(createIdentifiedReplyDocument({
+    const replyRef = db.collection("communityReplies").doc();
+    const postRef = db.collection("communityPosts").doc(postId);
+    const batch = db.batch();
+
+    batch.set(replyRef, createIdentifiedReplyDocument({
       postId,
       text,
       date,
@@ -898,7 +907,12 @@ exports.createCommunityReply = onCall(
       timestamp,
     }));
 
-    await updateCommunityPostActivity(db, postId, Timestamp.now());
+    batch.update(postRef, {
+      replyCount: FieldValue.increment(1),
+      lastActivityAt: timestamp,
+    });
+
+    await batch.commit();
 
     return {
       success: true,
@@ -1105,27 +1119,43 @@ exports.deleteCommunityReply = onCall(
     const replyId = sanitizeCommunityDocumentId(request.data?.replyId, "REPLY_ID_INVALID");
     const db = getFirestore();
     const replyRef = db.collection("communityReplies").doc(replyId);
-    const replySnapshot = await replyRef.get();
+    const privateRef = db.collection("communityReplyPrivate").doc(replyId);
 
-    if (!replySnapshot.exists) {
-      throw new HttpsError("not-found", "REPLY_NOT_FOUND");
-    }
+    await db.runTransaction(async (transaction) => {
+      const replySnapshot = await transaction.get(replyRef);
 
-    const reply = replySnapshot.data();
-    const isOwner = isOwnerOfPublicDocument(reply, uid)
-      || (
-        isAnonymousSchema3(reply) &&
-        (await db.collection("communityReplyPrivate").doc(replyId).get()).get("ownerUid") === uid
-      );
+      if (!replySnapshot.exists) {
+        throw new HttpsError("not-found", "REPLY_NOT_FOUND");
+      }
 
-    if (!isOwner) {
-      throw new HttpsError("permission-denied", "NOT_OWNER");
-    }
+      const reply = replySnapshot.data();
+      const privateSnapshot = isAnonymousSchema3(reply)
+        ? await transaction.get(privateRef)
+        : null;
 
-    await deleteDocumentsInBatches(db, [
-      replyRef,
-      db.collection("communityReplyPrivate").doc(replyId),
-    ]);
+      const postRef = reply?.postId ? db.collection("communityPosts").doc(reply.postId) : null;
+      const postSnapshot = postRef ? await transaction.get(postRef) : null;
+
+      const isOwner = isOwnerOfPublicDocument(reply, uid) ||
+        (isAnonymousSchema3(reply) && privateSnapshot?.exists && privateSnapshot.get("ownerUid") === uid);
+
+      if (!isOwner) {
+        throw new HttpsError("permission-denied", "NOT_OWNER");
+      }
+
+      transaction.delete(replyRef);
+      if (privateSnapshot?.exists) {
+        transaction.delete(privateRef);
+      }
+
+      if (postSnapshot?.exists) {
+        const currentCount = Number(postSnapshot.get("replyCount")) || 0;
+        const nextCount = Math.max(0, currentCount - 1);
+        transaction.update(postRef, {
+          replyCount: nextCount,
+        });
+      }
+    });
 
     return {
       success: true,
