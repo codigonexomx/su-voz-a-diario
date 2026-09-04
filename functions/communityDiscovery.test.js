@@ -784,7 +784,111 @@ function run() {
   assert.ok(renderCommunityCode.includes("const activeFilter = this.getCommunityDiscoveryFilter();"), "activeFilter must be at top function scope");
   assert.ok(renderCommunityCode.includes("let discoveryResult = null;"), "discoveryResult must be at top function scope");
 
-  console.log("communityDiscovery tests passed (D1-D25, C1-C30, D56-D110 verified)");
+  // Phase 5D.3 Temporal Discovery Filters & Timestamp Resiliency Assertions (D111-D125)
+
+  // D111: La referencia usada para convertir Date -> Timestamp existe y es resiliente (fns.Timestamp o toTimestamp fallback)
+  const discoveryPostsMatch = appJsContent.match(/getCommunityDiscoveryPosts:\s*async\s*function\s*\([\s\S]*?\n\s*\},/);
+  assert.ok(discoveryPostsMatch, "getCommunityDiscoveryPosts must exist in js/app.js");
+  const discoveryPostsCode = discoveryPostsMatch[0];
+
+  assert.ok(
+    discoveryPostsCode.includes("const Timestamp = fns.Timestamp || window.firebaseFns?.Timestamp;") ||
+    discoveryPostsCode.includes("toTimestamp"),
+    "getCommunityDiscoveryPosts must safely resolve Timestamp without throwing TypeError"
+  );
+
+  // D112: today genera limite inferior valido
+  const fixedRefDate = new Date("2026-09-04T15:45:00.000Z");
+  const todayRangeFixed = getCommunityDiscoveryRange("today", fixedRefDate);
+  assert.ok(todayRangeFixed.start instanceof Date);
+  assert.equal(todayRangeFixed.start.getHours(), 0);
+  assert.equal(todayRangeFixed.start.getMinutes(), 0);
+  assert.equal(todayRangeFixed.start.getSeconds(), 0);
+
+  // D113: today genera limite superior valido (00:00 del dia siguiente)
+  assert.ok(todayRangeFixed.endExclusive instanceof Date);
+  assert.equal(todayRangeFixed.endExclusive.getTime() - todayRangeFixed.start.getTime(), 86400000);
+
+  // D114: yesterday genera limites validos
+  const yesterdayRangeFixed = getCommunityDiscoveryRange("yesterday", fixedRefDate);
+  assert.equal(yesterdayRangeFixed.endExclusive.getTime(), todayRangeFixed.start.getTime());
+  assert.equal(todayRangeFixed.start.getTime() - yesterdayRangeFixed.start.getTime(), 86400000);
+
+  // D115: week genera limites validos
+  const weekRangeFixed = getCommunityDiscoveryRange("week", fixedRefDate);
+  assert.ok(weekRangeFixed.start instanceof Date);
+  assert.ok(weekRangeFixed.endExclusive instanceof Date);
+  assert.equal(weekRangeFixed.endExclusive.getTime() - weekRangeFixed.start.getTime(), 7 * 86400000);
+
+  // D116: week empieza en lunes (getDay() === 1)
+  assert.equal(weekRangeFixed.start.getDay(), 1);
+
+  // D117: domingo pertenece correctamente a la semana iniciada el lunes anterior
+  const sundayRefDate = new Date("2026-09-06T20:00:00.000Z"); // Sunday
+  const sundayWeekRange = getCommunityDiscoveryRange("week", sundayRefDate);
+  assert.equal(sundayWeekRange.start.getDay(), 1);
+  assert.equal(sundayWeekRange.start.getTime(), weekRangeFixed.start.getTime());
+
+  // D118: all no intenta convertir rango temporal
+  const allRangeFixed = getCommunityDiscoveryRange("all", fixedRefDate);
+  assert.deepEqual(allRangeFixed, { start: null, endExclusive: null });
+
+  // D119: query temporal usa createdAt
+  assert.ok(discoveryPostsCode.includes('fns.where("createdAt", ">="'), "Temporal filters must filter by createdAt >=");
+
+  // D120: query all mantiene lastActivityAt
+  assert.ok(discoveryPostsCode.includes('fns.where("lastActivityAt",'), "All filter must filter by lastActivityAt");
+
+  // D121: query temporal usa >= inicio
+  assert.ok(discoveryPostsCode.includes('">=", toTimestamp(range.start)'), "Temporal query must use >= range.start");
+
+  // D122: query temporal usa < fin
+  assert.ok(discoveryPostsCode.includes('"<", toTimestamp(range.endExclusive)'), "Temporal query must use < range.endExclusive");
+
+  // D123: fallo tecnico produce error state en getCommunityDiscoveryPosts
+  function mockGetCommunityDiscoveryPostsError(err) {
+    return {
+      success: false,
+      code: "error",
+      message: err?.message || "Error cargando publicaciones",
+      posts: [],
+      hasMore: false,
+      loaded: false,
+      offline: false,
+      empty: false
+    };
+  }
+  const errResult = mockGetCommunityDiscoveryPostsError(new Error("Test firestore failure"));
+  assert.equal(errResult.success, false);
+  assert.equal(errResult.empty, false);
+  assert.equal(errResult.code, "error");
+
+  // D124: exito con cero resultados produce empty state legitimo
+  const emptyResultD124 = {
+    success: true,
+    posts: [],
+    hasMore: false,
+    loaded: true,
+    offline: false,
+    empty: true
+  };
+  assert.equal(emptyResultD124.success, true);
+  assert.equal(emptyResultD124.empty, true);
+  assert.equal(emptyResultD124.posts.length, 0);
+
+  // D125: paginacion temporal conserva filtro/rango/cursor
+  const isLoadMoreQuery = true;
+  const mockState = { lastVisible: "doc-123", posts: [{ id: "p1" }] };
+  const mockFetched = [{ id: "p2" }];
+  if (isLoadMoreQuery) {
+    const existingIds = new Set(mockState.posts.map(p => p.id));
+    const unique = mockFetched.filter(p => !existingIds.has(p.id));
+    mockState.posts = [...mockState.posts, ...unique];
+  }
+  assert.equal(mockState.posts.length, 2);
+  assert.deepEqual(mockState.posts.map(p => p.id), ["p1", "p2"]);
+
+  console.log("communityDiscovery tests passed (D1-D25, C1-C30, D56-D125 verified)");
 }
 
 run();

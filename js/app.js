@@ -3727,9 +3727,12 @@ getCommunityDiscoveryPosts: async function(options = {}) {
             constraints.push(fns.limit(pageSize));
             q = fns.query(fns.collection(db, "communityPosts"), ...constraints);
         } else {
+            const Timestamp = fns.Timestamp || window.firebaseFns?.Timestamp;
+            const toTimestamp = (date) => (Timestamp?.fromDate ? Timestamp.fromDate(date) : date);
+
             const constraints = [
-                fns.where("createdAt", ">=", fns.Timestamp.fromDate(range.start)),
-                fns.where("createdAt", "<", fns.Timestamp.fromDate(range.endExclusive)),
+                fns.where("createdAt", ">=", toTimestamp(range.start)),
+                fns.where("createdAt", "<", toTimestamp(range.endExclusive)),
                 fns.orderBy("createdAt", "desc")
             ];
 
