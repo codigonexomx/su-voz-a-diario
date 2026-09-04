@@ -5016,7 +5016,11 @@ async addCommunityReply(reply) {
             return { success: false, code: 'function-failed', message: 'No se pudo guardar la respuesta' };
         }
 
-        const post = this.getCommunityFeedState().posts.find(p => p.id === reply.postId);
+        const feedState = this.getCommunityFeedState();
+        const post = feedState?.recent?.posts?.find(p => p.id === reply.postId) ||
+                     feedState?.history?.posts?.find(p => p.id === reply.postId) ||
+                     (this.communityThreadState?.post?.id === reply.postId ? this.communityThreadState.post : null);
+
         if (post && post.ownerUid) {
             const replyName = reply.name || 'Alguien de la comunidad';
             await this.createInAppNotification(
@@ -5790,7 +5794,7 @@ renderCommunityThread: async function(postId) {
         const anonLabel = document.getElementById('communityThreadAnonLabel');
         if (anonCheckbox && anonLabel) {
             anonCheckbox.addEventListener('change', () => {
-                this.updateUserCommunityPreferences({ isAnonymous: anonCheckbox.checked });
+                this.setUserCommunityPreferences({ isAnonymous: anonCheckbox.checked });
                 const isAnon = anonCheckbox.checked;
                 const newLabel = isAnon
                     ? 'Responder como Anónimo'
@@ -19414,10 +19418,14 @@ if (publishThreadReplyBtn) {
         return;
     }
 
+    const anonCheckbox = document.getElementById('communityThreadAnonCheckbox');
+    const isAnonymous = anonCheckbox ? anonCheckbox.checked : (this.getUserCommunityPreferences().isAnonymous !== false);
+
+    this.setUserCommunityPreferences({ isAnonymous });
+
     const userPrefs = this.getUserCommunityPreferences();
-    const isAnonymous = userPrefs.isAnonymous ?? false;
     const displayName = isAnonymous ? 'Anónimo' : 
-        (Sanitizer.sanitizeUsername(userPrefs.name || this.currentUser?.displayName) || 'Hermano(a)');
+        (Sanitizer.sanitizeUsername(this.communityIdentityProfile?.displayName || userPrefs.name || this.currentUser?.displayName) || 'Hermano(a)');
 
     if (!isAnonymous && !(await this.ensureCommunityIdentityForParticipation())) {
         return;

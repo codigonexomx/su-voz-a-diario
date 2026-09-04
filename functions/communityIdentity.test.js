@@ -177,6 +177,32 @@ function run() {
     canClaim: true,
     code: "OK",
   });
+  // R1-R10 explicit unit test assertions for identified and anonymous replies
+  // R1: Identified reply payload structure
+  assert.equal(identifiedReply.postId, "post-1");
+  assert.equal(identifiedReply.ownerUid, "uid-richard");
+  assert.deepEqual(identifiedReply.authorSnapshot, authorSnapshot);
+  assert.equal(identifiedReply.isAnonymous, false);
+  assert.equal(identifiedReply.schemaVersion, 2);
+
+  // R2: Anonymous reply payload structure
+  assert.equal(anonymousReply.postId, "post-1");
+  assert.equal(anonymousReply.name, "Anónimo");
+  assert.equal(anonymousReply.isAnonymous, true);
+  assert.equal(anonymousReply.schemaVersion, 3);
+
+  // R3: Anonymous public payload does NOT leak UID or authorSnapshot
+  assert.equal(Object.hasOwn(anonymousReply, "ownerUid"), false);
+  assert.equal(Object.hasOwn(anonymousReply, "authorSnapshot"), false);
+
+  // R4: Identified reply contains valid authorSnapshot
+  assert.equal(identifiedReply.authorSnapshot.displayName, "Richard");
+  assert.equal(identifiedReply.authorSnapshot.avatarId, "dove");
+
+  // R5: Anonymous reply private ownership doc contains ownerUid and postId
+  assert.equal(privateReply.ownerUid, "uid-richard");
+  assert.equal(privateReply.postId, "post-1");
+  assert.equal(privateReply.schemaVersion, 3);
 }
 
 run();
