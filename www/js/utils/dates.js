@@ -39,3 +39,33 @@ export function formatDateEs(dateStr) {
     const options = { day: 'numeric', month: 'long' };
     return date.toLocaleDateString('es-ES', options);
 }
+
+export function getCommunityDiscoveryRange(filter, referenceDate = new Date()) {
+    const ref = new Date(referenceDate);
+    if (isNaN(ref.getTime())) {
+        return { start: null, endExclusive: null };
+    }
+
+    if (filter === 'today') {
+        const startToday = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0, 0);
+        const startTomorrow = new Date(startToday.getTime() + 86400000);
+        return { start: startToday, endExclusive: startTomorrow };
+    }
+
+    if (filter === 'yesterday') {
+        const startToday = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0, 0);
+        const startYesterday = new Date(startToday.getTime() - 86400000);
+        return { start: startYesterday, endExclusive: startToday };
+    }
+
+    if (filter === 'week') {
+        const startToday = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate(), 0, 0, 0, 0);
+        const dayOfWeek = startToday.getDay();
+        const distanceToMonday = (dayOfWeek + 6) % 7;
+        const startMonday = new Date(startToday.getTime() - (distanceToMonday * 86400000));
+        const startNextMonday = new Date(startMonday.getTime() + (7 * 86400000));
+        return { start: startMonday, endExclusive: startNextMonday };
+    }
+
+    return { start: null, endExclusive: null };
+}

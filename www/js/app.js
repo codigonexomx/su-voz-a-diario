@@ -3,7 +3,8 @@ import {
     formatDateForCompare,
     getDateStrInTimeZone,
     getTodayDateStr,
-    getYesterdayDateStr
+    getYesterdayDateStr,
+    getCommunityDiscoveryRange
 } from './utils/dates.js';
 
 import { NotebookAnalytics } from './NotebookAnalytics.js';
@@ -2273,6 +2274,68 @@ ensureCommunityFeedStates: function() {
     return this.communityFeedStates;
 },
 
+communityDiscoveryFilter: 'all',
+
+ensureCommunityDiscoveryStates: function() {
+    if (!this.communityDiscoveryStates) {
+        const createFilterState = () => ({
+            posts: [],
+            lastVisible: null,
+            hasMore: true,
+            loading: false,
+            loaded: false,
+            scrollY: 0,
+            rangeKey: null,
+            error: null
+        });
+
+        this.communityDiscoveryStates = {
+            today: createFilterState(),
+            yesterday: createFilterState(),
+            week: createFilterState(),
+            all: createFilterState()
+        };
+    }
+
+    return this.communityDiscoveryStates;
+},
+
+getCommunityDiscoveryFilter: function() {
+    const validFilters = ['today', 'yesterday', 'week', 'all'];
+    return validFilters.includes(this.communityDiscoveryFilter) ? this.communityDiscoveryFilter : 'all';
+},
+
+setCommunityDiscoveryFilter: function(filter) {
+    const validFilters = ['today', 'yesterday', 'week', 'all'];
+    const targetFilter = validFilters.includes(filter) ? filter : 'all';
+    this.communityDiscoveryFilter = targetFilter;
+    return targetFilter;
+},
+
+getCommunityDiscoveryState: function(filter = this.getCommunityDiscoveryFilter()) {
+    const targetFilter = ['today', 'yesterday', 'week', 'all'].includes(filter) ? filter : 'all';
+    return this.ensureCommunityDiscoveryStates()[targetFilter];
+},
+
+saveCommunityDiscoveryScrollPosition: function(filter = this.getCommunityDiscoveryFilter()) {
+    const state = this.getCommunityDiscoveryState(filter);
+    const mainContainer = document.querySelector('.main-content') || window;
+    state.scrollY = mainContainer.scrollTop || window.scrollY || 0;
+},
+
+restoreCommunityDiscoveryScrollPosition: function(filter = this.getCommunityDiscoveryFilter()) {
+    const state = this.getCommunityDiscoveryState(filter);
+    const targetY = state.scrollY || 0;
+    requestAnimationFrame(() => {
+        const mainContainer = document.querySelector('.main-content') || window;
+        if (typeof mainContainer.scrollTo === 'function') {
+            mainContainer.scrollTo({ top: targetY, behavior: 'instant' });
+        } else {
+            window.scrollTo(0, targetY);
+        }
+    });
+},
+
 getUserProfilesBatch: async function(uids = []) {
     if (!this.userProfilesCache) {
         this.userProfilesCache = {};
@@ -3560,6 +3623,174 @@ getCommunityPostsCached: async function(options = {}) {
     return state.posts;
 },
 
+getCommunityDiscoveryPosts: async function(options = {}) {
+    const filter = this.setCommunityDiscoveryFilter(options.filter || this.communityDiscoveryFilter);
+    const state = this.getCommunityDiscoveryState(filter);
+    const isLoadMore = options.loadMore === true;
+    const pageSize = options.pageSize || this.communityPageSize || 20;
+
+    const range = getCommunityDiscoveryRange(filter);
+    const currentRangeKey = filter === 'all'
+        ? 'all'
+        : `${filter}_${range.start ? range.start.getTime() : 0}`;
+
+    // Invalidar caché local si cambió la frontera del día/semana (ej. aplicación abierta tras medianoche)
+    if (!isLoadMore && state.loaded && state.rangeKey && state.rangeKey !== currentRangeKey) {
+        state.posts = [];
+        state.lastVisible = null;
+        state.hasMore = true;
+        state.loaded = false;
+        state.rangeKey = null;
+    }
+
+    if (!isLoadMore && !options.forceRefresh && state.loaded && !state.error && state.rangeKey === currentRangeKey) {
+        return {
+            success: true,
+            posts: state.posts,
+            hasMore: state.hasMore,
+            loaded: true,
+            offline: false,
+            empty: state.posts.length === 0
+        };
+    }
+
+    if (isLoadMore) {
+        if (state.loading || !state.hasMore) {
+            return {
+                success: true,
+                posts: state.posts,
+                hasMore: state.hasMore,
+                loaded: state.loaded,
+                offline: false,
+                empty: state.posts.length === 0
+            };
+        }
+    }
+
+    state.loading = true;
+    state.error = null;
+
+    try {
+        if (!navigator.onLine) {
+            state.loading = false;
+            if (state.loaded && state.posts.length > 0) {
+                return {
+                    success: true,
+                    posts: state.posts,
+                    hasMore: state.hasMore,
+                    loaded: true,
+                    offline: true,
+                    empty: false
+                };
+            }
+            return {
+                success: false,
+                code: 'offline',
+                message: 'Necesitas conexión a internet para explorar Comunidad.',
+                posts: [],
+                hasMore: false,
+                loaded: false,
+                offline: true,
+                empty: false
+            };
+        }
+
+        const db = window.firebaseDb;
+        const fns = window.firebaseFns;
+        if (!db || !fns?.query || !fns?.collection) {
+            state.loading = false;
+            return {
+                success: false,
+                code: 'firebase-unavailable',
+                message: 'Firebase no está disponible',
+                posts: state.posts,
+                hasMore: false,
+                loaded: false,
+                offline: false,
+                empty: false
+            };
+        }
+
+        let q;
+        if (filter === 'all') {
+            const mode = options.mode === 'history' ? 'history' : 'recent';
+            const cutoff = this.getCommunityCutoff();
+            const constraints = [
+                fns.where("lastActivityAt", mode === 'history' ? "<" : ">=", cutoff),
+                fns.orderBy("lastActivityAt", "desc")
+            ];
+
+            if (isLoadMore && state.lastVisible) {
+                constraints.push(fns.startAfter(state.lastVisible));
+            }
+
+            constraints.push(fns.limit(pageSize));
+            q = fns.query(fns.collection(db, "communityPosts"), ...constraints);
+        } else {
+            const constraints = [
+                fns.where("createdAt", ">=", fns.Timestamp.fromDate(range.start)),
+                fns.where("createdAt", "<", fns.Timestamp.fromDate(range.endExclusive)),
+                fns.orderBy("createdAt", "desc")
+            ];
+
+            if (isLoadMore && state.lastVisible) {
+                constraints.push(fns.startAfter(state.lastVisible));
+            }
+
+            constraints.push(fns.limit(pageSize));
+            q = fns.query(fns.collection(db, "communityPosts"), ...constraints);
+        }
+
+        const snapshot = await fns.getDocs(q);
+        const fetchedPosts = snapshot.docs.map(docSnap => ({
+            id: docSnap.id,
+            ...docSnap.data()
+        }));
+
+        const lastDoc = snapshot.docs[snapshot.docs.length - 1] || null;
+        const hasMore = snapshot.docs.length === pageSize;
+
+        if (isLoadMore) {
+            const existingIds = new Set(state.posts.map(p => p.id));
+            const uniqueNewPosts = fetchedPosts.filter(p => !existingIds.has(p.id));
+            state.posts = [...state.posts, ...uniqueNewPosts];
+        } else {
+            state.posts = fetchedPosts;
+        }
+
+        state.lastVisible = lastDoc;
+        state.hasMore = hasMore;
+        state.loaded = true;
+        state.loading = false;
+        state.rangeKey = currentRangeKey;
+        state.error = null;
+
+        return {
+            success: true,
+            posts: state.posts,
+            hasMore: state.hasMore,
+            loaded: true,
+            offline: false,
+            empty: state.posts.length === 0
+        };
+    } catch (error) {
+        console.error(`[CommunityDiscovery] Error cargando filtro ${filter}:`, error);
+        state.loading = false;
+        state.error = error;
+
+        return {
+            success: false,
+            code: 'error',
+            message: error?.message || 'Error cargando publicaciones',
+            posts: state.posts,
+            hasMore: false,
+            loaded: state.loaded,
+            offline: !navigator.onLine,
+            empty: false
+        };
+    }
+},
+
 getCommunityEcosPosts: async function(passageFilter, options = {}) {
     if (!passageFilter || (!passageFilter.date && !passageFilter.reference)) {
         return [];
@@ -3666,46 +3897,23 @@ getCommunityEcosPosts: async function(passageFilter, options = {}) {
 },
 
 loadMoreCommunityPosts: async function() {
-    const state = this.getCommunityFeedState();
+    const filter = this.getCommunityDiscoveryFilter();
+    const state = this.getCommunityDiscoveryState(filter);
 
-    if (state.loadingMore || !state.hasMore) {
+    if (state.loading || !state.hasMore) {
         return state.posts;
     }
 
-    state.loadingMore = true;
-    this.syncCommunityLegacyState();
-
     try {
-        if (!state.loaded) {
-            await this.getCommunityPostsCached();
-        }
-
-        if (!state.lastVisible) {
-            state.hasMore = false;
-            return state.posts;
-        }
-
-        const page = await this.getCommunityPosts({
-            pageSize: this.communityPageSize,
-            startAfterDoc: state.lastVisible,
+        const result = await this.getCommunityDiscoveryPosts({
+            filter,
+            loadMore: true,
             mode: this.communityMode
         });
-
-        const existingPosts = state.posts || [];
-        const existingIds = new Set(existingPosts.map(post => post.id));
-        const nextPosts = page.posts.filter(post => !existingIds.has(post.id));
-        state.posts = [...existingPosts, ...nextPosts];
-        state.lastVisible = page.lastVisible || state.lastVisible;
-        state.hasMore = page.hasMore;
-        state.loaded = true;
-        state.timestamp = Date.now();
-        return state.posts;
+        return result?.posts || state.posts;
     } catch (error) {
         console.error('[Community] Error cargando más posts:', error);
         return state.posts;
-    } finally {
-        state.loadingMore = false;
-        this.syncCommunityLegacyState();
     }
 },
 
@@ -3739,6 +3947,21 @@ invalidateCommunityCache: function(mode = null) {
             timestamp: 0
         };
     });
+
+    if (this.communityDiscoveryStates) {
+        ['today', 'yesterday', 'week', 'all'].forEach(f => {
+            this.communityDiscoveryStates[f] = {
+                posts: [],
+                lastVisible: null,
+                hasMore: true,
+                loading: false,
+                loaded: false,
+                scrollY: 0,
+                rangeKey: null,
+                error: null
+            };
+        });
+    }
 
     this.communityEcosCache = {};
     this.syncCommunityLegacyState();
@@ -9444,8 +9667,9 @@ closeTransientBibleUI: function() {
     },
     
     handleRoute: async function() {
-    const hash = window.location.hash.substring(1) || 'home';
-    const parts = hash.split('/');
+    const rawHash = window.location.hash.substring(1) || 'home';
+    const [routePath, queryString] = rawHash.split('?');
+    const parts = routePath.split('/');
     const view = parts[0];
     const param = parts[1] || null;
     const oldView = this.currentView;
@@ -9561,6 +9785,14 @@ if (view !== 'settings' && oldView !== 'settings') {
         this.syncCommunityLegacyState();
     }
 
+    const queryParams = new URLSearchParams(queryString || '');
+    const filterParam = queryParams.get('filter');
+    if (filterParam) {
+        this.setCommunityDiscoveryFilter(filterParam);
+    } else if (oldView !== 'community' && oldView !== 'community-thread') {
+        this.setCommunityDiscoveryFilter('all');
+    }
+
     let notificationPostId = null;
     if (param) {
         try {
@@ -9577,10 +9809,14 @@ if (view !== 'settings' && oldView !== 'settings') {
         highlightTarget: Boolean(notificationPostId),
         resetScrollTop: oldView !== 'community' && !notificationPostId
     });
+    if (oldView === 'community' || oldView === 'community-thread') {
+        this.restoreCommunityDiscoveryScrollPosition();
+    }
     await this.markCommunityAsSeen();
 } else if (view === 'community-thread') {
     if (oldView === 'community') {
         this.saveCommunityScrollPosition();
+        this.saveCommunityDiscoveryScrollPosition();
     }
     await this.renderCommunityThread(param);
 } else if (view === 'stats') {
@@ -15335,13 +15571,20 @@ renderCommunityComposerLocally: function() {
             );
         }
 
-        posts = await this.withTimeout(
-            this.getCommunityPostsCached({
-                forceRefresh: options.forceRefresh === true
+        const activeFilter = this.getCommunityDiscoveryFilter();
+        const discoveryResult = await this.withTimeout(
+            this.getCommunityDiscoveryPosts({
+                filter: activeFilter,
+                forceRefresh: options.forceRefresh === true,
+                mode: this.communityMode
             }),
             communityTimeout,
             'La consulta de Comunidad tardó demasiado'
         );
+        posts = discoveryResult?.posts || [];
+        const discoveryState = this.getCommunityDiscoveryState(activeFilter);
+        this.communityHasMorePosts = discoveryState?.hasMore === true;
+        this.communityLoadingMore = discoveryState?.loading === true;
 
         if (this.communityPassageFilter) {
             const ecosPosts = await this.getCommunityEcosPosts(this.communityPassageFilter);
@@ -15647,6 +15890,49 @@ try {
                     ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
                     : this.renderCommunityComposerCardHtml(todayReference)}
 
+                <div class="community-discovery-bar" role="tablist" aria-label="Filtro temporal de reflexiones">
+                    <button
+                        type="button"
+                        class="community-discovery-chip ${activeFilter === 'today' ? 'is-active' : ''}"
+                        data-action="set-discovery-filter"
+                        data-filter="today"
+                        role="tab"
+                        aria-selected="${activeFilter === 'today' ? 'true' : 'false'}"
+                    >
+                        Hoy
+                    </button>
+                    <button
+                        type="button"
+                        class="community-discovery-chip ${activeFilter === 'yesterday' ? 'is-active' : ''}"
+                        data-action="set-discovery-filter"
+                        data-filter="yesterday"
+                        role="tab"
+                        aria-selected="${activeFilter === 'yesterday' ? 'true' : 'false'}"
+                    >
+                        Ayer
+                    </button>
+                    <button
+                        type="button"
+                        class="community-discovery-chip ${activeFilter === 'week' ? 'is-active' : ''}"
+                        data-action="set-discovery-filter"
+                        data-filter="week"
+                        role="tab"
+                        aria-selected="${activeFilter === 'week' ? 'true' : 'false'}"
+                    >
+                        Esta semana
+                    </button>
+                    <button
+                        type="button"
+                        class="community-discovery-chip ${activeFilter === 'all' ? 'is-active' : ''}"
+                        data-action="set-discovery-filter"
+                        data-filter="all"
+                        role="tab"
+                        aria-selected="${activeFilter === 'all' ? 'true' : 'false'}"
+                    >
+                        Todos
+                    </button>
+                </div>
+
                 <div class="community-feed-heading">
                     <div>
                         <h3>${this.communityMode === 'history' ? 'Publicaciones anteriores' : 'Ecos de su voz'}</h3>
@@ -15698,7 +15984,29 @@ try {
                         }
 
                         if (!visiblePosts.length) {
-                            if (this.communityPassageFilter) {
+                            if (discoveryResult?.offline) {
+                                return `
+                                    <div class="community-empty-state" style="text-align: center; padding: 36px 16px;">
+                                        <div style="font-size: 2.2rem; margin-bottom: 8px;">📡</div>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">Sin conexión a internet</p>
+                                        <p style="font-size: 0.85rem; margin-top: 4px; color: var(--text-muted);">No hay contenido disponible sin conexión para este período.</p>
+                                        <button class="btn-primary" type="button" data-action="retry-community-discovery" style="margin-top: 16px;">
+                                            Reintentar
+                                        </button>
+                                    </div>
+                                `;
+                            } else if (discoveryResult?.success === false) {
+                                return `
+                                    <div class="community-empty-state" style="text-align: center; padding: 36px 16px;">
+                                        <div style="font-size: 2.2rem; margin-bottom: 8px;">⚠️</div>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">No pudimos cargar esta parte de Comunidad</p>
+                                        <p style="font-size: 0.85rem; margin-top: 4px; color: var(--text-muted);">${this.escapeHtml(discoveryResult?.message || 'Ocurrió un error al consultar la información.')}</p>
+                                        <button class="btn-primary" type="button" data-action="retry-community-discovery" style="margin-top: 16px;">
+                                            Reintentar
+                                        </button>
+                                    </div>
+                                `;
+                            } else if (this.communityPassageFilter) {
                                 return `
                                     <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
                                         <div class="community-ecos-empty-icon" aria-hidden="true" style="margin-bottom: 12px; opacity: 0.7;">
@@ -15730,27 +16038,53 @@ try {
                                     </div>
                                 `;
                             } else {
-                                return `
-                                    <div class="community-empty-state">
-                                        <div class="community-empty-icon" aria-hidden="true">+</div>
-                                        <div class="community-empty-title">${
-                                            this.communityMode === 'history'
-                                                ? 'Todavía no hay publicaciones anteriores.'
-                                                : 'Sé la primera persona en compartir lo que Dios te habló en esta lectura.'
-                                        }</div>
-                                        <div class="community-empty-text">
-                                            ${
-                                                this.communityMode === 'history'
-                                                    ? 'Aquí aparecerán las conversaciones cuya última respuesta tenga más de 15 días.'
-                                                    : 'Comparte cómo escuchaste su voz en esta lectura.'
-                                            }
+                                if (activeFilter === 'today') {
+                                    return `
+                                        <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                            <div style="font-size: 2.2rem; margin-bottom: 8px;">🌱</div>
+                                            <p style="margin: 0; font-weight: 600; color: var(--text-main);">Aún no hay publicaciones hoy</p>
+                                            <p style="font-size: 0.85rem; margin-top: 4px;">Sé la primera persona en compartir lo que Dios te mostró hoy.</p>
                                         </div>
-                                    </div>
-                                `;
+                                    `;
+                                } else if (activeFilter === 'yesterday') {
+                                    return `
+                                        <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                            <div style="font-size: 2.2rem; margin-bottom: 8px;">🌅</div>
+                                            <p style="margin: 0; font-weight: 600; color: var(--text-main);">No hay publicaciones de ayer</p>
+                                            <p style="font-size: 0.85rem; margin-top: 4px;">Explora las reflexiones de hoy o de esta semana.</p>
+                                        </div>
+                                    `;
+                                } else if (activeFilter === 'week') {
+                                    return `
+                                        <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+                                            <div style="font-size: 2.2rem; margin-bottom: 8px;">📅</div>
+                                            <p style="margin: 0; font-weight: 600; color: var(--text-main);">No hay publicaciones esta semana</p>
+                                            <p style="font-size: 0.85rem; margin-top: 4px;">La comunidad aún no ha compartido reflexiones en este periodo.</p>
+                                        </div>
+                                    `;
+                                } else {
+                                    return `
+                                        <div class="community-empty-state">
+                                            <div class="community-empty-icon" aria-hidden="true">+</div>
+                                            <div class="community-empty-title">${
+                                                this.communityMode === 'history'
+                                                    ? 'Todavía no hay publicaciones anteriores.'
+                                                    : 'Sé la primera persona en compartir lo que Dios te habló en esta lectura.'
+                                            }</div>
+                                            <div class="community-empty-text">
+                                                ${
+                                                    this.communityMode === 'history'
+                                                        ? 'Aquí aparecerán las conversaciones cuya última respuesta tenga más de 15 días.'
+                                                        : 'Comparte cómo escuchaste su voz en esta lectura.'
+                                                }
+                                            </div>
+                                        </div>
+                                    `;
+                                }
                             }
                         }
 
-                        return visiblePosts.map(post => {
+                        const postsHtml = visiblePosts.map(post => {
                             const reactionData = reactionSummary[post.id] || this.getEmptyCommunityReactionState();
                             const replies = repliesSummary[post.id] || [];
                             const userProfile = this.isCommunityLegacyIdentityItem(post) && post.ownerUid ? this.userProfilesCache?.[post.ownerUid] : null;
@@ -15814,6 +16148,13 @@ try {
                                 </div>
                             `;
                         }).join('');
+
+                        const offlineBanner = discoveryResult?.offline ? `
+                            <div class="community-offline-banner" role="status" aria-live="polite" style="text-align: center; padding: 8px 12px; margin-bottom: 12px; background: rgba(234, 179, 8, 0.12); border-radius: 8px; font-size: 0.82rem; color: var(--text-muted); font-weight: 500;">
+                                ⚡ Mostrando contenido disponible sin conexión
+                            </div>
+                        ` : '';
+                        return offlineBanner + postsHtml;
                     })()}
                 </div>
             `}
@@ -19561,6 +19902,41 @@ if (setSectionBtn) {
         this.communitySection = section;
         this.renderCommunity();
     }
+    return;
+}
+
+const setDiscoveryFilterBtn = e.target.closest('[data-action="set-discovery-filter"]');
+if (setDiscoveryFilterBtn) {
+    const targetFilter = setDiscoveryFilterBtn.getAttribute('data-filter');
+    if (targetFilter) {
+        const currentFilter = this.getCommunityDiscoveryFilter();
+        if (currentFilter !== targetFilter) {
+            this.saveCommunityDiscoveryScrollPosition(currentFilter);
+            this.setCommunityDiscoveryFilter(targetFilter);
+            const targetHash = targetFilter === 'all' ? '#community' : `#community?filter=${targetFilter}`;
+            if (window.location.hash !== targetHash) {
+                window.location.hash = targetHash;
+            } else {
+                this.renderCommunity({ showSkeleton: false }).then(() => {
+                    this.restoreCommunityDiscoveryScrollPosition(targetFilter);
+                });
+            }
+        }
+    }
+    return;
+}
+
+const retryDiscoveryBtn = e.target.closest('[data-action="retry-community-discovery"]');
+if (retryDiscoveryBtn) {
+    const filter = this.getCommunityDiscoveryFilter();
+    const state = this.getCommunityDiscoveryState(filter);
+    if (state) {
+        state.loaded = false;
+        state.error = null;
+    }
+    this.renderCommunity({ forceRefresh: true }).catch(error => {
+        console.error('[CommunityDiscovery] Error al reintentar:', error);
+    });
     return;
 }
 

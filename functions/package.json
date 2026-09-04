@@ -16,6 +16,7 @@
     "test:community-migration": "node migrateCommunityAnonymousLegacy.test.js",
     "test:community-identity-concurrency": "firebase emulators:exec --only firestore --project demo-su-voz-concurrency \"node communityIdentityConcurrency.test.js\"",
     "test:community-reply-counts": "node backfillCommunityReplyCounts.test.js",
+    "test:community-discovery": "node communityDiscovery.test.js",
     "test:community-reply-counts-concurrency": "firebase emulators:exec --only firestore --project demo-su-voz-concurrency \"node communityReplyCountsConcurrency.test.js\"",
     "serve": "firebase emulators:start --only functions,firestore",
     "shell": "firebase functions:shell",

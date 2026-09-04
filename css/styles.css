@@ -19005,3 +19005,79 @@ body.dark-mode .community-thread-composer {
     font-weight: 500;
     opacity: 0.8;
 }
+
+/* ========================================
+   COMMUNITY DISCOVERY FILTERS (PREMIUM 5C)
+   ======================================== */
+.community-discovery-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 12px 0 16px 0;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+
+.community-discovery-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.community-discovery-chip {
+    flex: 1 1 auto;
+    min-width: max-content;
+    min-height: 44px;
+    padding: 8px 16px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s ease;
+    touch-action: manipulation;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.community-discovery-chip:hover {
+    color: var(--text-main);
+    background: rgba(0, 0, 0, 0.04);
+}
+
+.community-discovery-chip:focus-visible {
+    outline: 2px solid var(--accent-color, #4A90D9);
+    outline-offset: 1px;
+}
+
+.community-discovery-chip.is-active {
+    background: var(--card-bg, #ffffff);
+    color: var(--text-main, #1a202c);
+    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    font-weight: 700;
+}
+
+body.dark-mode .community-discovery-bar {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+body.dark-mode .community-discovery-chip:hover {
+    color: #f7fafc;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+body.dark-mode .community-discovery-chip.is-active {
+    background: rgba(30, 41, 59, 0.9);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
