@@ -15516,6 +15516,7 @@ renderCommunityComposerLocally: function() {
     const todayContext = this.getCommunityTodayContext();
     const todayStr = todayContext.readingDate;
     const todayReference = todayContext.reference;
+    const activeFilter = this.getCommunityDiscoveryFilter();
     const showSkeleton = options.showSkeleton !== false;
     const viewportAnchor = options.preserveAnchor
         ? this.captureCommunityViewportAnchor()
@@ -15571,7 +15572,6 @@ renderCommunityComposerLocally: function() {
             );
         }
 
-        const activeFilter = this.getCommunityDiscoveryFilter();
         const discoveryResult = await this.withTimeout(
             this.getCommunityDiscoveryPosts({
                 filter: activeFilter,
