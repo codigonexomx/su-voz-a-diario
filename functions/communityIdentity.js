@@ -188,8 +188,8 @@ function createAuthorSnapshot(profile) {
   };
 }
 
-function createIdentifiedPostDocument({ reference, text, date, ownerUid, authorSnapshot, timestamp }) {
-  return {
+function createIdentifiedPostDocument({ reference, text, date, ownerUid, authorSnapshot, timestamp, intent }) {
+  const doc = {
     reference,
     text,
     date,
@@ -202,10 +202,14 @@ function createIdentifiedPostDocument({ reference, text, date, ownerUid, authorS
     lastActivityAt: timestamp,
     schemaVersion: 2,
   };
+  if (intent === "dailyQuestionResponse") {
+    doc.intent = "dailyQuestionResponse";
+  }
+  return doc;
 }
 
-function createAnonymousPostDocument({ reference, text, date, timestamp }) {
-  return {
+function createAnonymousPostDocument({ reference, text, date, timestamp, intent }) {
+  const doc = {
     reference,
     text,
     date,
@@ -216,6 +220,10 @@ function createAnonymousPostDocument({ reference, text, date, timestamp }) {
     lastActivityAt: timestamp,
     schemaVersion: 3,
   };
+  if (intent === "dailyQuestionResponse") {
+    doc.intent = "dailyQuestionResponse";
+  }
+  return doc;
 }
 
 function createCommunityPostPrivateDocument({ ownerUid, timestamp }) {

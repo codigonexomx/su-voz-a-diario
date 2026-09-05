@@ -786,6 +786,21 @@ exports.createCommunityPost = onCall(
     const text = sanitizeCommunityText(request.data?.text, 1200);
     const date = sanitizeCommunityDate(request.data?.date);
     const isAnonymous = request.data?.isAnonymous === true;
+    const rawIntent = request.data?.intent;
+    let intent = undefined;
+
+    if (rawIntent !== undefined && rawIntent !== null) {
+      if (typeof rawIntent !== "string" || !["reflection", "dailyQuestionResponse"].includes(rawIntent)) {
+        throw new HttpsError(
+          "invalid-argument",
+          "El parámetro intent no es válido."
+        );
+      }
+      if (rawIntent === "dailyQuestionResponse") {
+        intent = "dailyQuestionResponse";
+      }
+    }
+
     const db = getFirestore();
 
     if (isAnonymous) {
@@ -799,6 +814,7 @@ exports.createCommunityPost = onCall(
         text,
         date,
         timestamp,
+        intent,
       }));
 
       batch.set(privateRef, createCommunityPostPrivateDocument({
@@ -824,6 +840,7 @@ exports.createCommunityPost = onCall(
       ownerUid: uid,
       authorSnapshot,
       timestamp,
+      intent,
     }));
 
     return {

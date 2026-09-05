@@ -151,9 +151,9 @@ assert.ok(!appJsContent.includes('communityDiscoveryFilter = dailyQuestion'), 'C
 // C23: Prayer untouched
 assert.ok(!appJsContent.includes('communityPrayerRequests = dailyQuestion'), 'C23: Prayer untouched');
 
-// C24: Backend untouched (functions/index.js clean)
+// C24: Backend untouched for dailyQuestion snapshot field (functions/index.js clean of dailyQuestion field)
 const functionsIndexContent = fs.readFileSync(path.join(__dirname, 'index.js'), 'utf8');
-assert.ok(!functionsIndexContent.includes('dailyQuestion'), 'C24: Cloud Functions index.js untouched');
+assert.ok(!functionsIndexContent.includes('.dailyQuestion') && !functionsIndexContent.includes('dailyQuestion:'), 'C24: Cloud Functions index.js does not store dailyQuestion field');
 
 // C25: Firestore Rules and Indexes untouched
 assert.ok(fs.existsSync(path.join(__dirname, '../firestore.rules')), 'C25: firestore.rules exists');
