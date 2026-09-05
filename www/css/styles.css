@@ -19239,6 +19239,29 @@ body:not(.dark-mode) #community-name:disabled {
     opacity: 0.7;
 }
 
+/* Community Premium 6S - Dark Mode Fix for #community-name */
+body.dark-mode #community-name {
+    background: #081420;
+    border-color: rgba(199, 171, 130, 0.22);
+    color: #F3EFE8;
+    -webkit-text-fill-color: #F3EFE8;
+    opacity: 1;
+}
+
+body.dark-mode #community-name:disabled {
+    background: rgba(8, 20, 32, 0.6);
+    border-color: rgba(199, 171, 130, 0.15);
+    color: #9EABC0;
+    -webkit-text-fill-color: #9EABC0;
+    opacity: 0.7;
+}
+
+body.dark-mode #community-name::placeholder {
+    color: #8A9AA9;
+    -webkit-text-fill-color: #8A9AA9;
+    opacity: 0.8;
+}
+
 body.light-mode .community-prayer-composer-card {
     background: #FFFFFF;
     border-color: rgba(184, 153, 90, 0.25);
