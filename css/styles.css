@@ -19230,38 +19230,62 @@ body.light-mode .community-prayer-composer-card {
     border-color: rgba(184, 153, 90, 0.25);
 }
 
-.community-intent-selector {
+.community-composer-main-invite {
     display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    padding: 4px;
-    background: rgba(0, 0, 0, 0.04);
-    border-radius: 12px;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
 }
 
-.community-intent-opt {
-    flex: 1;
+.community-composer-secondary-question-card {
+    margin-top: 10px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(74, 144, 217, 0.06);
+    border: 1px dashed rgba(74, 144, 217, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.community-composer-secondary-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.community-composer-secondary-btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
     gap: 6px;
-    padding: 8px 12px;
-    border: none;
-    border-radius: 8px;
+    padding: 7px 14px;
+    border-radius: 999px;
     background: transparent;
-    color: var(--community-text-secondary, #5C6B82);
-    font-family: var(--font-ui);
+    border: 1px solid var(--accent-color, #4A90D9);
+    color: var(--accent-color, #4A90D9);
+    font-family: var(--font-ui, system-ui, sans-serif);
     font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
-.community-intent-opt.is-active {
-    background: #FFFFFF;
-    color: var(--accent-color, #2b6cb0);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+.community-composer-secondary-btn:hover {
+    background: rgba(74, 144, 217, 0.12);
+}
+
+body.dark-mode .community-composer-secondary-question-card {
+    background: rgba(99, 179, 237, 0.06);
+    border-color: rgba(99, 179, 237, 0.3);
+}
+
+body.dark-mode .community-composer-secondary-btn {
+    border-color: #63b3ed;
+    color: #63b3ed;
+}
+
+body.dark-mode .community-composer-secondary-btn:hover {
+    background: rgba(99, 179, 237, 0.15);
 }
 
 .community-post-intent-badge {
@@ -19293,19 +19317,6 @@ body.light-mode .community-prayer-composer-card {
     line-height: 1.4;
     color: var(--text-main, #2d3748);
     font-style: italic;
-}
-
-body.dark-mode .community-intent-selector {
-    background: rgba(255, 255, 255, 0.06);
-}
-
-body.dark-mode .community-intent-opt {
-    color: rgba(255, 255, 255, 0.6);
-}
-
-body.dark-mode .community-intent-opt.is-active {
-    background: rgba(255, 255, 255, 0.12);
-    color: #63b3ed;
 }
 
 body.dark-mode .community-post-intent-badge {

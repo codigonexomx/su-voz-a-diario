@@ -3443,7 +3443,7 @@ openVersePickerModalForComposer: function(editor) {
 
                 <div class="avatar-picker-actions" style="margin-top: 16px;">
                     <button type="button" class="btn-secondary" id="cancelVersePickerBtn">Cancelar</button>
-                    <button type="button" class="btn-primary" id="confirmVerseInsertBtn">Insertar en mi reflexión</button>
+                    <button type="button" class="btn-primary" id="confirmVerseInsertBtn">Insertar en lo que estoy compartiendo</button>
                 </div>
             </div>
         </div>
@@ -12360,7 +12360,7 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
         </span>
         <span class="reading-action-content">
             <span class="reading-action-title">Ecos de esta lectura</span>
-            <span class="reading-action-subtitle">Ver reflexiones compartidas</span>
+            <span class="reading-action-subtitle">Ver lo que la comunidad compartió</span>
         </span>
         <span class="reading-action-chevron"></span>
     </button>
@@ -15402,7 +15402,7 @@ renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayCont
     const dailyQuestion = todayContext.dailyQuestion || null;
 
     return `
-            <div class="community-composer-card" role="region" aria-label="Escribir reflexión">
+            <div class="community-composer-card" role="region" aria-label="Compartir en Comunidad">
                 <div class="community-composer-layout">
                     ${userDisplayName ? `
                         <div class="community-composer-identity">
@@ -15410,25 +15410,35 @@ renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayCont
                             <span class="community-composer-identity-name">${this.escapeHtml(userDisplayName)}</span>
                         </div>
                     ` : ''}
+
+                    <div class="community-composer-main-invite">
+                        <div class="community-composer-question">¿Qué escuchaste de Su Voz hoy?</div>
+                        <div class="community-composer-bottom-row">
+                            <div class="community-composer-subtitle">Comparte con la comunidad lo que Dios te habló por medio de su Palabra.</div>
+                            <button class="community-composer-btn" type="button" data-action="share-community-reflection" aria-label="Compartir">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="composer-btn-pencil-icon" aria-hidden="true">
+                                    <path d="M12 20h9"/>
+                                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                                </svg>
+                                <span>Compartir</span>
+                            </button>
+                        </div>
+                    </div>
+
                     ${dailyQuestion ? `
-                        <div class="community-composer-daily-question-context">
+                        <div class="community-composer-secondary-question-card">
                             <div class="daily-question-badge">
-                                <span class="daily-question-badge-icon" aria-hidden="true">💡</span>
                                 <span class="daily-question-badge-label">Pregunta del día</span>
                             </div>
                             <div class="daily-question-context-text">${this.escapeHtml(dailyQuestion)}</div>
+                            <div class="community-composer-secondary-actions">
+                                <button class="community-composer-secondary-btn" type="button" data-action="respond-daily-question" data-date="${this.escapeHtml(todayContext.readingDate)}" data-reference="${this.escapeHtml(todayContext.reference)}" aria-label="Responder la pregunta">
+                                    <span aria-hidden="true">✍️</span>
+                                    <span>Responder la pregunta</span>
+                                </button>
+                            </div>
                         </div>
-                    ` : '<div class="community-composer-question">¿Qué te habló Dios hoy?</div>'}
-                    <div class="community-composer-bottom-row">
-                        <div class="community-composer-subtitle">Comparte una reflexión de la lectura con la comunidad.</div>
-                        <button class="community-composer-btn" type="button" data-action="share-community-reflection" aria-label="Escribir reflexión">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="composer-btn-pencil-icon" aria-hidden="true">
-                                <path d="M12 20h9"/>
-                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                            </svg>
-                            <span>Escribir reflexión</span>
-                        </button>
-                    </div>
+                    ` : ''}
                 </div>
             </div>
     `;
@@ -15446,9 +15456,18 @@ renderCommunityFormCardHtml: function(options = {}) {
     const draftReadingDate = communityDraftState.readingDate || todayContext.readingDate;
     const draftMetadata = this.getReadingMetadataByDate(draftReadingDate);
     const dailyQuestion = draftMetadata?.dailyQuestion || null;
+    const isDailyQuestionIntent = (dailyQuestion && communityDraftState.intent === 'dailyQuestionResponse');
+
+    const formTitle = isDailyQuestionIntent
+        ? 'Tu respuesta a la Pregunta del día'
+        : 'Comparte lo que Dios te habló';
+
+    const placeholderText = isDailyQuestionIntent
+        ? 'Escribe tu respuesta…'
+        : 'Escribe aquí…';
 
     return `
-                <div class="community-form-card" role="region" aria-label="Editor de reflexión">
+                <div class="community-form-card" role="region" aria-label="${this.escapeHtml(formTitle)}">
                     <div class="community-passage-context">
                         <span class="community-passage-label">${draftContextOutdated ? 'Borrador iniciado con la lectura:' : 'Lectura de hoy:'}</span>
                         <strong class="community-passage-ref">${this.escapeHtml(communityDraftState.reference || todayReference)}</strong>
@@ -15463,37 +15482,16 @@ renderCommunityFormCardHtml: function(options = {}) {
                         ` : ''}
                     </div>
 
-                    ${dailyQuestion ? `
-                        <div class="community-intent-selector" role="radiogroup" aria-label="Tipo de publicación">
-                            <button
-                                type="button"
-                                class="community-intent-opt ${communityDraftState.intent !== 'dailyQuestionResponse' ? 'is-active' : ''}"
-                                data-action="select-community-intent"
-                                data-intent="reflection"
-                            >
-                                <span aria-hidden="true">💬</span> Reflexión libre
-                            </button>
-                            <button
-                                type="button"
-                                class="community-intent-opt ${communityDraftState.intent === 'dailyQuestionResponse' ? 'is-active' : ''}"
-                                data-action="select-community-intent"
-                                data-intent="dailyQuestionResponse"
-                            >
-                                <span aria-hidden="true">💡</span> Respuesta a Pregunta del día
-                            </button>
-                        </div>
-                        ${communityDraftState.intent === 'dailyQuestionResponse' ? `
-                            <div class="community-composer-daily-question-context">
-                                <div class="daily-question-badge">
-                                    <span class="daily-question-badge-icon" aria-hidden="true">💡</span>
-                                    <span class="daily-question-badge-label">Pregunta del día</span>
-                                </div>
-                                <div class="daily-question-context-text">${this.escapeHtml(dailyQuestion)}</div>
+                    ${isDailyQuestionIntent ? `
+                        <div class="community-composer-daily-question-context">
+                            <div class="daily-question-badge">
+                                <span class="daily-question-badge-label">Pregunta del día</span>
                             </div>
-                        ` : ''}
+                            <div class="daily-question-context-text">${this.escapeHtml(dailyQuestion)}</div>
+                        </div>
                     ` : ''}
 
-                    <div class="community-form-title">${(dailyQuestion && communityDraftState.intent === 'dailyQuestionResponse') ? 'Tu respuesta a la Pregunta del día' : '¿Qué te habló Dios hoy?'}</div>
+                    <div class="community-form-title">${formTitle}</div>
 
                     <div class="community-editor-wrapper">
                         <div class="rich-editor-toolbar" role="toolbar" aria-label="Herramientas de formato">
@@ -15510,8 +15508,8 @@ renderCommunityFormCardHtml: function(options = {}) {
                             contenteditable="true"
                             role="textbox"
                             aria-multiline="true"
-                            aria-label="Reflexión de la lectura"
-                            data-placeholder="Escribe lo que recibiste de la Palabra…"
+                            aria-label="${this.escapeHtml(formTitle)}"
+                            data-placeholder="${placeholderText}"
                         >${communityDraft ? Sanitizer.sanitizeText(communityDraft) : ''}</div>
 
                         <div class="community-editor-meta">
@@ -16208,7 +16206,7 @@ try {
                                 <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
                                     <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋮</button>
                                     <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
-                                        <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar reflexión</button>
+                                        <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar texto</button>
                                         <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
                                         <button type="button" data-action="speech-post" data-post-id="${post.id}">${this.currentlySpeakingPostId === post.id ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta'}</button>
                                         <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar favorito'}</button>
@@ -19480,6 +19478,7 @@ if (shareCommunityBtn) {
     const draft = this.ensureCommunityDraftContext(this.loadCommunityDraftState());
     this.updateCommunityDraftState({
         formOpen: this.communityFormOpen,
+        intent: 'reflection',
         readingDate: draft.readingDate,
         reference: draft.reference
     }, { immediate: true });
@@ -19597,15 +19596,6 @@ const discardCommunityDraftBtn = e.target.closest('[data-action="discard-communi
 if (discardCommunityDraftBtn) {
     this.discardCommunityDraft();
     this.showToast('Borrador descartado');
-    this.renderCommunityComposerLocally();
-    return;
-}
-
-const selectCommunityIntentBtn = e.target.closest('[data-action="select-community-intent"]');
-if (selectCommunityIntentBtn) {
-    const chosenIntent = selectCommunityIntentBtn.getAttribute('data-intent');
-    this.flushCommunityDraftFromDOM();
-    this.updateCommunityDraftState({ intent: chosenIntent }, { immediate: true });
     this.renderCommunityComposerLocally();
     return;
 }
@@ -22372,13 +22362,13 @@ const Sanitizer = {
 
     validateText(text) {
         if (!text || typeof text !== 'string') {
-            return { valid: false, message: 'Escribe tu reflexión' };
+            return { valid: false, message: 'Escribe algo para compartir' };
         }
 
         const plainText = text.replace(/<[^>]*>/g, '').trim();
 
         if (plainText.length === 0) {
-            return { valid: false, message: 'Escribe tu reflexión' };
+            return { valid: false, message: 'Escribe algo para compartir' };
         }
 
         if (plainText.length < 10) {

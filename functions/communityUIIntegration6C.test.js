@@ -1,6 +1,6 @@
 /**
- * Unit & Integration tests for Community Premium 6C - UI Integration
- * Su Voz Hoy → Pregunta del Día → Compositor de Comunidad
+ * Unit & Integration tests for Community Premium 6C & 6K - UI Integration
+ * Su Voz Hoy → Pregunta del Día → Compositor de Comunidad & Intent Transition Suite
  */
 
 const assert = require('assert');
@@ -67,7 +67,7 @@ const mockApp = {
                 <div class="daily-question-actions">
                     <button type="button" class="daily-question-btn" data-action="respond-daily-question" data-date="${this.escapeHtml(metadata.date)}" data-reference="${this.escapeHtml(metadata.reference || '')}">
                         <span class="daily-question-btn-icon" aria-hidden="true">✍️</span>
-                        <span>Compartir mi reflexión</span>
+                        <span>Responder la pregunta</span>
                     </button>
                 </div>
             </section>
@@ -75,7 +75,7 @@ const mockApp = {
     }
 };
 
-console.log('[Test 6C] Running Community Premium 6C UI Integration tests...');
+console.log('[Test 6C/6K] Running Community Premium 6C & 6K UI Integration & Intent Transition tests...');
 
 // C1: Reading with dailyQuestion displays card
 const cardHtml4 = mockApp.renderDailyQuestionCardHtml('2026-09-04');
@@ -113,7 +113,7 @@ assert.ok(!appJsContent.includes('readingKey:'), 'C10: readingKey is NOT added t
 // C11: Composer reused (renderCommunityFormCardHtml exists)
 assert.ok(appJsContent.includes('renderCommunityFormCardHtml'), 'C11: Existing composer reused');
 
-// C12: Contextual composer renders dailyQuestion banner
+// C12: Contextual composer renders dailyQuestion banner when intent === dailyQuestionResponse
 assert.ok(appJsContent.includes('community-composer-daily-question-context'), 'C12: Contextual composer renders dailyQuestion banner');
 
 // C13: Composer without question works (null fallback check)
@@ -158,4 +158,44 @@ assert.ok(!functionsIndexContent.includes('.dailyQuestion') && !functionsIndexCo
 // C25: Firestore Rules and Indexes untouched
 assert.ok(fs.existsSync(path.join(__dirname, '../firestore.rules')), 'C25: firestore.rules exists');
 
-console.log('\nALL 25 COMMUNITY PREMIUM 6C UI INTEGRATION TESTS PASSED SUCCESSFULLY!\n');
+// ==========================================================================
+// 6K EXPLICIT INTENT TRANSITION & SELECTOR REMOVAL AUDIT TESTS
+// ==========================================================================
+
+// 6K.A: Normal Entry CTA "Compartir" sets intent = "reflection"
+assert.ok(appJsContent.includes("intent: 'reflection'"), '6K.A: Normal entry Compartir sets intent to reflection');
+
+// 6K.B: Question Entry CTA "Responder la pregunta" sets intent = "dailyQuestionResponse"
+assert.ok(appJsContent.includes("intent: 'dailyQuestionResponse'"), '6K.B: Question entry sets intent to dailyQuestionResponse');
+
+// 6K.C: Question -> Close/Cancel -> Compartir opens reflection (0 stale intent)
+// Verify share-community-reflection explicitly passes intent: 'reflection'
+const shareBtnMatch = appJsContent.match(/data-action="share-community-reflection"[\s\S]*?updateCommunityDraftState\(\{[\s\S]*?intent:\s*'reflection'/);
+assert.ok(shareBtnMatch, '6K.C: Clicking Compartir explicitly sets intent to reflection overriding any previous draft state');
+
+// 6K.D: Compartir -> Close/Cancel -> Question opens dailyQuestionResponse
+const respondBtnMatch = appJsContent.match(/data-action="respond-daily-question"[\s\S]*?updateCommunityDraftState\(\{[\s\S]*?intent:\s*'dailyQuestionResponse'/);
+assert.ok(respondBtnMatch, '6K.D: Clicking Responder la pregunta explicitly sets intent to dailyQuestionResponse');
+
+// 6K.E: Publish either mode resets draft state so next normal open resolves to reflection
+assert.ok(appJsContent.includes('this.clearCommunityDraft()'), '6K.E: Publish clears draft state');
+
+// 6K.F: Date change A -> B resets intent to reflection
+const updateContextMatch = appJsContent.match(/data-action="update-community-draft-context"[\s\S]*?updateCommunityDraftState\(\{[\s\S]*?intent:\s*'reflection'/);
+assert.ok(updateContextMatch, '6K.F: Updating draft context to new date resets intent to reflection');
+
+// 6K.G: Complete removal audit of .community-intent-selector
+assert.ok(!appJsContent.includes('community-intent-selector'), '6K.G1: 0 references to community-intent-selector in js/app.js');
+assert.ok(!stylesCssContent.includes('.community-intent-selector'), '6K.G2: 0 references to .community-intent-selector in css/styles.css');
+assert.ok(!appJsContent.includes('select-community-intent'), '6K.G3: 0 orphan click handlers for select-community-intent');
+assert.ok(!appJsContent.includes('Tipo de publicación'), '6K.G4: 0 selector aria-labels in js/app.js');
+
+// 6K.H: Copy quality audit - avoid chat jargon ("mensaje") and technical terms ("Reflexión libre")
+assert.ok(!appJsContent.includes('Reflexión libre'), '6K.H1: No "Reflexión libre" in user UI');
+assert.ok(!appJsContent.includes('Respuesta a Pregunta del día</button>'), '6K.H2: No technical button labels');
+assert.ok(appJsContent.includes('¿Qué escuchaste de Su Voz hoy?'), '6K.H3: Primary invitation title present');
+assert.ok(appJsContent.includes('Comparte con la comunidad lo que Dios te habló por medio de su Palabra.'), '6K.H4: Primary invitation description present');
+assert.ok(appJsContent.includes('Comparte lo que Dios te habló'), '6K.H5: Form title for reflection present');
+assert.ok(appJsContent.includes('Tu respuesta a la Pregunta del día'), '6K.H6: Form title for question present');
+
+console.log('\nALL 35 COMMUNITY PREMIUM 6C & 6K UI INTEGRATION & INTENT TRANSITION TESTS PASSED SUCCESSFULLY!\n');
