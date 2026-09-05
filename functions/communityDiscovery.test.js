@@ -533,7 +533,7 @@ function run() {
   assert.notEqual(states.today.scrollY, states.week.scrollY);
 
   // D71: Publicación nueva entra en today
-  const newPostCreatedNow = { id: "p-new-1", createdAt: new Date() };
+  const newPostCreatedNow = { id: "p-new-1", createdAt: new Date(refFriday.getTime() + 1000) };
   const isInTodayRange = newPostCreatedNow.createdAt >= rangeTodayCheck.start && newPostCreatedNow.createdAt < rangeTodayCheck.endExclusive;
   assert.equal(isInTodayRange, true);
 
