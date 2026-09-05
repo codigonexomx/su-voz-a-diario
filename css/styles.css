@@ -3403,7 +3403,10 @@ body.dark-mode .devotional-step-tab.active {
 }
 
 .community-rules-btn {
-    min-height: 36px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 999px;
     padding: 7px 12px;
     background: color-mix(in srgb, var(--surface-color) 90%, transparent);
@@ -3806,7 +3809,10 @@ body.dark-mode .devotional-step-tab.active {
 }
 
 .community-load-more-btn {
-    min-height: 40px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
     border-radius: 999px;
     padding: 0 16px;
@@ -4086,7 +4092,10 @@ body.dark-mode .devotional-step-tab.active {
     font-size: 0.8rem;
     font-weight: 600;
     padding: 6px 14px;
-    min-height: 36px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
     white-space: nowrap;
     transition: all 0.18s ease;
@@ -4551,15 +4560,18 @@ body.dark-mode .community-editor-wrapper:focus-within {
 }
 
 .community-delete-main {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid rgba(231, 76, 60, 0.38);
     background: transparent;
     color: var(--danger);
     font-size: 0.74rem;
     font-weight: 600;
     cursor: pointer;
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 10px;
-    min-height: auto;
+    min-height: 44px;
     width: auto;
     box-shadow: none;
     opacity: 0.82;
@@ -7433,7 +7445,10 @@ body.dark-mode .community-textarea.error {
 }
 
 .community-reply-toggle {
-    min-height: 34px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid rgba(148, 163, 184, 0.22);
     border-radius: 999px;
     background: rgba(148, 163, 184, 0.06);
@@ -7441,7 +7456,7 @@ body.dark-mode .community-textarea.error {
     font-size: 0.8rem;
     font-weight: 750;
     cursor: pointer;
-    padding: 0 12px;
+    padding: 0 14px;
     transition: color 0.18s ease, opacity 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
@@ -7595,14 +7610,19 @@ body.dark-mode .community-reply-preview:hover {
 }
 
 .community-reply-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    min-width: 44px;
     border: none;
     background: transparent;
     color: var(--danger);
-    font-size: 0.72rem;
+    font-size: 0.76rem;
     font-weight: 600;
     cursor: pointer;
-    padding: 0;
-    opacity: 0.7;
+    padding: 6px 10px;
+    opacity: 0.85;
 }
 
 /* ========================================
@@ -18452,7 +18472,7 @@ body.light-mode .prayer-commitment-bar {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-height: 40px;
+    min-height: 44px;
     padding: 8px 14px;
     border-radius: 20px;
     border: 1px solid rgba(199, 171, 130, 0.35);
