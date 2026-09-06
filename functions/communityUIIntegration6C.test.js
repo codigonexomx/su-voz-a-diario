@@ -82,7 +82,7 @@ const cardHtml4 = mockApp.renderDailyQuestionCardHtml('2026-09-04');
 assert.ok(cardHtml4.includes('class="daily-question-card"'), 'C1: Card HTML must contain daily-question-card class');
 
 // C2: Reading without dailyQuestion returns empty string
-const cardHtml1 = mockApp.renderDailyQuestionCardHtml('2026-09-01');
+const cardHtml1 = mockApp.renderDailyQuestionCardHtml('2026-08-01');
 assert.strictEqual(cardHtml1, '', 'C2: Reading without dailyQuestion returns empty string');
 
 // C3: Correct question for date

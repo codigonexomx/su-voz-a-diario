@@ -58,10 +58,10 @@ assert.strictEqual(res1.reference, '1 Samuel 2:12-26');
 assert.strictEqual(res1.dailyQuestion, '¿Qué te enseña el contraste entre el crecimiento de Samuel y la conducta de los hijos de Elí?');
 console.log('✓ Test 1 Passed: Valid date with dailyQuestion');
 
-// Test 2: Date without dailyQuestion (2026-09-01)
-const res2 = mockApp.getReadingMetadataByDate('2026-09-01');
-assert.ok(res2, 'Metadata should be returned for 2026-09-01');
-assert.strictEqual(res2.date, '2026-09-01');
+// Test 2: Date without dailyQuestion (2026-08-01)
+const res2 = mockApp.getReadingMetadataByDate('2026-08-01');
+assert.ok(res2, 'Metadata should be returned for 2026-08-01');
+assert.strictEqual(res2.date, '2026-08-01');
 assert.strictEqual(res2.dailyQuestion, null);
 console.log('✓ Test 2 Passed: Valid date without dailyQuestion');
 
