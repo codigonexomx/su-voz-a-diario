@@ -1,1271 +1,1271 @@
 [
-  {
-    "date": "2026-04-07",
-    "reference": "Deuteronomio 1:1-18",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-08",
-    "reference": "Deuteronomio 1:19-33",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-09",
-    "reference": "Deuteronomio 1:34-46",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-10",
-    "reference": "Deuteronomio 2:1-15",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-11",
-    "reference": "Deuteronomio 2:16-37",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-12",
-    "reference": "Deuteronomio 3:1-17",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-13",
-    "reference": "Deuteronomio 3:18-29",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-14",
-    "reference": "Deuteronomio 4:1-14",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-15",
-    "reference": "Deuteronomio 4:15-31",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-16",
-    "reference": "Deuteronomio 4:32-43",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-17",
-    "reference": "Deuteronomio 4:44-5:6",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-18",
-    "reference": "Deuteronomio 5:7-21",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-19",
-    "reference": "Deuteronomio 5:22-33",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-20",
-    "reference": "Deuteronomio 6:1-9",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-21",
-    "reference": "Deuteronomio 6:10-19",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-22",
-    "reference": "Deuteronomio 6:20-7:11",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-23",
-    "reference": "Deuteronomio 7:12-26",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-24",
-    "reference": "Deuteronomio 8:1-20",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-25",
-    "reference": "Deuteronomio 9:1-17",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-26",
-    "reference": "Deuteronomio 9:18-29",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-27",
-    "reference": "Deuteronomio 10:1-11",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-28",
-    "reference": "Deuteronomio 10:12-22",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-29",
-    "reference": "Deuteronomio 11:1-17",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-04-30",
-    "reference": "Deuteronomio 11:18-32",
-    "bookId": "deu",
-    "month": "2026-04",
-    "file": "data/readings/2026-04.json"
-  },
-  {
-    "date": "2026-05-01",
-    "reference": "Deuteronomio 12:1-19",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-02",
-    "reference": "Deuteronomio 12:20-32",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-03",
-    "reference": "Deuteronomio 13:1-18",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-04",
-    "reference": "Deuteronomio 14:1-21",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-05",
-    "reference": "Deuteronomio 14:22-29",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-06",
-    "reference": "Deuteronomio 15:1-23",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-07",
-    "reference": "Deuteronomio 16:1-17",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-08",
-    "reference": "Deuteronomio 16:18-17:13",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-09",
-    "reference": "Deuteronomio 17:14-20",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-10",
-    "reference": "Deuteronomio 18:1-8",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-11",
-    "reference": "Deuteronomio 18:9-14",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-12",
-    "reference": "Deuteronomio 18:15-22",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-13",
-    "reference": "Deuteronomio 19:1-13",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-14",
-    "reference": "Deuteronomio 19:14-21",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-15",
-    "reference": "Deuteronomio 20:1-20",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-16",
-    "reference": "Deuteronomio 21:1-14",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-17",
-    "reference": "Deuteronomio 21:15-23",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-18",
-    "reference": "Deuteronomio 22:1-12",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-19",
-    "reference": "Deuteronomio 22:13-30",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-20",
-    "reference": "Deuteronomio 23:1-14",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-21",
-    "reference": "Deuteronomio 23:15-25",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-22",
-    "reference": "Deuteronomio 24:1-9",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-23",
-    "reference": "Deuteronomio 24:10-22",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-24",
-    "reference": "Deuteronomio 25:1-10",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-25",
-    "reference": "Deuteronomio 25:11-19",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-26",
-    "reference": "Deuteronomio 26:1-11",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-27",
-    "reference": "Deuteronomio 26:12-19",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-28",
-    "reference": "Deuteronomio 27:1-26",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-29",
-    "reference": "Deuteronomio 28:1-14",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-30",
-    "reference": "Deuteronomio 28:15-35",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-05-31",
-    "reference": "Deuteronomio 28:36-46",
-    "bookId": "deu",
-    "month": "2026-05",
-    "file": "data/readings/2026-05.json"
-  },
-  {
-    "date": "2026-06-01",
-    "reference": "Deuteronomio 28:47-68",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-02",
-    "reference": "Deuteronomio 29:1-13",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-03",
-    "reference": "Deuteronomio 29:14-29",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-04",
-    "reference": "Deuteronomio 30:1-10",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-05",
-    "reference": "Deuteronomio 30:11-20",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-06",
-    "reference": "Deuteronomio 31:1-13",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-07",
-    "reference": "Deuteronomio 31:14-29",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-08",
-    "reference": "Deuteronomio 31:30-32:14",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-09",
-    "reference": "Deuteronomio 32:15-25",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-10",
-    "reference": "Deuteronomio 32:26-52",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-11",
-    "reference": "Deuteronomio 33:1-29",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-12",
-    "reference": "Deuteronomio 34:1-12",
-    "bookId": "deu",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-13",
-    "reference": "II Timoteo 1:1-8",
-    "bookId": "2ti",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-14",
-    "reference": "II Timoteo 1:9-18",
-    "bookId": "2ti",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-15",
-    "reference": "II Timoteo 2:1-13",
-    "bookId": "2ti",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-16",
-    "reference": "II Timoteo 2:14-26",
-    "bookId": "2ti",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-17",
-    "reference": "II Timoteo 3:1-9",
-    "bookId": "2ti",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-18",
-    "reference": "II Timoteo 3:10-18",
-    "bookId": "2ti",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-19",
-    "reference": "II Timoteo 4:1-8",
-    "bookId": "2ti",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-20",
-    "reference": "II Timoteo 4:9-22",
-    "bookId": "2ti",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-21",
-    "reference": "Miqueas 1:1-16",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-22",
-    "reference": "Miqueas 2:1-13",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-23",
-    "reference": "Miqueas 3:1-12",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-24",
-    "reference": "Miqueas 4:1-13",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-25",
-    "reference": "Miqueas 5:1-15",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-26",
-    "reference": "Miqueas 6:1-8",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-27",
-    "reference": "Miqueas 6:9-16",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-28",
-    "reference": "Miqueas 7:1-6",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-29",
-    "reference": "Miqueas 7:7-13",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-06-30",
-    "reference": "Miqueas 7:14-20",
-    "bookId": "mic",
-    "month": "2026-06",
-    "file": "data/readings/2026-06.json"
-  },
-  {
-    "date": "2026-07-01",
-    "reference": "Salmos 100:1-5",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-02",
-    "reference": "Salmos 101:1-8",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-03",
-    "reference": "Salmos 102:1-11",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-04",
-    "reference": "Salmos 102:12-28",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-05",
-    "reference": "Salmos 103:1-22",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-06",
-    "reference": "Salmos 104:1-18",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-07",
-    "reference": "Salmos 104:19-35",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-08",
-    "reference": "Salmos 105:1-22",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-09",
-    "reference": "Salmos 105:23-45",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-10",
-    "reference": "Salmos 106:1-18",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-11",
-    "reference": "Salmos 106:19-39",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-12",
-    "reference": "Salmos 106:40-48",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-13",
-    "reference": "Salmos 107:1-22",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-14",
-    "reference": "Salmos 107:23-43",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-15",
-    "reference": "Salmos 108:1-13",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-16",
-    "reference": "Salmos 109:1-20",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-17",
-    "reference": "Salmos 109:21-31",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-18",
-    "reference": "Salmos 110:1-7",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-19",
-    "reference": "Salmos 111:1-10",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-20",
-    "reference": "Salmos 112:1-10",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-21",
-    "reference": "Salmos 113:1-9",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-22",
-    "reference": "Salmos 114:1-8",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-23",
-    "reference": "Salmos 115:1-18",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-24",
-    "reference": "Salmos 116:1 – 117:2",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-25",
-    "reference": "Salmos 118:1-29",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-26",
-    "reference": "Salmos 119:1-16",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-27",
-    "reference": "Salmos 119:17-32",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-28",
-    "reference": "Salmos 119:33-48",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-29",
-    "reference": "Salmos 119:49-64",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-30",
-    "reference": "Salmos 119:65-80",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-07-31",
-    "reference": "Salmos 119:81-96",
-    "bookId": "psa",
-    "month": "2026-07",
-    "file": "data/readings/julio-2026.json"
-  },
-  {
-    "date": "2026-08-01",
-    "reference": "Salmos 119:97-112",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-02",
-    "reference": "Salmos 119:113-128",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-03",
-    "reference": "Salmos 119:129-144",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-04",
-    "reference": "Salmos 119:145-160",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-05",
-    "reference": "Salmos 119:161-176",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-06",
-    "reference": "Salmos 120:1 – 121:8",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-07",
-    "reference": "Salmos 122:1 – 123:4",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-08",
-    "reference": "Salmos 124:1 – 125:5",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-09",
-    "reference": "Salmos 126:1 – 127:5",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-10",
-    "reference": "Salmos 128:1 – 129:8",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-11",
-    "reference": "Salmos 130:1 – 131:3",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-12",
-    "reference": "Salmos 132:1-18",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-13",
-    "reference": "Salmos 133:1 – 134:3",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-14",
-    "reference": "Salmos 135:1-21",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-15",
-    "reference": "Salmos 136:1-15",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-16",
-    "reference": "Salmos 136:16-26",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-17",
-    "reference": "Salmos 137:1-9",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-18",
-    "reference": "Salmos 138:1-8",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-19",
-    "reference": "Salmos 139:1-12",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-20",
-    "reference": "Salmos 139:13-24",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-21",
-    "reference": "Salmos 140:1-13",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-22",
-    "reference": "Salmos 141:1-10",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-23",
-    "reference": "Salmos 142:1-7",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-24",
-    "reference": "Salmos 143:1-12",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-25",
-    "reference": "Salmos 144:1-15",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-26",
-    "reference": "Salmos 145:1-21",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-27",
-    "reference": "Salmos 146:1-10",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-28",
-    "reference": "Salmos 147:1-20",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-29",
-    "reference": "Salmos 148:1-14",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-30",
-    "reference": "Salmos 149:1-9",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-08-31",
-    "reference": "Salmos 150:1-6",
-    "bookId": "psa",
-    "month": "2026-08",
-    "file": "data/readings/2026-08.json"
-  },
-  {
-    "date": "2026-09-01",
-    "reference": "1 Samuel 1:1-18",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué aflicción o angustia necesitas presentar hoy delante de Dios con la misma honestidad con la que oró Ana?"
-  },
-  {
-    "date": "2026-09-02",
-    "reference": "1 Samuel 1:19-28",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué manera estás consagrando a Dios la respuesta que Él ha dado a tu oración?"
-  },
-  {
-    "date": "2026-09-03",
-    "reference": "1 Samuel 2:1-11",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué aspecto del carácter o la santidad de Dios te mueve hoy a alabarlo con confianza?"
-  },
-  {
-    "date": "2026-09-04",
-    "reference": "1 Samuel 2:12-26",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué te enseña el contraste entre el crecimiento de Samuel y la conducta de los hijos de Elí?"
-  },
-  {
-    "date": "2026-09-05",
-    "reference": "1 Samuel 2:27-36",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿En qué áreas de tu vida necesitas recordar que Dios honra a quienes le honran?"
-  },
-  {
-    "date": "2026-09-06",
-    "reference": "1 Samuel 3:1-18",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Cuál es la disposición de tu corazón cuando escuchas la Palabra de Dios: estás listo para obedecerla?"
-  },
-  {
-    "date": "2026-09-07",
-    "reference": "1 Samuel 3:19-4:11",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué hábitos o actitudes necesitas examinar para no buscar a Dios como un amuleto, sino con arrepentimiento sincero?"
-  },
-  {
-    "date": "2026-09-08",
-    "reference": "1 Samuel 4:12-22",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué nos enseña este relato sobre la importancia de honrar la santidad de Dios y no tomar a ligera su Palabra?"
-  },
-  {
-    "date": "2026-09-09",
-    "reference": "1 Samuel 5:1-12",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué falso apoyo u objeto de confianza necesita ser derribado en tu vida frente a la majestad de Dios?"
-  },
-  {
-    "date": "2026-09-10",
-    "reference": "1 Samuel 6:1-7:2",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué manera has visto la mano soberana de Dios obrando aun en situaciones fuera de tu control?"
-  },
-  {
-    "date": "2026-09-11",
-    "reference": "1 Samuel 7:3-17",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué distracciones o ataduras necesitas quitar hoy para preparar tu corazón sólo para servir al Señor?"
-  },
-  {
-    "date": "2026-09-12",
-    "reference": "1 Samuel 8:1-22",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué testimonio reciente puedes compartir que demuestre que hasta aquí te ha ayudado el Señor?"
-  },
-  {
-    "date": "2026-09-13",
-    "reference": "1 Samuel 9:1-14",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿En qué área de tu vida sientes la tentación de amoldarte a los criterios del mundo en lugar de dejar que Dios reine?"
-  },
-  {
-    "date": "2026-09-14",
-    "reference": "1 Samuel 9:15-27",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué forma puedes reconocer la guía providencial de Dios en los detalles ordinarios de tu día a día?"
-  },
-  {
-    "date": "2026-09-15",
-    "reference": "1 Samuel 10:1-16",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué manera esta historia te mueve a confiar en que Dios gobierna soberanamente cada circunstancia?"
-  },
-  {
-    "date": "2026-09-16",
-    "reference": "1 Samuel 10:17-27",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué manera este pasaje te recuerda depender del Espíritu de Dios para cumplir las tareas que Él te encomienda?"
-  },
-  {
-    "date": "2026-09-17",
-    "reference": "1 Samuel 11:1-15",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué nos enseña la actitud de Saúl al ocultarse sobre la tentación de eludir las responsabilidades que Dios pone ante nosotros?"
-  },
-  {
-    "date": "2026-09-18",
-    "reference": "1 Samuel 12:1-18",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué manera puedes reflejar hoy la actitud de dar la gloria a Dios por sus favores en lugar de buscar el mérito propio?"
-  },
-  {
-    "date": "2026-09-19",
-    "reference": "1 Samuel 12:19-13:7",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué testimonio de integridad y fidelidad estás construyendo ante las personas que te rodean?"
-  },
-  {
-    "date": "2026-09-20",
-    "reference": "1 Samuel 13:8-23",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué significa para ti hoy servir a Dios de todo corazón al recordar las grandes cosas que Él ha hecho por ti?"
-  },
-  {
-    "date": "2026-09-21",
-    "reference": "1 Samuel 14:1-23",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿En qué situación necesitas aprender a esperar el tiempo de Dios sin dejarte llevar por la prisa o la presión?"
-  },
-  {
-    "date": "2026-09-22",
-    "reference": "1 Samuel 14:24-42",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Cómo influye en tu confianza saber que el poder de Dios para obrar no depende de la abundancia de nuestros recursos?"
-  },
-  {
-    "date": "2026-09-23",
-    "reference": "1 Samuel 14:43-52",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Cómo distingues entre una obediencia guiada por la sabiduría de Dios y un celo impulsivo basándote en la Palabra?"
-  },
-  {
-    "date": "2026-09-24",
-    "reference": "1 Samuel 15:1-16",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué manera este pasaje nos enseña a discernir con sabiduría la obra de Dios y evitar juicios impulsivos?"
-  },
-  {
-    "date": "2026-09-25",
-    "reference": "1 Samuel 15:17-35",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿En qué aspecto de tu vida estás tentado a dar una obediencia a medias en lugar de seguir a Dios por completo?"
-  },
-  {
-    "date": "2026-09-26",
-    "reference": "1 Samuel 16:1-13",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué área de tu conducta requiere hoy la humilde disposición de escuchar y obedecer la Palabra de Dios?"
-  },
-  {
-    "date": "2026-09-27",
-    "reference": "1 Samuel 16:14-23",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Qué estás priorizando en tu vida espiritual: las apariencias externas o la devoción sincera de tu corazón ante Dios?"
-  },
-  {
-    "date": "2026-09-28",
-    "reference": "1 Samuel 17:1-16",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué manera puedes usar tus dones y talentos para servir a otros y traer alivio en momentos de necesidad?"
-  },
-  {
-    "date": "2026-09-29",
-    "reference": "1 Samuel 17:17-30",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿De qué manera este pasaje te anima a mirar las dificultades desde el poder y el honor de Dios, en lugar del temor humano?"
-  },
-  {
-    "date": "2026-09-30",
-    "reference": "1 Samuel 17:31-49",
-    "bookId": "1sa",
-    "month": "2026-09",
-    "file": "data/readings/2026-09.json",
-    "dailyQuestion": "¿Cómo cambia tu manera de enfrentar las dificultades recordar que la batalla pertenece al Señor y no depende de la fuerza humana?"
-  }
+    {
+        "date": "2026-04-07",
+        "reference": "Deuteronomio 1:1-18",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-08",
+        "reference": "Deuteronomio 1:19-33",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-09",
+        "reference": "Deuteronomio 1:34-46",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-10",
+        "reference": "Deuteronomio 2:1-15",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-11",
+        "reference": "Deuteronomio 2:16-37",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-12",
+        "reference": "Deuteronomio 3:1-17",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-13",
+        "reference": "Deuteronomio 3:18-29",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-14",
+        "reference": "Deuteronomio 4:1-14",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-15",
+        "reference": "Deuteronomio 4:15-31",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-16",
+        "reference": "Deuteronomio 4:32-43",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-17",
+        "reference": "Deuteronomio 4:44-5:6",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-18",
+        "reference": "Deuteronomio 5:7-21",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-19",
+        "reference": "Deuteronomio 5:22-33",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-20",
+        "reference": "Deuteronomio 6:1-9",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-21",
+        "reference": "Deuteronomio 6:10-19",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-22",
+        "reference": "Deuteronomio 6:20-7:11",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-23",
+        "reference": "Deuteronomio 7:12-26",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-24",
+        "reference": "Deuteronomio 8:1-20",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-25",
+        "reference": "Deuteronomio 9:1-17",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-26",
+        "reference": "Deuteronomio 9:18-29",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-27",
+        "reference": "Deuteronomio 10:1-11",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-28",
+        "reference": "Deuteronomio 10:12-22",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-29",
+        "reference": "Deuteronomio 11:1-17",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-04-30",
+        "reference": "Deuteronomio 11:18-32",
+        "bookId": "deu",
+        "month": "2026-04",
+        "file": "data/readings/2026-04.json"
+    },
+    {
+        "date": "2026-05-01",
+        "reference": "Deuteronomio 12:1-19",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-02",
+        "reference": "Deuteronomio 12:20-32",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-03",
+        "reference": "Deuteronomio 13:1-18",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-04",
+        "reference": "Deuteronomio 14:1-21",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-05",
+        "reference": "Deuteronomio 14:22-29",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-06",
+        "reference": "Deuteronomio 15:1-23",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-07",
+        "reference": "Deuteronomio 16:1-17",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-08",
+        "reference": "Deuteronomio 16:18-17:13",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-09",
+        "reference": "Deuteronomio 17:14-20",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-10",
+        "reference": "Deuteronomio 18:1-8",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-11",
+        "reference": "Deuteronomio 18:9-14",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-12",
+        "reference": "Deuteronomio 18:15-22",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-13",
+        "reference": "Deuteronomio 19:1-13",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-14",
+        "reference": "Deuteronomio 19:14-21",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-15",
+        "reference": "Deuteronomio 20:1-20",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-16",
+        "reference": "Deuteronomio 21:1-14",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-17",
+        "reference": "Deuteronomio 21:15-23",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-18",
+        "reference": "Deuteronomio 22:1-12",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-19",
+        "reference": "Deuteronomio 22:13-30",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-20",
+        "reference": "Deuteronomio 23:1-14",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-21",
+        "reference": "Deuteronomio 23:15-25",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-22",
+        "reference": "Deuteronomio 24:1-9",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-23",
+        "reference": "Deuteronomio 24:10-22",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-24",
+        "reference": "Deuteronomio 25:1-10",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-25",
+        "reference": "Deuteronomio 25:11-19",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-26",
+        "reference": "Deuteronomio 26:1-11",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-27",
+        "reference": "Deuteronomio 26:12-19",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-28",
+        "reference": "Deuteronomio 27:1-26",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-29",
+        "reference": "Deuteronomio 28:1-14",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-30",
+        "reference": "Deuteronomio 28:15-35",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-05-31",
+        "reference": "Deuteronomio 28:36-46",
+        "bookId": "deu",
+        "month": "2026-05",
+        "file": "data/readings/2026-05.json"
+    },
+    {
+        "date": "2026-06-01",
+        "reference": "Deuteronomio 28:47-68",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-02",
+        "reference": "Deuteronomio 29:1-13",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-03",
+        "reference": "Deuteronomio 29:14-29",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-04",
+        "reference": "Deuteronomio 30:1-10",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-05",
+        "reference": "Deuteronomio 30:11-20",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-06",
+        "reference": "Deuteronomio 31:1-13",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-07",
+        "reference": "Deuteronomio 31:14-29",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-08",
+        "reference": "Deuteronomio 31:30-32:14",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-09",
+        "reference": "Deuteronomio 32:15-25",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-10",
+        "reference": "Deuteronomio 32:26-52",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-11",
+        "reference": "Deuteronomio 33:1-29",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-12",
+        "reference": "Deuteronomio 34:1-12",
+        "bookId": "deu",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-13",
+        "reference": "II Timoteo 1:1-8",
+        "bookId": "2ti",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-14",
+        "reference": "II Timoteo 1:9-18",
+        "bookId": "2ti",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-15",
+        "reference": "II Timoteo 2:1-13",
+        "bookId": "2ti",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-16",
+        "reference": "II Timoteo 2:14-26",
+        "bookId": "2ti",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-17",
+        "reference": "II Timoteo 3:1-9",
+        "bookId": "2ti",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-18",
+        "reference": "II Timoteo 3:10-18",
+        "bookId": "2ti",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-19",
+        "reference": "II Timoteo 4:1-8",
+        "bookId": "2ti",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-20",
+        "reference": "II Timoteo 4:9-22",
+        "bookId": "2ti",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-21",
+        "reference": "Miqueas 1:1-16",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-22",
+        "reference": "Miqueas 2:1-13",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-23",
+        "reference": "Miqueas 3:1-12",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-24",
+        "reference": "Miqueas 4:1-13",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-25",
+        "reference": "Miqueas 5:1-15",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-26",
+        "reference": "Miqueas 6:1-8",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-27",
+        "reference": "Miqueas 6:9-16",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-28",
+        "reference": "Miqueas 7:1-6",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-29",
+        "reference": "Miqueas 7:7-13",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-06-30",
+        "reference": "Miqueas 7:14-20",
+        "bookId": "mic",
+        "month": "2026-06",
+        "file": "data/readings/2026-06.json"
+    },
+    {
+        "date": "2026-07-01",
+        "reference": "Salmos 100:1-5",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-02",
+        "reference": "Salmos 101:1-8",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-03",
+        "reference": "Salmos 102:1-11",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-04",
+        "reference": "Salmos 102:12-28",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-05",
+        "reference": "Salmos 103:1-22",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-06",
+        "reference": "Salmos 104:1-18",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-07",
+        "reference": "Salmos 104:19-35",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-08",
+        "reference": "Salmos 105:1-22",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-09",
+        "reference": "Salmos 105:23-45",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-10",
+        "reference": "Salmos 106:1-18",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-11",
+        "reference": "Salmos 106:19-39",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-12",
+        "reference": "Salmos 106:40-48",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-13",
+        "reference": "Salmos 107:1-22",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-14",
+        "reference": "Salmos 107:23-43",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-15",
+        "reference": "Salmos 108:1-13",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-16",
+        "reference": "Salmos 109:1-20",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-17",
+        "reference": "Salmos 109:21-31",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-18",
+        "reference": "Salmos 110:1-7",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-19",
+        "reference": "Salmos 111:1-10",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-20",
+        "reference": "Salmos 112:1-10",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-21",
+        "reference": "Salmos 113:1-9",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-22",
+        "reference": "Salmos 114:1-8",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-23",
+        "reference": "Salmos 115:1-18",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-24",
+        "reference": "Salmos 116:1 – 117:2",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-25",
+        "reference": "Salmos 118:1-29",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-26",
+        "reference": "Salmos 119:1-16",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-27",
+        "reference": "Salmos 119:17-32",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-28",
+        "reference": "Salmos 119:33-48",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-29",
+        "reference": "Salmos 119:49-64",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-30",
+        "reference": "Salmos 119:65-80",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-07-31",
+        "reference": "Salmos 119:81-96",
+        "bookId": "psa",
+        "month": "2026-07",
+        "file": "data/readings/julio-2026.json"
+    },
+    {
+        "date": "2026-08-01",
+        "reference": "Salmos 119:97-112",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-02",
+        "reference": "Salmos 119:113-128",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-03",
+        "reference": "Salmos 119:129-144",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-04",
+        "reference": "Salmos 119:145-160",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-05",
+        "reference": "Salmos 119:161-176",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-06",
+        "reference": "Salmos 120:1 – 121:8",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-07",
+        "reference": "Salmos 122:1 – 123:4",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-08",
+        "reference": "Salmos 124:1 – 125:5",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-09",
+        "reference": "Salmos 126:1 – 127:5",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-10",
+        "reference": "Salmos 128:1 – 129:8",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-11",
+        "reference": "Salmos 130:1 – 131:3",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-12",
+        "reference": "Salmos 132:1-18",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-13",
+        "reference": "Salmos 133:1 – 134:3",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-14",
+        "reference": "Salmos 135:1-21",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-15",
+        "reference": "Salmos 136:1-15",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-16",
+        "reference": "Salmos 136:16-26",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-17",
+        "reference": "Salmos 137:1-9",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-18",
+        "reference": "Salmos 138:1-8",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-19",
+        "reference": "Salmos 139:1-12",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-20",
+        "reference": "Salmos 139:13-24",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-21",
+        "reference": "Salmos 140:1-13",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-22",
+        "reference": "Salmos 141:1-10",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-23",
+        "reference": "Salmos 142:1-7",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-24",
+        "reference": "Salmos 143:1-12",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-25",
+        "reference": "Salmos 144:1-15",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-26",
+        "reference": "Salmos 145:1-21",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-27",
+        "reference": "Salmos 146:1-10",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-28",
+        "reference": "Salmos 147:1-20",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-29",
+        "reference": "Salmos 148:1-14",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-30",
+        "reference": "Salmos 149:1-9",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-08-31",
+        "reference": "Salmos 150:1-6",
+        "bookId": "psa",
+        "month": "2026-08",
+        "file": "data/readings/2026-08.json"
+    },
+    {
+        "date": "2026-09-01",
+        "reference": "1 Samuel 1:1-18",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué aflicción o angustia necesitas presentar hoy delante de Dios con la misma honestidad con la que oró Ana?"
+    },
+    {
+        "date": "2026-09-02",
+        "reference": "1 Samuel 1:19-28",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera estás consagrando a Dios la respuesta que Él ha dado a tu oración?"
+    },
+    {
+        "date": "2026-09-03",
+        "reference": "1 Samuel 2:1-11",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué aspecto del carácter o la santidad de Dios te mueve hoy a alabarlo con confianza?"
+    },
+    {
+        "date": "2026-09-04",
+        "reference": "1 Samuel 2:12-26",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué te enseña el contraste entre el crecimiento de Samuel y la conducta de los hijos de Elí?"
+    },
+    {
+        "date": "2026-09-05",
+        "reference": "1 Samuel 2:27-36",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿En qué áreas de tu vida necesitas recordar que Dios honra a quienes le honran?"
+    },
+    {
+        "date": "2026-09-06",
+        "reference": "1 Samuel 3:1-18",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Cuál es la disposición de tu corazón cuando escuchas la Palabra de Dios: estás listo para obedecerla?"
+    },
+    {
+        "date": "2026-09-07",
+        "reference": "1 Samuel 3:19-4:11",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué hábitos o actitudes necesitas examinar para no buscar a Dios como un amuleto, sino con arrepentimiento sincero?"
+    },
+    {
+        "date": "2026-09-08",
+        "reference": "1 Samuel 4:12-22",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué nos enseña este relato sobre la importancia de honrar la santidad de Dios y no tomar a ligera su Palabra?"
+    },
+    {
+        "date": "2026-09-09",
+        "reference": "1 Samuel 5:1-12",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué falso apoyo u objeto de confianza necesita ser derribado en tu vida frente a la majestad de Dios?"
+    },
+    {
+        "date": "2026-09-10",
+        "reference": "1 Samuel 6:1-7:2",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera has visto la mano soberana de Dios obrando aun en situaciones fuera de tu control?"
+    },
+    {
+        "date": "2026-09-11",
+        "reference": "1 Samuel 7:3-17",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué distracciones o ataduras necesitas quitar hoy para preparar tu corazón sólo para servir al Señor?"
+    },
+    {
+        "date": "2026-09-12",
+        "reference": "1 Samuel 8:1-22",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿En qué área de tu vida sientes la tentación de amoldarte a los criterios del mundo en lugar de dejar que Dios reine sobre ti?"
+    },
+    {
+        "date": "2026-09-13",
+        "reference": "1 Samuel 9:1-14",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué forma puedes reconocer la guía providencial de Dios en los detalles y situaciones ordinarias de tu vida diaria?"
+    },
+    {
+        "date": "2026-09-14",
+        "reference": "1 Samuel 9:15-27",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera este relato te anima a confiar en que Dios gobierna de forma soberana cada circunstancia para cumplir sus propósitos?"
+    },
+    {
+        "date": "2026-09-15",
+        "reference": "1 Samuel 10:1-16",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera este pasaje te recuerda depender del Espíritu de Dios para ser capacitado en las responsabilidades que Él te encomienda?"
+    },
+    {
+        "date": "2026-09-16",
+        "reference": "1 Samuel 10:17-27",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Cómo buscas mantener una actitud de humildad y paciencia ante la oposición o falta de reconocimiento de los demás?"
+    },
+    {
+        "date": "2026-09-17",
+        "reference": "1 Samuel 11:1-15",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera puedes reflejar la actitud de dar la gloria a Dios por sus victorias y actuar con misericordia hacia otros?"
+    },
+    {
+        "date": "2026-09-18",
+        "reference": "1 Samuel 12:1-18",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué testimonio de integridad y conducta transparente procuras construir ante Dios y las personas que te rodean?"
+    },
+    {
+        "date": "2026-09-19",
+        "reference": "1 Samuel 12:19-13:7",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera recordar la fidelidad de Dios y las grandes cosas que Él ha hecho fortalece tu corazón para servirle sin temor?"
+    },
+    {
+        "date": "2026-09-20",
+        "reference": "1 Samuel 13:8-23",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿En qué situaciones enfrentas la tentación de actuar con impaciencia y tomar el control en lugar de esperar y obedecer a Dios?"
+    },
+    {
+        "date": "2026-09-21",
+        "reference": "1 Samuel 14:1-23",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Cómo influye en tu fe saber que la capacidad de Dios para obrar y sostenernos no depende de la cantidad de nuestros recursos humanos?"
+    },
+    {
+        "date": "2026-09-22",
+        "reference": "1 Samuel 14:24-42",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Cómo distingues entre un celo impulsivo basándote en opiniones humanas y la verdadera sabiduría que proviene de la Palabra de Dios?"
+    },
+    {
+        "date": "2026-09-23",
+        "reference": "1 Samuel 14:43-52",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera este pasaje te anima a reconocer y valorar cómo Dios usa la vida de otros para traer bien y bendición?"
+    },
+    {
+        "date": "2026-09-24",
+        "reference": "1 Samuel 15:1-16",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿En qué áreas de tu vida necesitas cuidarte de no justificar una obediencia a medias frente a lo que Dios te pide?"
+    },
+    {
+        "date": "2026-09-25",
+        "reference": "1 Samuel 15:17-35",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿En qué aspecto de tu vida estás tentado a dar una obediencia a medias en lugar de seguir a Dios por completo?"
+    },
+    {
+        "date": "2026-09-26",
+        "reference": "1 Samuel 16:1-13",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Qué estás priorizando en tu vida diaria: la aprobación externa de las personas o la sinceridad y pureza de tu corazón ante Dios?"
+    },
+    {
+        "date": "2026-09-27",
+        "reference": "1 Samuel 16:14-23",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera puedes poner tus dones y habilidades al servicio de los demás para traer edificación y alivio a quienes lo necesitan?"
+    },
+    {
+        "date": "2026-09-28",
+        "reference": "1 Samuel 17:1-16",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿En qué situaciones desafiantes necesitas recordar que la presencia de Dios es mayor que cualquier amenaza que cause temor humano?"
+    },
+    {
+        "date": "2026-09-29",
+        "reference": "1 Samuel 17:17-30",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿De qué manera este pasaje te anima a mirar las dificultades desde el poder y el honor de Dios, en lugar del temor humano?"
+    },
+    {
+        "date": "2026-09-30",
+        "reference": "1 Samuel 17:31-49",
+        "bookId": "1sa",
+        "month": "2026-09",
+        "file": "data/readings/2026-09.json",
+        "dailyQuestion": "¿Cómo cambia tu manera de enfrentar las dificultades recordar que la batalla pertenece al Señor y no depende de la fuerza humana?"
+    }
 ]
