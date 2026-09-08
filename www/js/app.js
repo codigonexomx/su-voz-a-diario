@@ -66,6 +66,10 @@ import {
 } from './services/storageService.js';
 
 import {
+    analyticsService
+} from './services/AnalyticsService.js';
+
+import {
     BibleRepository
 } from './bible/BibleRepository.js';
 
@@ -937,6 +941,7 @@ _nativePushActionListenersReady: false,
 _nativePushRegistrationListenersReady: false,
 _pushRouteReady: false,
 _pendingPushHash: null,
+_pendingCommunityEntryPoint: null,
 themeListenerReady: false,
 _selectionPanelEventsBound: false,
 _authInitPromise: null,
@@ -996,11 +1001,13 @@ this.setupNativePushActionListeners();
 this.bindCommunityDraftLifecycle();
 this.bindBibleReadingContinuityLifecycle();
 await this.loadData();
+this.initAnalytics();
 
 // Fase 9: Migración única de cuadernillo a sesiones
 this.migrateLegacyNotebookToSessions();
 
 await this.handleRoute();
+this.trackAppOpen();
 this._pushRouteReady = true;
 
 if (this._pendingPushHash) {
@@ -1042,6 +1049,90 @@ console.log('[App] Inicialización completada');
     isCapacitorAndroid: function() {
         return window.Capacitor?.getPlatform?.() === 'android' &&
             window.Capacitor?.isNativePlatform?.();
+    },
+
+    getAnalyticsPlatform: function() {
+        const capacitorPlatform = window.Capacitor?.getPlatform?.();
+
+        if (window.Capacitor?.isNativePlatform?.() && ['android', 'ios'].includes(capacitorPlatform)) {
+            return capacitorPlatform;
+        }
+
+        if (isRunningAsInstalledPWA()) return 'pwa';
+
+        return 'web';
+    },
+
+    initAnalytics: function() {
+        analyticsService.init({
+            platform: this.getAnalyticsPlatform(),
+            appVersion: '2.1',
+            pwaVersion: '225'
+        });
+        window.SuVozAnalytics = analyticsService;
+    },
+
+    trackAnalyticsEvent: function(name, params = {}) {
+        analyticsService.trackEvent(name, params);
+    },
+
+    trackAnalyticsOnce: function(key, name, params = {}) {
+        analyticsService.once(key, name, params);
+    },
+
+    getReadingAnalyticsParams: function(reading, source = 'home') {
+        return {
+            reading_date: reading?.date || '',
+            reading_reference: reading?.reference || '',
+            bible_version: this.currentVersion || 'rvr60',
+            source
+        };
+    },
+
+    trackAppOpen: function() {
+        this.trackAnalyticsOnce('app_open', 'app_open');
+    },
+
+    trackReadingVisible: function(reading, source = 'home') {
+        if (!reading?.date) return;
+        this.trackAnalyticsOnce(
+            `reading_view:${reading.date}:${source}`,
+            'reading_view',
+            this.getReadingAnalyticsParams(reading, source)
+        );
+    },
+
+    trackDailyQuestionVisible: function(reading) {
+        if (!reading?.date || !this.getReadingMetadataByDate(reading.date)?.dailyQuestion) return;
+        this.trackAnalyticsOnce(`daily_question_view:${reading.date}`, 'daily_question_view', {
+            reading_date: reading.date,
+            question_id: `daily_${reading.date}`
+        });
+    },
+
+    setCommunityEntryPoint: function(entryPoint) {
+        this._pendingCommunityEntryPoint = entryPoint || 'direct';
+    },
+
+    getNotificationAnalyticsParams: function(hash) {
+        const destination = hash?.startsWith('#community/')
+            ? 'community_thread'
+            : hash === '#community'
+                ? 'community'
+                : hash === '#home'
+                    ? 'home'
+                    : 'other';
+
+        const notificationType = destination === 'community' || destination === 'community_thread'
+            ? 'community_activity'
+            : destination === 'home'
+                ? 'daily_reminder'
+                : 'other';
+
+        return {
+            notification_type: notificationType,
+            destination
+        };
     },
 
     setupAndroidBackButton: function() {
@@ -3208,12 +3299,26 @@ sharePost: function(postId) {
 
     if (navigator.share) {
         navigator.share({ text: text, title: 'Reflexión de Comunidad', url: link })
-            .then(() => this.showToast('🔗 Compartida'))
+            .then(() => {
+                this.trackAnalyticsEvent('share', {
+                    content_type: 'community_post',
+                    method: 'native_share',
+                    source: 'community'
+                });
+                this.showToast('🔗 Compartida');
+            })
             .catch((err) => {
                 if (err.name !== 'AbortError') {
                     if (navigator.clipboard && navigator.clipboard.writeText) {
                         navigator.clipboard.writeText(text + '\n\n' + link)
-                            .then(() => this.showToast('🔗 Enlace copiado'))
+                            .then(() => {
+                                this.trackAnalyticsEvent('share', {
+                                    content_type: 'community_post',
+                                    method: 'clipboard',
+                                    source: 'community'
+                                });
+                                this.showToast('🔗 Enlace copiado');
+                            })
                             .catch(() => this.showToast('🔗 Copia manual: ' + link));
                     }
                 }
@@ -3222,7 +3327,14 @@ sharePost: function(postId) {
         // Desktop: copiar enlace
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard.writeText(text + '\n\n' + link)
-                .then(() => this.showToast('🔗 Enlace copiado'))
+                .then(() => {
+                    this.trackAnalyticsEvent('share', {
+                        content_type: 'community_post',
+                        method: 'clipboard',
+                        source: 'community'
+                    });
+                    this.showToast('🔗 Enlace copiado');
+                })
                 .catch(() => this.showToast('🔗 Copia manual: ' + link));
         } else {
             try {
@@ -3234,6 +3346,11 @@ sharePost: function(postId) {
                 textarea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textarea);
+                this.trackAnalyticsEvent('share', {
+                    content_type: 'community_post',
+                    method: 'clipboard',
+                    source: 'community'
+                });
                 this.showToast('🔗 Enlace copiado');
             } catch (e) {
                 this.showToast('🔗 Copia manual: ' + link);
@@ -7859,6 +7976,11 @@ shareVerseImageFromEditor: async function() {
                 reference,
                 `${reference} · https://suvoz.app`
             );
+            this.trackAnalyticsEvent('share', {
+                content_type: 'verse_image',
+                method: 'native_share',
+                source: this.verseImageSource || 'home'
+            });
 
             this.closeVerseImageEditor();
             this.hideSelectionPanel();
@@ -7890,6 +8012,11 @@ shareVerseImageFromEditor: async function() {
             return;
         }
 
+        this.trackAnalyticsEvent('share', {
+            content_type: 'verse_image',
+            method: 'native_share',
+            source: this.verseImageSource || 'home'
+        });
         this.showToast('Imagen compartida');
     } catch (error) {
         if (error?.name === 'AbortError') {
@@ -7935,6 +8062,11 @@ shareVerseImageFromEditor: async function() {
 
             if (this.isCapacitorAndroid()) {
                 await this.shareImageBlobNative(blob, fileName, reference, reference);
+                this.trackAnalyticsEvent('share', {
+                    content_type: 'verse_image',
+                    method: 'native_share',
+                    source: this.getSelectedTextSource() === 'bible' ? 'reading' : 'home'
+                });
             } else {
                 const shared = await this.shareImageBlobWeb(
                     blob,
@@ -7947,6 +8079,11 @@ shareVerseImageFromEditor: async function() {
                     this.showToast('Tu navegador no permite compartir archivos');
                     return;
                 }
+                this.trackAnalyticsEvent('share', {
+                    content_type: 'verse_image',
+                    method: 'native_share',
+                    source: this.getSelectedTextSource() === 'bible' ? 'reading' : 'home'
+                });
             }
 
             this.hideSelectionPanel();
@@ -9035,6 +9172,11 @@ bindSelectionPanelEvents: function() {
                 const copyText = this.buildVerseCopyText(copyData);
 
                 await this.copyTextToClipboard(copyText);
+                this.trackAnalyticsEvent('share', {
+                    content_type: 'verse',
+                    method: 'clipboard',
+                    source: this.getSelectedTextSource() === 'bible' ? 'reading' : 'home'
+                });
                 this.showToast('Texto copiado');
             } catch (error) {
                 this.showToast('No se pudo copiar');
@@ -9809,6 +9951,9 @@ if (view !== 'settings' && oldView !== 'settings') {
 } else if (view === 'calendar') {
     this.renderCalendar();
 } else if (view === 'community') {
+    const communityEntryPoint = this._pendingCommunityEntryPoint || (param ? 'notification' : 'direct');
+    this._pendingCommunityEntryPoint = null;
+
     if (oldView !== 'community') {
         this.restoreCommunityComposerState();
         this.communityCutoff = null;
@@ -9840,6 +9985,9 @@ if (view !== 'settings' && oldView !== 'settings') {
         targetPostId: notificationPostId,
         highlightTarget: Boolean(notificationPostId),
         resetScrollTop: oldView !== 'community' && !notificationPostId
+    });
+    this.trackAnalyticsEvent('community_open', {
+        entry_point: communityEntryPoint
     });
     if (oldView === 'community' || oldView === 'community-thread') {
         this.restoreCommunityDiscoveryScrollPosition();
@@ -10341,6 +10489,10 @@ playBibleChapterVoiceSequence: async function(token) {
             reference: null
         };
         this.updateBibleChapterVoiceUI();
+        this.trackAnalyticsEvent('audio_complete', {
+            audio_context: 'bible',
+            bible_version: this.currentBibleVersion || 'rv1909'
+        });
     } catch (error) {
         if (!this.isBibleChapterVoiceTokenActive(token)) return;
 
@@ -10368,6 +10520,10 @@ startBibleChapterVoice: function(key, verses, reference = '') {
         reference
     };
     this.updateBibleChapterVoiceUI();
+    this.trackAnalyticsEvent('audio_start', {
+        audio_context: 'bible',
+        bible_version: this.currentBibleVersion || 'rv1909'
+    });
     this.playBibleChapterVoiceSequence(token);
 },
 
@@ -10396,6 +10552,10 @@ resumeBibleChapterVoice: function() {
     this.bibleChapterVoice.utterance = null;
     this.isBibleAudioPlaying = true;
     this.updateBibleChapterVoiceUI();
+    this.trackAnalyticsEvent('audio_start', {
+        audio_context: 'bible',
+        bible_version: this.currentBibleVersion || 'rv1909'
+    });
     this.playBibleChapterVoiceSequence(token);
 },
 
@@ -10491,6 +10651,13 @@ startDailyReadingVoice: async function(date, text) {
 
     this.stopBibleChapterVoice(true);
     this.stopDailyReadingVoice(true);
+    const reading = await this.getReadingByDate(date);
+    this.trackAnalyticsOnce(`reading_start:${date}`, 'reading_start', this.getReadingAnalyticsParams(reading, 'home'));
+    this.trackAnalyticsEvent('audio_start', {
+        audio_context: 'daily_reading',
+        reading_date: date,
+        bible_version: this.currentVersion || 'rvr60'
+    });
 
     if (this.isNativeTextToSpeechAvailable()) {
         this.dailyReadingVoice = { utterance: null, status: 'speaking', date };
@@ -10498,6 +10665,11 @@ startDailyReadingVoice: async function(date, text) {
 
         try {
             await this.speakWithNativeTextToSpeech(cleanText);
+            this.trackAnalyticsEvent('audio_complete', {
+                audio_context: 'daily_reading',
+                reading_date: date,
+                bible_version: this.currentVersion || 'rvr60'
+            });
         } catch (error) {
             console.warn('[Voice] Error iniciando lectura nativa:', error);
         }
@@ -10527,6 +10699,11 @@ startDailyReadingVoice: async function(date, text) {
 
             this.dailyReadingVoice = { utterance: null, status: 'idle', date: null };
             this.updateDailyReadingVoiceUI();
+            this.trackAnalyticsEvent('audio_complete', {
+                audio_context: 'daily_reading',
+                reading_date: date,
+                bible_version: this.currentVersion || 'rvr60'
+            });
         };
 
         utterance.onerror = (error) => {
@@ -12196,6 +12373,8 @@ restoreCalendarPosition: function() {
         
         this.restoreHighlightsInDOMForVerses(reading.date);
         this.restoreSelectionNotesInDOM(reading.date);
+        this.trackReadingVisible(reading, 'home');
+        this.trackDailyQuestionVisible(reading);
         
     } else {
         // Si NO es hoy, usar la vista normal
@@ -12409,6 +12588,8 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
         `;
             this.restoreHighlightsInDOMForVerses(reading.date);
             this.restoreSelectionNotesInDOM(reading.date);
+            this.trackReadingVisible(reading, isHome ? 'home' : 'reading');
+            this.trackDailyQuestionVisible(reading);
     },
     
     escapeHtml,
@@ -17555,6 +17736,10 @@ handlePushNavigation: function(event) {
     console.log('[Push][tap]', event);
 
     const hash = this.getPushHashFromEvent(event);
+    this.trackAnalyticsEvent('suvoz_notification_open', this.getNotificationAnalyticsParams(hash));
+    if (hash?.startsWith('#community')) {
+        this.setCommunityEntryPoint('notification');
+    }
     console.log('[Push][route]', {
         url: event?.notification?.data?.url || null,
         hash,
@@ -18585,7 +18770,10 @@ if (this.$navStats) {
 }
 
 if (this.$navCommunity) {
-    this.$navCommunity.addEventListener('click', () => this.navigate('community'));
+    this.$navCommunity.addEventListener('click', () => {
+        this.setCommunityEntryPoint('bottom_nav');
+        this.navigate('community');
+    });
 }
 
 if (this.$headerSettingsBtn) {
@@ -19293,7 +19481,10 @@ const noteSection = e.target.closest('.note-section');
             const markBtn = e.target.closest('[data-action="mark-read"]');
             if (markBtn) {
                 const date = markBtn.getAttribute('data-date');
+                const reading = await this.getReadingByDate(date);
+                this.trackAnalyticsOnce(`reading_start:${date}`, 'reading_start', this.getReadingAnalyticsParams(reading, this.currentView === 'home' ? 'home' : 'reading'));
                 this.markAsRead(date);
+                this.trackAnalyticsEvent('reading_complete', this.getReadingAnalyticsParams(reading, this.currentView === 'home' ? 'home' : 'reading'));
                 this.rerenderCurrentReadingView(date);
                 return;
             }
@@ -19329,6 +19520,11 @@ const noteSection = e.target.closest('.note-section');
 
        if (navigator.share) {
            navigator.share({ title: 'Su voz a diario', text: shareText })
+                .then(() => this.trackAnalyticsEvent('share', {
+                    content_type: 'daily_reading',
+                    method: 'native_share',
+                    source: this.currentView === 'home' ? 'home' : 'reading'
+                }))
                 .catch(error => {
                     if (error?.name !== 'AbortError') {
                         console.warn('[Share] No se pudo compartir la lectura:', error);
@@ -19336,7 +19532,14 @@ const noteSection = e.target.closest('.note-section');
                 });
        } else if (navigator.clipboard) {
             navigator.clipboard.writeText(shareText)
-                .then(() => this.showToast('Lectura copiada al portapapeles'))
+                .then(() => {
+                    this.trackAnalyticsEvent('share', {
+                        content_type: 'daily_reading',
+                        method: 'clipboard',
+                        source: this.currentView === 'home' ? 'home' : 'reading'
+                    });
+                    this.showToast('Lectura copiada al portapapeles');
+                })
                 .catch(error => {
                     console.warn('[Share] No se pudo copiar la lectura:', error);
                 });
@@ -19690,6 +19893,18 @@ if (publishCommunityBtn) {
         return;
     }
 
+    this.trackAnalyticsEvent('community_post', {
+        post_type: newPost.intent === 'dailyQuestionResponse' ? 'daily_question_response' : 'reflection',
+        entry_point: newPost.intent === 'dailyQuestionResponse' ? 'daily_question' : 'direct'
+    });
+
+    if (newPost.intent === 'dailyQuestionResponse') {
+        this.trackAnalyticsEvent('daily_question_response_publish', {
+            reading_date: todayStr,
+            question_id: `daily_${todayStr}`
+        });
+    }
+
     if ('vibrate' in navigator) {
         navigator.vibrate(30);
     }
@@ -19927,6 +20142,9 @@ if (publishThreadReplyBtn) {
     }
 
     this.showToast('Respuesta publicada');
+    this.trackAnalyticsEvent('community_reply', {
+        entry_point: 'direct'
+    });
     this.communityReplySubmitting = false;
     await this.renderCommunityThread(postId);
     return;
@@ -19970,6 +20188,13 @@ if (respondDailyQuestionBtn) {
     const readingDate = respondDailyQuestionBtn.getAttribute('data-date');
     const reference = respondDailyQuestionBtn.getAttribute('data-reference');
     const readingMetadata = this.getReadingMetadataByDate(readingDate);
+    const reading = await this.getReadingByDate(readingDate);
+
+    this.trackAnalyticsOnce(`reading_start:${readingDate}`, 'reading_start', this.getReadingAnalyticsParams(reading, 'home'));
+    this.trackAnalyticsEvent('daily_question_response_start', {
+        reading_date: readingDate,
+        question_id: `daily_${readingDate}`
+    });
 
     this.updateCommunityDraftState({
         readingDate: readingDate,
@@ -19979,6 +20204,7 @@ if (respondDailyQuestionBtn) {
     }, { immediate: true });
 
     this.communityFormOpen = true;
+    this.setCommunityEntryPoint('daily_question');
     this.navigate('community');
     return;
 }
@@ -19992,6 +20218,7 @@ if (openEcosBtn) {
         reference: reference,
         label: reference || 'Lectura de hoy'
     };
+    this.setCommunityEntryPoint('reading_ecos');
     this.navigate('community');
     return;
 }
@@ -20340,6 +20567,9 @@ if (communityReactionBtn) {
         }
 
         this.updateSingleReactionButtonUI(communityReactionBtn, !wasActive);
+        this.trackAnalyticsEvent('community_reaction', {
+            reaction_type: reaction
+        });
 
         if ('vibrate' in navigator) {
             navigator.vibrate(15);
@@ -20379,6 +20609,11 @@ if (pdfBtn) {
 	    }
 
 	    const reading = await this.getReadingByDate(date);
+        this.trackAnalyticsOnce(`reading_start:${date}`, 'reading_start', this.getReadingAnalyticsParams(reading, this.currentView === 'home' ? 'home' : 'reading'));
+        this.trackAnalyticsEvent('deepen_open', {
+            reading_date: date,
+            entry_point: this.currentView === 'home' ? 'home' : 'direct'
+        });
 	    if (this.currentMeditationSessionId) {
 	        const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
 	        if (session) {
@@ -20399,6 +20634,10 @@ if (completeSessionBtn) {
             this.attachMeditationMetadataSync(session);
             MeditationSessionStorage.save(session);
             this.invalidateMeditationLibraryCache();
+            this.trackAnalyticsEvent('deepen_complete', {
+                reading_date: session.readingDate || session.date || '',
+                entry_point: 'direct'
+            });
             this.showToast('Meditación marcada como completada');
             if (completeSessionBtn.closest('.sliding-notebook-panel')) {
                 const reading = await this.getReadingByDate(session.readingId);

@@ -4,27 +4,22 @@
  */
 class CommunityAnalytics {
     trackEvent(eventName, params = {}) {
-        if (typeof firebase !== 'undefined' && firebase.analytics) {
-            try {
-                firebase.analytics().logEvent(eventName, params);
-            } catch (e) {
-                console.warn('[Analytics] Error registrando evento:', eventName, e);
-            }
-        } else {
-            console.log(`[Analytics Log] Event: ${eventName}`, params);
+        try {
+            window.SuVozAnalytics?.trackEvent?.(eventName, params);
+        } catch (error) {
+            console.warn('[Analytics] Error registrando evento:', eventName, error);
         }
     }
 
     trackPostCreated(postData = {}) {
-        this.trackEvent('post_created', {
-            post_id: postData.id || '',
-            has_audio: Boolean(postData.audioURL),
-            character_count: (postData.text || '').length
+        this.trackEvent('community_post', {
+            post_type: postData.intent === 'dailyQuestionResponse' ? 'daily_question_response' : 'reflection',
+            entry_point: postData.intent === 'dailyQuestionResponse' ? 'daily_question' : 'direct'
         });
     }
 
     trackReaction(reactionType) {
-        this.trackEvent('reaction_given', {
+        this.trackEvent('community_reaction', {
             reaction_type: reactionType
         });
     }

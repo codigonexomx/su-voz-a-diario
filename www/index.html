@@ -625,6 +625,7 @@
             window.firebaseApp = app;
             window.firebaseDb = firestoreModule.getFirestore(app);
             window.firebaseAuth = authModule.getAuth(app);
+            window.firebaseAnalyticsFns = null;
 
             window.firebaseFns = {
                 getApp: appModule.getApp,
@@ -654,6 +655,37 @@
 
             window.dispatchEvent(new Event('suvoz-firebase-ready'));
             console.log('[Index] Firebase Auth y Firestore inicializados correctamente');
+
+            if (firebaseConfig.measurementId) {
+                import("https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js")
+                    .then(async analyticsModule => {
+                        try {
+                            const supported = await analyticsModule.isSupported();
+                            if (!supported) {
+                                console.info('[Index] Firebase Analytics no soportado en esta plataforma.');
+                                window.dispatchEvent(new Event('suvoz-analytics-unavailable'));
+                                return;
+                            }
+
+                            window.firebaseAnalyticsFns = {
+                                analytics: analyticsModule.getAnalytics(app),
+                                logEvent: analyticsModule.logEvent
+                            };
+                            window.dispatchEvent(new Event('suvoz-analytics-ready'));
+                            console.log('[Index] Firebase Analytics inicializado correctamente');
+                        } catch (error) {
+                            console.warn('[Index] Firebase Analytics no disponible.', error);
+                            window.dispatchEvent(new Event('suvoz-analytics-unavailable'));
+                        }
+                    })
+                    .catch(error => {
+                        console.warn('[Index] No se pudo cargar Firebase Analytics.', error);
+                        window.dispatchEvent(new Event('suvoz-analytics-unavailable'));
+                    });
+            } else {
+                console.info('[Index] Firebase Analytics omitido: falta measurementId en firebaseConfig.');
+                window.dispatchEvent(new Event('suvoz-analytics-unavailable'));
+            }
 
             import("https://www.gstatic.com/firebasejs/12.11.0/firebase-messaging.js")
                 .then(messagingModule => {

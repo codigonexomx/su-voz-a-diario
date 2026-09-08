@@ -57,6 +57,7 @@ const STATIC_ASSETS = [
   './js/bible/SectionHeadingsRepository.js',
   './js/bible/FootnotesRepository.js',
   './js/bible/RemoteBibleProvider.js',
+  './js/services/AnalyticsService.js',
   './js/services/storageService.js',
   './js/utils/dates.js',
   './js/utils/dom.js',
