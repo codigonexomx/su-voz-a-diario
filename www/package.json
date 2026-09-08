@@ -9,12 +9,14 @@
     "firebase:deploy:rules": "firebase deploy --only firestore:rules",
     "pwa:sync-version": "node scripts/sync-pwa-version.mjs",
     "community:migrate:last-activity": "npm --prefix functions run migrate:community:last-activity --",
+    "test:community-rules": "firebase emulators:exec --only firestore --project demo-su-voz-rules \"node scripts/test-community-rules.mjs\"",
     "import:tla": "node scripts/import-tla-readings.mjs",
     "test:tla": "node scripts/validate-tla-readings.mjs",
     "test:bible-phase3": "node scripts/validate-bible-phase3.mjs",
     "test:bible-phase6": "node scripts/validate-bible-phase6.mjs",
     "test:bible-phase7": "node scripts/validate-bible-phase7.mjs",
-    "test:bottom-nav": "node scripts/validate-bottom-nav.mjs"
+    "test:bottom-nav": "node scripts/validate-bottom-nav.mjs",
+    "test:analytics": "node scripts/validate-analytics-service.mjs"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^8.0.2",
@@ -28,6 +30,7 @@
     "@capacitor/share": "^8.0.1"
   },
   "devDependencies": {
-    "@capacitor/assets": "^3.0.5"
+    "@capacitor/assets": "^3.0.5",
+    "@firebase/rules-unit-testing": "^5.0.2"
   }
 }
