@@ -672,6 +672,27 @@
                                 analytics: analyticsModule.getAnalytics(app),
                                 logEvent: analyticsModule.logEvent
                             };
+
+                            if (new URLSearchParams(window.location.search || '').get('analytics_debug') === '1') {
+                                window.setTimeout(() => {
+                                    console.info('[Index][Analytics Debug]', {
+                                        isSupported: supported,
+                                        projectId: app.options?.projectId || '',
+                                        appId: app.options?.appId || '',
+                                        measurementId: app.options?.measurementId || '',
+                                        analyticsAppName: window.firebaseAnalyticsFns.analytics?.app?.name || '',
+                                        providerReady: Boolean(window.firebaseAnalyticsFns.logEvent),
+                                        hasGtag: typeof window.gtag === 'function',
+                                        dataLayerLength: Array.isArray(window.dataLayer) ? window.dataLayer.length : null,
+                                        gtagScriptPresent: Boolean(document.querySelector('script[src*="googletagmanager.com/gtag/js"]')),
+                                        cookieEnabled: Boolean(navigator.cookieEnabled),
+                                        indexedDBAvailable: Boolean(window.indexedDB),
+                                        serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
+                                        origin: window.location.origin
+                                    });
+                                }, 1000);
+                            }
+
                             window.dispatchEvent(new Event('suvoz-analytics-ready'));
                             console.log('[Index] Firebase Analytics inicializado correctamente');
                         } catch (error) {

@@ -43,7 +43,8 @@ const CONTROLLED_VALUES = {
     notification_type: ['daily_reminder', 'community_activity', 'other'],
     destination: ['home', 'community', 'community_thread', 'reading', 'bible', 'other'],
     post_type: ['reflection', 'daily_question_response', 'prayer', 'testimony', 'unknown'],
-    reaction_type: ['useful', 'thanks', 'unknown']
+    reaction_type: ['useful', 'thanks', 'unknown'],
+    validation_source: ['local_debug']
 };
 
 function normalizeValue(value) {
@@ -71,6 +72,7 @@ export class AnalyticsService {
         this.pendingEvents = [];
         this.logEventFn = null;
         this.provider = 'none';
+        this.validationEventSent = false;
     }
 
     init(options = {}) {
@@ -95,6 +97,7 @@ export class AnalyticsService {
             this.logEventFn = (name, params) => analyticsFns.logEvent(analyticsFns.analytics, name, params);
             this.provider = 'firebase_analytics';
             this.flushPendingEvents();
+            this.trackValidationEvent();
             return;
         }
 
@@ -120,7 +123,8 @@ export class AnalyticsService {
 
         const sanitizedParams = this.sanitizeParams({
             ...this.defaultParams,
-            ...params
+            ...params,
+            ...(this.debug ? { debug_mode: true } : {})
         });
 
         if (this.debug) {
@@ -128,6 +132,8 @@ export class AnalyticsService {
                 event: name,
                 params: sanitizedParams,
                 provider: this.provider,
+                providerReady: Boolean(this.logEventFn),
+                dispatchAttempted: Boolean(this.logEventFn),
                 at: new Date().toISOString()
             });
         }
@@ -135,6 +141,13 @@ export class AnalyticsService {
         if (!this.logEventFn) {
             if (this.pendingEvents.length < 50) {
                 this.pendingEvents.push({ name, params: sanitizedParams });
+            }
+            if (this.debug) {
+                console.info('[Analytics] queued', {
+                    event: name,
+                    provider: this.provider,
+                    pendingCount: this.pendingEvents.length
+                });
             }
             return;
         }
@@ -150,9 +163,36 @@ export class AnalyticsService {
     sendEvent(name, params) {
         try {
             this.logEventFn(name, params);
+            if (this.debug) {
+                console.info('[Analytics] dispatch', {
+                    event: name,
+                    provider: this.provider,
+                    sdkAccepted: true
+                });
+            }
         } catch (error) {
-            if (this.debug) console.warn('[Analytics] No se pudo enviar evento:', name, error);
+            if (this.debug) {
+                console.warn('[Analytics] dispatch', {
+                    event: name,
+                    provider: this.provider,
+                    sdkAccepted: false,
+                    errorName: error?.name || '',
+                    errorCode: error?.code || '',
+                    errorMessage: error?.message || ''
+                });
+            }
         }
+    }
+
+    trackValidationEvent() {
+        if (!this.debug || this.validationEventSent || !this.logEventFn) return;
+
+        this.validationEventSent = true;
+        this.sendEvent('analytics_validation', this.sanitizeParams({
+            ...this.defaultParams,
+            validation_source: 'local_debug',
+            debug_mode: true
+        }));
     }
 
     sanitizeParams(params) {
