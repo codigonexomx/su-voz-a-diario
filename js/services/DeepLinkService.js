@@ -19,6 +19,11 @@ function getSafeSource(url) {
     return normalizeAcquisitionSource(url.searchParams.get('src') || 'unknown');
 }
 
+function getSingleSearchParam(url, name) {
+    const values = url.searchParams.getAll(name);
+    return values.length === 1 ? values[0] : '';
+}
+
 function toHomeResult(url, reason = 'matched') {
     return {
         handled: true,
@@ -63,9 +68,8 @@ export async function resolveExternalDeepLink(input, options = {}) {
         return toHomeResult(url);
     }
 
-    const readingMatch = url.pathname.match(/^\/lectura\/([^/]+)\/?$/);
-    if (readingMatch) {
-        const readingDate = readingMatch[1];
+    if (url.pathname === '/lectura' || url.pathname === '/lectura/') {
+        const readingDate = getSingleSearchParam(url, 'date');
 
         if (!isRealCalendarDate(readingDate)) {
             return toHomeResult(url, 'invalid_reading_date');

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Su Voz a Diario</title>
+    <link rel="canonical" href="https://suvoz.app/lectura/">
+    <meta http-equiv="refresh" content="0; url=../#home">
+    <script>
+    (() => {
+        const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+        function isRealCalendarDate(value) {
+            if (!DATE_PATTERN.test(value)) return false;
+
+            const [year, month, day] = value.split('-').map(Number);
+            const date = new Date(Date.UTC(year, month - 1, day));
+
+            return date.getUTCFullYear() === year &&
+                date.getUTCMonth() === month - 1 &&
+                date.getUTCDate() === day;
+        }
+
+        const params = new URLSearchParams(window.location.search || '');
+        const values = params.getAll('date');
+        const readingDate = values.length === 1 ? values[0] : '';
+        const target = new URL('../', window.location.href);
+        target.hash = isRealCalendarDate(readingDate) ? `reading/${readingDate}` : 'home';
+        window.location.replace(target.href);
+    })();
+    </script>
+</head>
+<body>
+    <p><a href="../#home">Abrir Su Voz</a></p>
+</body>
+</html>

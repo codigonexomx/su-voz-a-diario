@@ -22,17 +22,20 @@ assert.deepEqual(
 );
 
 assert.equal((await resolves('https://suvoz.app/hoy')).hash, '#home');
-assert.equal((await resolves('https://suvoz.app/lectura/2026-09-09')).hash, '#reading/2026-09-09');
-assert.equal((await resolves('https://suvoz.app/lectura/2026-09-09')).destination, 'reading');
-assert.equal((await resolves('https://suvoz.app/lectura/2026-09-10')).hash, '#home');
-assert.equal((await resolves('https://suvoz.app/lectura/2026-09-10')).reason, 'reading_not_found');
+assert.equal((await resolves('https://suvoz.app/lectura/?date=2026-09-09')).hash, '#reading/2026-09-09');
+assert.equal((await resolves('https://suvoz.app/lectura?date=2026-09-09')).hash, '#reading/2026-09-09');
+assert.equal((await resolves('https://suvoz.app/lectura/?date=2026-09-09')).destination, 'reading');
+assert.equal((await resolves('https://suvoz.app/lectura/?date=2026-09-10')).hash, '#home');
+assert.equal((await resolves('https://suvoz.app/lectura/?date=2026-09-10')).reason, 'reading_not_found');
 
 assert.equal((await resolves('http://suvoz.app/compartir')).handled, false);
 assert.equal((await resolves('https://evil.com/compartir')).handled, false);
 assert.equal((await resolves('https://suvoz.app/privacy.html')).handled, false);
-assert.equal((await resolves('https://suvoz.app/lectura/foo')).hash, '#home');
-assert.equal((await resolves('https://suvoz.app/lectura/2026-99-99')).reason, 'invalid_reading_date');
-assert.equal((await resolves('https://suvoz.app/lectura/../../foo')).handled, false);
+assert.equal((await resolves('https://suvoz.app/lectura/?date=foo')).hash, '#home');
+assert.equal((await resolves('https://suvoz.app/lectura/?date=2026-99-99')).reason, 'invalid_reading_date');
+assert.equal((await resolves('https://suvoz.app/lectura/?date=../../foo')).reason, 'invalid_reading_date');
+assert.equal((await resolves('https://suvoz.app/lectura/?date=2026-09-09&date=2026-09-10')).reason, 'invalid_reading_date');
+assert.equal((await resolves('https://suvoz.app/lectura/2026-09-09')).handled, false);
 assert.equal((await resolves('javascript:alert(1)')).handled, false);
 assert.equal((await resolves('https://suvoz.app/compartir?src=<script>')).source, 'unknown');
 
