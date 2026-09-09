@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.suvoz",
+      "sha256_cert_fingerprints": [
+        "7B:01:23:99:47:0F:58:1E:DB:98:CB:70:62:FE:3B:AB:B6:34:C4:68:88:6A:43:41:1F:0B:36:C6:99:CC:F4:0F"
+      ]
+    }
+  }
+]

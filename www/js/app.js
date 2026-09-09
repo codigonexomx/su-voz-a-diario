@@ -59,6 +59,10 @@ import {
 } from './core/appLinks.js';
 
 import {
+    resolveExternalDeepLink
+} from './services/DeepLinkService.js';
+
+import {
     DEFAULT_SETTINGS,
     DEFAULT_STREAK
 } from './core/defaults.js';
@@ -945,6 +949,8 @@ _nativePushActionListenersReady: false,
 _nativePushRegistrationListenersReady: false,
 _pushRouteReady: false,
 _pendingPushHash: null,
+    _nativeDeepLinkListenerReady: false,
+    _lastDeepLinkKey: '',
 _pendingCommunityEntryPoint: null,
 themeListenerReady: false,
 _selectionPanelEventsBound: false,
@@ -1006,11 +1012,13 @@ this.bindCommunityDraftLifecycle();
 this.bindBibleReadingContinuityLifecycle();
 await this.loadData();
 this.initAnalytics();
+this.setupNativeDeepLinkListener();
 
 // Fase 9: Migración única de cuadernillo a sesiones
 this.migrateLegacyNotebookToSessions();
 
 await this.handleRoute();
+await this.processInitialDeepLink();
 this.trackAppOpen();
 this._pushRouteReady = true;
 
@@ -1071,7 +1079,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '227'
+            pwaVersion: '228'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1116,6 +1124,78 @@ console.log('[App] Inicialización completada');
 
     setCommunityEntryPoint: function(entryPoint) {
         this._pendingCommunityEntryPoint = entryPoint || 'direct';
+    },
+
+    setupNativeDeepLinkListener: function() {
+        if (!window.Capacitor?.isNativePlatform?.() || this._nativeDeepLinkListenerReady) return;
+
+        const AppPlugin = this.getCapacitorPlugin('App');
+
+        if (!AppPlugin?.addListener) {
+            console.warn('[Deep Link] El plugin @capacitor/app no está disponible');
+            return;
+        }
+
+        this._nativeDeepLinkListenerReady = true;
+
+        Promise.resolve(
+            AppPlugin.addListener('appUrlOpen', event => {
+                this.handleExternalAppUrl(event?.url, 'appUrlOpen').catch(error => {
+                    console.warn('[Deep Link] No se pudo procesar appUrlOpen:', error);
+                });
+            })
+        ).catch(error => {
+            this._nativeDeepLinkListenerReady = false;
+            console.warn('[Deep Link] No se pudo registrar appUrlOpen:', error);
+        });
+    },
+
+    processInitialDeepLink: async function() {
+        if (!window.Capacitor?.isNativePlatform?.()) return false;
+
+        const AppPlugin = this.getCapacitorPlugin('App');
+        if (!AppPlugin?.getLaunchUrl) return false;
+
+        try {
+            const launch = await AppPlugin.getLaunchUrl();
+            return this.handleExternalAppUrl(launch?.url, 'getLaunchUrl');
+        } catch (error) {
+            console.warn('[Deep Link] No se pudo leer getLaunchUrl:', error);
+            return false;
+        }
+    },
+
+    handleExternalAppUrl: async function(url, trigger = 'appUrlOpen') {
+        const result = await resolveExternalDeepLink(url, {
+            readingExists: async date => Boolean(await this.getReadingByDate(date))
+        });
+
+        if (!result.handled) return false;
+
+        const sharedKey = `${result.normalizedUrl}:${result.hash}`;
+        if (this._lastDeepLinkKey === sharedKey) {
+            return true;
+        }
+        this._lastDeepLinkKey = sharedKey;
+
+        const shouldRefreshHome = result.hash === '#home' && this.homeViewingDate !== null;
+        if (result.hash === '#home') {
+            this.homeViewingDate = null;
+        }
+
+        if (window.location.hash !== result.hash || shouldRefreshHome) {
+            history.pushState(null, '', result.hash);
+            await this.handleRoute();
+        }
+
+        this.trackAnalyticsEvent('deep_link_open', {
+            source: result.source,
+            destination: result.destination,
+            content_type: result.contentType,
+            platform: this.getAnalyticsPlatform()
+        });
+
+        return true;
     },
 
     getNotificationAnalyticsParams: function(hash) {

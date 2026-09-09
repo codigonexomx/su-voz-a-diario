@@ -20,7 +20,7 @@ const analytics = new AnalyticsService();
 analytics.init({
     platform: 'web',
     appVersion: '2.1',
-    pwaVersion: '227'
+    pwaVersion: '228'
 });
 
 analytics.trackEvent('reading_start', {

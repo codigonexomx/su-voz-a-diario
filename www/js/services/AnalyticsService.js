@@ -38,7 +38,7 @@ const CONTROLLED_VALUES = {
     source: ['home', 'reading', 'calendar', 'community', 'direct', 'reading_share', 'community_share', 'verse_share', 'verse_image', 'church_qr', 'whatsapp', 'organic', 'play_campaign', 'unknown'],
     entry_point: ['bottom_nav', 'daily_question', 'reading_ecos', 'notification', 'direct', 'home', 'unknown'],
     audio_context: ['daily_reading', 'bible'],
-    content_type: ['daily_reading', 'verse', 'verse_image', 'community_post', 'app'],
+    content_type: ['daily_reading', 'verse', 'verse_image', 'community_post', 'app', 'app_link'],
     method: ['native_share', 'clipboard', 'other'],
     notification_type: ['daily_reminder', 'community_activity', 'other'],
     destination: ['home', 'community', 'community_thread', 'reading', 'bible', 'web', 'google_play', 'other'],

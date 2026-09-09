@@ -8,12 +8,13 @@ if (!versionPattern.test(APP_VERSION)) {
 }
 
 const files = {
-    index: ['index.html', 'www/index.html'],
-    serviceWorker: ['sw.js', 'www/sw.js']
+    index: ['index.html', 'www/index.html', 'compartir/index.html', 'www/compartir/index.html'],
+    serviceWorker: ['sw.js', 'www/sw.js'],
+    app: ['js/app.js', 'www/js/app.js']
 };
 
 const localVersionedAssetPattern =
-    /((?:href|src)=["'](?:\.\/)?(?:manifest\.json|css\/[^"'?]+|js\/[^"'?]+))(?:\?v=\d+)?(["'])/g;
+    /((?:href|src)=["'](?:\.\.\/|\.\/)?(?:manifest\.json|css\/[^"'?]+|js\/[^"'?]+))(?:\?v=\d+)?(["'])/g;
 
 const serviceWorkerAssetPattern =
     /((?:'|")(?:\.\/)?(?:manifest\.json|css\/[^'"]+|js\/[^'"]+))\?v=\d+((?:'|"))/g;
@@ -54,7 +55,18 @@ const syncServiceWorker = filePath => {
     writeIfChanged(filePath, updated);
 };
 
+const syncApp = filePath => {
+    const source = readFileSync(filePath, 'utf8');
+    let updated = source.replace(
+        /pwaVersion: ['"][^'"]+['"]/,
+        `pwaVersion: '${APP_VERSION}'`
+    );
+
+    writeIfChanged(filePath, updated);
+};
+
 files.index.forEach(syncIndex);
 files.serviceWorker.forEach(syncServiceWorker);
+files.app.forEach(syncApp);
 
 console.log(`PWA version sincronizada: ${APP_VERSION}`);
