@@ -35,13 +35,13 @@ const RESERVED_PARAM_NAMES = new Set([
 
 const CONTROLLED_VALUES = {
     platform: ['web', 'pwa', 'android', 'ios', 'native', 'unknown'],
-    source: ['home', 'reading', 'calendar', 'community', 'direct', 'unknown'],
+    source: ['home', 'reading', 'calendar', 'community', 'direct', 'reading_share', 'community_share', 'verse_share', 'verse_image', 'church_qr', 'whatsapp', 'organic', 'play_campaign', 'unknown'],
     entry_point: ['bottom_nav', 'daily_question', 'reading_ecos', 'notification', 'direct', 'home', 'unknown'],
     audio_context: ['daily_reading', 'bible'],
     content_type: ['daily_reading', 'verse', 'verse_image', 'community_post', 'app'],
     method: ['native_share', 'clipboard', 'other'],
     notification_type: ['daily_reminder', 'community_activity', 'other'],
-    destination: ['home', 'community', 'community_thread', 'reading', 'bible', 'other'],
+    destination: ['home', 'community', 'community_thread', 'reading', 'bible', 'web', 'google_play', 'other'],
     post_type: ['reflection', 'daily_question_response', 'prayer', 'testimony', 'unknown'],
     reaction_type: ['useful', 'thanks', 'unknown'],
     validation_source: ['local_debug']

@@ -55,6 +55,10 @@ import {
 } from './core/constants.js';
 
 import {
+    buildAcquisitionUrl
+} from './core/appLinks.js';
+
+import {
     DEFAULT_SETTINGS,
     DEFAULT_STREAK
 } from './core/defaults.js';
@@ -1067,7 +1071,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '226'
+            pwaVersion: '227'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -19504,7 +19508,7 @@ const noteSection = e.target.closest('.note-section');
             .replace(/<[^>]+>/g, '')
             .trim();
 
-       const appLink = 'https://suvoz.app';
+       const appLink = buildAcquisitionUrl('reading_share');
 
         const shareText = `📖 SU VOZ A DIARIO
         ━━━━━━━━━━
@@ -19515,7 +19519,7 @@ const noteSection = e.target.closest('.note-section');
         ${cleanText}
 
         ━━━━━━━━━━
-        Sigue escuchando Su voz en:
+        Continúa meditando en la Palabra con Su Voz:
         ${appLink}`;
 
        if (navigator.share) {

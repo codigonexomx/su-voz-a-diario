@@ -8,7 +8,7 @@ if (!versionPattern.test(APP_VERSION)) {
 }
 
 const files = {
-    index: ['index.html', 'www/index.html'],
+    index: ['index.html', 'www/index.html', 'compartir/index.html', 'www/compartir/index.html'],
     serviceWorker: ['sw.js', 'www/sw.js']
 };
 
