@@ -1079,7 +1079,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '229'
+            pwaVersion: '230'
         });
         window.SuVozAnalytics = analyticsService;
     },
