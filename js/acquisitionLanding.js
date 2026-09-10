@@ -29,7 +29,8 @@ function getSource() {
 }
 
 function getPlatform() {
-    return getAcquisitionPlatform(window.navigator?.userAgent || '');
+    const navigator = window.navigator || {};
+    return getAcquisitionPlatform(navigator.userAgent || '', navigator.userAgentData || null);
 }
 
 async function attachFirebaseAnalytics() {
@@ -78,6 +79,7 @@ function configureCtas(source, platform) {
     const webButton = document.querySelector('[data-acquisition-open-web]');
     const playButton = document.querySelector('[data-acquisition-google-play]');
     const playSlot = document.querySelector('[data-acquisition-google-play-slot]');
+    const note = document.querySelector('[data-acquisition-note]');
 
     if (webButton) {
         webButton.href = APP_LINKS.web;
@@ -88,6 +90,12 @@ function configureCtas(source, platform) {
         playSlot.hidden = false;
         playSlot.dataset.priority = 'primary';
         webButton?.setAttribute('data-priority', 'secondary');
+        if (webButton) {
+            webButton.textContent = 'Abrir Su Voz en la web';
+        }
+        if (note) {
+            note.textContent = 'Su Voz está disponible para Android en Google Play.';
+        }
 
         bindCta(playButton, 'google_play', APP_LINKS.googlePlay, source, platform);
     }
@@ -105,7 +113,7 @@ async function init() {
     analyticsService.init({
         platform,
         appVersion: '2.1',
-        pwaVersion: '227'
+        pwaVersion: '229'
     });
 
     track('acquisition_landing_view', {

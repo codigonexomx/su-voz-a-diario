@@ -1,5 +1,5 @@
 export const APP_LINKS = Object.freeze({
-    web: 'https://suvoz.app',
+    web: 'https://suvoz.app/',
     acquisition: 'https://suvoz.app/compartir',
     googlePlay: 'https://play.google.com/store/apps/details?id=app.suvoz'
 });
@@ -28,8 +28,11 @@ export function buildAcquisitionUrl(source = 'organic') {
     return url.href;
 }
 
-export function getAcquisitionPlatform(userAgent = '') {
+export function getAcquisitionPlatform(userAgent = '', userAgentData = null) {
     const ua = String(userAgent || '').toLowerCase();
+    const uaDataPlatform = String(userAgentData?.platform || '').toLowerCase();
+
+    if (/android/.test(uaDataPlatform)) return 'android';
 
     if (/android/.test(ua)) return 'android';
     if (/iphone|ipad|ipod/.test(ua)) return 'ios';
