@@ -846,6 +846,14 @@ const App = {
     _bottomNavStateGuardBound: false,
     _bottomNavStateObserver: null,
     _bottomNavStateCheckScheduled: false,
+    _liquidNavResizeObserver: null,
+    _liquidNavFrame: null,
+    _liquidNavGeometryBound: false,
+    _liquidNavAnimation: null,
+    _liquidNavInitialized: false,
+    _liquidNavActiveButton: null,
+    _liquidNavGeometry: null,
+    _liquidNavReducedMotionMedia: null,
     bibleReadingSettings: {
         textSize: 'normal',
         spacing: 'comfortable',
@@ -1006,6 +1014,7 @@ this.bindStrongNativeLongPress();
 this.bindHeaderControlsToggle();
 this.bindKeyboardViewportFix();
 this.bindBottomNavStateGuard();
+this.bindLiquidNavIndicatorGeometry();
 this.setupAndroidBackButton();
 this.setupNativePushActionListeners();
 this.bindCommunityDraftLifecycle();
@@ -1476,23 +1485,243 @@ scheduleKeyboardViewportUpdate: function() {
     window.KeyboardViewportManager?.refresh?.();
 },
 
-updateKeyboardViewportState: function() {
-    const state = window.KeyboardViewportManager?.getState?.();
-    document.body.classList.toggle('keyboard-open', Boolean(state?.isKeyboardOpen));
-    return Boolean(state?.isKeyboardOpen);
-},
+    updateKeyboardViewportState: function() {
+        const state = window.KeyboardViewportManager?.getState?.();
+        document.body.classList.toggle('keyboard-open', Boolean(state?.isKeyboardOpen));
+        this.scheduleLiquidNavIndicatorUpdate({ animate: false });
+        return Boolean(state?.isKeyboardOpen);
+    },
 
-bindKeyboardViewportFix: function() {
+    bindKeyboardViewportFix: function() {
     if (this._keyboardHandlersBound) return;
 
     this._keyboardViewportUnsubscribe = window.KeyboardViewportManager?.subscribe?.(state => {
         document.body.classList.toggle('keyboard-open', Boolean(state.isKeyboardOpen));
+        this.scheduleLiquidNavIndicatorUpdate({ animate: false });
     }) || null;
     this.updateKeyboardViewportState();
     this._keyboardHandlersBound = true;
-},
+    },
 
-showAprilMessageIfNeeded: function() {
+    getBottomNavItems: function() {
+        return [
+            { btn: this.$navHome, views: ['home', 'reading'] },
+            { btn: this.$navBible, views: ['bible', 'bible-reading', 'bible-search', 'bible-memory', 'strong-dictionary'] },
+            { btn: this.$navCalendar, views: ['calendar'] },
+            { btn: this.$navCommunity, views: ['community', 'community-thread'] },
+            { btn: this.$navStats, views: ['stats'] }
+        ];
+    },
+
+    getActiveBottomNavButton: function() {
+        return this.getBottomNavItems().find(({ views }) => views.includes(this.currentView))?.btn || null;
+    },
+
+    getLiquidNavIndicatorGeometry: function() {
+        const nav = this.$bottomNav;
+        const indicator = nav?.querySelector?.('.nav-liquid-indicator');
+        const activeBtn = this.getActiveBottomNavButton();
+
+        if (!nav || !indicator || !activeBtn) return null;
+
+        const navStyles = window.getComputedStyle(nav);
+        const navPaddingLeft = parseFloat(navStyles.paddingLeft) || 0;
+        const navPaddingRight = parseFloat(navStyles.paddingRight) || 0;
+        const availableWidth = Math.max(0, nav.clientWidth - navPaddingLeft - navPaddingRight);
+        const inset = Math.min(6, Math.max(4, availableWidth * 0.018));
+        const x = activeBtn.offsetLeft + inset;
+        const width = Math.max(44, activeBtn.offsetWidth - (inset * 2));
+
+        if (!Number.isFinite(x) || !Number.isFinite(width) || width <= 0) return null;
+
+        return {
+            nav,
+            indicator,
+            activeBtn,
+            x: Math.round(x),
+            width: Math.round(width)
+        };
+    },
+
+    getCurrentLiquidNavVisualState: function(indicator) {
+        const fallback = this._liquidNavGeometry || { x: 0, width: 0 };
+        const styles = window.getComputedStyle(indicator);
+        let x = fallback.x;
+
+        try {
+            const Matrix = window.DOMMatrixReadOnly || window.WebKitCSSMatrix;
+            const matrix = styles.transform && styles.transform !== 'none'
+                ? new Matrix(styles.transform)
+                : null;
+            if (matrix && Number.isFinite(matrix.m41)) {
+                x = matrix.m41;
+            }
+        } catch (error) {
+            x = fallback.x;
+        }
+
+        const width = parseFloat(styles.width) || fallback.width || 0;
+
+        return {
+            x: Math.round(x),
+            width: Math.round(width)
+        };
+    },
+
+    placeLiquidNavIndicator: function(geometry) {
+        if (!geometry) return;
+
+        geometry.nav.style.setProperty('--nav-liquid-x', `${geometry.x}px`);
+        geometry.nav.style.setProperty('--nav-liquid-width', `${geometry.width}px`);
+        geometry.nav.style.setProperty('--nav-liquid-opacity', '1');
+        geometry.indicator.style.transformOrigin = 'center center';
+        geometry.indicator.style.transform = `translate3d(${geometry.x}px, 0, 0) scaleX(1)`;
+        geometry.indicator.style.width = `${geometry.width}px`;
+        this._liquidNavGeometry = {
+            x: geometry.x,
+            width: geometry.width
+        };
+    },
+
+    updateLiquidNavIndicator: function(options = {}) {
+        const geometry = this.getLiquidNavIndicatorGeometry();
+        if (!geometry) return;
+
+        const reducedMotion = Boolean(this._liquidNavReducedMotionMedia?.matches);
+        const sameButton = this._liquidNavActiveButton === geometry.activeBtn;
+        const shouldAnimate = options.animate === true
+            && this._liquidNavInitialized
+            && !sameButton
+            && !document.body.classList.contains('keyboard-open')
+            && !reducedMotion
+            && typeof geometry.indicator.animate === 'function';
+
+        const from = shouldAnimate
+            ? this.getCurrentLiquidNavVisualState(geometry.indicator)
+            : null;
+        const previousAnimation = this._liquidNavAnimation;
+
+        if (!shouldAnimate) {
+            if (previousAnimation) {
+                previousAnimation.cancel();
+                this._liquidNavAnimation = null;
+            }
+            this.placeLiquidNavIndicator(geometry);
+            this._liquidNavInitialized = true;
+            this._liquidNavActiveButton = geometry.activeBtn;
+            return;
+        }
+
+        if (previousAnimation) {
+            previousAnimation.cancel();
+            this._liquidNavAnimation = null;
+        }
+
+        const distance = geometry.x - from.x;
+        const absDistance = Math.abs(distance);
+        const direction = distance >= 0 ? 1 : -1;
+
+        if (absDistance < 1 && Math.abs(geometry.width - from.width) < 1) {
+            this.placeLiquidNavIndicator(geometry);
+            this._liquidNavActiveButton = geometry.activeBtn;
+            return;
+        }
+
+        const stretch = Math.min(1.16, 1 + (Math.min(absDistance, 160) / 1000));
+        const compress = Math.max(0.96, 1 - (Math.min(absDistance, 160) / 2400));
+        const leadX = from.x + (distance * 0.42);
+        const nearX = from.x + (distance * 0.84);
+        const duration = Math.min(440, Math.max(300, 260 + absDistance * 0.45));
+
+        geometry.nav.style.setProperty('--nav-liquid-x', `${geometry.x}px`);
+        geometry.nav.style.setProperty('--nav-liquid-width', `${geometry.width}px`);
+        geometry.nav.style.setProperty('--nav-liquid-opacity', '1');
+        geometry.indicator.style.transformOrigin = direction > 0 ? 'left center' : 'right center';
+
+        const animation = geometry.indicator.animate([
+            {
+                transform: `translate3d(${from.x}px, 0, 0) scaleX(1)`,
+                width: `${from.width}px`,
+                offset: 0
+            },
+            {
+                transform: `translate3d(${Math.round(leadX)}px, 0, 0) scaleX(${stretch})`,
+                width: `${geometry.width}px`,
+                offset: 0.36
+            },
+            {
+                transform: `translate3d(${Math.round(nearX)}px, 0, 0) scaleX(${Math.max(1.03, stretch - 0.06)})`,
+                width: `${geometry.width}px`,
+                offset: 0.70
+            },
+            {
+                transform: `translate3d(${geometry.x}px, 0, 0) scaleX(${compress})`,
+                width: `${geometry.width}px`,
+                offset: 0.88
+            },
+            {
+                transform: `translate3d(${geometry.x}px, 0, 0) scaleX(1)`,
+                width: `${geometry.width}px`,
+                offset: 1
+            }
+        ], {
+            duration,
+            easing: 'cubic-bezier(0.2, 0.88, 0.2, 1)',
+            fill: 'forwards'
+        });
+        this._liquidNavAnimation = animation;
+
+        this._liquidNavActiveButton = geometry.activeBtn;
+        this._liquidNavGeometry = {
+            x: geometry.x,
+            width: geometry.width
+        };
+
+        animation.onfinish = () => {
+            if (this._liquidNavAnimation !== animation) return;
+            this._liquidNavAnimation = null;
+            this.placeLiquidNavIndicator(geometry);
+        };
+        animation.oncancel = () => {
+            if (this._liquidNavAnimation !== animation) return;
+            this._liquidNavAnimation = null;
+        };
+    },
+
+    scheduleLiquidNavIndicatorUpdate: function(options = {}) {
+        if (this._liquidNavFrame !== null) {
+            cancelAnimationFrame(this._liquidNavFrame);
+        }
+
+        this._liquidNavFrame = requestAnimationFrame(() => {
+            this._liquidNavFrame = null;
+            this.updateLiquidNavIndicator(options);
+        });
+    },
+
+    bindLiquidNavIndicatorGeometry: function() {
+        if (this._liquidNavGeometryBound) return;
+        this._liquidNavGeometryBound = true;
+
+        this._liquidNavReducedMotionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
+
+        const schedule = () => this.scheduleLiquidNavIndicatorUpdate({ animate: false });
+        window.addEventListener('resize', schedule, { passive: true });
+        window.addEventListener('orientationchange', schedule, { passive: true });
+        this._liquidNavReducedMotionMedia?.addEventListener?.('change', schedule);
+
+        if (window.ResizeObserver && this.$bottomNav) {
+            this._liquidNavResizeObserver = new ResizeObserver(schedule);
+            this._liquidNavResizeObserver.observe(this.$bottomNav);
+            this.getBottomNavItems().forEach(({ btn }) => {
+                if (btn) this._liquidNavResizeObserver.observe(btn);
+            });
+        }
+
+        schedule();
+    },
+
+    showAprilMessageIfNeeded: function() {
     const aprilMessage = document.getElementById('april-message');
     if (!aprilMessage) return;
 
@@ -10107,13 +10336,7 @@ this.scheduleBottomNavStateCheck();
 },
     
 updateNavUI: function() {
-    const navBtns = [
-        { btn: this.$navHome, views: ['home', 'reading'] },
-        { btn: this.$navBible, views: ['bible', 'bible-reading', 'bible-search', 'bible-memory', 'strong-dictionary'] },
-        { btn: this.$navCalendar, views: ['calendar'] },
-        { btn: this.$navCommunity, views: ['community', 'community-thread'] },
-        { btn: this.$navStats, views: ['stats'] }
-    ];
+    const navBtns = this.getBottomNavItems();
     
     navBtns.forEach(({ btn, views }) => {
         if (btn) {
@@ -10124,6 +10347,7 @@ updateNavUI: function() {
             }
         }
     });
+    this.scheduleLiquidNavIndicatorUpdate({ animate: true });
 },
     
     formatDateEs,

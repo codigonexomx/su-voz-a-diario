@@ -6195,6 +6195,7 @@ body.dark-mode .toast-message {
     left: calc(var(--safe-area-left) + ((100dvi - var(--safe-area-left) - var(--safe-area-right)) / 2));
     bottom: calc(8px + var(--safe-area-bottom));  /* ← CAMBIA 14px por 8px */
     transform: translateX(-50%);
+    overflow: visible;
     width: min(88dvi, 380px, calc(100dvi - var(--safe-area-left) - var(--safe-area-right) - 24px));
     height: 60px;
     display: flex;
@@ -6208,19 +6209,50 @@ body.dark-mode .toast-message {
 
     border-radius: 999px;
 
-    background: rgba(10, 18, 32, 0.88);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)),
+        rgba(10, 18, 32, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.16);
 
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: saturate(1.35) blur(18px);
+    -webkit-backdrop-filter: saturate(1.35) blur(18px);
 
     box-shadow:
-        0 12px 28px rgba(0, 0, 0, 0.36),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        0 16px 34px rgba(0, 0, 0, 0.26),
+        0 2px 10px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.06);
 
     transform: translateX(-50%) translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
+    --nav-liquid-x: 10px;
+    --nav-liquid-width: 0px;
+    --nav-liquid-opacity: 0;
+}
+
+.nav-liquid-indicator {
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+    z-index: 0;
+    width: var(--nav-liquid-width);
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: var(--nav-liquid-opacity);
+    transform: translate3d(var(--nav-liquid-x), 0, 0);
+    transition: opacity 0.16s ease;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.12)),
+        rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow:
+        0 8px 20px rgba(0, 0, 0, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.44),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.10);
+    backdrop-filter: saturate(1.25) blur(10px);
+    -webkit-backdrop-filter: saturate(1.25) blur(10px);
 }
 
 .nav-btn {
@@ -6228,6 +6260,8 @@ body.dark-mode .toast-message {
     border: none;
     color: rgba(255, 255, 255, 0.62);
     font-family: var(--font-ui);
+    position: relative;
+    z-index: 1;
 
     display: flex;
     flex-direction: column;
@@ -6260,6 +6294,7 @@ body.dark-mode .toast-message {
 
 .nav-btn.active {
     color: #4da3ff;
+    font-weight: 650;
 }
 
 .nav-btn svg {
@@ -6274,11 +6309,15 @@ body.dark-mode .toast-message {
 }
 
 body.light-mode .bottom-nav {
-    background: rgba(255, 255, 255, 0.88);
-    border-color: rgba(15, 23, 42, 0.08);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.42)),
+        rgba(255, 255, 255, 0.72);
+    border-color: rgba(15, 23, 42, 0.10);
     box-shadow:
-        0 12px 28px rgba(15, 23, 42, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+        0 16px 34px rgba(15, 23, 42, 0.13),
+        0 2px 10px rgba(15, 23, 42, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(15, 23, 42, 0.04);
 }
 
 body.light-mode .nav-btn {
@@ -6290,8 +6329,10 @@ body.light-mode .nav-btn.active {
 }
 
 body.dark-mode .bottom-nav {
-    background: rgba(10, 18, 32, 0.88);
-    border-color: rgba(255, 255, 255, 0.12);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.04)),
+        rgba(10, 18, 32, 0.78);
+    border-color: rgba(255, 255, 255, 0.16);
 }
 
 body.dark-mode .nav-btn {
@@ -6300,6 +6341,29 @@ body.dark-mode .nav-btn {
 
 body.dark-mode .nav-btn.active {
     color: #4da3ff;
+}
+
+body.light-mode .nav-liquid-indicator {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.46)),
+        rgba(255, 255, 255, 0.34);
+    border-color: rgba(255, 255, 255, 0.78);
+    box-shadow:
+        0 9px 20px rgba(49, 130, 206, 0.14),
+        0 1px 4px rgba(15, 23, 42, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        inset 0 -1px 0 rgba(15, 23, 42, 0.05);
+}
+
+body.dark-mode .nav-liquid-indicator {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.07)),
+        rgba(77, 163, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.24);
+    box-shadow:
+        0 9px 20px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .nav-btn-community {
@@ -6338,7 +6402,7 @@ body.dark-mode .nav-btn.active {
     position: absolute;
     top: 0px;
     right: 22px;
-    z-index: 20;
+    z-index: 2;
 
     width: 18px;
     height: 18px;
@@ -17726,8 +17790,8 @@ body:not(.dark-mode).community-background .nav-btn {
 body:not(.dark-mode).community-background .nav-btn.active,
 body:not(.dark-mode).community-background .nav-btn-community.active {
     color: #A66F24 !important;
-    background: #FAEEDC !important;
-    border-radius: 16px !important;
+    background: transparent !important;
+    border-radius: 0 !important;
 }
 
 /* ========================================
@@ -18046,9 +18110,31 @@ body.dark-mode.community-background .nav-btn {
 body.dark-mode.community-background .nav-btn.active,
 body.dark-mode.community-background .nav-btn-community.active {
     color: #D59A42 !important;
-    background: rgba(213, 154, 66, 0.12) !important;
-    border: 1px solid rgba(213, 154, 66, 0.14) !important;
-    border-radius: 16px !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+body:not(.dark-mode).community-background .nav-liquid-indicator {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(250, 238, 220, 0.46)),
+        rgba(250, 238, 220, 0.36);
+    border-color: rgba(166, 111, 36, 0.16);
+    box-shadow:
+        0 9px 20px rgba(48, 38, 25, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        inset 0 -1px 0 rgba(166, 111, 36, 0.06);
+}
+
+body.dark-mode.community-background .nav-liquid-indicator {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(213, 154, 66, 0.08)),
+        rgba(213, 154, 66, 0.12);
+    border-color: rgba(213, 154, 66, 0.18);
+    box-shadow:
+        0 9px 20px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -1px 0 rgba(213, 154, 66, 0.08);
 }
 
 /* Nombre de usuario editable en Hero y Modal */
