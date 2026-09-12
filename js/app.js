@@ -850,9 +850,11 @@ const App = {
     _liquidNavFrame: null,
     _liquidNavGeometryBound: false,
     _liquidNavAnimation: null,
+    _liquidNavAnimationFrame: null,
     _liquidNavInitialized: false,
     _liquidNavActiveButton: null,
     _liquidNavGeometry: null,
+    _liquidNavVisualState: null,
     _liquidNavReducedMotionMedia: null,
     bibleReadingSettings: {
         textSize: 'normal',
@@ -1524,62 +1526,94 @@ scheduleKeyboardViewportUpdate: function() {
 
         if (!nav || !indicator || !activeBtn) return null;
 
-        const navStyles = window.getComputedStyle(nav);
-        const navPaddingLeft = parseFloat(navStyles.paddingLeft) || 0;
-        const navPaddingRight = parseFloat(navStyles.paddingRight) || 0;
-        const availableWidth = Math.max(0, nav.clientWidth - navPaddingLeft - navPaddingRight);
-        const inset = Math.min(6, Math.max(4, availableWidth * 0.018));
-        const x = activeBtn.offsetLeft + inset;
-        const width = Math.max(44, activeBtn.offsetWidth - (inset * 2));
+        const navRect = nav.getBoundingClientRect();
+        const icon = activeBtn.querySelector('svg');
+        const iconRect = icon?.getBoundingClientRect?.();
+        const hasIconGeometry = iconRect
+            && Number.isFinite(iconRect.left)
+            && iconRect.width > 0
+            && navRect.width > 0;
+        const centerX = hasIconGeometry
+            ? iconRect.left - navRect.left + (iconRect.width / 2)
+            : activeBtn.offsetLeft + (activeBtn.offsetWidth / 2);
+        const size = Math.min(38, Math.max(32, activeBtn.offsetHeight * 0.58));
 
-        if (!Number.isFinite(x) || !Number.isFinite(width) || width <= 0) return null;
+        if (!Number.isFinite(centerX) || !Number.isFinite(size) || size <= 0) return null;
 
         return {
             nav,
             indicator,
             activeBtn,
-            x: Math.round(x),
-            width: Math.round(width)
+            centerX: Math.round(centerX),
+            size: Math.round(size)
         };
     },
 
-    getCurrentLiquidNavVisualState: function(indicator) {
-        const fallback = this._liquidNavGeometry || { x: 0, width: 0 };
-        const styles = window.getComputedStyle(indicator);
-        let x = fallback.x;
-
-        try {
-            const Matrix = window.DOMMatrixReadOnly || window.WebKitCSSMatrix;
-            const matrix = styles.transform && styles.transform !== 'none'
-                ? new Matrix(styles.transform)
-                : null;
-            if (matrix && Number.isFinite(matrix.m41)) {
-                x = matrix.m41;
-            }
-        } catch (error) {
-            x = fallback.x;
-        }
-
-        const width = parseFloat(styles.width) || fallback.width || 0;
-
+    getCurrentLiquidNavVisualState: function() {
+        const fallback = this._liquidNavGeometry || { centerX: 0, size: 36 };
         return {
-            x: Math.round(x),
-            width: Math.round(width)
+            centerX: Math.round(this._liquidNavVisualState?.centerX ?? fallback.centerX),
+            size: Math.round(fallback.size || 36)
+        };
+    },
+
+    setLiquidNavMetaballState: function(geometry, state) {
+        const {
+            fromCenterX = geometry.centerX,
+            toCenterX = geometry.centerX,
+            originScale = 1,
+            targetScale = 0,
+            originOpacity = 1,
+            targetOpacity = 0,
+            neckOpacity = 0,
+            neckScaleY = 0.42,
+            highlightX = -4
+        } = state || {};
+        const size = geometry.size;
+        const direction = toCenterX >= fromCenterX ? 1 : -1;
+        const gap = Math.max(0, Math.abs(toCenterX - fromCenterX) - size);
+        const neckWidth = Math.min(54, gap + 18);
+        const neckX = direction > 0
+            ? Math.min(fromCenterX, toCenterX) - (neckWidth * 0.08)
+            : Math.min(fromCenterX, toCenterX) - (neckWidth * 0.92) + size;
+
+        geometry.nav.style.setProperty('--nav-liquid-size', `${size}px`);
+        geometry.nav.style.setProperty('--nav-liquid-y', `${Math.max(6, Math.round((geometry.nav.clientHeight - size) * 0.20))}px`);
+        geometry.nav.style.setProperty('--nav-liquid-from-x', `${Math.round(fromCenterX)}px`);
+        geometry.nav.style.setProperty('--nav-liquid-to-x', `${Math.round(toCenterX)}px`);
+        geometry.nav.style.setProperty('--nav-liquid-origin-scale', String(originScale));
+        geometry.nav.style.setProperty('--nav-liquid-target-scale', String(targetScale));
+        geometry.nav.style.setProperty('--nav-liquid-origin-opacity', String(originOpacity));
+        geometry.nav.style.setProperty('--nav-liquid-target-opacity', String(targetOpacity));
+        geometry.nav.style.setProperty('--nav-liquid-neck-opacity', String(neckOpacity));
+        geometry.nav.style.setProperty('--nav-liquid-neck-scale-y', String(neckScaleY));
+        geometry.nav.style.setProperty('--nav-liquid-neck-width', `${Math.round(neckOpacity > 0 ? neckWidth : 0)}px`);
+        geometry.nav.style.setProperty('--nav-liquid-neck-x', `${Math.round(neckX)}px`);
+        geometry.nav.style.setProperty('--nav-liquid-highlight-x', `${highlightX}px`);
+        geometry.nav.style.setProperty('--nav-liquid-opacity', '1');
+
+        this._liquidNavVisualState = {
+            centerX: targetOpacity >= originOpacity ? toCenterX : fromCenterX
         };
     },
 
     placeLiquidNavIndicator: function(geometry) {
         if (!geometry) return;
 
-        geometry.nav.style.setProperty('--nav-liquid-x', `${geometry.x}px`);
-        geometry.nav.style.setProperty('--nav-liquid-width', `${geometry.width}px`);
-        geometry.nav.style.setProperty('--nav-liquid-opacity', '1');
-        geometry.indicator.style.transformOrigin = 'center center';
-        geometry.indicator.style.transform = `translate3d(${geometry.x}px, 0, 0) scaleX(1)`;
-        geometry.indicator.style.width = `${geometry.width}px`;
+        this.setLiquidNavMetaballState(geometry, {
+            fromCenterX: geometry.centerX,
+            toCenterX: geometry.centerX,
+            originScale: 1,
+            targetScale: 0,
+            originOpacity: 1,
+            targetOpacity: 0,
+            neckOpacity: 0,
+            neckScaleY: 0.42,
+            highlightX: -4
+        });
         this._liquidNavGeometry = {
-            x: geometry.x,
-            width: geometry.width
+            centerX: geometry.centerX,
+            size: geometry.size
         };
     },
 
@@ -1597,7 +1631,7 @@ scheduleKeyboardViewportUpdate: function() {
             && typeof geometry.indicator.animate === 'function';
 
         const from = shouldAnimate
-            ? this.getCurrentLiquidNavVisualState(geometry.indicator)
+            ? this.getCurrentLiquidNavVisualState()
             : null;
         const previousAnimation = this._liquidNavAnimation;
 
@@ -1606,9 +1640,14 @@ scheduleKeyboardViewportUpdate: function() {
                 previousAnimation.cancel();
                 this._liquidNavAnimation = null;
             }
+            if (this._liquidNavAnimationFrame !== null) {
+                cancelAnimationFrame(this._liquidNavAnimationFrame);
+                this._liquidNavAnimationFrame = null;
+            }
             this.placeLiquidNavIndicator(geometry);
             this._liquidNavInitialized = true;
             this._liquidNavActiveButton = geometry.activeBtn;
+            requestAnimationFrame(() => this.placeLiquidNavIndicator(this.getLiquidNavIndicatorGeometry()));
             return;
         }
 
@@ -1616,74 +1655,109 @@ scheduleKeyboardViewportUpdate: function() {
             previousAnimation.cancel();
             this._liquidNavAnimation = null;
         }
+        if (this._liquidNavAnimationFrame !== null) {
+            cancelAnimationFrame(this._liquidNavAnimationFrame);
+            this._liquidNavAnimationFrame = null;
+        }
 
-        const distance = geometry.x - from.x;
+        const distance = geometry.centerX - from.centerX;
         const absDistance = Math.abs(distance);
         const direction = distance >= 0 ? 1 : -1;
 
-        if (absDistance < 1 && Math.abs(geometry.width - from.width) < 1) {
+        if (absDistance < 1) {
             this.placeLiquidNavIndicator(geometry);
             this._liquidNavActiveButton = geometry.activeBtn;
             return;
         }
 
-        const stretch = Math.min(1.16, 1 + (Math.min(absDistance, 160) / 1000));
-        const compress = Math.max(0.96, 1 - (Math.min(absDistance, 160) / 2400));
-        const leadX = from.x + (distance * 0.42);
-        const nearX = from.x + (distance * 0.84);
-        const duration = Math.min(440, Math.max(300, 260 + absDistance * 0.45));
+        const duration = Math.min(520, Math.max(360, 320 + absDistance * 0.62));
+        const maxTravelNeck = Math.min(absDistance, 54);
+        const easeOut = t => 1 - Math.pow(1 - t, 3);
+        const easeInOut = t => t < 0.5
+            ? 4 * t * t * t
+            : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        const lerp = (start, end, amount) => start + ((end - start) * amount);
+        const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
-        geometry.nav.style.setProperty('--nav-liquid-x', `${geometry.x}px`);
-        geometry.nav.style.setProperty('--nav-liquid-width', `${geometry.width}px`);
-        geometry.nav.style.setProperty('--nav-liquid-opacity', '1');
-        geometry.indicator.style.transformOrigin = direction > 0 ? 'left center' : 'right center';
-
-        const animation = geometry.indicator.animate([
-            {
-                transform: `translate3d(${from.x}px, 0, 0) scaleX(1)`,
-                width: `${from.width}px`,
-                offset: 0
-            },
-            {
-                transform: `translate3d(${Math.round(leadX)}px, 0, 0) scaleX(${stretch})`,
-                width: `${geometry.width}px`,
-                offset: 0.36
-            },
-            {
-                transform: `translate3d(${Math.round(nearX)}px, 0, 0) scaleX(${Math.max(1.03, stretch - 0.06)})`,
-                width: `${geometry.width}px`,
-                offset: 0.70
-            },
-            {
-                transform: `translate3d(${geometry.x}px, 0, 0) scaleX(${compress})`,
-                width: `${geometry.width}px`,
-                offset: 0.88
-            },
-            {
-                transform: `translate3d(${geometry.x}px, 0, 0) scaleX(1)`,
-                width: `${geometry.width}px`,
-                offset: 1
-            }
-        ], {
+        const animation = geometry.indicator.animate([{ opacity: 1 }, { opacity: 1 }], {
             duration,
-            easing: 'cubic-bezier(0.2, 0.88, 0.2, 1)',
+            easing: 'linear',
             fill: 'forwards'
         });
         this._liquidNavAnimation = animation;
 
         this._liquidNavActiveButton = geometry.activeBtn;
         this._liquidNavGeometry = {
-            x: geometry.x,
-            width: geometry.width
+            centerX: geometry.centerX,
+            size: geometry.size
         };
+
+        const renderFrame = () => {
+            if (this._liquidNavAnimation !== animation) return;
+            const rawProgress = clamp((animation.currentTime || 0) / duration, 0, 1);
+            const progress = easeInOut(rawProgress);
+            const leadingProgress = easeOut(clamp((rawProgress - 0.05) / 0.68, 0, 1));
+            const targetCenter = lerp(
+                from.centerX + direction * Math.min(maxTravelNeck * 0.28, 16),
+                geometry.centerX,
+                leadingProgress
+            );
+            const originFollow = rawProgress < 0.58
+                ? lerp(from.centerX, targetCenter - direction * maxTravelNeck, clamp(rawProgress / 0.58, 0, 1))
+                : lerp(targetCenter - direction * maxTravelNeck, geometry.centerX, clamp((rawProgress - 0.58) / 0.24, 0, 1));
+            const originScale = rawProgress < 0.26
+                ? lerp(1, 0.88, rawProgress / 0.26)
+                : rawProgress < 0.68
+                    ? lerp(0.88, 0.18, (rawProgress - 0.26) / 0.42)
+                    : lerp(0.18, 0, clamp((rawProgress - 0.68) / 0.14, 0, 1));
+            const targetScale = rawProgress < 0.22
+                ? lerp(0.12, 0.42, rawProgress / 0.22)
+                : rawProgress < 0.76
+                    ? lerp(0.42, 1.05, (rawProgress - 0.22) / 0.54)
+                    : rawProgress < 0.9
+                        ? lerp(1.05, 0.97, (rawProgress - 0.76) / 0.14)
+                        : lerp(0.97, 1, (rawProgress - 0.9) / 0.1);
+            const neckOpacity = rawProgress < 0.14
+                ? lerp(0, 0.72, rawProgress / 0.14)
+                : rawProgress < 0.72
+                    ? lerp(0.72, 0.56, (rawProgress - 0.14) / 0.58)
+                    : lerp(0.56, 0, clamp((rawProgress - 0.72) / 0.18, 0, 1));
+
+            this.setLiquidNavMetaballState(geometry, {
+                fromCenterX: originFollow,
+                toCenterX: targetCenter,
+                originScale: Number(originScale.toFixed(3)),
+                targetScale: Number(targetScale.toFixed(3)),
+                originOpacity: Number(clamp(originScale * 1.05, 0, 1).toFixed(3)),
+                targetOpacity: Number(clamp(targetScale, 0, 1).toFixed(3)),
+                neckOpacity: Number(clamp(neckOpacity, 0, 0.78).toFixed(3)),
+                neckScaleY: Number(lerp(0.34, 0.78, Math.sin(progress * Math.PI)).toFixed(3)),
+                highlightX: direction > 0 ? -2 : 2
+            });
+
+            this._liquidNavVisualState = {
+                centerX: lerp(from.centerX, geometry.centerX, progress)
+            };
+            this._liquidNavAnimationFrame = requestAnimationFrame(renderFrame);
+        };
+
+        renderFrame();
 
         animation.onfinish = () => {
             if (this._liquidNavAnimation !== animation) return;
+            if (this._liquidNavAnimationFrame !== null) {
+                cancelAnimationFrame(this._liquidNavAnimationFrame);
+                this._liquidNavAnimationFrame = null;
+            }
             this._liquidNavAnimation = null;
             this.placeLiquidNavIndicator(geometry);
         };
         animation.oncancel = () => {
             if (this._liquidNavAnimation !== animation) return;
+            if (this._liquidNavAnimationFrame !== null) {
+                cancelAnimationFrame(this._liquidNavAnimationFrame);
+                this._liquidNavAnimationFrame = null;
+            }
             this._liquidNavAnimation = null;
         };
     },
