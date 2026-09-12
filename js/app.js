@@ -1533,10 +1533,15 @@ scheduleKeyboardViewportUpdate: function() {
             && Number.isFinite(iconRect.left)
             && iconRect.width > 0
             && navRect.width > 0;
-        const centerX = hasIconGeometry
+        const rawCenterX = hasIconGeometry
             ? iconRect.left - navRect.left + (iconRect.width / 2)
             : activeBtn.offsetLeft + (activeBtn.offsetWidth / 2);
-        const size = Math.min(38, Math.max(32, activeBtn.offsetHeight * 0.58));
+        const size = Math.min(46, Math.max(42, activeBtn.offsetHeight * 0.72));
+        const edgeInset = (size / 2) + 2;
+        const centerX = Math.min(
+            Math.max(rawCenterX, edgeInset),
+            Math.max(edgeInset, nav.clientWidth - edgeInset)
+        );
 
         if (!Number.isFinite(centerX) || !Number.isFinite(size) || size <= 0) return null;
 
@@ -1571,14 +1576,14 @@ scheduleKeyboardViewportUpdate: function() {
         } = state || {};
         const size = geometry.size;
         const direction = toCenterX >= fromCenterX ? 1 : -1;
-        const gap = Math.max(0, Math.abs(toCenterX - fromCenterX) - size);
-        const neckWidth = Math.min(54, gap + 18);
+        const travelDistance = Math.abs(toCenterX - fromCenterX);
+        const neckWidth = Math.min(48, Math.max(0, travelDistance));
         const neckX = direction > 0
-            ? Math.min(fromCenterX, toCenterX) - (neckWidth * 0.08)
-            : Math.min(fromCenterX, toCenterX) - (neckWidth * 0.92) + size;
+            ? toCenterX - neckWidth - (size * 0.18)
+            : toCenterX + (size * 0.18);
 
         geometry.nav.style.setProperty('--nav-liquid-size', `${size}px`);
-        geometry.nav.style.setProperty('--nav-liquid-y', `${Math.max(6, Math.round((geometry.nav.clientHeight - size) * 0.20))}px`);
+        geometry.nav.style.setProperty('--nav-liquid-y', `${Math.max(3, Math.round((geometry.nav.clientHeight - size) * 0.18))}px`);
         geometry.nav.style.setProperty('--nav-liquid-from-x', `${Math.round(fromCenterX)}px`);
         geometry.nav.style.setProperty('--nav-liquid-to-x', `${Math.round(toCenterX)}px`);
         geometry.nav.style.setProperty('--nav-liquid-origin-scale', String(originScale));
@@ -1670,8 +1675,10 @@ scheduleKeyboardViewportUpdate: function() {
             return;
         }
 
-        const duration = Math.min(520, Math.max(360, 320 + absDistance * 0.62));
-        const maxTravelNeck = Math.min(absDistance, 54);
+        const navStep = Math.max(1, geometry.activeBtn.offsetWidth || 1);
+        const distanceSteps = Math.min(4, Math.max(1, absDistance / navStep));
+        const duration = Math.min(580, Math.max(380, 330 + distanceSteps * 58 + absDistance * 0.12));
+        const tailLength = Math.min(48, Math.max(28, absDistance * 0.34));
         const easeOut = t => 1 - Math.pow(1 - t, 3);
         const easeInOut = t => t < 0.5
             ? 4 * t * t * t
@@ -1696,36 +1703,35 @@ scheduleKeyboardViewportUpdate: function() {
             if (this._liquidNavAnimation !== animation) return;
             const rawProgress = clamp((animation.currentTime || 0) / duration, 0, 1);
             const progress = easeInOut(rawProgress);
-            const leadingProgress = easeOut(clamp((rawProgress - 0.05) / 0.68, 0, 1));
-            const targetCenter = lerp(
-                from.centerX + direction * Math.min(maxTravelNeck * 0.28, 16),
-                geometry.centerX,
-                leadingProgress
-            );
-            const originFollow = rawProgress < 0.58
-                ? lerp(from.centerX, targetCenter - direction * maxTravelNeck, clamp(rawProgress / 0.58, 0, 1))
-                : lerp(targetCenter - direction * maxTravelNeck, geometry.centerX, clamp((rawProgress - 0.58) / 0.24, 0, 1));
-            const originScale = rawProgress < 0.26
-                ? lerp(1, 0.88, rawProgress / 0.26)
-                : rawProgress < 0.68
-                    ? lerp(0.88, 0.18, (rawProgress - 0.26) / 0.42)
-                    : lerp(0.18, 0, clamp((rawProgress - 0.68) / 0.14, 0, 1));
-            const targetScale = rawProgress < 0.22
-                ? lerp(0.12, 0.42, rawProgress / 0.22)
-                : rawProgress < 0.76
-                    ? lerp(0.42, 1.05, (rawProgress - 0.22) / 0.54)
-                    : rawProgress < 0.9
-                        ? lerp(1.05, 0.97, (rawProgress - 0.76) / 0.14)
-                        : lerp(0.97, 1, (rawProgress - 0.9) / 0.1);
+            const travelProgress = easeInOut(clamp((rawProgress - 0.02) / 0.86, 0, 1));
+            const travelerCenter = lerp(from.centerX, geometry.centerX, travelProgress);
+            const originCenter = rawProgress < 0.30
+                ? lerp(from.centerX, from.centerX + direction * Math.min(14, absDistance * 0.16), rawProgress / 0.30)
+                : from.centerX;
+            const originScale = rawProgress < 0.20
+                ? lerp(1, 0.92, rawProgress / 0.20)
+                : rawProgress < 0.62
+                    ? lerp(0.92, 0.22, (rawProgress - 0.20) / 0.42)
+                    : lerp(0.22, 0, clamp((rawProgress - 0.62) / 0.14, 0, 1));
+            const targetScale = rawProgress < 0.10
+                ? lerp(0.18, 0.46, rawProgress / 0.10)
+                : rawProgress < 0.78
+                    ? lerp(0.46, 1.06, (rawProgress - 0.10) / 0.68)
+                    : rawProgress < 0.92
+                        ? lerp(1.06, 0.98, (rawProgress - 0.78) / 0.14)
+                        : lerp(0.98, 1, (rawProgress - 0.92) / 0.08);
             const neckOpacity = rawProgress < 0.14
-                ? lerp(0, 0.72, rawProgress / 0.14)
-                : rawProgress < 0.72
-                    ? lerp(0.72, 0.56, (rawProgress - 0.14) / 0.58)
-                    : lerp(0.56, 0, clamp((rawProgress - 0.72) / 0.18, 0, 1));
+                ? lerp(0, 0.76, rawProgress / 0.14)
+                : rawProgress < 0.76
+                    ? lerp(0.76, 0.58, (rawProgress - 0.14) / 0.62)
+                    : lerp(0.58, 0, clamp((rawProgress - 0.76) / 0.16, 0, 1));
+            const neckAnchor = rawProgress < 0.26
+                ? lerp(originCenter, travelerCenter - direction * tailLength, clamp(rawProgress / 0.26, 0, 1))
+                : travelerCenter - direction * tailLength;
 
             this.setLiquidNavMetaballState(geometry, {
-                fromCenterX: originFollow,
-                toCenterX: targetCenter,
+                fromCenterX: neckAnchor,
+                toCenterX: travelerCenter,
                 originScale: Number(originScale.toFixed(3)),
                 targetScale: Number(targetScale.toFixed(3)),
                 originOpacity: Number(clamp(originScale * 1.05, 0, 1).toFixed(3)),
@@ -1736,7 +1742,7 @@ scheduleKeyboardViewportUpdate: function() {
             });
 
             this._liquidNavVisualState = {
-                centerX: lerp(from.centerX, geometry.centerX, progress)
+                centerX: travelerCenter
             };
             this._liquidNavAnimationFrame = requestAnimationFrame(renderFrame);
         };

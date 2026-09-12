@@ -6227,8 +6227,8 @@ body.dark-mode .toast-message {
     transform: translateX(-50%) translateZ(0);
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    --nav-liquid-size: 36px;
-    --nav-liquid-y: 7px;
+    --nav-liquid-size: 44px;
+    --nav-liquid-y: 4px;
     --nav-liquid-from-x: 0px;
     --nav-liquid-to-x: 0px;
     --nav-liquid-neck-x: 0px;
@@ -6270,15 +6270,15 @@ body.dark-mode .toast-message {
     height: var(--nav-liquid-size);
     border-radius: 50%;
     background:
-        radial-gradient(circle at 32% 23%, rgba(255, 255, 255, 0.88) 0 10%, rgba(255, 255, 255, 0.34) 11% 23%, transparent 24%),
-        radial-gradient(circle at 68% 78%, rgba(77, 163, 255, 0.32), transparent 50%),
-        linear-gradient(145deg, rgba(255, 255, 255, 0.50), rgba(255, 255, 255, 0.16) 44%, rgba(77, 163, 255, 0.20));
-    border: 1px solid rgba(255, 255, 255, 0.36);
+        radial-gradient(circle at 31% 22%, rgba(255, 255, 255, 0.92) 0 12%, rgba(255, 255, 255, 0.36) 13% 26%, transparent 27%),
+        radial-gradient(circle at 70% 80%, rgba(77, 163, 255, 0.36), transparent 52%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.54), rgba(255, 255, 255, 0.17) 44%, rgba(77, 163, 255, 0.24));
+    border: 1px solid rgba(255, 255, 255, 0.40);
     box-shadow:
-        0 7px 16px rgba(0, 0, 0, 0.16),
-        inset 0 1px 1px rgba(255, 255, 255, 0.58),
-        inset 0 -8px 14px rgba(35, 92, 148, 0.13),
-        inset 0 0 12px rgba(255, 255, 255, 0.13);
+        0 8px 18px rgba(0, 0, 0, 0.17),
+        inset 0 1px 1px rgba(255, 255, 255, 0.62),
+        inset 0 -10px 16px rgba(35, 92, 148, 0.14),
+        inset 0 0 14px rgba(255, 255, 255, 0.15);
     backdrop-filter: saturate(1.25) blur(10px);
     -webkit-backdrop-filter: saturate(1.25) blur(10px);
 }
@@ -6286,10 +6286,10 @@ body.dark-mode .toast-message {
 .nav-liquid-blob::after {
     content: '';
     position: absolute;
-    width: 9px;
-    height: 4px;
-    left: 10px;
-    top: 8px;
+    width: 11px;
+    height: 5px;
+    left: 12px;
+    top: 9px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.78);
     filter: blur(0.2px);
@@ -6307,8 +6307,8 @@ body.dark-mode .toast-message {
 }
 
 .nav-liquid-neck {
-    top: 6px;
-    height: calc(var(--nav-liquid-size) - 12px);
+    top: 8px;
+    height: calc(var(--nav-liquid-size) - 16px);
     width: var(--nav-liquid-neck-width);
     opacity: var(--nav-liquid-neck-opacity);
     border-radius: 999px;
@@ -6360,6 +6360,7 @@ body.dark-mode .toast-message {
     cursor: pointer;
     transition: color 0.2s ease, transform 0.14s ease;
     padding: 0 2px;
+    outline: none;
 }
 
 .nav-btn > span {
@@ -6380,6 +6381,12 @@ body.dark-mode .toast-message {
 .nav-btn.active {
     color: #4da3ff;
     font-weight: 650;
+}
+
+.nav-btn:focus-visible {
+    outline: 2px solid rgba(77, 163, 255, 0.72);
+    outline-offset: -6px;
+    border-radius: 999px;
 }
 
 .nav-btn svg {
@@ -6436,15 +6443,15 @@ body.dark-mode .nav-btn.active {
 
 body.light-mode .nav-liquid-blob {
     background:
-        radial-gradient(circle at 32% 23%, rgba(255, 255, 255, 0.98) 0 10%, rgba(255, 255, 255, 0.50) 11% 23%, transparent 24%),
-        radial-gradient(circle at 68% 78%, rgba(40, 109, 204, 0.22), transparent 50%),
-        linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 255, 255, 0.36) 44%, rgba(77, 163, 255, 0.18));
+        radial-gradient(circle at 31% 22%, rgba(255, 255, 255, 0.98) 0 12%, rgba(255, 255, 255, 0.54) 13% 27%, transparent 28%),
+        radial-gradient(circle at 70% 80%, rgba(40, 109, 204, 0.24), transparent 52%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.37) 44%, rgba(77, 163, 255, 0.20));
     border-color: rgba(255, 255, 255, 0.78);
     box-shadow:
-        0 8px 18px rgba(49, 130, 206, 0.14),
+        0 9px 20px rgba(49, 130, 206, 0.15),
         0 1px 4px rgba(15, 23, 42, 0.07),
         inset 0 1px 0 rgba(255, 255, 255, 0.92),
-        inset 0 -8px 14px rgba(49, 130, 206, 0.08);
+        inset 0 -10px 16px rgba(49, 130, 206, 0.09);
 }
 
 body.light-mode .nav-liquid-neck {
@@ -6456,14 +6463,14 @@ body.light-mode .nav-liquid-neck {
 
 body.dark-mode .nav-liquid-blob {
     background:
-        radial-gradient(circle at 32% 23%, rgba(255, 255, 255, 0.78) 0 10%, rgba(255, 255, 255, 0.30) 11% 23%, transparent 24%),
+        radial-gradient(circle at 31% 22%, rgba(255, 255, 255, 0.82) 0 12%, rgba(255, 255, 255, 0.32) 13% 27%, transparent 28%),
         radial-gradient(circle at 68% 78%, rgba(77, 163, 255, 0.42), transparent 52%),
-        linear-gradient(145deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.10) 44%, rgba(77, 163, 255, 0.22));
+        linear-gradient(145deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.11) 44%, rgba(77, 163, 255, 0.25));
     border-color: rgba(255, 255, 255, 0.24);
     box-shadow:
-        0 8px 18px rgba(0, 0, 0, 0.22),
+        0 9px 20px rgba(0, 0, 0, 0.23),
         inset 0 1px 0 rgba(255, 255, 255, 0.28),
-        inset 0 -8px 14px rgba(8, 31, 56, 0.18);
+        inset 0 -10px 16px rgba(8, 31, 56, 0.19);
 }
 
 body.dark-mode .nav-liquid-neck {
@@ -18224,14 +18231,14 @@ body.dark-mode.community-background .nav-btn-community.active {
 
 body:not(.dark-mode).community-background .nav-liquid-blob {
     background:
-        radial-gradient(circle at 32% 23%, rgba(255, 255, 255, 0.96) 0 10%, rgba(255, 246, 232, 0.48) 11% 23%, transparent 24%),
+        radial-gradient(circle at 31% 22%, rgba(255, 255, 255, 0.98) 0 12%, rgba(255, 246, 232, 0.52) 13% 27%, transparent 28%),
         radial-gradient(circle at 68% 78%, rgba(213, 154, 66, 0.22), transparent 52%),
-        linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(250, 238, 220, 0.34) 44%, rgba(213, 154, 66, 0.16));
+        linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(250, 238, 220, 0.36) 44%, rgba(213, 154, 66, 0.18));
     border-color: rgba(166, 111, 36, 0.16);
     box-shadow:
-        0 8px 18px rgba(48, 38, 25, 0.10),
+        0 9px 20px rgba(48, 38, 25, 0.11),
         inset 0 1px 0 rgba(255, 255, 255, 0.86),
-        inset 0 -8px 14px rgba(166, 111, 36, 0.06);
+        inset 0 -10px 16px rgba(166, 111, 36, 0.07);
 }
 
 body:not(.dark-mode).community-background .nav-liquid-neck {
@@ -18243,14 +18250,14 @@ body:not(.dark-mode).community-background .nav-liquid-neck {
 
 body.dark-mode.community-background .nav-liquid-blob {
     background:
-        radial-gradient(circle at 32% 23%, rgba(255, 255, 255, 0.62) 0 10%, rgba(255, 255, 255, 0.22) 11% 23%, transparent 24%),
+        radial-gradient(circle at 31% 22%, rgba(255, 255, 255, 0.68) 0 12%, rgba(255, 255, 255, 0.24) 13% 27%, transparent 28%),
         radial-gradient(circle at 68% 78%, rgba(213, 154, 66, 0.32), transparent 52%),
-        linear-gradient(145deg, rgba(255, 255, 255, 0.24), rgba(213, 154, 66, 0.08) 44%, rgba(213, 154, 66, 0.18));
+        linear-gradient(145deg, rgba(255, 255, 255, 0.28), rgba(213, 154, 66, 0.09) 44%, rgba(213, 154, 66, 0.20));
     border-color: rgba(213, 154, 66, 0.18);
     box-shadow:
-        0 8px 18px rgba(0, 0, 0, 0.22),
+        0 9px 20px rgba(0, 0, 0, 0.23),
         inset 0 1px 0 rgba(255, 255, 255, 0.18),
-        inset 0 -8px 14px rgba(45, 25, 5, 0.12);
+        inset 0 -10px 16px rgba(45, 25, 5, 0.13);
 }
 
 body.dark-mode.community-background .nav-liquid-neck {
