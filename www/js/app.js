@@ -846,16 +846,15 @@ const App = {
     _bottomNavStateGuardBound: false,
     _bottomNavStateObserver: null,
     _bottomNavStateCheckScheduled: false,
-    _liquidNavResizeObserver: null,
-    _liquidNavFrame: null,
-    _liquidNavGeometryBound: false,
-    _liquidNavAnimation: null,
-    _liquidNavAnimationFrame: null,
-    _liquidNavInitialized: false,
-    _liquidNavActiveButton: null,
-    _liquidNavGeometry: null,
-    _liquidNavVisualState: null,
-    _liquidNavReducedMotionMedia: null,
+    _glassNavResizeObserver: null,
+    _glassNavFrame: null,
+    _glassNavGeometryBound: false,
+    _glassNavAnimationFrame: null,
+    _glassNavInitialized: false,
+    _glassNavActiveButton: null,
+    _glassNavGeometry: null,
+    _glassNavVisualState: null,
+    _glassNavReducedMotionMedia: null,
     bibleReadingSettings: {
         textSize: 'normal',
         spacing: 'comfortable',
@@ -1016,7 +1015,7 @@ this.bindStrongNativeLongPress();
 this.bindHeaderControlsToggle();
 this.bindKeyboardViewportFix();
 this.bindBottomNavStateGuard();
-this.bindLiquidNavIndicatorGeometry();
+this.bindGlassNavIndicatorGeometry();
 this.setupAndroidBackButton();
 this.setupNativePushActionListeners();
 this.bindCommunityDraftLifecycle();
@@ -1090,7 +1089,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '230'
+            pwaVersion: '233'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1490,7 +1489,7 @@ scheduleKeyboardViewportUpdate: function() {
     updateKeyboardViewportState: function() {
         const state = window.KeyboardViewportManager?.getState?.();
         document.body.classList.toggle('keyboard-open', Boolean(state?.isKeyboardOpen));
-        this.scheduleLiquidNavIndicatorUpdate({ animate: false });
+        this.scheduleGlassNavIndicatorUpdate({ animate: false });
         return Boolean(state?.isKeyboardOpen);
     },
 
@@ -1499,7 +1498,7 @@ scheduleKeyboardViewportUpdate: function() {
 
     this._keyboardViewportUnsubscribe = window.KeyboardViewportManager?.subscribe?.(state => {
         document.body.classList.toggle('keyboard-open', Boolean(state.isKeyboardOpen));
-        this.scheduleLiquidNavIndicatorUpdate({ animate: false });
+        this.scheduleGlassNavIndicatorUpdate({ animate: false });
     }) || null;
     this.updateKeyboardViewportState();
     this._keyboardHandlersBound = true;
@@ -1519,284 +1518,225 @@ scheduleKeyboardViewportUpdate: function() {
         return this.getBottomNavItems().find(({ views }) => views.includes(this.currentView))?.btn || null;
     },
 
-    getLiquidNavIndicatorGeometry: function() {
+    getGlassNavIndicatorGeometry: function() {
         const nav = this.$bottomNav;
-        const indicator = nav?.querySelector?.('.nav-liquid-indicator');
+        const indicator = nav?.querySelector?.('.nav-glass-indicator');
         const activeBtn = this.getActiveBottomNavButton();
 
         if (!nav || !indicator || !activeBtn) return null;
 
         const navRect = nav.getBoundingClientRect();
-        const icon = activeBtn.querySelector('svg');
-        const iconRect = icon?.getBoundingClientRect?.();
-        const hasIconGeometry = iconRect
-            && Number.isFinite(iconRect.left)
-            && iconRect.width > 0
-            && navRect.width > 0;
-        const rawCenterX = hasIconGeometry
-            ? iconRect.left - navRect.left + (iconRect.width / 2)
-            : activeBtn.offsetLeft + (activeBtn.offsetWidth / 2);
-        const size = Math.min(46, Math.max(42, activeBtn.offsetHeight * 0.72));
-        const edgeInset = (size / 2) + 2;
+        const rawCenterX = activeBtn.offsetLeft + (activeBtn.offsetWidth / 2);
+        const height = Math.min(44, Math.max(40, activeBtn.offsetHeight * 0.68));
+        const width = Math.min(76, Math.max(68, activeBtn.offsetWidth - 2));
+        const y = Math.round((nav.clientHeight - height) / 2);
+        const edgeInset = (width / 2) + 2;
         const centerX = Math.min(
             Math.max(rawCenterX, edgeInset),
             Math.max(edgeInset, nav.clientWidth - edgeInset)
         );
 
-        if (!Number.isFinite(centerX) || !Number.isFinite(size) || size <= 0) return null;
+        if (!Number.isFinite(centerX) || !Number.isFinite(width) || !Number.isFinite(height)) return null;
 
         return {
             nav,
             indicator,
             activeBtn,
-            centerX: Math.round(centerX),
-            size: Math.round(size)
+            centerX,
+            width,
+            height,
+            y
         };
     },
 
-    getCurrentLiquidNavVisualState: function() {
-        const fallback = this._liquidNavGeometry || { centerX: 0, size: 36 };
+    getCurrentGlassNavVisualState: function() {
+        const fallback = this._glassNavGeometry || { centerX: 0, width: 76, height: 44, y: 8 };
         return {
-            centerX: Math.round(this._liquidNavVisualState?.centerX ?? fallback.centerX),
-            size: Math.round(fallback.size || 36)
+            centerX: Number(this._glassNavVisualState?.centerX ?? fallback.centerX),
+            velocity: Number(this._glassNavVisualState?.velocity ?? 0),
+            width: Number(fallback.width || 76),
+            height: Number(fallback.height || 44),
+            y: Number(fallback.y || 8)
         };
     },
 
-    setLiquidNavMetaballState: function(geometry, state) {
-        const {
-            fromCenterX = geometry.centerX,
-            toCenterX = geometry.centerX,
-            originScale = 1,
-            targetScale = 0,
-            originOpacity = 1,
-            targetOpacity = 0,
-            neckOpacity = 0,
-            neckScaleY = 0.42,
-            highlightX = -4
-        } = state || {};
-        const size = geometry.size;
-        const direction = toCenterX >= fromCenterX ? 1 : -1;
-        const travelDistance = Math.abs(toCenterX - fromCenterX);
-        const neckWidth = Math.min(48, Math.max(0, travelDistance));
-        const neckX = direction > 0
-            ? toCenterX - neckWidth - (size * 0.18)
-            : toCenterX + (size * 0.18);
+    setGlassNavIndicatorState: function(geometry, state = {}) {
+        const centerX = Number(state.centerX ?? geometry.centerX);
+        const velocity = Number(state.velocity ?? 0);
+        const stretch = Number(state.stretch ?? 1);
+        const press = Number(state.press ?? 0);
+        const direction = Number(state.direction ?? 1);
+        const width = Number(state.width ?? geometry.width);
+        const height = Number(state.height ?? geometry.height);
+        const x = centerX - (width / 2);
+        const origin = direction >= 0 ? '72%' : '28%';
 
-        geometry.nav.style.setProperty('--nav-liquid-size', `${size}px`);
-        geometry.nav.style.setProperty('--nav-liquid-y', `${Math.max(3, Math.round((geometry.nav.clientHeight - size) * 0.18))}px`);
-        geometry.nav.style.setProperty('--nav-liquid-from-x', `${Math.round(fromCenterX)}px`);
-        geometry.nav.style.setProperty('--nav-liquid-to-x', `${Math.round(toCenterX)}px`);
-        geometry.nav.style.setProperty('--nav-liquid-origin-scale', String(originScale));
-        geometry.nav.style.setProperty('--nav-liquid-target-scale', String(targetScale));
-        geometry.nav.style.setProperty('--nav-liquid-origin-opacity', String(originOpacity));
-        geometry.nav.style.setProperty('--nav-liquid-target-opacity', String(targetOpacity));
-        geometry.nav.style.setProperty('--nav-liquid-neck-opacity', String(neckOpacity));
-        geometry.nav.style.setProperty('--nav-liquid-neck-scale-y', String(neckScaleY));
-        geometry.nav.style.setProperty('--nav-liquid-neck-width', `${Math.round(neckOpacity > 0 ? neckWidth : 0)}px`);
-        geometry.nav.style.setProperty('--nav-liquid-neck-x', `${Math.round(neckX)}px`);
-        geometry.nav.style.setProperty('--nav-liquid-highlight-x', `${highlightX}px`);
-        geometry.nav.style.setProperty('--nav-liquid-opacity', '1');
+        geometry.nav.style.setProperty('--nav-glass-x', `${Math.round(x)}px`);
+        geometry.nav.style.setProperty('--nav-glass-y', `${Math.round(geometry.y)}px`);
+        geometry.nav.style.setProperty('--nav-glass-width', `${Math.round(width)}px`);
+        geometry.nav.style.setProperty('--nav-glass-height', `${Math.round(height)}px`);
+        geometry.nav.style.setProperty('--nav-glass-scale-x', String(Math.min(1.10, Math.max(0.98, stretch)).toFixed(3)));
+        geometry.nav.style.setProperty('--nav-glass-scale-y', String(Math.min(1.02, Math.max(0.96, 1 - ((stretch - 1) * 0.34) - (press * 0.02))).toFixed(3)));
+        geometry.nav.style.setProperty('--nav-glass-origin', origin);
+        geometry.nav.style.setProperty('--nav-glass-opacity', '1');
+        geometry.nav.style.setProperty('--nav-glass-press', String(Math.min(1, Math.max(0, press)).toFixed(3)));
 
-        this._liquidNavVisualState = {
-            centerX: targetOpacity >= originOpacity ? toCenterX : fromCenterX
+        this._glassNavVisualState = {
+            centerX,
+            velocity
         };
     },
 
-    placeLiquidNavIndicator: function(geometry) {
+    placeGlassNavIndicator: function(geometry) {
         if (!geometry) return;
 
-        this.setLiquidNavMetaballState(geometry, {
-            fromCenterX: geometry.centerX,
-            toCenterX: geometry.centerX,
-            originScale: 1,
-            targetScale: 0,
-            originOpacity: 1,
-            targetOpacity: 0,
-            neckOpacity: 0,
-            neckScaleY: 0.42,
-            highlightX: -4
-        });
-        this._liquidNavGeometry = {
+        this.setGlassNavIndicatorState(geometry, {
             centerX: geometry.centerX,
-            size: geometry.size
+            velocity: 0,
+            stretch: 1,
+            press: 0,
+            direction: 1
+        });
+        this._glassNavGeometry = {
+            centerX: geometry.centerX,
+            width: geometry.width,
+            height: geometry.height,
+            y: geometry.y
         };
     },
 
-    updateLiquidNavIndicator: function(options = {}) {
-        const geometry = this.getLiquidNavIndicatorGeometry();
+    updateGlassNavIndicator: function(options = {}) {
+        const geometry = this.getGlassNavIndicatorGeometry();
         if (!geometry) return;
 
-        const reducedMotion = Boolean(this._liquidNavReducedMotionMedia?.matches);
-        const sameButton = this._liquidNavActiveButton === geometry.activeBtn;
+        const reducedMotion = Boolean(this._glassNavReducedMotionMedia?.matches);
+        const sameButton = this._glassNavActiveButton === geometry.activeBtn;
         const shouldAnimate = options.animate === true
-            && this._liquidNavInitialized
+            && this._glassNavInitialized
             && !sameButton
             && !document.body.classList.contains('keyboard-open')
-            && !reducedMotion
-            && typeof geometry.indicator.animate === 'function';
-
-        const from = shouldAnimate
-            ? this.getCurrentLiquidNavVisualState()
-            : null;
-        const previousAnimation = this._liquidNavAnimation;
+            && !reducedMotion;
 
         if (!shouldAnimate) {
-            if (previousAnimation) {
-                previousAnimation.cancel();
-                this._liquidNavAnimation = null;
+            if (this._glassNavAnimationFrame !== null) {
+                cancelAnimationFrame(this._glassNavAnimationFrame);
+                this._glassNavAnimationFrame = null;
             }
-            if (this._liquidNavAnimationFrame !== null) {
-                cancelAnimationFrame(this._liquidNavAnimationFrame);
-                this._liquidNavAnimationFrame = null;
-            }
-            this.placeLiquidNavIndicator(geometry);
-            this._liquidNavInitialized = true;
-            this._liquidNavActiveButton = geometry.activeBtn;
-            requestAnimationFrame(() => this.placeLiquidNavIndicator(this.getLiquidNavIndicatorGeometry()));
+            this.placeGlassNavIndicator(geometry);
+            this._glassNavInitialized = true;
+            this._glassNavActiveButton = geometry.activeBtn;
+            requestAnimationFrame(() => this.placeGlassNavIndicator(this.getGlassNavIndicatorGeometry()));
             return;
         }
 
-        if (previousAnimation) {
-            previousAnimation.cancel();
-            this._liquidNavAnimation = null;
-        }
-        if (this._liquidNavAnimationFrame !== null) {
-            cancelAnimationFrame(this._liquidNavAnimationFrame);
-            this._liquidNavAnimationFrame = null;
+        if (this._glassNavAnimationFrame !== null) {
+            cancelAnimationFrame(this._glassNavAnimationFrame);
+            this._glassNavAnimationFrame = null;
         }
 
-        const distance = geometry.centerX - from.centerX;
-        const absDistance = Math.abs(distance);
-        const direction = distance >= 0 ? 1 : -1;
+        const start = this.getCurrentGlassNavVisualState();
+        const target = geometry.centerX;
+        const initialVelocity = Number.isFinite(start.velocity) ? start.velocity : 0;
+        let position = Number.isFinite(start.centerX) ? start.centerX : target;
+        let velocity = initialVelocity;
+        let lastTime = performance.now();
+        const direction = target >= position ? 1 : -1;
+        const distance = Math.abs(target - position);
 
-        if (absDistance < 1) {
-            this.placeLiquidNavIndicator(geometry);
-            this._liquidNavActiveButton = geometry.activeBtn;
+        if (distance < 1) {
+            this.placeGlassNavIndicator(geometry);
+            this._glassNavActiveButton = geometry.activeBtn;
             return;
         }
 
         const navStep = Math.max(1, geometry.activeBtn.offsetWidth || 1);
-        const distanceSteps = Math.min(4, Math.max(1, absDistance / navStep));
-        const duration = Math.min(580, Math.max(380, 330 + distanceSteps * 58 + absDistance * 0.12));
-        const tailLength = Math.min(48, Math.max(28, absDistance * 0.34));
-        const easeOut = t => 1 - Math.pow(1 - t, 3);
-        const easeInOut = t => t < 0.5
-            ? 4 * t * t * t
-            : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        const lerp = (start, end, amount) => start + ((end - start) * amount);
+        const distanceSteps = Math.min(4, Math.max(1, distance / navStep));
+        const stiffness = 230 + (distanceSteps * 10);
+        const damping = 34 + (distanceSteps * 1.8);
+        const mass = 1.35;
         const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+        const maxStretch = Math.min(1.10, 1.03 + distanceSteps * 0.018);
 
-        const animation = geometry.indicator.animate([{ opacity: 1 }, { opacity: 1 }], {
-            duration,
-            easing: 'linear',
-            fill: 'forwards'
-        });
-        this._liquidNavAnimation = animation;
-
-        this._liquidNavActiveButton = geometry.activeBtn;
-        this._liquidNavGeometry = {
+        this._glassNavActiveButton = geometry.activeBtn;
+        this._glassNavGeometry = {
             centerX: geometry.centerX,
-            size: geometry.size
+            width: geometry.width,
+            height: geometry.height,
+            y: geometry.y
         };
 
-        const renderFrame = () => {
-            if (this._liquidNavAnimation !== animation) return;
-            const rawProgress = clamp((animation.currentTime || 0) / duration, 0, 1);
-            const progress = easeInOut(rawProgress);
-            const travelProgress = easeInOut(clamp((rawProgress - 0.02) / 0.86, 0, 1));
-            const travelerCenter = lerp(from.centerX, geometry.centerX, travelProgress);
-            const originCenter = rawProgress < 0.30
-                ? lerp(from.centerX, from.centerX + direction * Math.min(14, absDistance * 0.16), rawProgress / 0.30)
-                : from.centerX;
-            const originScale = rawProgress < 0.20
-                ? lerp(1, 0.92, rawProgress / 0.20)
-                : rawProgress < 0.62
-                    ? lerp(0.92, 0.22, (rawProgress - 0.20) / 0.42)
-                    : lerp(0.22, 0, clamp((rawProgress - 0.62) / 0.14, 0, 1));
-            const targetScale = rawProgress < 0.10
-                ? lerp(0.18, 0.46, rawProgress / 0.10)
-                : rawProgress < 0.78
-                    ? lerp(0.46, 1.06, (rawProgress - 0.10) / 0.68)
-                    : rawProgress < 0.92
-                        ? lerp(1.06, 0.98, (rawProgress - 0.78) / 0.14)
-                        : lerp(0.98, 1, (rawProgress - 0.92) / 0.08);
-            const neckOpacity = rawProgress < 0.14
-                ? lerp(0, 0.76, rawProgress / 0.14)
-                : rawProgress < 0.76
-                    ? lerp(0.76, 0.58, (rawProgress - 0.14) / 0.62)
-                    : lerp(0.58, 0, clamp((rawProgress - 0.76) / 0.16, 0, 1));
-            const neckAnchor = rawProgress < 0.26
-                ? lerp(originCenter, travelerCenter - direction * tailLength, clamp(rawProgress / 0.26, 0, 1))
-                : travelerCenter - direction * tailLength;
+        const step = (now) => {
+            const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
+            lastTime = now;
+            const force = (target - position) * stiffness;
+            const acceleration = (force - damping * velocity) / mass;
+            velocity += acceleration * dt;
+            position += velocity * dt;
+            const remaining = Math.abs(target - position);
+            const speed = Math.abs(velocity);
+            const energy = clamp((speed / 980) + (remaining / Math.max(1, distance)) * 0.18, 0, 1);
+            const stretch = 1 + ((maxStretch - 1) * energy);
 
-            this.setLiquidNavMetaballState(geometry, {
-                fromCenterX: neckAnchor,
-                toCenterX: travelerCenter,
-                originScale: Number(originScale.toFixed(3)),
-                targetScale: Number(targetScale.toFixed(3)),
-                originOpacity: Number(clamp(originScale * 1.05, 0, 1).toFixed(3)),
-                targetOpacity: Number(clamp(targetScale, 0, 1).toFixed(3)),
-                neckOpacity: Number(clamp(neckOpacity, 0, 0.78).toFixed(3)),
-                neckScaleY: Number(lerp(0.34, 0.78, Math.sin(progress * Math.PI)).toFixed(3)),
-                highlightX: direction > 0 ? -2 : 2
+            this.setGlassNavIndicatorState(geometry, {
+                centerX: position,
+                velocity,
+                stretch,
+                direction
             });
 
-            this._liquidNavVisualState = {
-                centerX: travelerCenter
-            };
-            this._liquidNavAnimationFrame = requestAnimationFrame(renderFrame);
+            if (remaining < 0.22 && speed < 3.5) {
+                this._glassNavAnimationFrame = null;
+                this.placeGlassNavIndicator(geometry);
+                return;
+            }
+
+            this._glassNavAnimationFrame = requestAnimationFrame(step);
         };
 
-        renderFrame();
-
-        animation.onfinish = () => {
-            if (this._liquidNavAnimation !== animation) return;
-            if (this._liquidNavAnimationFrame !== null) {
-                cancelAnimationFrame(this._liquidNavAnimationFrame);
-                this._liquidNavAnimationFrame = null;
-            }
-            this._liquidNavAnimation = null;
-            this.placeLiquidNavIndicator(geometry);
-        };
-        animation.oncancel = () => {
-            if (this._liquidNavAnimation !== animation) return;
-            if (this._liquidNavAnimationFrame !== null) {
-                cancelAnimationFrame(this._liquidNavAnimationFrame);
-                this._liquidNavAnimationFrame = null;
-            }
-            this._liquidNavAnimation = null;
-        };
+        this._glassNavAnimationFrame = requestAnimationFrame(step);
     },
 
-    scheduleLiquidNavIndicatorUpdate: function(options = {}) {
-        if (this._liquidNavFrame !== null) {
-            cancelAnimationFrame(this._liquidNavFrame);
+    scheduleGlassNavIndicatorUpdate: function(options = {}) {
+        if (this._glassNavFrame !== null) {
+            cancelAnimationFrame(this._glassNavFrame);
         }
 
-        this._liquidNavFrame = requestAnimationFrame(() => {
-            this._liquidNavFrame = null;
-            this.updateLiquidNavIndicator(options);
+        this._glassNavFrame = requestAnimationFrame(() => {
+            this._glassNavFrame = null;
+            this.updateGlassNavIndicator(options);
         });
     },
 
-    bindLiquidNavIndicatorGeometry: function() {
-        if (this._liquidNavGeometryBound) return;
-        this._liquidNavGeometryBound = true;
+    bindGlassNavIndicatorGeometry: function() {
+        if (this._glassNavGeometryBound) return;
+        this._glassNavGeometryBound = true;
 
-        this._liquidNavReducedMotionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
+        this._glassNavReducedMotionMedia = window.matchMedia?.('(prefers-reduced-motion: reduce)') || null;
 
-        const schedule = () => this.scheduleLiquidNavIndicatorUpdate({ animate: false });
+        const schedule = () => this.scheduleGlassNavIndicatorUpdate({ animate: false });
         window.addEventListener('resize', schedule, { passive: true });
         window.addEventListener('orientationchange', schedule, { passive: true });
-        this._liquidNavReducedMotionMedia?.addEventListener?.('change', schedule);
+        this._glassNavReducedMotionMedia?.addEventListener?.('change', schedule);
 
         if (window.ResizeObserver && this.$bottomNav) {
-            this._liquidNavResizeObserver = new ResizeObserver(schedule);
-            this._liquidNavResizeObserver.observe(this.$bottomNav);
+            this._glassNavResizeObserver = new ResizeObserver(schedule);
+            this._glassNavResizeObserver.observe(this.$bottomNav);
             this.getBottomNavItems().forEach(({ btn }) => {
-                if (btn) this._liquidNavResizeObserver.observe(btn);
+                if (btn) this._glassNavResizeObserver.observe(btn);
             });
         }
+
+        this.getBottomNavItems().forEach(({ btn }) => {
+            btn?.addEventListener?.('pointerdown', () => {
+                this.$bottomNav?.style.setProperty('--nav-glass-press', '1');
+                this.scheduleGlassNavIndicatorUpdate({ animate: false });
+            }, { passive: true });
+        });
+        const clearPress = () => {
+            this.$bottomNav?.style.setProperty('--nav-glass-press', '0');
+        };
+        window.addEventListener('pointerup', clearPress, { passive: true });
+        window.addEventListener('pointercancel', clearPress, { passive: true });
 
         schedule();
     },
@@ -10427,7 +10367,7 @@ updateNavUI: function() {
             }
         }
     });
-    this.scheduleLiquidNavIndicatorUpdate({ animate: true });
+    this.scheduleGlassNavIndicatorUpdate({ animate: true });
 },
     
     formatDateEs,
