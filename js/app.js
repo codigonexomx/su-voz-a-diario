@@ -1089,7 +1089,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '233'
+            pwaVersion: '234'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1489,6 +1489,7 @@ scheduleKeyboardViewportUpdate: function() {
     updateKeyboardViewportState: function() {
         const state = window.KeyboardViewportManager?.getState?.();
         document.body.classList.toggle('keyboard-open', Boolean(state?.isKeyboardOpen));
+        if (this.$bottomNav) this.$bottomNav.inert = Boolean(state?.isKeyboardOpen);
         this.scheduleGlassNavIndicatorUpdate({ animate: false });
         return Boolean(state?.isKeyboardOpen);
     },
@@ -1498,6 +1499,7 @@ scheduleKeyboardViewportUpdate: function() {
 
     this._keyboardViewportUnsubscribe = window.KeyboardViewportManager?.subscribe?.(state => {
         document.body.classList.toggle('keyboard-open', Boolean(state.isKeyboardOpen));
+        if (this.$bottomNav) this.$bottomNav.inert = Boolean(state.isKeyboardOpen);
         this.scheduleGlassNavIndicatorUpdate({ animate: false });
     }) || null;
     this.updateKeyboardViewportState();
@@ -1525,7 +1527,7 @@ scheduleKeyboardViewportUpdate: function() {
 
         if (!nav || !indicator || !activeBtn) return null;
 
-        const navRect = nav.getBoundingClientRect();
+        if (nav.clientWidth <= 0 || nav.clientHeight <= 0) return null;
         const rawCenterX = activeBtn.offsetLeft + (activeBtn.offsetWidth / 2);
         const height = Math.min(44, Math.max(40, activeBtn.offsetHeight * 0.68));
         const width = Math.min(76, Math.max(68, activeBtn.offsetWidth - 2));
@@ -1564,14 +1566,14 @@ scheduleKeyboardViewportUpdate: function() {
         const centerX = Number(state.centerX ?? geometry.centerX);
         const velocity = Number(state.velocity ?? 0);
         const stretch = Number(state.stretch ?? 1);
-        const press = Number(state.press ?? 0);
+        const press = Number(state.press ?? this._glassNavPressed ?? 0);
         const direction = Number(state.direction ?? 1);
         const width = Number(state.width ?? geometry.width);
         const height = Number(state.height ?? geometry.height);
         const x = centerX - (width / 2);
-        const origin = direction >= 0 ? '72%' : '28%';
+        const origin = 'center';
 
-        geometry.nav.style.setProperty('--nav-glass-x', `${Math.round(x)}px`);
+        geometry.nav.style.setProperty('--nav-glass-x', `${x.toFixed(3)}px`);
         geometry.nav.style.setProperty('--nav-glass-y', `${Math.round(geometry.y)}px`);
         geometry.nav.style.setProperty('--nav-glass-width', `${Math.round(width)}px`);
         geometry.nav.style.setProperty('--nav-glass-height', `${Math.round(height)}px`);
@@ -1611,11 +1613,16 @@ scheduleKeyboardViewportUpdate: function() {
 
         const reducedMotion = Boolean(this._glassNavReducedMotionMedia?.matches);
         const sameButton = this._glassNavActiveButton === geometry.activeBtn;
-        const shouldAnimate = options.animate === true
-            && this._glassNavInitialized
-            && !sameButton
+        const running = this._glassNavAnimationFrame != null;
+        const sameGeometry = this._glassNavGeometry && ['centerX', 'width', 'height', 'y']
+            .every(key => Math.abs(this._glassNavGeometry[key] - geometry[key]) < 0.1);
+        const shouldAnimate = this._glassNavInitialized
             && !document.body.classList.contains('keyboard-open')
-            && !reducedMotion;
+            && !reducedMotion
+            && (options.animate === true || running || !sameButton);
+
+        // Measurements and repeated clicks must not interrupt an in-flight spring.
+        if (shouldAnimate && sameButton && sameGeometry) return;
 
         if (!shouldAnimate) {
             if (this._glassNavAnimationFrame !== null) {
@@ -1625,7 +1632,6 @@ scheduleKeyboardViewportUpdate: function() {
             this.placeGlassNavIndicator(geometry);
             this._glassNavInitialized = true;
             this._glassNavActiveButton = geometry.activeBtn;
-            requestAnimationFrame(() => this.placeGlassNavIndicator(this.getGlassNavIndicatorGeometry()));
             return;
         }
 
@@ -1651,9 +1657,7 @@ scheduleKeyboardViewportUpdate: function() {
 
         const navStep = Math.max(1, geometry.activeBtn.offsetWidth || 1);
         const distanceSteps = Math.min(4, Math.max(1, distance / navStep));
-        const stiffness = 230 + (distanceSteps * 10);
-        const damping = 34 + (distanceSteps * 1.8);
-        const mass = 1.35;
+        const omega = 14.8 + distanceSteps * 0.4;
         const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
         const maxStretch = Math.min(1.10, 1.03 + distanceSteps * 0.018);
 
@@ -1668,10 +1672,18 @@ scheduleKeyboardViewportUpdate: function() {
         const step = (now) => {
             const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
             lastTime = now;
-            const force = (target - position) * stiffness;
-            const acceleration = (force - damping * velocity) / mass;
-            velocity += acceleration * dt;
-            position += velocity * dt;
+            // Exact critically damped spring: same trajectory at 30/60/120 Hz.
+            // Retargeting starts from the current position and velocity.
+            const offset = position - target;
+            const impulse = velocity + omega * offset;
+            const decay = Math.exp(-omega * dt);
+            position = target + (offset + impulse * dt) * decay;
+            velocity = (velocity - omega * impulse * dt) * decay;
+            const minCenter = geometry.width / 2 + 2;
+            const maxCenter = Math.max(minCenter, geometry.nav.clientWidth - minCenter);
+            const boundedPosition = clamp(position, minCenter, maxCenter);
+            if (position !== boundedPosition) velocity = 0;
+            position = boundedPosition;
             const remaining = Math.abs(target - position);
             const speed = Math.abs(velocity);
             const energy = clamp((speed / 980) + (remaining / Math.max(1, distance)) * 0.18, 0, 1);
@@ -1697,13 +1709,16 @@ scheduleKeyboardViewportUpdate: function() {
     },
 
     scheduleGlassNavIndicatorUpdate: function(options = {}) {
+        this._glassNavPendingAnimate = this._glassNavPendingAnimate || options.animate === true;
         if (this._glassNavFrame !== null) {
             cancelAnimationFrame(this._glassNavFrame);
         }
 
         this._glassNavFrame = requestAnimationFrame(() => {
             this._glassNavFrame = null;
-            this.updateGlassNavIndicator(options);
+            const animate = Boolean(this._glassNavPendingAnimate);
+            this._glassNavPendingAnimate = false;
+            this.updateGlassNavIndicator({ animate });
         });
     },
 
@@ -1728,11 +1743,12 @@ scheduleKeyboardViewportUpdate: function() {
 
         this.getBottomNavItems().forEach(({ btn }) => {
             btn?.addEventListener?.('pointerdown', () => {
+                this._glassNavPressed = 1;
                 this.$bottomNav?.style.setProperty('--nav-glass-press', '1');
-                this.scheduleGlassNavIndicatorUpdate({ animate: false });
             }, { passive: true });
         });
         const clearPress = () => {
+            this._glassNavPressed = 0;
             this.$bottomNav?.style.setProperty('--nav-glass-press', '0');
         };
         window.addEventListener('pointerup', clearPress, { passive: true });
@@ -10362,8 +10378,10 @@ updateNavUI: function() {
         if (btn) {
             if (views.includes(this.currentView)) {
                 btn.classList.add('active');
+                btn.setAttribute('aria-current', 'page');
             } else {
                 btn.classList.remove('active');
+                btn.removeAttribute('aria-current');
             }
         }
     });

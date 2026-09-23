@@ -10,5 +10,6 @@ android/keystore.properties
 
 firebase-debug.log*
 .firebase/
+artifacts/
 
 /legado/su-voz-firebase/

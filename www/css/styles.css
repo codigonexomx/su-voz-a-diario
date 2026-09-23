@@ -19,10 +19,10 @@
     --header-height: 70px;
     --border-radius: 12px;
     --reading-size: 1.08rem;
-    --safe-area-top: env(safe-area-inset-top, 0px);
-    --safe-area-right: env(safe-area-inset-right, 0px);
-    --safe-area-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-area-left: env(safe-area-inset-left, 0px);
+    --safe-area-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+    --safe-area-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px));
+    --safe-area-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
+    --safe-area-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
 }
 
 /* Clases para tema manual */
@@ -58,6 +58,11 @@ body.light-mode {
 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+    /* Clip decorative bleed without creating a nested scroll container. */
+    overflow-x: clip;
 }
 
 body {
@@ -345,10 +350,10 @@ body.su-voz-hoy-background {
 .home-hero-stage {
     position: relative;
     top: 0;
-    left: calc(50% - 50dvi + var(--safe-area-left));
-    width: calc(100dvi - var(--safe-area-left) - var(--safe-area-right));
+    left: calc(50% - calc(var(--layout-viewport-width, 100dvi) / 2) + var(--safe-area-left));
+    width: calc(var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right));
     min-height: 400px;
-    margin-top: calc((56px + env(safe-area-inset-top)) * -1);
+    margin-top: calc((56px + var(--safe-area-top)) * -1);
     margin-left: 0;
     margin-bottom: 12px;
     overflow: hidden;
@@ -436,7 +441,7 @@ body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
     box-shadow: none;
     max-width: 600px;
     margin: 0 auto;
-    padding: calc(56px + env(safe-area-inset-top) + 54px) 20px 0;
+    padding: calc(56px + var(--safe-area-top) + 54px) 20px 0;
 }
 
 body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero::after {
@@ -671,7 +676,7 @@ body.dark-mode.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero p {
     }
 
     body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero {
-        padding: calc(56px + env(safe-area-inset-top) + 50px) 30px 0;
+        padding: calc(56px + var(--safe-area-top) + 50px) 30px 0;
     }
 
     body.su-voz-hoy-background #app-content.su-voz-hoy-view .view-hero h2 {
@@ -3105,8 +3110,8 @@ body.dark-mode .devotional-step-tab.active {
 @media (max-width: 640px) {
     .note-box.devotional-flow,
     .note-box[data-devotional-flow="v42"] {
-        margin: 18px 0 calc(24px + var(--nav-height) + env(safe-area-inset-bottom));
-        padding: 16px 14px calc(28px + env(safe-area-inset-bottom));
+        margin: 18px 0 calc(24px + var(--nav-height) + var(--safe-area-bottom));
+        padding: 16px 14px calc(28px + var(--safe-area-bottom));
         border-radius: 18px;
         overflow: visible;
         gap: 18px;
@@ -3229,7 +3234,7 @@ body.dark-mode .devotional-step-tab.active {
         font-size: 16px;
         line-height: 1.58;
         resize: vertical;
-        scroll-margin-bottom: calc(var(--nav-height) + 120px + env(safe-area-inset-bottom));
+        scroll-margin-bottom: calc(var(--nav-height) + 120px + var(--safe-area-bottom));
     }
 
     .note-box[data-devotional-flow="v42"] .devotional-step-card .note-textarea.active,
@@ -3251,7 +3256,7 @@ body.dark-mode .devotional-step-tab.active {
     }
 
     .note-box[data-devotional-flow="v42"] .devotional-actions {
-        margin-bottom: calc(8px + env(safe-area-inset-bottom));
+        margin-bottom: calc(8px + var(--safe-area-bottom));
     }
 
     body.dark-mode .note-box[data-devotional-flow="v42"] .devotional-step-tab,
@@ -4687,7 +4692,7 @@ body.dark-mode .community-empty-icon {
 @media (max-width: 480px) {
     .community-container {
         padding-inline: max(10px, var(--safe-area-left)) max(10px, var(--safe-area-right));
-        padding-bottom: calc(72px + max(16px, env(safe-area-inset-bottom, 16px)));
+        padding-bottom: calc(72px + max(16px, var(--safe-area-bottom)));
         gap: 10px;
     }
 
@@ -6161,7 +6166,7 @@ input:checked + .slider:before {
 .toast-message {
     position: fixed;
     bottom: 80px;
-    left: calc(var(--safe-area-left) + ((100dvi - var(--safe-area-left) - var(--safe-area-right)) / 2));
+    left: calc(var(--safe-area-left) + ((var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right)) / 2));
     transform: translateX(-50%) translateY(100px);
     background: rgba(0, 0, 0, 0.85);
     color: white;
@@ -6171,7 +6176,7 @@ input:checked + .slider:before {
     z-index: 10000;
     transition: transform 0.3s ease;
     pointer-events: none;
-    max-width: min(90dvi, calc(100dvi - var(--safe-area-left) - var(--safe-area-right) - 24px));
+    max-width: min(90dvi, calc(var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right) - 24px));
     white-space: normal;
     text-align: center;
     font-weight: 500;
@@ -6192,11 +6197,11 @@ body.dark-mode .toast-message {
    ======================================== */
 .bottom-nav {
     position: fixed;
-    left: calc(var(--safe-area-left) + ((100dvi - var(--safe-area-left) - var(--safe-area-right)) / 2));
+    left: calc(var(--safe-area-left) + ((var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right)) / 2));
     bottom: calc(8px + var(--safe-area-bottom));
     transform: translateX(-50%);
     overflow: visible;
-    width: min(88dvi, 380px, calc(100dvi - var(--safe-area-left) - var(--safe-area-right) - 24px));
+    width: min(88dvi, 380px, calc(var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right) - 24px));
     height: 60px;
     display: flex;
     flex-direction: row;
@@ -7264,10 +7269,10 @@ body.dark-mode .community-reaction-count {
 
 .home-reading-bar {
     position: fixed;
-    left: calc(var(--safe-area-left) + ((100dvi - var(--safe-area-left) - var(--safe-area-right)) / 2));
+    left: calc(var(--safe-area-left) + ((var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right)) / 2));
     bottom: calc(78px + var(--safe-area-bottom));  /* ← CAMBIA 92px por 78px */
     transform: translateX(-50%);
-    width: min(88dvi, 380px, calc(100dvi - var(--safe-area-left) - var(--safe-area-right) - 24px));
+    width: min(88dvi, 380px, calc(var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right) - 24px));
     height: 44px;
     padding: 0 10px;
     border-radius: 999px;
@@ -7808,7 +7813,7 @@ body.selection-panel-open {
     color: #f8fafc;
 
     border-radius: 32px 32px 0 0;
-    padding: 26px 26px max(24px, env(safe-area-inset-bottom));
+    padding: 26px 26px max(24px, var(--safe-area-bottom));
 
     transform: translateY(105%);
     transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
@@ -7824,7 +7829,7 @@ body.selection-panel-open {
     flex-direction: column;
     gap: 16px;
 
-    max-height: calc(88vh - env(safe-area-inset-top));
+    max-height: calc(88vh - var(--safe-area-top));
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
 }
@@ -8909,7 +8914,7 @@ body.light-mode .reading-action-community .reading-action-chevron {
     width: 100%;
     max-height: 84vh;
     overflow-y: auto;
-    padding: 22px 18px calc(24px + env(safe-area-inset-bottom));
+    padding: 22px 18px calc(24px + var(--safe-area-bottom));
     border-radius: 30px 30px 0 0;
     background: linear-gradient(180deg, #ffffff, #f8fafc);
     box-shadow: 0 -18px 42px rgba(0, 0, 0, 0.24);
@@ -9771,7 +9776,7 @@ body.dark-mode .view-hero {
 
 .bible-reader-fixed-header {
     position: sticky;
-    top: calc(56px + env(safe-area-inset-top));
+    top: calc(56px + var(--safe-area-top));
     z-index: 900;
     display: flex;
     flex-direction: column;
@@ -10021,7 +10026,7 @@ body.bible-version-picker-open .bottom-nav {
 
 .bible-reader-content {
     margin-top: 0;
-    padding-bottom: calc(92px + env(safe-area-inset-bottom));
+    padding-bottom: calc(92px + var(--safe-area-bottom));
 }
 
 .bible-reader-content .reading-text {
@@ -10200,7 +10205,7 @@ body.bible-version-picker-open .bottom-nav {
     position: fixed;
     left: max(8px, var(--safe-area-left));
     right: max(8px, var(--safe-area-right));
-    bottom: calc(76px + max(env(safe-area-inset-bottom), 0px));
+    bottom: calc(76px + max(var(--safe-area-bottom), 0px));
     z-index: 1180;
     width: auto;
     max-width: 560px;
@@ -10324,7 +10329,7 @@ body.dark-mode .bible-reader-version-chip {
     position: fixed;
     left: max(12px, var(--safe-area-left));
     right: max(12px, var(--safe-area-right));
-    bottom: calc(142px + max(env(safe-area-inset-bottom), 0px));
+    bottom: calc(142px + max(var(--safe-area-bottom), 0px));
     z-index: 1190;
     width: auto;
     max-width: 380px;
@@ -10646,7 +10651,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     }
 
     .bible-reader-context-bar {
-        bottom: calc(74px + max(env(safe-area-inset-bottom), 0px));
+        bottom: calc(74px + max(var(--safe-area-bottom), 0px));
         left: max(5px, var(--safe-area-left));
         right: max(5px, var(--safe-area-right));
         grid-template-columns: repeat(3, minmax(42px, 1fr));
@@ -10714,7 +10719,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 
 @media (max-width: 759px) {
     .bible-reader-content {
-        padding-bottom: calc(96px + env(safe-area-inset-bottom));
+        padding-bottom: calc(96px + var(--safe-area-bottom));
     }
 }
 
@@ -10734,8 +10739,8 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     content: '';
     position: absolute;
     top: -100vh;
-    left: calc(50% - 50dvi + var(--safe-area-left));
-    right: calc(50% - 50dvi + var(--safe-area-right));
+    left: calc(50% - calc(var(--layout-viewport-width, 100dvi) / 2) + var(--safe-area-left));
+    right: calc(50% - calc(var(--layout-viewport-width, 100dvi) / 2) + var(--safe-area-right));
     height: calc(100vh + 300px); /* Ajustado a la base de los botones */
     box-sizing: border-box;
     background: #1F242E;
@@ -10748,8 +10753,8 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     position: absolute;
     top: 300px; /* Alineado al filo de abajo del botón */
     bottom: -2000px;
-    left: calc(50% - 50dvi + var(--safe-area-left));
-    right: calc(50% - 50dvi + var(--safe-area-right));
+    left: calc(50% - calc(var(--layout-viewport-width, 100dvi) / 2) + var(--safe-area-left));
+    right: calc(50% - calc(var(--layout-viewport-width, 100dvi) / 2) + var(--safe-area-right));
     box-sizing: border-box;
     background: #E8E8E7;
     z-index: -2;
@@ -11040,7 +11045,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
     flex-direction: column;
     gap: 10px;
     padding-top: 2px;
-    scroll-margin-top: calc(86px + env(safe-area-inset-top));
+    scroll-margin-top: calc(86px + var(--safe-area-top));
 }
 
 .bible-explore-head {
@@ -11246,7 +11251,7 @@ body.dark-mode .bible-reading-focus-toggle.is-active {
 }
 
 .bible-chapter-panel {
-    scroll-margin-top: calc(86px + env(safe-area-inset-top));
+    scroll-margin-top: calc(86px + var(--safe-area-top));
     padding: 14px;
     border-radius: 20px;
     border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-color));
@@ -12218,7 +12223,7 @@ body.dark-mode .bible-memory-color-dot {
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+    padding: 16px 12px calc(16px + var(--safe-area-bottom));
 }
 
 body.bible-picker-open .bottom-nav {
@@ -12521,7 +12526,7 @@ body.dark-mode .bible-picker-book.is-active {
 
 @media (max-width: 480px) {
     .bible-picker-sheet {
-        padding: 8px 6px calc(8px + env(safe-area-inset-bottom));
+        padding: 8px 6px calc(8px + var(--safe-area-bottom));
     }
 
     .bible-picker-panel {
@@ -12668,9 +12673,9 @@ body.light-mode .verse-study-btn:hover {
 
 .strong-sheet-content {
     position: absolute;
-    left: calc(var(--safe-area-left) + ((100dvi - var(--safe-area-left) - var(--safe-area-right)) / 2));
+    left: calc(var(--safe-area-left) + ((var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right)) / 2));
     bottom: calc(10px + var(--safe-area-bottom));
-    width: min(92dvi, 390px, calc(100dvi - var(--safe-area-left) - var(--safe-area-right) - 20px));
+    width: min(92dvi, 390px, calc(var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right) - 20px));
     max-height: 54vh;
     overflow-y: auto;
 
@@ -12943,7 +12948,7 @@ body.light-mode .verse-study-btn:hover {
     max-height: 94vh;
     transform: translateX(-50%);
     overflow-y: auto;
-    padding: 12px 18px calc(18px + env(safe-area-inset-bottom));
+    padding: 12px 18px calc(18px + var(--safe-area-bottom));
     border-radius: 30px 30px 0 0;
     background:
         radial-gradient(circle at top left, rgba(214, 181, 109, 0.16), transparent 34%),
@@ -13289,7 +13294,7 @@ body.light-mode .verse-study-btn:hover {
 @media (max-width: 520px) {
     .verse-image-sheet {
         max-height: 82vh;
-        padding: 10px 14px calc(14px + env(safe-area-inset-bottom));
+        padding: 10px 14px calc(14px + var(--safe-area-bottom));
         border-radius: 24px 24px 0 0;
     }
 
@@ -13762,7 +13767,7 @@ body.dark-mode .note-guide-panel li {
 .strong-result-lemma { font-size: 1.28rem; font-weight: 800; line-height: 1.2; }
 .strong-result-meta, .strong-result-definition, .strong-result-translation { color: var(--text-muted); font-size: 0.9rem; }
 .strong-result-translation { color: var(--text-main); }
-.strong-dictionary-detail { position: sticky; top: calc(72px + env(safe-area-inset-top)); overflow: hidden; }
+.strong-dictionary-detail { position: sticky; top: calc(72px + var(--safe-area-top)); overflow: hidden; }
 .strong-detail-card { padding: 18px; }
 .strong-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
 .strong-detail-head span { display: block; color: var(--text-muted); font-size: 0.78rem; font-weight: 800; text-transform: uppercase; }

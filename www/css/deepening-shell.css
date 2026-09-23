@@ -34,7 +34,7 @@ body.deepening-shell-active > .bottom-nav {
 }
 
 .deepening-shell {
-    --deepening-reading-top: calc(8px + env(safe-area-inset-top));
+    --deepening-reading-top: calc(8px + var(--safe-area-top));
     --deepening-page-gutter: clamp(20px, 5.6vw, 62px);
     --deepening-mobile-gutter: clamp(18px, 5vw, 24px);
     position: relative;
@@ -305,7 +305,7 @@ body.deepening-shell-active > .bottom-nav {
     padding:
         0
         clamp(18px, 5vw, 48px)
-        calc(24px + env(safe-area-inset-bottom))
+        calc(24px + var(--safe-area-bottom))
         clamp(18px, 5vw, 48px);
     margin-top: clamp(-18px, -2.8vh, -10px);
     background:
@@ -352,8 +352,8 @@ body.deepening-shell-active > .bottom-nav {
 }
 
 .deepening-meditation-header {
-    min-height: calc(42px + env(safe-area-inset-top));
-    padding: calc(4px + env(safe-area-inset-top)) 0 4px;
+    min-height: calc(42px + var(--safe-area-top));
+    padding: calc(4px + var(--safe-area-top)) 0 4px;
     display: grid;
     grid-template-columns: 44px 1fr 44px;
     align-items: center;
@@ -365,7 +365,7 @@ body.deepening-shell-active > .bottom-nav {
 
 .deepening-meditation-grabber {
     position: absolute;
-    top: calc(4px + env(safe-area-inset-top));
+    top: calc(4px + var(--safe-area-top));
     left: 50%;
     width: 26px;
     height: 3px;
@@ -621,7 +621,7 @@ body.deepening-shell-active > .bottom-nav {
 
 @media (max-width: 520px) {
     .deepening-shell {
-        --deepening-reading-top: calc(6px + env(safe-area-inset-top));
+        --deepening-reading-top: calc(6px + var(--safe-area-top));
         --deepening-page-gutter: var(--deepening-mobile-gutter);
         grid-template-rows: minmax(0, 1.34fr) minmax(0, 0.66fr);
         gap: 0;
@@ -649,7 +649,7 @@ body.deepening-shell-active > .bottom-nav {
 
     .deepening-meditation-document {
         margin-top: -14px;
-        padding: 0 10px calc(20px + env(safe-area-inset-bottom)) 10px;
+        padding: 0 10px calc(20px + var(--safe-area-bottom)) 10px;
         border-radius: 26px 26px 18px 18px;
     }
 

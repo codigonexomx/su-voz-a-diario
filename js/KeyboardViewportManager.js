@@ -13,6 +13,7 @@
     let rafId = null;
     let stabilizationTimer = null;
     let baselines = {};
+    let lastLayoutWidth = 0;
     const subscribers = new Set();
     const listenerRemovers = [];
     let state = createState();
@@ -33,7 +34,18 @@
     }
 
     function getOrientationKey() {
-        const { width, height } = getViewportSize();
+        const type = window.screen?.orientation?.type;
+        if (type?.startsWith('portrait')) return 'portrait';
+        if (type?.startsWith('landscape')) return 'landscape';
+        if (typeof window.orientation === 'number') {
+            return Math.abs(window.orientation) === 90 ? 'landscape' : 'portrait';
+        }
+        // A keyboard can make a portrait visual viewport wider than it is tall.
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        if (isEditableElement(document.activeElement) && width === lastLayoutWidth && state.baselineHeight) {
+            return state.orientation;
+        }
         return width > height ? 'landscape' : 'portrait';
     }
 
@@ -78,7 +90,8 @@
         visibleHeight,
         baselineHeight,
         orientation,
-        virtualKeyboardHeight
+        virtualKeyboardHeight,
+        canUseHeightHeuristic
     }) {
         const safeVisibleHeight = Math.max(0, Number(visibleHeight) || 0);
         const safeBaselineHeight = Math.max(safeVisibleHeight, Number(baselineHeight) || 0);
@@ -88,7 +101,7 @@
         const threshold = getThreshold(safeBaselineHeight, safeVisibleHeight);
         const isKeyboardOpen = Boolean(
             hasKeyboardFocus &&
-            (Number(virtualKeyboardHeight) > 0 || heightReduction > threshold)
+            (Number(virtualKeyboardHeight) > 0 || (canUseHeightHeuristic && heightReduction > threshold))
         );
 
         return createState({
@@ -106,6 +119,10 @@
     function publishVisibleHeight(visibleHeight) {
         if (visibleHeight > 0) {
             document.documentElement.style.setProperty(CSS_VISIBLE_HEIGHT_VAR, `${Math.round(visibleHeight)}px`);
+        }
+        const layoutWidth = document.documentElement.clientWidth || window.innerWidth;
+        if (layoutWidth > 0) {
+            document.documentElement.style.setProperty('--layout-viewport-width', `${layoutWidth}px`);
         }
     }
 
@@ -141,16 +158,28 @@
         const visibleHeight = getVisibleHeight();
         const orientation = getOrientationKey();
         const virtualKeyboardHeight = getVirtualKeyboardHeight();
+        const canUseHeightHeuristic = Boolean(
+            window.Capacitor?.isNativePlatform?.()
+            || window.matchMedia?.('(any-pointer: coarse)').matches
+            // Older Safari may not expose pointer media queries. A distinct
+            // visual viewport reduction still provides evidence of a keyboard.
+            || window.innerHeight - visibleHeight > MIN_KEYBOARD_REDUCTION
+        ) && (window.visualViewport?.scale || 1) === 1;
         const previousBaseline = baselines[orientation] || 0;
+        lastLayoutWidth = window.innerWidth;
 
-        if (!hasKeyboardFocus && visibleHeight > 0) {
+        if ((!hasKeyboardFocus || !canUseHeightHeuristic) && visibleHeight > 0) {
             baselines[orientation] = options.forceBaseline
                 ? visibleHeight
                 : Math.max(previousBaseline, visibleHeight);
         }
 
         if (hasKeyboardFocus && !baselines[orientation] && visibleHeight > 0) {
-            baselines[orientation] = Math.max(visibleHeight, window.innerHeight || 0);
+            const screen = window.screen;
+            const screenHeight = canUseHeightHeuristic && screen?.width && screen?.height
+                ? (orientation === 'portrait' ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height))
+                : 0;
+            baselines[orientation] = Math.max(visibleHeight, window.innerHeight || 0, screenHeight);
         }
 
         const baselineHeight = baselines[orientation] || visibleHeight;
@@ -159,7 +188,8 @@
             visibleHeight,
             baselineHeight,
             orientation,
-            virtualKeyboardHeight
+            virtualKeyboardHeight,
+            canUseHeightHeuristic
         }));
     }
 
@@ -206,6 +236,11 @@
         addListener(document, 'focusin', update);
         addListener(document, 'focusout', updateAfterFocusOut);
         addListener(navigator.virtualKeyboard, 'geometrychange', update);
+        if (window.ResizeObserver) {
+            const observer = new window.ResizeObserver(update);
+            observer.observe(document.documentElement);
+            listenerRemovers.push(() => observer.disconnect());
+        }
     }
 
     function init() {
@@ -242,6 +277,7 @@
         stabilizationTimer = null;
         initialized = false;
         baselines = {};
+        lastLayoutWidth = 0;
     }
 
     window.KeyboardViewportManager = {

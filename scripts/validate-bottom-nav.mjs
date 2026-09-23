@@ -31,6 +31,8 @@ function createKeyboardContext() {
         removeEventListener() {}
     };
     const window = {
+        matchMedia: () => ({ matches: true }),
+        screen: { width: 390, height: 844, orientation: { type: "portrait-primary" } },
         innerWidth: 390,
         innerHeight: 844,
         visualViewport,
@@ -149,4 +151,40 @@ assert.match(
     'Debe existir reconciliación defensiva del selector de versión'
 );
 
+// Realistic layout resize cases: visual and layout viewport shrink together.
+for (const scenario of [
+    { name: 'Android portrait resize', width: 390, baseline: 844, height: 350, coarse: true, expected: true },
+    { name: 'Desktop focused resize', width: 1366, baseline: 900, height: 650, coarse: false, expected: false },
+]) {
+    const c = createKeyboardContext();
+    c.window.matchMedia = () => ({ matches: scenario.coarse });
+    c.window.screen.orientation.type = scenario.coarse ? 'portrait-primary' : 'landscape-primary';
+    c.window.innerWidth = c.window.visualViewport.width = scenario.width;
+    c.window.innerHeight = c.window.visualViewport.height = scenario.baseline;
+    c.window.KeyboardViewportManager.init();
+    c.document.activeElement = new FakeInput();
+    c.window.innerHeight = c.window.visualViewport.height = scenario.height;
+    c.window.KeyboardViewportManager.refresh();
+    assert.equal(c.window.KeyboardViewportManager.getState().isKeyboardOpen, scenario.expected, scenario.name);
+    c.window.innerHeight = c.window.visualViewport.height = scenario.baseline;
+    c.window.KeyboardViewportManager.refresh();
+    assert.equal(c.window.KeyboardViewportManager.getState().isKeyboardOpen, false, scenario.name + ' closes');
+}
+{
+    const c = createKeyboardContext();
+    c.window.KeyboardViewportManager.init();
+    c.document.activeElement = new FakeInput();
+    c.window.screen.orientation.type = 'landscape-primary';
+    c.window.innerWidth = c.window.visualViewport.width = 844;
+    c.window.innerHeight = c.window.visualViewport.height = 210;
+    c.window.KeyboardViewportManager.refresh();
+    assert.equal(c.window.KeyboardViewportManager.getState().isKeyboardOpen, true, 'Rotate with keyboard open');
+    c.window.innerHeight = c.window.visualViewport.height = 390;
+    c.window.KeyboardViewportManager.refresh();
+    assert.equal(c.window.KeyboardViewportManager.getState().isKeyboardOpen, false, 'Landscape keyboard closes');
+    c.window.visualViewport.height = 190;
+    c.window.visualViewport.scale = 2;
+    c.window.KeyboardViewportManager.refresh();
+    assert.equal(c.window.KeyboardViewportManager.getState().isKeyboardOpen, false, 'Pinch zoom is not a keyboard');
+}
 console.log('Bottom navigation regression checks: OK');
