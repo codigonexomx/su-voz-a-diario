@@ -1089,7 +1089,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '237'
+            pwaVersion: '238'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -11231,9 +11231,10 @@ renderVerseText: function(htmlContent, dateStr) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = htmlContent;
     
-    // Extraer versículos del formato API.Bible
+    // Respetar los marcadores HTML de las lecturas locales y de API.Bible.
+    // Los números dentro del texto (144.000, 2220, etc.) no son versículos.
     const verses = [];
-    const verseSpans = tempDiv.querySelectorAll('.v, [data-verse]');
+    const verseSpans = tempDiv.querySelectorAll('sup, .v, [data-verse]');
     
     if (verseSpans.length > 0) {
         // Si hay marcadores de versículo, separar por ellos
@@ -11248,8 +11249,8 @@ renderVerseText: function(htmlContent, dateStr) {
         
         let node;
         while ((node = walker.nextNode())) {
-            if (node.nodeType === Node.ELEMENT_NODE && 
-                (node.classList?.contains('v') || node.hasAttribute('data-verse'))) {
+            if (node.nodeType === Node.ELEMENT_NODE &&
+                node.matches('sup, .v, [data-verse]')) {
                 if (currentVerse) {
                     verses.push({
                         number: currentVerseNum,
@@ -11258,9 +11259,10 @@ renderVerseText: function(htmlContent, dateStr) {
                 }
                 currentVerseNum = node.textContent.trim();
                 currentVerse = '';
-            } else if (node.nodeType === Node.TEXT_NODE) {
-    currentVerse += node.textContent;
-}
+            } else if (node.nodeType === Node.TEXT_NODE &&
+                !node.parentElement?.closest('sup, .v, [data-verse]')) {
+                currentVerse += node.textContent;
+            }
         }
         
         if (currentVerse) {
@@ -11318,7 +11320,7 @@ return verses.map(verse => {
              data-verse-full="${this.escapeHtml(verseFullText)}"
              data-has-note="${hasNote}">
             <span class="verse-number">${verse.number}</span>
-            <span class="verse-text-content">${verse.text}</span>
+            <span class="verse-text-content">${this.escapeHtml(verse.text)}</span>
             ${hasNote ? '<span class="verse-note-icon" title="Este versículo tiene una nota guardada">📝</span>' : ''}
         </div>
     `;

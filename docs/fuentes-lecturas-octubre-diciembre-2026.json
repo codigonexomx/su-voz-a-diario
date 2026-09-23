@@ -1,0 +1,868 @@
+{
+  "questionDocument": {
+    "file": "Preguntas_reflexion_Octubre_Diciembre_2026.docx",
+    "sha256": "85f8ce7882589babb1ab4737acdb3ac528c61d97d7cd303b84ee7c6891b75d1e"
+  },
+  "readingSources": [
+    {
+      "file": "OCTUBRE 2026 SU VOZ.json",
+      "sha256": "d91c8e9a9108943a2bbf6317d07070b57a6d2ee533c70b031e9090e88c256840",
+      "syntaxRepairs": []
+    },
+    {
+      "file": "noviembre 2026 su voz.json",
+      "sha256": "20d0e22d6beddeec5c6ee0969c94ccc5dee579aef83ea2da7529e4c11e200212",
+      "syntaxRepairs": [
+        "Se eliminó una barra invertida inválida delante de »; el texto visible se conserva."
+      ]
+    },
+    {
+      "file": "DICIEMBRE 2026 SU VOZ.json",
+      "sha256": "91695704ec2d16c676b5344d2e0ff363c3ac46c3fd8ab20d0f325972adb61641",
+      "syntaxRepairs": [
+        "Se sustituyó el punto entre dos objetos por una coma JSON."
+      ]
+    },
+    {
+      "file": "testos faltantes de diciembre Hageo.json",
+      "sha256": "abe03e56ece2c5b5288a0aa11280cd91defceb9e53b2e3bea4878d69f51175b4",
+      "syntaxRepairs": []
+    }
+  ],
+  "pendingDates": [],
+  "readings": [
+    {
+      "date": "2026-10-01",
+      "reference": "1 Samuel 17:50-18:5",
+      "versionsSha256": {
+        "rvr60": "63af6f18f782958d13053dad2221da545ac14eceb76c0f258b58c8e434f359d3",
+        "ntv": "807ace977ecb33623d618b6d5307d5c90df9bc266204422d246f0ffe5fb35a49",
+        "tla": "4e98e6bb5cf8a21257c13af7b03afdb58b46859228ba5b17a16dc7f55c002379"
+      }
+    },
+    {
+      "date": "2026-10-02",
+      "reference": "1 Samuel 18:6-30",
+      "versionsSha256": {
+        "rvr60": "8882177602dd4d5a0d8b2a1be8e56727c8322e2ff63484ea933f9f9563ea7ef0",
+        "ntv": "4a89926dba8a984629458886d0746579282e80bdbf3edd7d6be7bb3b2eb360d1",
+        "tla": "7113e4a340643f1b58d0627eda582ac31e1ec98db1cdbb02ea5494cd57f1a581"
+      }
+    },
+    {
+      "date": "2026-10-03",
+      "reference": "1 Samuel 19:1-17",
+      "versionsSha256": {
+        "rvr60": "2f8fdc407f90b2cc1d88fef8b78e5b090294525b50bff2f63c4b0aff47687d14",
+        "ntv": "965e86dfcd14601e217c1f8ac0b8974ff0e81add731e3b6e5b06a46ea40cbd25",
+        "tla": "b0837bf51e9a81b25c930e8fdb27288b8ea49befa153b6dca122af91db396c94"
+      }
+    },
+    {
+      "date": "2026-10-04",
+      "reference": "1 Samuel 19:18-20:11",
+      "versionsSha256": {
+        "rvr60": "db7db5625435b059d198f4406e3b7aaf5297645d20f9cfce0a16d8a489b3a400",
+        "ntv": "0f1a91c734e6f574103272e479050daae3d48a576ad98b38ca3270abe801d88f",
+        "tla": "55e9f7372bbebc87c94fc21263a1fc6a6c5972ff5b04bf618e442c1e3bbce5b1"
+      }
+    },
+    {
+      "date": "2026-10-05",
+      "reference": "1 Samuel 20:12-29",
+      "versionsSha256": {
+        "rvr60": "b547480d4a1cb4ea482cce1c21e57842538e422f18b93735871b2e1866162acf",
+        "ntv": "0bb27d9073e73af22e2232b2f29f7aa860be75c5b0ce4a8c568e9b9d127f4f69",
+        "tla": "4be2eb8fb388cb89f68ae6a4ad1b9ced69386490dea92d95460207ca1c8f3654"
+      }
+    },
+    {
+      "date": "2026-10-06",
+      "reference": "1 Samuel 20:30-42",
+      "versionsSha256": {
+        "rvr60": "4f44d80e6584ac6f0675a5eb8b84adb1acb02b2510446063e6e23c69d37f1d7c",
+        "ntv": "7c8e35fe0b330bbbf326dfe719e760b5d972cf9cd87a9d8cc9c4e4a26928027a",
+        "tla": "29f7a5a7cb26648069956698c5c8b8cccd2ebcccf3cfcf7bbcbf418e08bf39b5"
+      }
+    },
+    {
+      "date": "2026-10-07",
+      "reference": "1 Samuel 21:1-22:5",
+      "versionsSha256": {
+        "rvr60": "f8be4ecd065717a67aeb6fbde479eec040d28048ddd2b5cfcf0e9d1db087696a",
+        "ntv": "55c7f89e3bc40c608c863d382fa8cd020d0c00bb60e80ec815599946be1c1444",
+        "tla": "89f726c1748c108183746704d40cde5929dd3a3869a89e7af46686ed9e8460fa"
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "reference": "1 Samuel 22:6-23",
+      "versionsSha256": {
+        "rvr60": "0af6deaacc20e98be4c593c7b87b132bef65c23920568c914b077e6ced4910b6",
+        "ntv": "374044ce4da55c63607b17a13268f98171de0c54b0e62d034da36ecaaad4226b",
+        "tla": "4163a0fa5d025f04bfe4ba3d9eb8f81508c14727365a879f39dfd70d3a42a925"
+      }
+    },
+    {
+      "date": "2026-10-09",
+      "reference": "1 Samuel 23:1-14",
+      "versionsSha256": {
+        "rvr60": "ca14751802180e6e294501c28eed376bdc3f65bfb4c6675af095ad7ca4953877",
+        "ntv": "0efe83d0399c779e6f9473305c69595126e595e2ec23d5b5234adb5fe7c98816",
+        "tla": "510bcf178c54fc89027ca98eff9864af6c0d40e2eabc68173ae61225191c8f28"
+      }
+    },
+    {
+      "date": "2026-10-10",
+      "reference": "1 Samuel 23:15-29",
+      "versionsSha256": {
+        "rvr60": "ba4959cb931246245996fe9a8ecdb3ff97b94bd52c264dc3c95bf18c04d2e5fe",
+        "ntv": "137e3c0c15fea81e1036812ef33ef837a36150eb46994401c218d4273d8d9f72",
+        "tla": "3bb062b965a21f8a5e0a42cd5fa60dab0bc741c79bcb3222167e62a43330469c"
+      }
+    },
+    {
+      "date": "2026-10-11",
+      "reference": "1 Samuel 24:1-22",
+      "versionsSha256": {
+        "rvr60": "5fbe5e1d187ec4f3e3fc265e7ac07d4d4e2e3bcc2958de777b2bf85bc730162f",
+        "ntv": "e7419f312a01a9b8b0dbc001dc18a1fa178240a505a782fe06c4eaa766ec6d58",
+        "tla": "5a15132c3f92f8e133848db597e3c4368ff1fe1ab8ce2f9bf335102102193b97"
+      }
+    },
+    {
+      "date": "2026-10-12",
+      "reference": "1 Samuel 25:1-17",
+      "versionsSha256": {
+        "rvr60": "dacfc21e7f3f7fc8f8d43e6fcc4f414a7e435273a29ec38220bb2bd9cbb745f5",
+        "ntv": "33323f59f9181118b583dcca079c27274f1df06d2137e5c044c944965d79f2b2",
+        "tla": "76c34af013cfaccc4849890e69fddbb9f3605a5dae19d045282c71c02854daff"
+      }
+    },
+    {
+      "date": "2026-10-13",
+      "reference": "1 Samuel 25:18-31",
+      "versionsSha256": {
+        "rvr60": "3aa68f544628e4c73c32720f1971b95f3e1533dad671832ee57c3f6de13a43c4",
+        "ntv": "98ff20c5d7c39eb403a0bafbc1ee9bd9e87a5f270c9071d614687e57b872a3c7",
+        "tla": "7b3dbb31392c923e78797527c9b802facb46539d004bd3463181b9fc4fe4aaad"
+      }
+    },
+    {
+      "date": "2026-10-14",
+      "reference": "1 Samuel 25:32-44",
+      "versionsSha256": {
+        "rvr60": "9d8b4cf408cd4200f7c06ed415d9cf81fb9783a3776b31560d05dd00fee51b55",
+        "ntv": "c33c43a5227a5126926a3e08f84d3eec8f5d78b7c5ec419f23a362235b1c8b9e",
+        "tla": "fb7f9810eff916a24ce36a9bd7de482ec7517f870a7d35e16db2a4b5bc0f32f1"
+      }
+    },
+    {
+      "date": "2026-10-15",
+      "reference": "1 Samuel 26:1-12",
+      "versionsSha256": {
+        "rvr60": "9853f623e3c2cfc7b5c04f5450aa410db07b3cc25618c1b10105dd0d44074b84",
+        "ntv": "36e74f9802e89ce0580c28966accb8dee489b5100a15f69d5823a05510960064",
+        "tla": "8e183f52e14865660f14a37fbfb60b89ff55ab1a9119b2d516418d4a40206d06"
+      }
+    },
+    {
+      "date": "2026-10-16",
+      "reference": "1 Samuel 26:13-25",
+      "versionsSha256": {
+        "rvr60": "d036b99bbd614b9493e725fed6fe6da0394c0ca659a137fda24a7f121b49e1fc",
+        "ntv": "c3c89933753ec348462eb3e31106cfc76f326afb790c551f176ec4febefa3ef8",
+        "tla": "9bbf4d95ded30b8d682f49f3b158d87fb8eb7a9eb4e2b872cda81af0874fe4c9"
+      }
+    },
+    {
+      "date": "2026-10-17",
+      "reference": "1 Samuel 27:1-12",
+      "versionsSha256": {
+        "rvr60": "01a3bfeff6a5e01c8770cce7336a59217e5d7680e9d135bee72b0384a7e4cb2b",
+        "ntv": "30af66f873665609f730e39e609e0319268808347ed9e66c590522859c413fa1",
+        "tla": "c5332abdfb091a4da7d55db93e982a4ec74625e8c1480bb4e98e7701df9cf87f"
+      }
+    },
+    {
+      "date": "2026-10-18",
+      "reference": "1 Samuel 28:1-14",
+      "versionsSha256": {
+        "rvr60": "16c22b57733f0ea6fa4ab0eea30f543c1c7c0ec2a443fcb75e8fed81667ebac6",
+        "ntv": "42e1e5c4fd66fa24445796a8bd2f1a32ac5ca609f0e6d34b10f14154b5506d8f",
+        "tla": "60f5b95618a8bac205a87bba91efd98246f7c0d4b6e0c7e848931690c910b99e"
+      }
+    },
+    {
+      "date": "2026-10-19",
+      "reference": "1 Samuel 28:15-25",
+      "versionsSha256": {
+        "rvr60": "5d5a6991b61979983915a096497c0e13d11a4d6349f6ea3794e8c43d7b7bfd9f",
+        "ntv": "988fc177c852fe7143992192edfd6af929ef06f52334f8034c3b71cd8013b333",
+        "tla": "553dd9d09de9cd4b912c8e04888f4f5092e182bed540693abb69aef2db977bfa"
+      }
+    },
+    {
+      "date": "2026-10-20",
+      "reference": "1 Samuel 29:1-11",
+      "versionsSha256": {
+        "rvr60": "9000c5e013f19f4b5bfdfb1ead6af104d0d619612e23352aff9162fb619da17b",
+        "ntv": "e16f0306f4ca5c48cc65ec127c9e92f429cd478bd2aeb3b119767a49ab8874cb",
+        "tla": "52647bbaea60f1bfa6b361350a3767acdaa8055ca0b13fc451c7d1c5c0b7240f"
+      }
+    },
+    {
+      "date": "2026-10-21",
+      "reference": "1 Samuel 30:1-17",
+      "versionsSha256": {
+        "rvr60": "3542898b4f69269008c54f1336110ecaca484ab838d7874264c8df91303547db",
+        "ntv": "f54bdac57815ce40f8b0fa52ee282677ea143d7758194032dba6567c3f35bfef",
+        "tla": "cd79a9a9281b222b77a1b6996c85e28e97741edd70f83493703d7a9befdb8d79"
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "reference": "1 Samuel 30:18-30",
+      "versionsSha256": {
+        "rvr60": "7075a92767ffe091e844ab0bc66dc5197c26b23e38014977f8f191fd4933899c",
+        "ntv": "4251891b8ec99a7644e62b5f397b2a131763bc11dbaa3d9f076ad74729e791b9",
+        "tla": "1543726115c5fbda99e647c6851078abc5ca452b988d7f5d6aa0c8d05cdb4702"
+      }
+    },
+    {
+      "date": "2026-10-23",
+      "reference": "1 Samuel 31:1-13",
+      "versionsSha256": {
+        "rvr60": "97ef83ee040e268a616e76b122f9be3aded65ea6c465dc121a209b890f119445",
+        "ntv": "b19a5c58864e5a10b2fc1e0109312fefa1e12e403d5d5cf15d53b3c198217c40",
+        "tla": "a40c8f5cbea8f4eea4ca0eab159675cf7c166a0ca10e39e4c6c41e0920228edd"
+      }
+    },
+    {
+      "date": "2026-10-24",
+      "reference": "2 Pedro 1:1-11",
+      "versionsSha256": {
+        "rvr60": "1e3f0b5c7130103258a078621cac0088090d80b2a32e18e0b1cc541d74aa50d7",
+        "ntv": "100db7c7799df6be2449b7d3d8be3d393e020f1f0e83c94a35572596d23ac255",
+        "tla": "786e3160c71bb880c75de3b3de0d785808331748e57a2d2e3eb943b409b3d4d2"
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "reference": "2 Pedro 1:12-21",
+      "versionsSha256": {
+        "rvr60": "53cdaae62a47f072a07baa33409252a618be640757b6b09239e61d630f374ad6",
+        "ntv": "c7ee45334d902ff20fbd6e25e1df95e6a9d289630a237f4394defa12c3f107e9",
+        "tla": "9f854c579b8f2393d86e92e9b48a6b07f7dfe8d8a182cceb5037da18e967707e"
+      }
+    },
+    {
+      "date": "2026-10-26",
+      "reference": "2 Pedro 2:1-8",
+      "versionsSha256": {
+        "rvr60": "acd811470e8498dd10b5ee2e9a1699b37de33713399f1613a39279220b01c668",
+        "ntv": "b6efc38c5c830ad87385b8c73f8a00b2dfbbd7a6012051b61cccc9b12e7ccf01",
+        "tla": "19167ae0945e4144b1f570ba262166c6e1d9f6ed9fdb2bf4848b2f02f70c353d"
+      }
+    },
+    {
+      "date": "2026-10-27",
+      "reference": "2 Pedro 2:9-14",
+      "versionsSha256": {
+        "rvr60": "98c069f8c4d71ad76992bd2d12ef0f5ebf7eefdbd4d26e341c678abb41249744",
+        "ntv": "db0b682664ab6973d540bab8c3c330ca264a402bac0bf3d8473ef1c9ddc834aa",
+        "tla": "e013b8b7c84f24f53bd97bafcea5a1626e0b3293590fc75224bcb6fcbf5728e7"
+      }
+    },
+    {
+      "date": "2026-10-28",
+      "reference": "2 Pedro 2:15-22",
+      "versionsSha256": {
+        "rvr60": "b776fbc09ac385801b71688db68dc850f09f2f40075ccb2cea0fd37da8f68bbf",
+        "ntv": "05c6d3e797da70de3038eed0ad4cd5353e51f75c5fdbde8d3d0c3ddf37ba43d7",
+        "tla": "3721d68435011648cdc1b9a108957b9a22fc2fb1858cce287a4597ec6005a98f"
+      }
+    },
+    {
+      "date": "2026-10-29",
+      "reference": "2 Pedro 3:1-7",
+      "versionsSha256": {
+        "rvr60": "dbefdeea184fd61cd5a0e7f55b4cb6d64d77658b14de466b5ee8bf2cc8e6535f",
+        "ntv": "be9ad91b927898282aa532ba7eadba833dd0abc417c4a3b223631e82285014b8",
+        "tla": "494183a45161baf4644b0785d88d8e8287d204198d2ba46b444b9d3f61e87b4a"
+      }
+    },
+    {
+      "date": "2026-10-30",
+      "reference": "2 Pedro 3:8-13",
+      "versionsSha256": {
+        "rvr60": "2b4b2d8484e1d46b6a1a5deed1e69822547ee76438289211e86281d030cac1a8",
+        "ntv": "a3b3129ecf9289f99f93251f91347d6d0c1381c7b9613a63a379cfb7ff0e63f3",
+        "tla": "08bfe6c3713d8e9976fdbab86cef83a2e3f36ce541ccb8aa753459caafc0ccd0"
+      }
+    },
+    {
+      "date": "2026-10-31",
+      "reference": "2 Pedro 3:14-18",
+      "versionsSha256": {
+        "rvr60": "f500276a75e6cde7420ff718d773b1c2d8c73b7ef09fab3e783497760accce49",
+        "ntv": "906245778ae8e130a72798e2ce8b0b980715e4112f43fa56820ce5c49f099f14",
+        "tla": "60ba86c64c3ba593e25057804582a0cec2e70c20414d1dfe04e0b4cc3860ffa9"
+      }
+    },
+    {
+      "date": "2026-11-01",
+      "reference": "Oseas 1:1-9",
+      "versionsSha256": {
+        "rvr60": "ca4d86e82f66f8db4bcc8a3c19798de795341a973ad013277377b44bc091d90d",
+        "ntv": "458de29751e6ab84715e87a26adff6f6ce04947c258bf5dadac794af7eae52c9",
+        "tla": "b7ddfbc4d41ffd4ed18f3ab1f31ee343adf312895d661f3765f7e43a8bafc7d6"
+      }
+    },
+    {
+      "date": "2026-11-02",
+      "reference": "Oseas 1:10-2:13",
+      "versionsSha256": {
+        "rvr60": "b0b9c9e642735cf27a29a88e0fba15a7c34c0d07c3b83fae6ada6e0cb772e33f",
+        "ntv": "31b4252b2301df44b5ec4adbfa7fd0e9be68ced8407f84e60d5bc3045e963794",
+        "tla": "bbb51c34b6408e257f6568727fff5a822a9a2c7e6141f59467f61422116ef88e"
+      }
+    },
+    {
+      "date": "2026-11-03",
+      "reference": "Oseas 2:14-23",
+      "versionsSha256": {
+        "rvr60": "42b6bda4bfb44c2db1773a18a95a089c482c318b89bc2faeaefb34f41d7081f8",
+        "ntv": "16fbf7345b6dd9baa46fca811bcb8682dd1972eb2ec427a0c0416d0c3a7fcb0a",
+        "tla": "a096894a88ae8f285bdda1fd35421bb4d79f7a4343aef0bd1274952d6c64fb60"
+      }
+    },
+    {
+      "date": "2026-11-04",
+      "reference": "Oseas 3:1-5",
+      "versionsSha256": {
+        "rvr60": "bb97811c17fbb6ee61487b390837aaf931a9ff8098141f1d710981f126336755",
+        "ntv": "f63dfa890183577e193d61ef797fcb510836c9d76bc50b0aff78590d6d45521d",
+        "tla": "a3cec6e53b32d661f32e7a53a1bb254f4ae9af6506207528baebd4191ae82d2b"
+      }
+    },
+    {
+      "date": "2026-11-05",
+      "reference": "Oseas 4:1-10",
+      "versionsSha256": {
+        "rvr60": "74362fe5ad3ae6580b08aa9b8d6028d6609182a9d394871a4b3f0b4ae0815178",
+        "ntv": "ed3ccbe80a7c33894eec3fad6b4d16afe6eb99aae9ea17d78d8854e777e0b1dd",
+        "tla": "2bacb8b1ba9ef059d931f016f5509601aa2b60415d91d8fc60056ab9e5ee20db"
+      }
+    },
+    {
+      "date": "2026-11-06",
+      "reference": "Oseas 4:11-19",
+      "versionsSha256": {
+        "rvr60": "550749b52101ec71e08c613aee6e35542488ea7e9ed91f471191f5503389c478",
+        "ntv": "21bc44d1259b4ad328d4dbdf18ff4751b3e50265bb2b39af983c56fcb4c0ec1d",
+        "tla": "13301e165316d85282b2a72af482257f7dc21a1089769bcba8c278748e4facc1"
+      }
+    },
+    {
+      "date": "2026-11-07",
+      "reference": "Oseas 5:1-14",
+      "versionsSha256": {
+        "rvr60": "f7031a6057e4684d7778ca53aa928c79df7643102c761c59fd2b3e2962353571",
+        "ntv": "3355caac2530b29c95328fca1a43d968b5c780497a666890ac1f70aeccaec7d1",
+        "tla": "98e2bc7f196e91e6e2d1e6f78dc567bed19012abe97bd2a920b4f4b3eca9eb1d"
+      }
+    },
+    {
+      "date": "2026-11-08",
+      "reference": "Oseas 5:15-6:11",
+      "versionsSha256": {
+        "rvr60": "ba4dda6f816e78fc5d99165bd322e23d1224ce7f61b6bb95c3ffeb7edef617cb",
+        "ntv": "de481a0d4bdec72729ab55ee7b43d397114000c832a34a8cbf41a7e34a9820f5",
+        "tla": "8971f44f1d1f99ddad2fbefbc8e58ec0d30b27cf68af3f79490ac77f54acf788"
+      }
+    },
+    {
+      "date": "2026-11-09",
+      "reference": "Oseas 7:1-16",
+      "versionsSha256": {
+        "rvr60": "332d73c12a527f1a3b09b5b096161d0931a1f6101ea80f04d65e42d6956301a9",
+        "ntv": "e62e8a54bfd71bd51d239dd31effe9bb1efcdf3b01d3030e6088712364673261",
+        "tla": "b875551c4f8e163592043ae889076667e0d15bd7b9ef11e13b115b50ec49ec18"
+      }
+    },
+    {
+      "date": "2026-11-10",
+      "reference": "Oseas 8:1-14",
+      "versionsSha256": {
+        "rvr60": "da62e69880b32258180e20970e70d7774e0a5e46f1fcdb04d1f75cf0dd2d6fe8",
+        "ntv": "5875bb999c3134bee4725225741317f1e5d37168740b3d57b94895f26ef5f845",
+        "tla": "40b133b0a551159fa556603d4c942d088a390c1cb2fd0343c90abeae9b0a6191"
+      }
+    },
+    {
+      "date": "2026-11-11",
+      "reference": "Oseas 9:1-9",
+      "versionsSha256": {
+        "rvr60": "7aa78a941907d650b09bc3765572233d0741154f8e21b009e047bab703269bda",
+        "ntv": "fd050b1b8ec4721cd547a5be94198ca5bdeb159b30a3a814542e2264e106b834",
+        "tla": "c66cc1019e5a08dc1a0050d5dfa142c121fd95c331e830cdf728cbb38b1149e3"
+      }
+    },
+    {
+      "date": "2026-11-12",
+      "reference": "Oseas 9:10-17",
+      "versionsSha256": {
+        "rvr60": "7c6af80726b7da295faa3dacf05ffa0bfad1be66c172a32a38f2e46611028f7b",
+        "ntv": "2fc57985f66d9e3cf41204634a0438fe7c4e53e4e48088cfa2ca9655d32a7af0",
+        "tla": "540beff11c1277409ced6075728062b7fdd1c88f97e7a9b8551e247ce2e029d7"
+      }
+    },
+    {
+      "date": "2026-11-13",
+      "reference": "Oseas 10:1-15",
+      "versionsSha256": {
+        "rvr60": "8b9a83c5677e9324201077764b4b2aa91cb8f06210f6219b5cbb26cd39e159a5",
+        "ntv": "9657d4c3175e402bd3154cfd336fb7b13ea687708880d086d4a86bc716b49880",
+        "tla": "d6cf23c2f6e5ec9f83ba1ae325bed68914623ef201f63322bf6160fe4d02dbe6"
+      }
+    },
+    {
+      "date": "2026-11-14",
+      "reference": "Oseas 11:1-12",
+      "versionsSha256": {
+        "rvr60": "c79ac4f166cb5a39ec4e7f4ce92b0ff1bb947db3f0a5d410e6cc0d22cd54de4f",
+        "ntv": "8c24ac8ac55e2c65098a1559f4796d0d0092840f647746cdbe155d0d8891f5eb",
+        "tla": "86d841c69d0c457265a97cfb013b28e857d879fa726865d9d9bb6aae646b0e1c"
+      }
+    },
+    {
+      "date": "2026-11-15",
+      "reference": "Oseas 12:1-14",
+      "versionsSha256": {
+        "rvr60": "8d27aed75cb46300c8ba292fa7a747c982dfe04d77c2e36c58f5907b1aa58042",
+        "ntv": "fc1f1d8568424d24ad723b7d938f9bcfce965667bde3b4d40372aa0fb6dc7cae",
+        "tla": "97e97b05da077e7ae6db0f605ce3d843324ec8553d628b50a3578fbab4d3531e"
+      }
+    },
+    {
+      "date": "2026-11-16",
+      "reference": "Oseas 13:1-16",
+      "versionsSha256": {
+        "rvr60": "03628603bbe5198a7c19f3fbeb3f35853b85e7823157efaa799a52942c0431fe",
+        "ntv": "d8b580757026418a7669b42f74c0b4fee361a9b712c3a1ca994e194e8e6a4e00",
+        "tla": "e38917e4379decbf48de811257429b793f07c40afbc9699ab159a104cbc3606f"
+      }
+    },
+    {
+      "date": "2026-11-17",
+      "reference": "Oseas 14:1-9",
+      "versionsSha256": {
+        "rvr60": "c61bfc9d4486f9aab32415dcf90aa5613dd24a9ede0570c5fe060587480b785c",
+        "ntv": "71405329e4f87d9e67ca10fa8fc8353518371fc212c33dcab01c64cd4e4cba16",
+        "tla": "ac5db2dd2ea58bf5ae7a630594f43d82923bb15c7792bf0697391fea13b838f2"
+      }
+    },
+    {
+      "date": "2026-11-18",
+      "reference": "Apocalipsis 1:1-8",
+      "versionsSha256": {
+        "rvr60": "7e3dd30399c5e8f8e5a47a42caf3808e6729db84f32df196fec4d25679802c51",
+        "ntv": "af38bf829c7032634bbbcdc88ce4e9a64e7fa0fb830c2b92f99b8fbd5fedaca0",
+        "tla": "1d6d98cf91a63168dc732281f8c9a1d531d81baa4626db95ef406cb33fc7e89c"
+      }
+    },
+    {
+      "date": "2026-11-19",
+      "reference": "Apocalipsis 1:9-20",
+      "versionsSha256": {
+        "rvr60": "e7b139008b5cbc8813eb18f3f7c4b3ae13d94402b23f4c184f3bb4556e8dfa7f",
+        "ntv": "7189ecaa29ffed613b5a52cb499ad697ab4b307c00989db34e3773550a8e503c",
+        "tla": "4479b73cbbc1d57ab492355fd71fe16e9278825ba8d557b15cc005a2aa42ab00"
+      }
+    },
+    {
+      "date": "2026-11-20",
+      "reference": "Apocalipsis 2:1-7",
+      "versionsSha256": {
+        "rvr60": "97efaa96ff1ec52ab5d75acf55d283c20b12d3dd8f6299bbe34953252b36af86",
+        "ntv": "a7193c959ef604622d2c9c4221132ce9fdd620dc0f8bf713e6be9c9acd8180ae",
+        "tla": "ebfaf63faeb7be1e6cc0ccecacb8f55d7908c959957d60c9cd4dabd4e7b597da"
+      }
+    },
+    {
+      "date": "2026-11-21",
+      "reference": "Apocalipsis 2:8-17",
+      "versionsSha256": {
+        "rvr60": "df1611855959e2931699794d7020a450bedcb45e1d60d412e312c7a2856dbc26",
+        "ntv": "7c13565bc8c5af2773383b9c008c87e84d5371112eef0ae21f8c8d9c9a8abab1",
+        "tla": "5aa7e0c4c2f6b953cac6fb669100f8116e6b1110f538c569ba9419f0b96ce944"
+      }
+    },
+    {
+      "date": "2026-11-22",
+      "reference": "Apocalipsis 2:18-29",
+      "versionsSha256": {
+        "rvr60": "16509767ee4051849217d50f56d7b844815bdeb4dbd91bc4fb03f526913e5f10",
+        "ntv": "6438fd0f7ec34bc96d8aa16034edf08042e2fbbb9b52cf506ec34c61e2a26351",
+        "tla": "c7993ec3c74a449c31e15acbe215e8394597cc2930421d85edfd201046a8ea26"
+      }
+    },
+    {
+      "date": "2026-11-23",
+      "reference": "Apocalipsis 3:1-6",
+      "versionsSha256": {
+        "rvr60": "aac5122fee24a24a45bab7ece6484e1456af4d71b5e36d0c25d7608b56e3e781",
+        "ntv": "9a5e0b94060bdd906d436aebaf11f6f49885c73fe5c126d22a1ddbfb09832149",
+        "tla": "fb6d3bfd3d1778ea9d9c2352266ac96b1f9e085f6ace57b8e7321c0508238ff6"
+      }
+    },
+    {
+      "date": "2026-11-24",
+      "reference": "Apocalipsis 3:7-13",
+      "versionsSha256": {
+        "rvr60": "78c354fd35fda69ae9514c3c834c70b1e5d1c3ad0ab293c43de5ddfd974eb125",
+        "ntv": "1d1a36c758320865be99e26434f89bd812f98001e91a105fc46b736ea46d1c9c",
+        "tla": "d4da90237f81f14892e6eca70d563ab54ceca57d8f5cb11edf81d92e0ea64267"
+      }
+    },
+    {
+      "date": "2026-11-25",
+      "reference": "Apocalipsis 3:14-22",
+      "versionsSha256": {
+        "rvr60": "d2c2f706b3103d488863781069ec68bc0e8d903e98218b9e5a73019de3539042",
+        "ntv": "e8e6dfabd0add6966dc52bd3d927b91f070c3c1ac02997c3cf7207e688ef8579",
+        "tla": "d341d0db7b1fa83b372e691d46775897983c1a06bd15593ef6c2a0346b3a2f76"
+      }
+    },
+    {
+      "date": "2026-11-26",
+      "reference": "Apocalipsis 4:1-11",
+      "versionsSha256": {
+        "rvr60": "84e31ca88a69ae0416c820ce7cb89d8a14b15479e1632d048f283e43583d9df6",
+        "ntv": "642aef0f79deb123121195c1a386915af059017dd3a0ad0a1525bff862702b30",
+        "tla": "0217a8b09e38c5c87e5828948184fd7b6f86561bb4d463616861683f80be1bb2"
+      }
+    },
+    {
+      "date": "2026-11-27",
+      "reference": "Apocalipsis 5:1-14",
+      "versionsSha256": {
+        "rvr60": "dd0eb79786b84711419cdfe4dc882d9099d921f749075df951a4f164fd918a14",
+        "ntv": "008d504284228481c6d67a856afaec5ec3733fa92ee592478119e033e4bb8341",
+        "tla": "140c251af46d1aba62ec685ec8c11fc85f55955ade2ff1442243369aaaaf9596"
+      }
+    },
+    {
+      "date": "2026-11-28",
+      "reference": "Apocalipsis 6:1-17",
+      "versionsSha256": {
+        "rvr60": "9f16775150a292bd04be938bfb42d56e6df64734b7b40cb04bf28f25beac00ca",
+        "ntv": "8190e909c520be6d6ddc88171be620237c673dadb67c62fb0d703b6e27369bde",
+        "tla": "7d04197e4ecbc106970d8d425d62fe787654d6359088e8a82ea556c581fde266"
+      }
+    },
+    {
+      "date": "2026-11-29",
+      "reference": "Apocalipsis 7:1-17",
+      "versionsSha256": {
+        "rvr60": "831861e101ea8a65a6730a1625b4f2f974e1aea2e99c7da42efacc3fa169792c",
+        "ntv": "7cfad0646cf186c246872ecac5c367333963365328160f720e2265e76d1160b9",
+        "tla": "865f86d83904578387ac99dd24d54b55d874723674250b22eb820bd63f987e65"
+      }
+    },
+    {
+      "date": "2026-11-30",
+      "reference": "Apocalipsis 8:1-13",
+      "versionsSha256": {
+        "rvr60": "8e0f19220f80940a8860018110bf4e17eecc047555c287a20c75b9b523f0ca19",
+        "ntv": "9a82725caf481a148f743cc1f89667dfb25c8f6261a83fe7d6f9bee78e71a102",
+        "tla": "8e5d4f9433fada4534409d31f16f7fe578a3f69e63e4d781531d194093adf2fd"
+      }
+    },
+    {
+      "date": "2026-12-01",
+      "reference": "Apocalipsis 9:1-12",
+      "versionsSha256": {
+        "rvr60": "9ed0bde12600d6d8f7c9ecccfbff66ea28b34ecb3feb15b76241255703b1550a",
+        "ntv": "84ecad66e21a5be004058b7c6890635dc92270313d7c982a0082b541cfdaa94a",
+        "tla": "71f05a91720eb393896597dc6cac4d9678a2b2f036f0142defa4cd07ba8083e5"
+      }
+    },
+    {
+      "date": "2026-12-02",
+      "reference": "Apocalipsis 9:13-21",
+      "versionsSha256": {
+        "rvr60": "646cb33cfebbc03a82887b79b928eaf25b79280d014db8268a8d89dc7397011b",
+        "ntv": "2149ed45878dfc15355e6f8d15c17e45b8b1ba471ed0f07218cca45d774711b8",
+        "tla": "da48e16b63c8b178a46e65bdc652d8b787e796aa39fcfd60c0082c63bd692a5c"
+      }
+    },
+    {
+      "date": "2026-12-03",
+      "reference": "Apocalipsis 10:1-11",
+      "versionsSha256": {
+        "rvr60": "12d97ff04463fddf2d5de72d19c3b830dadf74419c6441139af9042200a12370",
+        "ntv": "1906f105909cc6341b5bdb227648a3b9dba443e9813ba70fe0872f1070444c4c",
+        "tla": "9e87d6305d888850817ab8e38f3247edca58fb849f52c697b5d270cc6f37196e"
+      }
+    },
+    {
+      "date": "2026-12-04",
+      "reference": "Apocalipsis 11:1-14",
+      "versionsSha256": {
+        "rvr60": "eaa72036bbb4eca85704361a3b1a540f21f7ebe3925adbe55e2353b9ef21b4d6",
+        "ntv": "0912af145cd4adb63a46af429491272f6c0be1d7922b55b3ee1efb29cc4f6332",
+        "tla": "ec455b3ca3f04414938d7cdf4dfc3bef78fba2bc5e604b56b786ed671e205ce6"
+      }
+    },
+    {
+      "date": "2026-12-05",
+      "reference": "Apocalipsis 11:15-12:6",
+      "versionsSha256": {
+        "rvr60": "ebc01632ed360269aee3d60d37b2c1eb2c939b95b8aaa964c3e2412952a5e179",
+        "ntv": "781cf6ef663e05087ce1a4e55ef49048dd968a439867e52fa409f1fc274c8f7a",
+        "tla": "db6150a5e7c7ce64a4121b0fb24ecc7f67bdddcb9f7b9c2142b8ff810a5d6575"
+      }
+    },
+    {
+      "date": "2026-12-06",
+      "reference": "Apocalipsis 12:7-17",
+      "versionsSha256": {
+        "rvr60": "5f2103f4ef092e599d692a67cbfb8a88f81490dcdaa791d7a0fe3f9a36f26afb",
+        "ntv": "9b478dead8d1373be0fa38618d24f3ce08bbc7d32533b929ac76728831af937e",
+        "tla": "22da1984a7de9c2c12f4b6aa9b370736d2bbf033129999497b3c382123f716fa"
+      }
+    },
+    {
+      "date": "2026-12-07",
+      "reference": "Apocalipsis 13:1-10",
+      "versionsSha256": {
+        "rvr60": "2ab2d50c77e9976a62d36b89358eee06b6b4d61e9e1bef49b29673af0ce792a4",
+        "ntv": "40d46afd679dbeb70ec1aba3fac505df4e22121f83ca66d8b0fb85a3357d05aa",
+        "tla": "25bc39b354debe66a395e67e5d859e62032177200d45ca1acd108abca1c9aa73"
+      }
+    },
+    {
+      "date": "2026-12-08",
+      "reference": "Apocalipsis 13:11-18",
+      "versionsSha256": {
+        "rvr60": "f654b68c186456fb06d8ea4568d7ced5cc5e29892cdfb0bd168dc3ac3a8f8046",
+        "ntv": "10e123842f16ae22f8e4124ae499b0169c29676527c1076ce47787df5bc689d3",
+        "tla": "d89de25d13431b4bef1ece9926075202c446bc043a8c87e4cebc320a8943f84d"
+      }
+    },
+    {
+      "date": "2026-12-09",
+      "reference": "Apocalipsis 14:1-13",
+      "versionsSha256": {
+        "rvr60": "341178fc102cc0b7f596d975c1726ef900a89c33383f2a08a9d50d67bdd201de",
+        "ntv": "3fe3adcee694551a2d7b02cc5f252feded085e935a0141f4805686f9fd8e154f",
+        "tla": "960a8b1b820f786ec4015c17a8dd471a89635a1f929eb73cb1ff3ecbb15d44f5"
+      }
+    },
+    {
+      "date": "2026-12-10",
+      "reference": "Apocalipsis 14:14-20",
+      "versionsSha256": {
+        "rvr60": "00e4321d1cfe3db3bcfe5492068dfa14d1bbdd2a42e231f7104afd62c02bc983",
+        "ntv": "12aa2d098476509d252b583f883635ad1c5bf06c8308430a04f543acb21995c0",
+        "tla": "7b60305535b23fb94c461731dafb7cb31a6b4bf38094ef742f597161b8a696c7"
+      }
+    },
+    {
+      "date": "2026-12-11",
+      "reference": "Apocalipsis 15:1-8",
+      "versionsSha256": {
+        "rvr60": "306b44ed60b084de38aa55d0c4f73f4da73c213519ca05df7222cc51e4396839",
+        "ntv": "af59a9c279e1985769c064801912b5bce8999fc79f63f7a3fe992a63ff6802b8",
+        "tla": "eb4c0e44afe5ef674c4e42daf671bc5dcffaed9f83fc01cc40edb4dddae5d54c"
+      }
+    },
+    {
+      "date": "2026-12-12",
+      "reference": "Apocalipsis 16:1-9",
+      "versionsSha256": {
+        "rvr60": "9b5ea83b274a68059f4ff91b3e9fedd1e890e893d078e8fb6c630cbb15bb104d",
+        "ntv": "4f23a7bfdbd4a82f938d179dca5e744e4a0c75ed72b207b5dc3588a538833ffa",
+        "tla": "c55bd5d1e43a1d7e620c444fd4cccf7c1502f94a9a5848e65feadab442eb9389"
+      }
+    },
+    {
+      "date": "2026-12-13",
+      "reference": "Apocalipsis 16:10-21",
+      "versionsSha256": {
+        "rvr60": "47dfcc5680a2d71eb4cfcdeeba396786d5e57de1f4e5b5199e067733f486074f",
+        "ntv": "7eb72532b8d51120a0d026068af0a7d78a6ae1ee491a864948acf39d948de7bd",
+        "tla": "d761c3670b9e2d48e74fb05be9d1c4f215a27947905ec3485ef0c9c68984f721"
+      }
+    },
+    {
+      "date": "2026-12-14",
+      "reference": "Apocalipsis 17:1-18",
+      "versionsSha256": {
+        "rvr60": "38f7b0794bd8891bf5d82b898e4402446cebaa808bae3e8161cb831bc0c9348e",
+        "ntv": "af5314491e6b9902b0e06e15db821ddca70cc32ec52c6ab04487bf8a68c91f5a",
+        "tla": "01be6599ee7b691b7203bde8754c36c44978f830ff43f63f8289cef151508d7b"
+      }
+    },
+    {
+      "date": "2026-12-15",
+      "reference": "Apocalipsis 18:1-8",
+      "versionsSha256": {
+        "rvr60": "cb9c78d7fd5368bde41647df7e8740092b751bee7d4fe1ce7a952ed469126ab7",
+        "ntv": "d0f1003d9a31f997750ef6e1f47546724507f2ef01d3ed4212fb48fc4d973954",
+        "tla": "ff80a7fb1b61ac380984f9706e6d71b3ef8644c455f715fa3cf94748363ec591"
+      }
+    },
+    {
+      "date": "2026-12-16",
+      "reference": "Apocalipsis 18:9-20",
+      "versionsSha256": {
+        "rvr60": "7400531c254e5c6c8dd7907ad955b52c6e959ac49104be0432cad3b6b2d972c6",
+        "ntv": "39613748f8519cbb7db6534d618a4493c582e711af988a065572a444edaa9658",
+        "tla": "8f74bd899a93068dc552793f5e8b6f7b5989bd8979023106021d6a7d25b12260"
+      }
+    },
+    {
+      "date": "2026-12-17",
+      "reference": "Apocalipsis 18:21-19:10",
+      "versionsSha256": {
+        "rvr60": "3d5a0df90cbdb5004ad2aab02f0cd2d9284a5ba02124f2caffee99572a8cb734",
+        "ntv": "9a0f37cf4c6711182f8fd4d4b180adc8492b74484dd6ac2632a806910473bcbf",
+        "tla": "cca43623c01f56302af338d74de8abd02ade9589df00475b973401010a725798"
+      }
+    },
+    {
+      "date": "2026-12-18",
+      "reference": "Apocalipsis 19:11-21",
+      "versionsSha256": {
+        "rvr60": "8163084abc44a1ccaefd9690e16dcce603e76ca7b0a87042473bd6d979f655b4",
+        "ntv": "00e5faab97aa2cc82ec5de66206dfeea0d2d721b4c9f010c8d25ffa4da4d5474",
+        "tla": "0bb2ceeb75519ba4a3d20d2ed4bcb75d36b8e4f054f65a6d6abc4b93d5febf5f"
+      }
+    },
+    {
+      "date": "2026-12-19",
+      "reference": "Apocalipsis 20:1-15",
+      "versionsSha256": {
+        "rvr60": "bd4b3104a569c98c8458eb719af03901164b4052afd878f97b78db05ab01a314",
+        "ntv": "2fec379793e832986bf385d20ea8506123c7f24ba441870bc142790fe8c83af5",
+        "tla": "6b584425920f896c343cdb221c0dcefd327f6e3aaf0fdeca8d2a11060e8d6333"
+      }
+    },
+    {
+      "date": "2026-12-20",
+      "reference": "Apocalipsis 21:1-8",
+      "versionsSha256": {
+        "rvr60": "b04b8b94c574d2145085e4fa0aef69882059ac145b9440d557a08ab3468d6844",
+        "ntv": "55ed8079f348bd794b9c2a0643441dfa5adbe529146a3516ea4d7a77f8542a69",
+        "tla": "b27bb0860dd9529033636e26f6b79552ac52a918e79ff8510348efff5e157f22"
+      }
+    },
+    {
+      "date": "2026-12-21",
+      "reference": "Apocalipsis 21:9-27",
+      "versionsSha256": {
+        "rvr60": "f660fc5c4e798cb7bbb5636882fd7c7897c6ba5e21d5b85671a6a60aea1b7f66",
+        "ntv": "5ba6ba58caab6ef810a4b493df1d6d3b121c12185e807ccc4569b00ce757f0c6",
+        "tla": "3c3554b81e44de9dc28e8195a6837ab5bd723af5c988bd2b60d1a0d7c811c673"
+      }
+    },
+    {
+      "date": "2026-12-22",
+      "reference": "Apocalipsis 22:1-7",
+      "versionsSha256": {
+        "rvr60": "46e498ae1ef8870646255eb2d8d10f0e975dfc0499bea24df3bf5516d72a8eb4",
+        "ntv": "ec35b3752c6ee05c4af9549cd2dcd2b4ed38f96d42f7639d50a56aafb268bb75",
+        "tla": "e848f3f10dbca13d4cd0f53bada682d0fa354c2849aa8c6867136bf72fbb5f99"
+      }
+    },
+    {
+      "date": "2026-12-23",
+      "reference": "Apocalipsis 22:8-21",
+      "versionsSha256": {
+        "rvr60": "eecc85e8a7af880089f59073f39f4d51ff749dd1d625dfb74b23318834cd1209",
+        "ntv": "e3432831b59ff3c09a417d78aa6e6c0c53a43b8b0989e566e128c3e351f9bdf4",
+        "tla": "cb4296349b37f38330be4d031f15cd80fab5f0c8ff70aad3aa7d1c04148e3e3b"
+      }
+    },
+    {
+      "date": "2026-12-24",
+      "reference": "Hageo 1:1-15",
+      "versionsSha256": {
+        "rvr60": "52a04c7f561153e638e93f7088d3db8b6947ed50a56ccd0af6769ccce798f362",
+        "ntv": "56069c6de4493c1b19a7123c46a6c6a45f484381d673f9c8dbee650b9099bbec",
+        "tla": "7bda9ac8bcf053dbd1bba592f06bae028a788ce92f7d9037e801985c84683c4c"
+      }
+    },
+    {
+      "date": "2026-12-25",
+      "reference": "Hageo 2:1-9",
+      "versionsSha256": {
+        "rvr60": "8be5dfa0cc3728b68c6c192db0ac2d716f71f552d4880f62c100bffe03a543b1",
+        "ntv": "e9a15a9226ca105d81b2d92d4f682d5704b1ac593589623e78f0c912fd2d8314",
+        "tla": "5b35f1fcb4339a10ea465e0a65166b1f0ee98f165999881d4f7d88cb16deabfa"
+      }
+    },
+    {
+      "date": "2026-12-26",
+      "reference": "Hageo 2:10-23",
+      "versionsSha256": {
+        "rvr60": "c36494d53d784bf183022db4356213385f66082c7bdaaefb6260d77e62ec2257",
+        "ntv": "a09d28955646c1ec3e3af9d7a89a51cdd6d8149398eeb58519f3fce53308c4be",
+        "tla": "4e54864913a5170818c4358db2ce91fcf85803b5ea4605bddefb0995a7ba28b8"
+      }
+    },
+    {
+      "date": "2026-12-27",
+      "reference": "Malaquías 1:1-14",
+      "versionsSha256": {
+        "rvr60": "103d8e79c5b8688ca92ef78fd92a9405a820460f6b6969586fb12c5aecbc2d4c",
+        "ntv": "bf787076485390352a737477d3142d6e2cde692fcf25b7cf1cbd487a8e4fb4e6",
+        "tla": "c194c63261c517a4bcbe76f751127ff8c5bc459ea6c5ef46e8f53adb831a72ae"
+      }
+    },
+    {
+      "date": "2026-12-28",
+      "reference": "Malaquías 2:1-16",
+      "versionsSha256": {
+        "rvr60": "b0c7c40b65671402e43699bc8bbe2e447d444ef7fd7f98158ff5ca566826e216",
+        "ntv": "2e4a18208cff144e1250118702be44538e710b31a7c169989198c852b90a64f3",
+        "tla": "543be1e58ccdcf3f0f6d5cf723190cd574d125e91feb1fdf5218357096dfcc42"
+      }
+    },
+    {
+      "date": "2026-12-29",
+      "reference": "Malaquías 2:17-3:5",
+      "versionsSha256": {
+        "rvr60": "6afc4828ca380ab8d40a97afff32ba631d8cc3ea99e79e16dd1948f6980621d5",
+        "ntv": "e0abf5c188e9543bfd3ea93dc36d3cc9cde97a576adbe4bb87e51a31b381c932",
+        "tla": "abaea6ad4c6ce6d3cab94ffa184695169a7fc99c5c300739c7c941c5f226e320"
+      }
+    },
+    {
+      "date": "2026-12-30",
+      "reference": "Malaquías 3:6-15",
+      "versionsSha256": {
+        "rvr60": "8dcc87e9fd04454e42621052b5e47f3de641e2731e2beedaddd0dcba096aa9ef",
+        "ntv": "958a6bf31040d8a936fa5cf0ff2a102e3159e03b0d0242ed032fc22408e1fad9",
+        "tla": "c17b4bc18e90110c66c27188b5e84b3618d3fb377757e7573d53aeab093df073"
+      }
+    },
+    {
+      "date": "2026-12-31",
+      "reference": "Malaquías 3:16-4:6",
+      "versionsSha256": {
+        "rvr60": "dee332826932dcceb333485bfcd3a39c5e291dcf468fcfade8199ff55872e547",
+        "ntv": "a1d4c33d5f47af79c2a061e074b82d6ff62b309fa4ddb8aed5788de07f2aa67c",
+        "tla": "f0b39c655fa4ee4483c7f5f8dd0ad6af4bc4a3d8cf3addbea93e1b9c62375718"
+      }
+    }
+  ],
+  "proposedQuestionDates": [
+    "2026-12-24",
+    "2026-12-25",
+    "2026-12-26"
+  ]
+}
