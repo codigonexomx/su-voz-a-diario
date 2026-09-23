@@ -1089,7 +1089,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '234'
+            pwaVersion: '237'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1530,7 +1530,7 @@ scheduleKeyboardViewportUpdate: function() {
         if (nav.clientWidth <= 0 || nav.clientHeight <= 0) return null;
         const rawCenterX = activeBtn.offsetLeft + (activeBtn.offsetWidth / 2);
         const height = Math.min(44, Math.max(40, activeBtn.offsetHeight * 0.68));
-        const width = Math.min(76, Math.max(68, activeBtn.offsetWidth - 2));
+        const width = Math.min(54, Math.max(46, activeBtn.offsetWidth - 12));
         const y = Math.round((nav.clientHeight - height) / 2);
         const edgeInset = (width / 2) + 2;
         const centerX = Math.min(
@@ -1567,18 +1567,43 @@ scheduleKeyboardViewportUpdate: function() {
         const velocity = Number(state.velocity ?? 0);
         const stretch = Number(state.stretch ?? 1);
         const press = Number(state.press ?? this._glassNavPressed ?? 0);
-        const direction = Number(state.direction ?? 1);
         const width = Number(state.width ?? geometry.width);
         const height = Number(state.height ?? geometry.height);
         const x = centerX - (width / 2);
         const origin = 'center';
+        // Local metaballs: an opaque mask joins the body and two trailing
+        // droplets before applying translucent color. Text is never filtered.
+        const flow = this._glassNavReducedMotionMedia?.matches ? 0 : Math.tanh(velocity / 320);
+        const liquid = Math.abs(flow);
+        const direction = Math.sign(flow);
+        const bodyWidth = width * (1 - liquid * 0.25);
+        const bodyHeight = height * (1 - liquid * 0.08 - press * 0.02);
+        const radius = liquid * 8.5;
+        const dropRadius = liquid * 3.6;
+        const constrain = (localX, r) => Math.max(70 - centerX + r + 4,
+            Math.min(70 + geometry.nav.clientWidth - centerX - r - 4, localX));
+        const tailX = constrain(70 - direction * (17 + liquid * 23), radius);
+        const dropX = constrain(70 - direction * (27 + liquid * 29), dropRadius);
+        const set = (selector, attrs) => {
+            const element = geometry.indicator.querySelector?.(selector);
+            if (element) Object.entries(attrs).forEach(([key, value]) => element.setAttribute(key, Number(value).toFixed(3)));
+        };
+        set('[data-water-body]', { x: 70 - bodyWidth / 2, y: 32 - bodyHeight / 2,
+            width: bodyWidth, height: bodyHeight, rx: 14 + liquid * 6 });
+        set('[data-water-tail]', { cx: tailX, cy: 32 - flow * 2, r: radius });
+        set('[data-water-drop]', { cx: dropX, cy: 32 + flow * 4, r: dropRadius });
+        geometry.indicator.querySelector?.('[data-water-shine]')?.setAttribute('d',
+            `M ${70 - bodyWidth / 2 + 7} ${34 - bodyHeight / 2} Q 70 ${27 - bodyHeight / 2} ${70 + bodyWidth / 2 - 7} ${34 - bodyHeight / 2}`);
+        geometry.nav.style.setProperty('--nav-water-flow', flow.toFixed(4));
+        geometry.nav.style.setProperty('--nav-water-energy', liquid.toFixed(4));
+        const scaleX = 1, scaleY = 1;
 
         geometry.nav.style.setProperty('--nav-glass-x', `${x.toFixed(3)}px`);
         geometry.nav.style.setProperty('--nav-glass-y', `${Math.round(geometry.y)}px`);
         geometry.nav.style.setProperty('--nav-glass-width', `${Math.round(width)}px`);
         geometry.nav.style.setProperty('--nav-glass-height', `${Math.round(height)}px`);
-        geometry.nav.style.setProperty('--nav-glass-scale-x', String(Math.min(1.10, Math.max(0.98, stretch)).toFixed(3)));
-        geometry.nav.style.setProperty('--nav-glass-scale-y', String(Math.min(1.02, Math.max(0.96, 1 - ((stretch - 1) * 0.34) - (press * 0.02))).toFixed(3)));
+        geometry.nav.style.setProperty('--nav-glass-scale-x', scaleX.toFixed(3));
+        geometry.nav.style.setProperty('--nav-glass-scale-y', scaleY.toFixed(3));
         geometry.nav.style.setProperty('--nav-glass-origin', origin);
         geometry.nav.style.setProperty('--nav-glass-opacity', '1');
         geometry.nav.style.setProperty('--nav-glass-press', String(Math.min(1, Math.max(0, press)).toFixed(3)));

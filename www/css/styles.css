@@ -6196,6 +6196,8 @@ body.dark-mode .toast-message {
    BOTTOM NAVIGATION
    ======================================== */
 .bottom-nav {
+    --nav-active-color: #D59A42;
+    --nav-liquid-color: #bf984f;
     position: fixed;
     left: calc(var(--safe-area-left) + ((var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right)) / 2));
     bottom: calc(8px + var(--safe-area-bottom));
@@ -6216,7 +6218,7 @@ body.dark-mode .toast-message {
 
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.045)),
-        radial-gradient(ellipse at 50% 0%, rgba(91, 168, 255, 0.13), transparent 48%),
+        radial-gradient(ellipse at 50% 0%, rgba(191, 152, 79, 0.13), transparent 48%),
         rgba(9, 16, 27, 0.66);
     border: 1px solid rgba(255, 255, 255, 0.15);
 
@@ -6241,6 +6243,11 @@ body.dark-mode .toast-message {
     --nav-glass-origin: center;
     --nav-glass-opacity: 0;
     --nav-glass-press: 0;
+    --nav-water-flow: 0;
+    --nav-water-energy: 0;
+    --nav-water-left: 50%;
+    --nav-water-right: 50%;
+    --nav-water-shine-x: 0px;
 }
 
 .bottom-nav::before {
@@ -6264,45 +6271,20 @@ body.dark-mode .toast-message {
     z-index: 0;
     pointer-events: none;
     opacity: var(--nav-glass-opacity);
-    border-radius: calc(var(--nav-glass-height) / 2);
-    transform:
-        translate3d(var(--nav-glass-x), 0, 0)
-        scaleX(var(--nav-glass-scale-x))
-        scaleY(var(--nav-glass-scale-y));
-    transform-origin: var(--nav-glass-origin) center;
-    contain: layout paint style;
-    will-change: transform, opacity;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.025)),
-        radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.11), transparent 58%),
-        rgba(77, 163, 255, calc(0.055 + (var(--nav-glass-press) * 0.015)));
-    border: 1px solid rgba(255, 255, 255, 0.085);
-    box-shadow:
-        0 5px 12px rgba(0, 0, 0, 0.09),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
-    transition: opacity 0.16s ease;
+    transform: translate3d(var(--nav-glass-x), 0, 0);
+    will-change: transform;
+    color: var(--nav-liquid-color);
 }
 
-.nav-glass-indicator::before {
-    content: '';
+.nav-water-surface {
     position: absolute;
-    left: 16px;
-    right: 20px;
-    top: 6px;
-    height: 1px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.30), transparent);
-    opacity: 0.46;
-}
-
-.nav-glass-indicator::after {
-    content: '';
-    position: absolute;
-    inset: 5px 10px 9px;
-    border-radius: inherit;
-    background: radial-gradient(ellipse at 52% 50%, rgba(255, 255, 255, 0.075), transparent 66%);
-    opacity: calc(0.52 + (var(--nav-glass-press) * 0.08));
+    width: 140px;
+    height: 64px;
+    max-width: none;
+    left: calc(50% - 70px);
+    top: calc(50% - 32px);
+    overflow: hidden;
+    pointer-events: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -6317,6 +6299,10 @@ body.dark-mode .toast-message {
     .bottom-nav {
         --nav-glass-scale-x: 1 !important;
         --nav-glass-scale-y: 1 !important;
+        --nav-water-left: 50% !important;
+        --nav-water-right: 50% !important;
+        --nav-water-shine-x: 0px !important;
+        --nav-water-energy: 0 !important;
     }
 }
 
@@ -6359,7 +6345,7 @@ body.dark-mode .toast-message {
 }
 
 .nav-btn.active {
-    color: #8bc7ff;
+    color: var(--nav-active-color);
     font-weight: 650;
 }
 
@@ -6369,7 +6355,7 @@ body.dark-mode .toast-message {
 }
 
 .nav-btn:focus-visible {
-    outline: 2px solid rgba(77, 163, 255, 0.72);
+    outline: 2px solid rgba(191, 152, 79, 0.72);
     outline-offset: -6px;
     border-radius: 999px;
 }
@@ -6391,9 +6377,10 @@ body.dark-mode .toast-message {
 }
 
 body.light-mode .bottom-nav {
+    --nav-active-color: #A66F24;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.22)),
-        radial-gradient(ellipse at 50% 0%, rgba(40, 109, 204, 0.055), transparent 48%),
+        radial-gradient(ellipse at 50% 0%, rgba(191, 152, 79, 0.055), transparent 48%),
         rgba(255, 255, 255, 0.34);
     border-color: rgba(15, 23, 42, 0.075);
     box-shadow:
@@ -6404,15 +6391,7 @@ body.light-mode .bottom-nav {
 }
 
 body.light-mode .nav-glass-indicator {
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.40), rgba(255, 255, 255, 0.14)),
-        radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.26), transparent 60%),
-        rgba(40, 109, 204, calc(0.045 + (var(--nav-glass-press) * 0.012)));
-    border-color: rgba(255, 255, 255, 0.40);
-    box-shadow:
-        0 5px 12px rgba(15, 23, 42, 0.07),
-        inset 0 1px 0 rgba(255, 255, 255, 0.58),
-        inset 0 -1px 0 rgba(15, 23, 42, 0.03);
+    color: var(--nav-liquid-color);
 }
 
 body.light-mode .nav-btn {
@@ -6420,13 +6399,13 @@ body.light-mode .nav-btn {
 }
 
 body.light-mode .nav-btn.active {
-    color: #2f5f9f;
+    color: var(--nav-active-color);
 }
 
 body.dark-mode .bottom-nav {
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.045)),
-        radial-gradient(ellipse at 50% 0%, rgba(77, 163, 255, 0.13), transparent 48%),
+        radial-gradient(ellipse at 50% 0%, rgba(191, 152, 79, 0.13), transparent 48%),
         rgba(9, 16, 27, 0.66);
     border-color: rgba(255, 255, 255, 0.15);
 }
@@ -6436,7 +6415,7 @@ body.dark-mode .nav-btn {
 }
 
 body.dark-mode .nav-btn.active {
-    color: #8bc7ff;
+    color: var(--nav-active-color);
 }
 
 .nav-btn svg {
@@ -17866,7 +17845,7 @@ body:not(.dark-mode).community-background .nav-btn {
 
 body:not(.dark-mode).community-background .nav-btn.active,
 body:not(.dark-mode).community-background .nav-btn-community.active {
-    color: #A66F24 !important;
+    color: var(--nav-active-color, #A66F24) !important;
     background: transparent !important;
     border-radius: 0 !important;
 }
@@ -18190,34 +18169,18 @@ body.dark-mode.community-background .nav-btn {
 
 body.dark-mode.community-background .nav-btn.active,
 body.dark-mode.community-background .nav-btn-community.active {
-    color: #D59A42 !important;
+    color: var(--nav-active-color) !important;
     background: transparent !important;
     border: none !important;
     border-radius: 0 !important;
 }
 
 body:not(.dark-mode).community-background .nav-glass-indicator {
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(250, 238, 220, 0.12)),
-        radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.24), transparent 60%),
-        rgba(213, 154, 66, calc(0.055 + (var(--nav-glass-press) * 0.012)));
-    border-color: rgba(166, 111, 36, 0.10);
-    box-shadow:
-        0 5px 12px rgba(48, 38, 25, 0.07),
-        inset 0 1px 0 rgba(255, 255, 255, 0.52),
-        inset 0 -1px 0 rgba(166, 111, 36, 0.04);
+    color: var(--nav-liquid-color);
 }
 
 body.dark-mode.community-background .nav-glass-indicator {
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(213, 154, 66, 0.035)),
-        radial-gradient(ellipse at 50% 0%, rgba(255, 255, 255, 0.11), transparent 60%),
-        rgba(213, 154, 66, calc(0.07 + (var(--nav-glass-press) * 0.015)));
-    border-color: rgba(213, 154, 66, 0.11);
-    box-shadow:
-        0 5px 12px rgba(0, 0, 0, 0.13),
-        inset 0 1px 0 rgba(255, 255, 255, 0.10),
-        inset 0 -1px 0 rgba(45, 25, 5, 0.08);
+    color: var(--nav-liquid-color);
 }
 
 /* Nombre de usuario editable en Hero y Modal */

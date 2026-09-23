@@ -51,7 +51,7 @@
 
     <title>Su voz a diario</title>
 
-    <link rel="manifest" href="./manifest.json?v=234">
+    <link rel="manifest" href="./manifest.json?v=237">
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
     <link rel="apple-touch-startup-image" href="./icons/splash%202.png">
     <link rel="apple-touch-startup-image" href="./icons/splash%202.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
@@ -66,11 +66,11 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
     <link rel="preload" as="image" href="./icons/splash%202.png">
-    <link rel="stylesheet" href="./css/styles.css?v=234">
-    <link rel="stylesheet" href="./css/deepening-mode.css?v=234">
-    <link rel="stylesheet" href="./css/deepening-shell.css?v=234">
-    <link rel="stylesheet" href="./css/meditation-document-viewer.css?v=234">
-    <link rel="stylesheet" href="./css/meditation-actions-panel.css?v=234">
+    <link rel="stylesheet" href="./css/styles.css?v=237">
+    <link rel="stylesheet" href="./css/deepening-mode.css?v=237">
+    <link rel="stylesheet" href="./css/deepening-shell.css?v=237">
+    <link rel="stylesheet" href="./css/meditation-document-viewer.css?v=237">
+    <link rel="stylesheet" href="./css/meditation-actions-panel.css?v=237">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -271,7 +271,33 @@
     <div id="deepening-root" hidden></div>
 
     <nav class="bottom-nav">
-        <div class="nav-glass-indicator" aria-hidden="true"></div>
+        <div class="nav-glass-indicator" aria-hidden="true">
+            <svg class="nav-water-surface" viewBox="0 0 140 64" width="140" height="64" focusable="false">
+                <defs>
+                    <filter id="nav-water-merge" x="0" y="0" width="140" height="64" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                        <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="soft" />
+                        <feColorMatrix in="soft" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" />
+                    </filter>
+                    <mask id="nav-water-mask" x="0" y="0" width="140" height="64" maskUnits="userSpaceOnUse" style="mask-type:alpha">
+                        <g fill="white" filter="url(#nav-water-merge)">
+                            <rect data-water-body x="43" y="11" width="54" height="42" rx="14" />
+                            <circle data-water-tail cx="70" cy="32" r="0" />
+                            <circle data-water-drop cx="70" cy="35" r="0" />
+                        </g>
+                    </mask>
+                    <linearGradient id="nav-water-light" x1="0" y1="0" x2="0.2" y2="1">
+                        <stop offset="0" stop-color="white" stop-opacity="0.76" />
+                        <stop offset="0.28" stop-color="white" stop-opacity="0.18" />
+                        <stop offset="0.65" stop-color="currentColor" stop-opacity="0.13" />
+                        <stop offset="1" stop-color="currentColor" stop-opacity="0.32" />
+                    </linearGradient>
+                </defs>
+                <g mask="url(#nav-water-mask)">
+                    <rect width="140" height="64" fill="url(#nav-water-light)" />
+                    <path data-water-shine d="M 49 18 Q 70 10 91 18" fill="none" stroke="white" stroke-opacity="0.68" stroke-width="1.2" stroke-linecap="round" />
+                </g>
+            </svg>
+        </div>
         <button id="nav-home" class="nav-btn active">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -734,39 +760,39 @@
 })();
 </script>
 
-<script src="js/NotebookGestureController.js?v=234"></script>
-<script src="js/DeepeningFocusDiagnostics.js?v=234"></script>
-<script src="js/ReadingPositionManager.js?v=234"></script>
-<script src="js/ReadingDocument.js?v=234"></script>
-<script src="js/DocumentFactory.js?v=234"></script>
-<script src="js/DocumentExporter.js?v=234"></script>
-<script src="js/PdfDocumentBuilder.js?v=234"></script>
-<script src="js/PdfExporter.js?v=234"></script>
-<script src="js/ShareService.js?v=234"></script>
-<script src="js/MeditationDocumentViewer.js?v=234"></script>
-<script src="js/MeditationActionsPanel.js?v=234"></script>
-<script src="js/MeditationDocument.js?v=234"></script>
-<script src="js/KeyboardViewportManager.js?v=234"></script>
-<script src="js/KeyboardManager.js?v=234"></script>
-<script src="js/DeepeningShell.js?v=234"></script>
-<script src="js/utils/dompurify.min.js?v=234"></script>
-<script src="js/communityIdentity.js?v=234"></script>
-<script src="js/avatarGenerator.js?v=234"></script>
-<script src="js/richTextEditor.js?v=234"></script>
-<script src="js/voiceReflections.js?v=234"></script>
-<script src="js/liveFeed.js?v=234"></script>
-<script src="js/moderation.js?v=234"></script>
-<script src="js/userMetrics.js?v=234"></script>
-<script src="js/notifications.js?v=234"></script>
-<script src="js/performance.js?v=234"></script>
-<script src="js/accessibility.js?v=234"></script>
-<script src="js/i18n.js?v=234"></script>
-<script src="js/toastManager.js?v=234"></script>
-<script src="js/communityAnalytics.js?v=234"></script>
-<script src="js/searchCommunity.js?v=234"></script>
-<script src="js/filters.js?v=234"></script>
-<script src="js/offlineSupport.js?v=234"></script>
-<script type="module" src="js/app.js?v=234"></script>
+<script src="js/NotebookGestureController.js?v=237"></script>
+<script src="js/DeepeningFocusDiagnostics.js?v=237"></script>
+<script src="js/ReadingPositionManager.js?v=237"></script>
+<script src="js/ReadingDocument.js?v=237"></script>
+<script src="js/DocumentFactory.js?v=237"></script>
+<script src="js/DocumentExporter.js?v=237"></script>
+<script src="js/PdfDocumentBuilder.js?v=237"></script>
+<script src="js/PdfExporter.js?v=237"></script>
+<script src="js/ShareService.js?v=237"></script>
+<script src="js/MeditationDocumentViewer.js?v=237"></script>
+<script src="js/MeditationActionsPanel.js?v=237"></script>
+<script src="js/MeditationDocument.js?v=237"></script>
+<script src="js/KeyboardViewportManager.js?v=237"></script>
+<script src="js/KeyboardManager.js?v=237"></script>
+<script src="js/DeepeningShell.js?v=237"></script>
+<script src="js/utils/dompurify.min.js?v=237"></script>
+<script src="js/communityIdentity.js?v=237"></script>
+<script src="js/avatarGenerator.js?v=237"></script>
+<script src="js/richTextEditor.js?v=237"></script>
+<script src="js/voiceReflections.js?v=237"></script>
+<script src="js/liveFeed.js?v=237"></script>
+<script src="js/moderation.js?v=237"></script>
+<script src="js/userMetrics.js?v=237"></script>
+<script src="js/notifications.js?v=237"></script>
+<script src="js/performance.js?v=237"></script>
+<script src="js/accessibility.js?v=237"></script>
+<script src="js/i18n.js?v=237"></script>
+<script src="js/toastManager.js?v=237"></script>
+<script src="js/communityAnalytics.js?v=237"></script>
+<script src="js/searchCommunity.js?v=237"></script>
+<script src="js/filters.js?v=237"></script>
+<script src="js/offlineSupport.js?v=237"></script>
+<script type="module" src="js/app.js?v=237"></script>
 
 <script>
 (function () {
@@ -787,7 +813,7 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const appVersion = '234';
+                const appVersion = '237';
                 const versionKey = 'su-voz-app-version';
                 const reloadKey = `su-voz-update-reloaded-${appVersion}`;
                 const currentCacheNames = new Set([
@@ -849,7 +875,7 @@
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=234', {
+                const registration = await navigator.serviceWorker.register('./sw.js?v=237', {
                     scope: './',
                     updateViaCache: 'none'
                 });
