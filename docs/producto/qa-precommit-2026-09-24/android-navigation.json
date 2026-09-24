@@ -1,0 +1,169 @@
+{
+  "passed": true,
+  "phase": "precommit243",
+  "orientation": "portrait",
+  "modes": [
+    {
+      "mode": "gestural",
+      "rows": [
+        {
+          "route": "#home",
+          "active": "nav-home",
+          "top": 771.2380981445312,
+          "bottom": 831.2380981445312,
+          "height": 839,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 63,
+            "physicalGapPx": 81.99999237060547,
+            "density": 2.625
+          }
+        },
+        {
+          "route": "#bible",
+          "active": "nav-bible",
+          "top": 771.2380981445312,
+          "bottom": 831.2380981445312,
+          "height": 839,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 63,
+            "physicalGapPx": 81.99999237060547,
+            "density": 2.625
+          }
+        },
+        {
+          "route": "#calendar",
+          "active": "nav-calendar",
+          "top": 771.2380981445312,
+          "bottom": 831.2380981445312,
+          "height": 839,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 63,
+            "physicalGapPx": 81.99999237060547,
+            "density": 2.625
+          }
+        },
+        {
+          "route": "#community",
+          "active": "nav-community",
+          "top": 771.2380981445312,
+          "bottom": 831.2380981445312,
+          "height": 839,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 63,
+            "physicalGapPx": 81.99999237060547,
+            "density": 2.625
+          }
+        },
+        {
+          "route": "#stats",
+          "active": "nav-stats",
+          "top": 771.2380981445312,
+          "bottom": 831.2380981445312,
+          "height": 839,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 63,
+            "physicalGapPx": 81.99999237060547,
+            "density": 2.625
+          }
+        }
+      ],
+      "keyboardOpenClose": true
+    },
+    {
+      "mode": "threebutton",
+      "rows": [
+        {
+          "route": "#home",
+          "active": "nav-home",
+          "top": 747.2380981445312,
+          "bottom": 807.2380981445312,
+          "height": 815,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 126,
+            "physicalGapPx": 144.99999237060547,
+            "density": 2.625
+          }
+        },
+        {
+          "route": "#bible",
+          "active": "nav-bible",
+          "top": 747.2380981445312,
+          "bottom": 807.2380981445312,
+          "height": 815,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 126,
+            "physicalGapPx": 144.99999237060547,
+            "density": 2.625
+          }
+        },
+        {
+          "route": "#calendar",
+          "active": "nav-calendar",
+          "top": 747.2380981445312,
+          "bottom": 807.2380981445312,
+          "height": 815,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 126,
+            "physicalGapPx": 144.99999237060547,
+            "density": 2.625
+          }
+        },
+        {
+          "route": "#community",
+          "active": "nav-community",
+          "top": 747.2380981445312,
+          "bottom": 807.2380981445312,
+          "height": 815,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 126,
+            "physicalGapPx": 144.99999237060547,
+            "density": 2.625
+          }
+        },
+        {
+          "route": "#stats",
+          "active": "nav-stats",
+          "top": 747.2380981445312,
+          "bottom": 807.2380981445312,
+          "height": 815,
+          "overflow": 0,
+          "safeBottom": 0,
+          "visible": true,
+          "native": {
+            "systemBottomPx": 126,
+            "physicalGapPx": 144.99999237060547,
+            "density": 2.625
+          }
+        }
+      ],
+      "keyboardOpenClose": true
+    }
+  ]
+}

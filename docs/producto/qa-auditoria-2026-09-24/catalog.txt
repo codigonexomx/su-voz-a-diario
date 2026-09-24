@@ -1,0 +1,11 @@
+
+> test:catalog
+> node scripts/validate-reading-catalog.mjs
+
+{
+  "readings": 269,
+  "monthlyFiles": 9,
+  "texts": 732,
+  "tla": 194,
+  "scope": "Consistencia del catálogo actual; no cotejo editorial con originales externos"
+}

@@ -1,0 +1,16 @@
+{
+  "pwaVersion": 239,
+  "androidVersionCode": 38,
+  "androidVersionName": "1.5.6",
+  "purpose": "Prueba local; no distribuir como actualizaci\u00f3n de Play",
+  "apk": "android/app/build/outputs/apk/release/app-release.apk",
+  "sha256": "c5491894dd7146ce2904c1e0f9c14ab7d7aa11038cab35d37699aa5adfdb70bf",
+  "webAssetsVerified": [
+    "js/app.js",
+    "js/JourneyView.js",
+    "js/services/JourneyService.js",
+    "css/styles.css",
+    "index.html",
+    "sw.js"
+  ]
+}

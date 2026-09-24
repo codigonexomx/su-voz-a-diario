@@ -18,7 +18,12 @@
     "test:bible-phase6": "node scripts/validate-bible-phase6.mjs",
     "test:bible-phase7": "node scripts/validate-bible-phase7.mjs",
     "test:bottom-nav": "node scripts/validate-bottom-nav.mjs && node scripts/validate-glass-nav.mjs",
-    "test:analytics": "node scripts/validate-analytics-service.mjs"
+    "test:analytics": "node scripts/validate-analytics-service.mjs",
+    "test:journey": "node scripts/validate-journey.mjs",
+    "test:connections": "node scripts/validate-app-connections.mjs",
+    "test:catalog": "node scripts/validate-reading-catalog.mjs",
+    "test:community-voice": "node scripts/validate-community-voice.mjs",
+    "test:library": "node scripts/validate-library-upgrade.mjs"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^8.0.2",

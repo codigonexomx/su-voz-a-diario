@@ -1,0 +1,55 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+const source=fs.readFileSync('js/app.js','utf8');
+const sessions=new Map();let saved=[],rendered=0,opened=[];
+const storage={get:key=>key==='su-voz-note-2026-09-22'?{dios:'Nota del día 22'}:{},set:()=>true};
+const context=vm.createContext({console,Date,Set,crypto:{randomUUID:()=> 'new-session'},MeditationSessionStorage:{get:id=>sessions.get(id),save:s=>{sessions.set(s.id,s);saved.push(s.id);},getAllMetadata:()=>[...sessions.values()]},MeditationSessionUIStateStorage:{save:()=>{}},localStorage:{getItem:()=>null,setItem:()=>{},length:0},NotebookStorage:{load:()=>({})},NotebookUIStateStorage:{load:()=>({})}});
+function method(name,next){const start=source.indexOf(name+': function');assert(start>=0,name);const end=source.indexOf(next+':',start);const text=source.slice(start,end).trim().replace(/,\s*$/,'');return vm.runInContext('({'+text+'})',context)[name];}
+const app={storage,currentMeditationSessionId:'a',getNoteKey:d=>'su-voz-note-'+d,sendToSW:()=>{},attachMeditationMetadataSync:()=>{},invalidateMeditationLibraryCache:()=>{},renderStats:()=>rendered++,closeSlidingNotebook:()=>{},openMeditationSession:id=>opened.push(id)};
+app.getNote=method('getNote','hasNote');app.saveNote=method('saveNote','getDevotionalSteps');app.toggleNote=method('toggleNote','getOrCreateSlidingNotebookPanel');
+sessions.set('a',{id:'a',readingId:'2026-09-23',status:'draft',notes:{dios:'Nota del día 23'}});
+assert.equal(app.getNote('2026-09-22').dios,'Nota del día 22');assert.equal(app.getNote('2026-09-23').dios,'Nota del día 23');
+app.saveNote('2026-09-22',{dios:'Nueva del día 22'});assert.equal(sessions.get('a').notes.dios,'Nota del día 23');assert.equal(saved.length,0);
+app.saveNote('2026-09-23',{dios:'Cambio correcto'});assert.equal(sessions.get('a').notes.dios,'Cambio correcto');
+console.log('OK: consultar/guardar otra fecha no lee ni sobrescribe la sesión abierta');
+sessions.clear();sessions.set('archived',{id:'archived',readingId:'2026-09-22',status:'archived',notes:{dios:'Conservar archivo'}});app.openNoteDate=null;app.toggleNote('2026-09-22');assert.deepEqual(opened,['new-session']);assert.equal(sessions.get('archived').status,'archived');
+console.log('OK: una sesión archivada se conserva y no se reabre como activa');
+context.document={body:{classList:{remove:()=>{}}}};app.currentView='stats';app.libraryEditorSessionId='a';method('closeMeditationLibraryEditor','shareMeditationFromLibrary').call(app);assert.equal(rendered,1);
+console.log('OK: cerrar el editor refresca Mi camino');
+const values=new Map([['su-voz-note-2026-09-22',JSON.stringify({dios:'Espejo antiguo'})]]);
+context.localStorage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),get length(){return values.size},key:i=>[...values.keys()][i]};storage.get=k=>JSON.parse(values.get(k)||'{}');
+const count=sessions.size;method('migrateLegacyNotebookToSessions','openMeditationSession').call(app);assert.equal(sessions.size,count);
+console.log('OK: perder el indicador de migración no duplica una fecha ya migrada');
+const sw=fs.readFileSync('sw.js','utf8'),staticAssets=sw.slice(sw.indexOf('const STATIC_ASSETS'),sw.indexOf('const REQUIRED_ASSETS')),required=sw.slice(sw.indexOf('const REQUIRED_ASSETS'),sw.indexOf('// Firebase compat'));
+const seen=new Set();function walk(file){if(seen.has(file))return;seen.add(file);for(const [,rel] of fs.readFileSync(file,'utf8').matchAll(/from\s+['"](\.[^'"]+)['"]/g)){const target=path.normalize(path.join(path.dirname(file),rel));assert(fs.existsSync(target),target);walk(target);}}
+walk('js/app.js');for(const file of seen){for(const [name,list] of [['precache',staticAssets],['required',required]])assert(list.includes(`'./${file}'`)||list.includes(`'./${file}?`),`${file} missing ${name}`);}
+console.log(`OK: ${seen.size} módulos transitivos presentes y obligatorios para instalación offline`);
+// Keep the public entry points and the native copy consistent.
+for(const file of seen)assert.equal(fs.readFileSync(file,'utf8'),fs.readFileSync('www/'+file,'utf8'),`Copia Android: ${file}`);
+console.log('OK: módulos web y Android sincronizados');
+app.currentMeditationSessionId='archived';app.showToast=()=>{};
+method('deleteNote','changeFontSize').call(app,'2026-09-23');assert.equal(app.currentMeditationSessionId,'archived');
+console.log('OK: archivar desde otra fecha no afecta la sesión activa');
+const nav=method('getBottomNavItems','getActiveBottomNavButton').call({$navStats:'stats'});assert(nav.find(n=>n.btn==='stats').views.includes('meditations-history'));
+console.log('OK: Biblioteca conserva la navegación activa de Mi camino');
+const {getChapterFromReading}=await import('../js/utils/progress.js');context.getChapterFromReading=getChapterFromReading;
+const progressStart=source.indexOf('getProgresoLibroVisual: function');
+const progressEnd=source.indexOf('\n},',progressStart)+2;
+const progressView=vm.runInContext('({'+source.slice(progressStart,progressEnd)+'})',context).getProgresoLibroVisual;
+const progressHtml=progressView.call({getLibroActual:()=>({id:'1sam'}),getProgresoLibro:()=>({startChapter:1,endChapter:31,total:31,leidos:[14],porcentaje:3,libroNombre:'1 Samuel'})},'2026-09-24',{reference:'1 Samuel 15:1-16'});
+assert(progressHtml.includes('Capítulo 15 de 31'));assert(!progressHtml.includes('Meditado ✓'));
+console.log('OK: encabezado corresponde al capítulo visible y distingue lectura de meditación');
+const routeStart=source.indexOf('handleRoute: async function');const routeStop=source.indexOf('this.hideSelectionPanel();',routeStart);
+const routePrelude=vm.runInContext('({'+source.slice(routeStart,routeStop)+'}})',context).handleRoute;
+context.window={location:{hash:'#settings'}};let audioStops=0,overlayCloses=0;
+await routePrelude.call({currentView:'reading',closeTransientBibleUI:()=>overlayCloses++,stopDailyReadingVoice:()=>audioStops++});
+assert.equal(audioStops,1);assert.equal(overlayCloses,1);console.log('OK: salir de una lectura histórica detiene su audio y cierra los controles transitorios');
+const selectorStart=source.indexOf('renderDailyVersionSelector: function');const selectorEnd=source.indexOf('\n},',selectorStart)+2;
+const selector=vm.runInContext('({'+source.slice(selectorStart,selectorEnd)+'})',context).renderDailyVersionSelector;
+const unavailable=selector.call({currentVersion:'tla'},{versions:{rvr60:'Texto RVR60',ntv:'Texto NTV'}});
+assert.match(unavailable,/data-version="rvr60"[\s\S]*?aria-pressed="true"/);
+assert.match(unavailable,/data-version="tla"[\s\S]*?disabled/);assert(unavailable.includes('Se muestra RVR60'));
+const available=selector.call({currentVersion:'tla'},{versions:{rvr60:'RVR60',ntv:'NTV',tla:'TLA'}});assert(!available.includes('disabled'));assert(!available.includes('no está disponible'));
+console.log('OK: versión mostrada honesta cuando TLA falta; selector completo cuando existe');

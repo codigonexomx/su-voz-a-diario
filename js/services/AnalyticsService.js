@@ -34,6 +34,7 @@ const RESERVED_PARAM_NAMES = new Set([
 ]);
 
 const CONTROLLED_VALUES = {
+    library_action: ['list', 'open', 'edit'],
     platform: ['web', 'pwa', 'android', 'ios', 'native', 'unknown'],
     source: ['home', 'reading', 'calendar', 'community', 'direct', 'reading_share', 'community_share', 'verse_share', 'verse_image', 'church_qr', 'whatsapp', 'organic', 'play_campaign', 'unknown'],
     entry_point: ['bottom_nav', 'daily_question', 'reading_ecos', 'notification', 'direct', 'home', 'unknown'],

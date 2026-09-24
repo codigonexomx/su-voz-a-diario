@@ -59,7 +59,7 @@ assert.equal(
     0,
     'El menú hamburguesa no debe contener botones de versión.'
 );
-assert.match(appSource, /renderDailyVersionSelector: function\(\)/);
+assert.match(appSource, /renderDailyVersionSelector: function\(reading = null\)/);
 assert.match(appSource, /data-version="\$\{version\.id\}"/);
 assert.match(
     appSource,

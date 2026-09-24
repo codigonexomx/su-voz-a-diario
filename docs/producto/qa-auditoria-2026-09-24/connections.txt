@@ -1,0 +1,16 @@
+
+> test:connections
+> node scripts/validate-app-connections.mjs
+
+OK: consultar/guardar otra fecha no lee ni sobrescribe la sesión abierta
+OK: una sesión archivada se conserva y no se reabre como activa
+OK: cerrar el editor refresca Mi camino
+[App] Ejecutando migración de Cuadernillo a Sesiones de Meditación...
+OK: perder el indicador de migración no duplica una fecha ya migrada
+OK: 34 módulos transitivos presentes y obligatorios para instalación offline
+OK: módulos web y Android sincronizados
+OK: archivar desde otra fecha no afecta la sesión activa
+OK: Biblioteca conserva la navegación activa de Mi camino
+OK: encabezado corresponde al capítulo visible y distingue lectura de meditación
+OK: salir de una lectura histórica detiene su audio y cierra los controles transitorios
+OK: versión mostrada honesta cuando TLA falta; selector completo cuando existe

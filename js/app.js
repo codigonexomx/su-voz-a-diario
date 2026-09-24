@@ -1,3 +1,5 @@
+import { getJourney, recordPractice, exportJourney, restoreJourney, validateJourneyBackup, legacyJourneyBackup } from './services/JourneyService.js';
+import { renderJourney, handleJourney } from './JourneyView.js';
 import {
     formatDateEs,
     formatDateForCompare,
@@ -38,7 +40,6 @@ import {
     getChapterFromReading,
     calculateProgressForBookId,
     calculateReadingStats,
-    calculateUpdatedStreak,
     isDateRead
 } from './utils/progress.js';
 
@@ -1089,7 +1090,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '238'
+            pwaVersion: '243'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1512,7 +1513,7 @@ scheduleKeyboardViewportUpdate: function() {
             { btn: this.$navBible, views: ['bible', 'bible-reading', 'bible-search', 'bible-memory', 'strong-dictionary'] },
             { btn: this.$navCalendar, views: ['calendar'] },
             { btn: this.$navCommunity, views: ['community', 'community-thread'] },
-            { btn: this.$navStats, views: ['stats'] }
+            { btn: this.$navStats, views: ['stats', 'meditations-history'] }
         ];
     },
 
@@ -1895,22 +1896,15 @@ scheduleKeyboardViewportUpdate: function() {
 },
     
     updateStreak: function(dateStr) {
-    const yesterday = this.getYesterdayDateStr();
-    const today = dateStr;
+        try {
+            recordPractice(localStorage, 'reading', dateStr);
+            this.updateStreakUI();
+        } catch (error) {
+            console.error('[Mi camino] No se pudo guardar la práctica:', error);
+            this.showToast('La lectura se guardó, pero no pudimos registrar la constancia. Exporta un respaldo.');
+        }
+    },
 
-    if (this.streak.lastReadDate === today) {
-        return;
-    }
-
-    this.streak = calculateUpdatedStreak(this.streak, today, yesterday);
-
-    if ([7, 30, 100].includes(this.streak.current)) {
-        this.showCelebration(this.streak.current);
-    }
-
-    this.saveStreak();
-},
-    
     showCelebration: function(days) {
         const messages = {
             7: '🎉 ¡Una semana completa! Sigue así.',
@@ -1931,18 +1925,14 @@ scheduleKeyboardViewportUpdate: function() {
    getYesterdayDateStr,
     
     updateStreakUI: function() {
-        if (this.$streakIndicator && this.$streakCount) {
-            if (this.streak.current > 0) {
-                const streakLabel = this.streak.current === 1 ? 'día' : 'días';
-                this.$streakIndicator.style.display = 'flex';
-                this.$streakCount.textContent = `${this.streak.current} ${streakLabel}`;
-                this.$streakIndicator.setAttribute(
-                    'aria-label',
-                    `Ver tu camino de lectura. Racha actual: ${this.streak.current} ${streakLabel}`
-                );
-            } else {
-                this.$streakIndicator.style.display = 'none';
-            }
+        if (!this.$streakIndicator || !this.$streakCount) return;
+        try {
+            const journey = getJourney(localStorage);
+            this.$streakIndicator.style.display = journey.state.hideStreak ? 'none' : 'flex';
+            this.$streakCount.textContent = `${journey.current} ${journey.current === 1 ? 'día' : 'días'}`;
+            this.$streakIndicator.setAttribute('aria-label', `Ver Mi camino. Racha de práctica registrada: ${journey.current} días`);
+        } catch (error) {
+            this.$streakCount.textContent = 'Mi camino';
         }
     },
 
@@ -2123,16 +2113,15 @@ getProgresoLibroVisual: function(dateStr = this.getHomeViewingDate(), reading = 
     const endChapter = progreso.endChapter || progreso.total;
     const total = progreso.total;
     const leidos = progreso.leidos.length;
-    const ultimoLeido = leidos > 0 ? Math.max(...progreso.leidos) : 0;
     const capituloActual = getChapterFromReading(reading);
     
     // Crear visualización de los capítulos como un scroll horizontal
     let html = '<div class="pergamino-libro">';
 
     // Subtítulo adaptado para rangos de lectura (ej. Salmos 100-150)
-    let subtituloText = `Capítulo ${ultimoLeido || startChapter} de ${endChapter}`;
+    let subtituloText = `Capítulo ${capituloActual || startChapter} de ${endChapter}`;
     if (startChapter > 1) {
-        subtituloText += ` (${leidos} de ${total} meditaciones)`;
+        subtituloText += ` (${leidos} de ${total} con lectura registrada)`;
     }
     html += `
         <div class="pergamino-encabezado">
@@ -2159,7 +2148,7 @@ getProgresoLibroVisual: function(dateStr = this.getHomeViewingDate(), reading = 
         const leido = progreso.leidos.includes(i);
         const esActual = i === capituloActual;
         const clase = esActual ? 'capitulo-actual' : (leido ? 'capitulo-leido' : 'capitulo-pendiente');
-        const titulo = leido ? `Capítulo ${i} - Meditado ✓` : `Capítulo ${i} - Pendiente`;
+        const titulo = leido ? `Capítulo ${i} - Con lectura registrada ✓` : `Capítulo ${i} - Pendiente`;
         
         html += `<span class="pergamino-capitulo ${clase}" title="${titulo}">${i}</span>`;
     }
@@ -2173,7 +2162,7 @@ getProgresoLibroVisual: function(dateStr = this.getHomeViewingDate(), reading = 
             <div class="pergamino-barra-fondo">
                 <div class="pergamino-barra-lleno" style="width:${porcentaje}%"></div>
             </div>
-            <div class="pergamino-porcentaje"><span class="pergamino-porcentaje-numero">${porcentaje}%</span> <span class="pergamino-porcentaje-texto">completado</span></div>
+            <div class="pergamino-porcentaje"><span class="pergamino-porcentaje-numero">${porcentaje}%</span> <span class="pergamino-porcentaje-texto">con lectura registrada</span></div>
         </div>
     `;
     
@@ -2414,7 +2403,7 @@ checkReminderOnOpen: function() {
     // ========================================
     // ESTADÍSTICAS (MEJORADAS)
     // ========================================
-    getStats: function() {
+    getStats: function(journeyData = null) {
         const readDates = this.getReadDates();
         const planReadings = this.getCalendarReadings();
         const planDateSet = new Set(planReadings.map(reading => reading.date));
@@ -2526,6 +2515,12 @@ checkReminderOnOpen: function() {
             }
         }
 
+        const journey = journeyData || getJourney(localStorage, new Date(), this.journeyMonth);
+        activityDays.read = journey.readDates;
+        activityDays.reflection = [...new Set(journey.sessions.filter(session => Object.values(session.notes || {}).some(value => typeof value === 'string' && value.trim())).map(session => session.readingId))];
+        activityDays.prayer = [...new Set(journey.sessions.filter(session => session.notes?.oracion?.trim()).map(session => session.readingId))];
+        reflectionDays = journey.monthReflections;
+        prayerDays = journey.monthPrayers;
         const stats = calculateReadingStats({
             readDates,
             planReadings,
@@ -3733,125 +3728,126 @@ sharePost: function(postId) {
     }
 },
 
-toggleSpeechPost: async function(postId) {
-    const hasNativeTextToSpeech = this.isNativeTextToSpeechAvailable();
-    const hasWebSpeech = ('speechSynthesis' in window) && typeof SpeechSynthesisUtterance !== 'undefined';
+closePostMenus: function(restoreFocus = false) {
+    const trigger = document.querySelector('[data-action="toggle-post-menu"][aria-expanded="true"]');
+    document.querySelectorAll('.post-menu-dropdown').forEach(menu => {
+        menu.classList.remove('open');
+        menu.style.display = 'none';
+    });
+    document.querySelectorAll('[data-action="toggle-post-menu"]').forEach(button => button.setAttribute('aria-expanded', 'false'));
+    if (restoreFocus) trigger?.focus();
+},
 
-    if (!hasNativeTextToSpeech && !hasWebSpeech) {
+stopCommunitySpeech: function() {
+    const previousPostId = this.currentlySpeakingPostId;
+    this.communitySpeechToken = null;
+    this.communitySpeechUtterance = null;
+    this.currentlySpeakingPostId = null;
+    if (previousPostId != null) this.updateSpeechMenuButton(previousPostId, false);
+    if ('speechSynthesis' in window) {
+        try { window.speechSynthesis.cancel(); } catch (error) { console.warn('[Community Voice] No se pudo detener:', error); }
+    }
+    if (this.isNativeTextToSpeechAvailable()) return this.stopNativeTextToSpeech();
+},
+
+toggleSpeechPost: async function(postId) {
+    this.closePostMenus(true);
+    const native = this.isNativeTextToSpeechAvailable();
+    const web = ('speechSynthesis' in window) && typeof SpeechSynthesisUtterance !== 'undefined';
+    if (!native && !web) {
         this.showToast('Tu navegador no soporta síntesis de voz', 'warning');
         return;
     }
-
-    if (this.currentlySpeakingPostId) {
-        const previousPostId = this.currentlySpeakingPostId;
-        this.communitySpeechToken = null;
-
-        if (hasNativeTextToSpeech) {
-            await this.stopNativeTextToSpeech();
-        }
-
-        if ('speechSynthesis' in window) {
-            try {
-                window.speechSynthesis.cancel();
-            } catch (e) {}
-        }
-
-        this.currentlySpeakingPostId = null;
-        this.updateSpeechMenuButton(previousPostId, false);
-
-        if (String(previousPostId) === String(postId)) {
-            this.showToast('Lectura detenida');
-            return;
-        }
-    } else if (hasWebSpeech && window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-        this.showToast('Lectura detenida');
+    if (String(this.currentlySpeakingPostId) === String(postId)) {
+        this.stopCommunitySpeech();
         return;
     }
-
-    const card = Array.from(document.querySelectorAll('.community-card')).find(c => c.getAttribute('data-post-id') === String(postId)) || document.querySelector(`[data-post-id="${postId}"]`);
+    const card = Array.from(document.querySelectorAll('.community-card')).find(c => c.getAttribute('data-post-id') === String(postId));
     const text = (card?.querySelector('.community-text')?.textContent || '').trim();
-
     if (!text) {
         this.showToast('No hay texto para leer', 'warning');
         return;
     }
-
-    this.stopDailyReadingVoice(true);
-    this.stopBibleChapterVoice(true);
-
-    const speechToken = {};
-    this.communitySpeechToken = speechToken;
+    // Reset other readers without issuing competing asynchronous native stops.
+    this.stopDailyReadingVoice(true, true);
+    this.stopBibleChapterVoice(true, true);
+    const stopped = this.stopCommunitySpeech();
+    const token = {};
+    this.communitySpeechToken = token;
     this.currentlySpeakingPostId = postId;
     this.updateSpeechMenuButton(postId, true);
-
-    const clearSpeechState = () => {
-        if (this.communitySpeechToken !== speechToken) return;
+    const active = () => this.communitySpeechToken === token;
+    const clear = () => {
+        if (!active()) return;
         this.communitySpeechToken = null;
+        this.communitySpeechUtterance = null;
         this.currentlySpeakingPostId = null;
         this.updateSpeechMenuButton(postId, false);
     };
-
-    if (hasNativeTextToSpeech) {
+    const failed = error => {
+        if (!active()) return;
+        clear();
+        console.warn('[Community Voice] No se pudo leer la reflexión:', error);
+        this.showToast('No se pudo iniciar la lectura. Toca «Escuchar en voz alta» para reintentar.', 'warning');
+    };
+    if (native) {
         try {
-            await this.speakWithNativeTextToSpeech(text);
-        } catch (error) {
-            console.warn('[Community Voice] No se pudo leer la reflexión:', error);
-            this.showToast('No se pudo leer la reflexión en voz alta', 'warning');
-        } finally {
-            clearSpeechState();
-        }
+            await stopped;
+            const plugin = window.Capacitor.Plugins.TextToSpeech;
+            for (const chunk of this.getNativeTextToSpeechChunks(text)) {
+                if (!active()) return;
+                this.updateSpeechMenuButton(postId, true, 'Leyendo reflexión…');
+                await plugin.speak({text: chunk, lang: 'es-MX', rate: 0.92, pitch: 1, volume: 1, category: 'ambient', queueStrategy: 1});
+            }
+            clear();
+        } catch (error) { failed(error); }
         return;
     }
-
-    const self = this;
-    function speak(voices) {
-        if (self.communitySpeechToken !== speechToken) return;
-
+    try {
         const utterance = new SpeechSynthesisUtterance(text);
-        const spanishVoice = self.selectSpanishVoice(voices);
-
-        if (spanishVoice) utterance.voice = spanishVoice;
-        utterance.lang = spanishVoice?.lang || 'es-MX';
+        const voice = this.selectSpanishVoice(window.speechSynthesis.getVoices());
+        if (voice) utterance.voice = voice;
+        utterance.lang = voice?.lang || 'es-MX';
         utterance.rate = 0.92;
         utterance.pitch = 1;
-
-        utterance.onend = () => {
-            clearSpeechState();
-        };
-
-        utterance.onerror = (error) => {
-            console.warn('[Community Voice] No se pudo leer la reflexión:', error);
-            clearSpeechState();
-        };
-
-        try {
-            window.speechSynthesis.resume();
-        } catch (e) {}
-
+        this.communitySpeechUtterance = utterance;
+        utterance.onstart = () => { if (active()) {
+            this.updateSpeechMenuButton(postId, true, 'Leyendo reflexión…');
+            this.showToast('🗣️ Leyendo reflexión...');
+        } };
+        utterance.onend = clear;
+        utterance.onerror = failed;
+        // iOS must receive speak in the original tap, even before voices load.
         window.speechSynthesis.speak(utterance);
-        self.showToast('🗣️ Leyendo reflexión...');
-    }
-
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
-        speak(voices);
-    } else {
-        window.speechSynthesis.onvoiceschanged = () => {
-            if (self.communitySpeechToken !== speechToken) return;
-            window.speechSynthesis.onvoiceschanged = null;
-            speak(window.speechSynthesis.getVoices());
-        };
-    }
+        if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+    } catch (error) { failed(error); }
 },
 
-updateSpeechMenuButton: function(postId, isSpeaking) {
-    const cardEl = document.querySelector(`[data-post-id="${postId}"]`);
+updateSpeechMenuButton: function(postId, isSpeaking, label = 'Preparando lectura…') {
+    const cardEl = Array.from(document.querySelectorAll('.community-card')).find(card => card.getAttribute('data-post-id') === String(postId));
+    const speechBtn = cardEl?.querySelector('[data-action="speech-post"]');
+    if (speechBtn) speechBtn.textContent = isSpeaking ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta';
     if (!cardEl) return;
-    const speechBtn = cardEl.querySelector('[data-action="speech-post"]');
-    if (speechBtn) {
-        speechBtn.textContent = isSpeaking ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta';
+    let control = cardEl.querySelector('.community-voice-control');
+    if (!isSpeaking) {
+        if (control?.contains(document.activeElement)) cardEl.querySelector('[data-action="toggle-post-menu"]')?.focus();
+        control?.remove();
+        return;
     }
+    if (!control) {
+        control = document.createElement('div');
+        control.className = 'community-voice-control';
+        const status = document.createElement('span');
+        status.setAttribute('role', 'status');
+        const stop = document.createElement('button');
+        stop.type = 'button';
+        stop.dataset.action = 'speech-post';
+        stop.dataset.postId = postId;
+        stop.textContent = 'Detener lectura';
+        control.append(status, stop);
+        cardEl.querySelector('.community-text')?.after(control);
+    }
+    control.querySelector('[role="status"]').textContent = label;
 },
 
 formatCommunityRichText: function(text) {
@@ -6888,7 +6884,7 @@ syncAppBadge: function(count) {
     const defaultNote = { dios: '', aprendizaje: '', respuesta: '', oracion: '' };
     if (this.currentMeditationSessionId) {
         const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
-        if (session && session.notes) return session.notes;
+        if (session && session.readingId === dateStr && session.notes) return session.notes;
     }
     return this.storage.get(this.getNoteKey(dateStr), defaultNote);
   },
@@ -6910,7 +6906,7 @@ syncAppBadge: function(count) {
         
         if (this.currentMeditationSessionId) {
             const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
-            if (session) {
+            if (session && session.readingId === dateStr) {
                 session.notes = noteObj;
                 session.updatedAt = Date.now();
                 this.attachMeditationMetadataSync(session);
@@ -6999,7 +6995,7 @@ syncAppBadge: function(count) {
         return `
             <!-- Fase 7: Autoguardado y Progreso Global -->
             <div class="devotional-analytics-header">
-                <div class="notebook-save-status" id="notebook-save-status">Guardado</div>
+                <div><span class="notebook-save-status" id="notebook-save-status">Tus cambios se guardan aquí</span> <button class="notebook-library-link" type="button" data-action="open-my-meditations">Ver mis meditaciones</button></div>
                 <div class="notebook-global-progress" id="notebook-global-progress">${globalStats.completedSteps} de ${globalStats.totalSteps} completadas</div>
             </div>
 
@@ -7120,11 +7116,13 @@ syncAppBadge: function(count) {
         
         console.log('[App] Ejecutando migración de Cuadernillo a Sesiones de Meditación...');
         
+        const representedDates = new Set(MeditationSessionStorage.getAllMetadata().map(session => session.readingId));
         // Buscar todas las notas legacy (su-voz-note-YYYY-MM-DD)
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             if (key && key.startsWith('su-voz-note-')) {
                 const dateStr = key.replace('su-voz-note-', '');
+                if (representedDates.has(dateStr)) continue;
                 const noteObj = this.storage.get(key) || {};
                 
                 // Si la nota está totalmente vacía (sin texto ni refs), ignorarla
@@ -7158,6 +7156,7 @@ syncAppBadge: function(count) {
                     MeditationSessionStorage.save(session);
                     this.invalidateMeditationLibraryCache();
                     MeditationSessionUIStateStorage.save(sessionId, uiState);
+                    representedDates.add(dateStr);
                     console.log(`[App] Migrada sesión: ${dateStr} -> ${sessionId}`);
                 }
             }
@@ -7206,7 +7205,7 @@ syncAppBadge: function(count) {
         
         // Si hay una completada y no hay draft, abrimos la completada (para lectura)
         if (!sessionMeta) {
-            sessionMeta = index.find(m => m.readingId === readingDate);
+            sessionMeta = index.find(m => m.readingId === readingDate && m.status !== 'archived');
         }
 
         if (sessionMeta) {
@@ -7380,7 +7379,7 @@ syncAppBadge: function(count) {
    deleteNote: function(dateStr) {
         if (this.currentMeditationSessionId) {
             const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
-            if (session) {
+            if (session && session.readingId === dateStr) {
                 session.status = 'archived';
                 session.updatedAt = Date.now();
                 this.attachMeditationMetadataSync(session);
@@ -9860,7 +9859,10 @@ renderViewHeader: function(title, subtitle = '', meta = '') {
     `;
 },
 
-renderDailyVersionSelector: function() {
+renderDailyVersionSelector: function(reading = null) {
+    const available = version => !reading || Boolean(reading.versions?.[version]?.trim() || (version === 'rvr60' && reading.text?.trim()));
+    const displayedVersion = available(this.currentVersion) ? this.currentVersion : ['rvr60', 'ntv', 'tla'].find(available);
+
     const versions = [
         {
             id: 'rvr60',
@@ -9897,7 +9899,7 @@ renderDailyVersionSelector: function() {
     return `
         <div class="reading-version-selector" role="group" aria-label="Versión de la lectura diaria">
             ${versions.map(version => {
-                const isActive = version.id === this.currentVersion;
+                const isActive = version.id === displayedVersion;
 
                 return `
                     <button
@@ -9905,6 +9907,7 @@ renderDailyVersionSelector: function() {
                         type="button"
                         data-version="${version.id}"
                         aria-label="Leer en versión ${version.label}"
+                        ${available(version.id) ? '' : 'disabled title="Esta versión no está disponible para este pasaje"'}
                         aria-pressed="${isActive}"
                     >
                         <span class="reading-version-icon">${version.icon}</span>
@@ -9913,6 +9916,7 @@ renderDailyVersionSelector: function() {
                 `;
             }).join('')}
         </div>
+        ${reading && displayedVersion !== this.currentVersion ? `<p class="reading-version-availability" role="status">${this.currentVersion.toUpperCase()} no está disponible para este pasaje. Se muestra ${displayedVersion?.toUpperCase() || 'la versión disponible'}.</p>` : ''}
     `;
 },
     
@@ -10223,8 +10227,9 @@ closeTransientBibleUI: function() {
     const oldView = this.currentView;
 
     this.closeTransientBibleUI();
+    if (this.currentlySpeakingPostId != null && view !== oldView) this.stopCommunitySpeech();
 
-    if (oldView === 'home' && view !== 'home') {
+    if ((oldView === 'home' || oldView === 'reading') && view !== oldView) {
         this.stopDailyReadingVoice(true);
     }
 
@@ -10317,6 +10322,7 @@ if (view !== 'settings' && oldView !== 'settings') {
 	    }
 	    await this.renderBibleReading();
 } else if (view === 'meditations-history') {
+    this.trackAnalyticsEvent('meditation_library_visit', { library_action: param ? 'open' : 'list' });
     if (param) {
         await this.renderMeditationDetail(param);
     } else {
@@ -10465,6 +10471,7 @@ updateVisibleDailyReadingText: async function() {
     this.hideSelectionPanel();
     this.clearVerseSelection();
 
+    if (reading.versions?.[this.currentVersion]?.trim()) this.$content.querySelector('.reading-version-availability')?.remove();
     textContainer.innerHTML = this.renderVerseText(readingText, reading.date);
     this.restoreHighlightsInDOMForVerses(reading.date);
     this.restoreSelectionNotesInDOM(reading.date);
@@ -10946,10 +10953,10 @@ toggleBibleChapterVoice: function(key, verses, reference = '') {
     this.startBibleChapterVoice(key, verses, reference);
 },
 
-stopBibleChapterVoice: function(silent = false) {
+stopBibleChapterVoice: function(silent = false, skipEngine = false) {
     this.invalidateBibleChapterVoiceToken();
     this.bibleChapterVoice.status = 'stopped';
-    this.stopBibleChapterSpeechEngine(silent);
+    if (!skipEngine) this.stopBibleChapterSpeechEngine(silent);
     this.isBibleAudioPlaying = false;
     this.bibleChapterVoice = {
         utterance: null,
@@ -11125,19 +11132,21 @@ pauseOrResumeDailyReadingVoice: function(date, text) {
     this.startDailyReadingVoice(date, text);
 },
 
-stopDailyReadingVoice: function(silent = false) {
-    if (this.isNativeTextToSpeechAvailable()) {
-        this.stopNativeTextToSpeech();
-    }
-
-    if ('speechSynthesis' in window) {
-        try {
-            window.speechSynthesis.cancel();
-        } catch (error) {
-            if (!silent) console.warn('[Voice] No se pudo detener la lectura:', error);
+stopDailyReadingVoice: function(silent = false, skipEngine = false) {
+    if (!skipEngine) {
+        if (this.isNativeTextToSpeechAvailable()) {
+            this.stopNativeTextToSpeech();
         }
-    }
 
+        if ('speechSynthesis' in window) {
+            try {
+                window.speechSynthesis.cancel();
+            } catch (error) {
+                if (!silent) console.warn('[Voice] No se pudo detener la lectura:', error);
+            }
+        }
+
+    }
     this.dailyReadingVoice = { utterance: null, status: 'idle', date: null };
     this.updateDailyReadingVoiceUI();
 },
@@ -12676,7 +12685,7 @@ restoreCalendarPosition: function() {
             ${introVideoHtml}
 
             <div class="reading-card">
-                ${this.renderDailyVersionSelector()}
+                ${this.renderDailyVersionSelector(reading)}
                 <div class="section-title">${readingLabel}</div>
                 <h2 class="reading-reference">${reading.reference}</h2>
                 ${this.renderDailyReadingVoiceControl(reading)}
@@ -12855,7 +12864,7 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
     ${introVideoHtml}
     
                 <div class="reading-card">
-                    ${isHome ? this.renderDailyVersionSelector() : ''}
+                    ${isHome ? this.renderDailyVersionSelector(reading) : ''}
                     <div class="section-title">${readingLabel}</div>
                     <h2 class="reading-reference">${reading.reference}</h2>
                     ${isHome ? this.renderDailyReadingVoiceControl(reading) : ''}
@@ -16758,7 +16767,7 @@ try {
 
                             return `
                                 <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
-                                    <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones">⋮</button>
+                                    <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones" aria-expanded="false" aria-controls="post-menu-${post.id}">⋮</button>
                                     <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
                                         <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar texto</button>
                                         <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
@@ -16878,7 +16887,7 @@ try {
 
 getStatsMonthDays: function(stats) {
     const todayStr = this.getTodayDateStr();
-    const currentMonth = todayStr.slice(0, 7);
+    const currentMonth = this.journeyMonth || todayStr.slice(0, 7);
     const [year, month] = currentMonth.split('-').map(Number);
     const daysInMonth = new Date(year, month, 0).getDate();
     const firstDay = new Date(year, month - 1, 1).getDay();
@@ -16931,20 +16940,21 @@ getStatsMonthDays: function(stats) {
 
 getStatsSelectedDate: function() {
     const todayStr = this.getTodayDateStr();
-    const currentMonth = todayStr.slice(0, 7);
+    const currentMonth = this.journeyMonth || todayStr.slice(0, 7);
 
     if (this.selectedStatsDate && this.selectedStatsDate.startsWith(`${currentMonth}-`)) {
         return this.selectedStatsDate;
     }
 
-    this.selectedStatsDate = todayStr;
+    this.selectedStatsDate = currentMonth === todayStr.slice(0, 7) ? todayStr : `${currentMonth}-01`;
     return this.selectedStatsDate;
 },
 
 getStatsDayDetails: function(dateStr, stats) {
     const reading = this.getReadingMetadataByDate(dateStr);
     const readDates = new Set(stats.activityDays.read);
-    const note = this.getNote(dateStr);
+    const matching = getJourney(localStorage).sessions.find(session => session.readingId === dateStr);
+    const note = matching?.notes || {};
     const hasReflection = Boolean(
         note.dios?.trim() ||
         note.aprendizaje?.trim() ||
@@ -17042,7 +17052,7 @@ renderStatsCalendar: function(stats) {
             <div class="stats-section-head">
                 <div>
                     <span>Constancia</span>
-                    <h3>Calendario de este mes</h3>
+                    <h3>Calendario del mes seleccionado</h3>
                 </div>
                 <strong>${this.escapeHtml(month.monthLabel)}</strong>
             </div>
@@ -17297,81 +17307,7 @@ renderStatsMoments: function(stats) {
 },
 
 renderStats: function() {
-    const stats = this.getStats();
-    const streakStatusLabels = {
-        read_today: 'Lectura de hoy completada',
-        pending_today: 'Aún puedes leer hoy',
-        restart: 'Retoma con calma'
-    };
-    const streakStatus = streakStatusLabels[stats.streak.status] || streakStatusLabels.restart;
-    const monthRatio = `${stats.month.completed}/${stats.month.available}`;
-    
-    this.$content.innerHTML = `
-        
-        ${this.renderViewHeader(
-            'Tu camino',
-            'Una mirada sobria a tu constancia, tu recorrido bíblico y tu respuesta a la Palabra.'
-        )}
-
-        <div class="stats-container">
-            <section class="stats-hero-card">
-                <div class="stats-hero-main">
-                    <span class="stats-eyebrow">Constancia actual</span>
-                    <div class="stats-streak-value">
-                        <strong>${stats.streak.current}</strong>
-                        <span>${stats.streak.current === 1 ? 'día' : 'días'}</span>
-                    </div>
-                    <p>${this.escapeHtml(streakStatus)}</p>
-                </div>
-                <div class="stats-hero-progress">
-                    <div class="stats-ring" style="--stats-percent: ${stats.month.percent}">
-                        <span>${stats.month.percent}%</span>
-                    </div>
-                    <div>
-                        <span>Este mes</span>
-                        <strong>${monthRatio}</strong>
-                        <small>lecturas completadas</small>
-                    </div>
-                </div>
-            </section>
-
-            <section class="stats-section stats-month-section">
-                <div class="stats-section-head">
-                    <div>
-                        <span>Este mes</span>
-                        <h3>Señales de constancia</h3>
-                    </div>
-                </div>
-                <div class="stats-metric-grid">
-                    ${this.renderStatsMetric('Días leídos', stats.month.completed, `${stats.month.available} disponibles`)}
-                    ${this.renderStatsMetric('Reflexión', stats.response.reflectionDays, 'días escritos')}
-                    ${this.renderStatsMetric('Oración', stats.response.prayerDays, 'días escritos')}
-                    ${this.renderStatsMetric('Avance mensual', `${stats.month.percent}%`, 'del mes')}
-                </div>
-            </section>
-
-            ${this.renderStatsCalendar(stats)}
-
-            ${this.renderStatsPlan(stats)}
-
-            <section class="stats-section stats-response-section">
-                <div class="stats-section-head">
-                    <div>
-                        <span>Respuesta a la Palabra</span>
-                        <h3>Memoria y oración</h3>
-                    </div>
-                </div>
-                <div class="stats-response-grid">
-                    ${this.renderStatsMetric('Reflexión diaria', stats.response.reflectionDays, 'días con respuesta')}
-                    ${this.renderStatsMetric('Oración escrita', stats.response.prayerDays, 'días')}
-                    ${this.renderStatsMetric('Resaltados', stats.memory.highlights, 'pasajes guardados')}
-                    ${this.renderStatsMetric('Notas personales', stats.memory.selectionNotes, 'sobre selección')}
-                </div>
-            </section>
-
-            ${this.renderStatsMoments(stats)}
-        </div>
-    `;
+    renderJourney(this);
 },
     
     renderSettings: function() {
@@ -17597,6 +17533,7 @@ if (notificationsToggle) {
     const allData = {
         version: '2.1',
         exportDate: new Date().toISOString(),
+        journeyBackup: exportJourney(localStorage),
         userProfile: userProfile,
         communityPreferences: communityPrefs,
         readDates: this.getReadDates(),
@@ -17654,7 +17591,11 @@ if (notificationsToggle) {
                     throw new Error('Archivo de respaldo no válido');
                 }
 
+                const personalBackup = data.journeyBackup || legacyJourneyBackup(data);
+                validateJourneyBackup(personalBackup);
+
                 const summaryItems = [
+                    data.journeyBackup ? '• Mi camino, meditaciones completas, referencias y revisiones' : null,
                     data.userProfile ? '• Avatar y perfil personalizado' : null,
                     data.communityPreferences ? '• Preferencias de comunidad' : null,
                     data.readDates ? `• ${data.readDates.length || 0} lecturas marcadas` : null,
@@ -17667,6 +17608,9 @@ if (notificationsToggle) {
                 if (!confirm(confirmMsg)) {
                     return;
                 }
+
+                // Restore the complete personal history transactionally before other preferences.
+                restoreJourney(localStorage, personalBackup);
 
                 if (data.userProfile) {
                     const uid = this.currentUser?.uid;
@@ -17708,50 +17652,13 @@ if (notificationsToggle) {
                     this.setUserCommunityPreferences(data.communityPreferences);
                 }
 
-                if (data.readDates) {
-                   this.storage.set('su-voz-read-dates', data.readDates);
-                }
-                if (data.streak) {
-                    this.streak = data.streak;
-                    this.saveStreak();
-                }
                 if (data.settings) {
                     this.settings = { ...this.settings, ...data.settings };
                     this.saveSettings();
                     this.initTheme();
                     this.loadFontSize();
                 }
-                if (data.notes) {
-                    Object.entries(data.notes).forEach(([date, note]) => {
-                        this.storage.set(this.getNoteKey(date), note);
-                    });
-                }
-
-                if (data.highlights) {
-                    Object.entries(data.highlights).forEach(([date, highlights]) => {
-                        this.storage.set(this.getHighlightsKey(date), highlights);
-                    });
-                }
-
-                if (data.selectionNotes) {
-                    Object.entries(data.selectionNotes).forEach(([date, selectionNotes]) => {
-                        const normalized = Array.isArray(selectionNotes)
-                            ? selectionNotes
-                                .map(item => ({
-                                    text: (item?.text || '').replace(/\s+/g, ' ').trim(),
-                                    note: (item?.note || '').trim()
-                                }))
-                                .filter(item => item.text.length >= 3 && item.note.length > 0)
-                            : [];
-
-                        if (normalized.length > 0) {
-                            this.storage.set(this.getSelectionNotesKey(date), normalized);
-                        } else {
-                            this.storage.remove(this.getSelectionNotesKey(date));
-                        }
-                    });
-                }
-                
+                this.invalidateMeditationLibraryCache();
                 this.showToast('✅ Datos y avatar restaurados correctamente', 'success');
                 setTimeout(() => location.reload(), 1500);
             } catch (error) {
@@ -19035,13 +18942,16 @@ document.addEventListener('input', (e) => {
         librarySearchTimeout = setTimeout(() => {
             if (this.libraryState) {
                 this.libraryState.query = e.target.value;
-                this.updateLibraryResults();
+                this.updateLibraryResults().then(() => {
+                    this.trackAnalyticsEvent('meditation_library_search', { has_results: this.librarySearchHasResults === true });
+                });
             }
         }, 300);
     }
 });
 
 document.addEventListener('change', (e) => {
+    if (e.target.closest('.library-more-filters') && this.libraryState) this.libraryState.advancedOpen = true;
     if (e.target.id === 'library-filter-collection') {
         if (this.libraryState) {
             this.libraryState.filters.collection = e.target.value;
@@ -19175,6 +19085,7 @@ if (this.$headerSettingsBtn) {
         
 // Controles de fuente y versión
 document.addEventListener('click', (e) => {
+    if (!e.target.closest('.post-menu-dropdown, [data-action="toggle-post-menu"]')) this.closePostMenus();
     const activeFootnotePopover = this.bibleFootnotePopover?.popover;
     const clickedFootnoteTrigger = e.target.closest('[data-action="open-bible-footnote"]');
 
@@ -19286,6 +19197,7 @@ document.addEventListener('click', (e) => {
         
         // Eventos del contenido
      this.$content.addEventListener('click', async (e) => {
+    if (e.target.closest('.post-menu-dropdown button')) this.closePostMenus(true);
     const verseItem = e.target.closest('.verse-selectable');
     if (verseItem) {
         e.stopPropagation();
@@ -19980,13 +19892,23 @@ if (donateBtn) {
     return;
 }
 
+const journeyButton = e.target.closest('[data-journey]');
+if (journeyButton) {
+    try { await handleJourney(this, journeyButton); this.updateStreakUI(); }
+    catch (error) { this.showToast(error.message || 'No se pudo guardar. Tus datos anteriores se conservan.'); }
+    return;
+}
+
 const selectStatsDayBtn = e.target.closest('[data-action="select-stats-day"]');
 if (selectStatsDayBtn) {
     const date = selectStatsDayBtn.getAttribute('data-date');
 
     if (date) {
         this.selectedStatsDate = date;
+        this.journeySelected = true;
         this.renderStats();
+        const history = this.$content.querySelector(".journey-history");
+        if (history) history.open = true;
     }
     return;
 }
@@ -20006,7 +19928,10 @@ if (statsOpenResponseBtn) {
     const date = statsOpenResponseBtn.getAttribute('data-date');
 
     if (date) {
-        const note = this.getNote(date);
+        const session = getJourney(localStorage).sessions.find(item => item.readingId === date && !item.legacy);
+        if (session) { this.navigate('meditations-history', session.id); return; }
+        this.currentMeditationSessionId = null;
+        const note = this.storage.get(this.getNoteKey(date), {});
         this.openNoteDate = date;
         this.activeNoteField = note.oracion?.trim() ? 'oracion' : null;
         this.navigate('reading', date);
@@ -20618,11 +20543,9 @@ if (toggleMenuBtn) {
     const dropdown = document.getElementById(`post-menu-${postId}`);
     if (dropdown) {
         const isOpen = dropdown.classList.contains('open');
-        document.querySelectorAll('.post-menu-dropdown').forEach(d => {
-            d.classList.remove('open');
-            d.style.display = 'none';
-        });
+        this.closePostMenus();
         if (!isOpen) {
+            toggleMenuBtn.setAttribute('aria-expanded', 'true');
             dropdown.classList.add('open');
             dropdown.style.display = 'flex';
         }
@@ -20875,7 +20798,7 @@ if (setTabBtn) {
 const copyPostBtn = e.target.closest('[data-action="copy-post-text"]');
 if (copyPostBtn) {
     const postId = copyPostBtn.getAttribute('data-post-id');
-    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.closePostMenus(true);
     this.copyPostText(postId);
     return;
 }
@@ -20883,7 +20806,7 @@ if (copyPostBtn) {
 const sharePostBtn = e.target.closest('[data-action="share-post"]');
 if (sharePostBtn) {
     const postId = sharePostBtn.getAttribute('data-post-id');
-    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.closePostMenus(true);
     this.sharePost(postId);
     return;
 }
@@ -20891,7 +20814,7 @@ if (sharePostBtn) {
 const speechPostBtn = e.target.closest('[data-action="speech-post"]');
 if (speechPostBtn) {
     const postId = speechPostBtn.getAttribute('data-post-id');
-    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.closePostMenus(true);
     this.toggleSpeechPost(postId);
     return;
 }
@@ -20899,7 +20822,7 @@ if (speechPostBtn) {
 const favPostBtn = e.target.closest('[data-action="favorite-post"]');
 if (favPostBtn) {
     const postId = favPostBtn.getAttribute('data-post-id');
-    document.querySelectorAll('.post-menu-dropdown').forEach(d => d.style.display = 'none');
+    this.closePostMenus(true);
     this.toggleFavoritePost(postId);
     return;
 }
@@ -21000,7 +20923,8 @@ const completeSessionBtn = e.target.closest('[data-action="complete-session"]');
 if (completeSessionBtn) {
     if (this.currentMeditationSessionId) {
         const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
-        if (session) {
+        if (session && session.readingId === completeSessionBtn.getAttribute('data-date')) {
+            const wasCompleted = session.status === 'completed' && session.completedAt;
             session.status = 'completed';
             session.completedAt = Date.now();
             session.updatedAt = Date.now();
@@ -21011,6 +20935,12 @@ if (completeSessionBtn) {
                 reading_date: session.readingDate || session.date || '',
                 entry_point: 'direct'
             });
+            if (!wasCompleted) {
+                try {
+                    recordPractice(localStorage, 'meditation', session.readingId, session.id);
+                    this.updateStreakUI();
+                } catch (error) { this.showToast('Meditación guardada; no se pudo registrar la constancia.'); }
+            }
             this.showToast('Meditación marcada como completada');
             if (completeSessionBtn.closest('.sliding-notebook-panel')) {
                 const reading = await this.getReadingByDate(session.readingId);
@@ -21040,6 +20970,54 @@ if (closeSlidingNotebookBtn) {
     this.closeMeditationLibraryEditor();
     return;
 }
+
+const libraryAction = e.target.closest('[data-action^="library-"]');
+if (libraryAction) {
+    const action = libraryAction.dataset.action;
+    const id = libraryAction.dataset.sessionId;
+    const session = id ? MeditationSessionStorage.get(id) : null;
+    if (action === 'library-journey') { this.navigate('stats'); return; }
+    if (action === 'library-backup') { this.exportData(); return; }
+    if (action === 'library-today') { this.navigate('reading', this.getTodayDateStr()); return; }
+    if (action === 'library-quick-filter') {
+        const filter = libraryAction.dataset.filter;
+        this.libraryState.filters = { collection: filter === 'favorites' ? 'favorites' : 'all', status: filter === 'draft' ? 'draft' : 'all', version: 'all', bookId: 'all', selectedBookId: '' };
+        this.libraryState.exploreBy = 'list';
+        this.libraryState.limit = 30;
+        await this.updateLibraryResults(); return;
+    }
+    if (action === 'library-reading' && session) {
+        const reading = await this.getReadingByDate(session.readingId);
+        if (!reading) { this.showToast('Este pasaje no está disponible en el catálogo. Tu meditación se conserva.'); return; }
+        this.navigate('reading', session.readingId); return;
+    }
+    if (action === 'library-application' && session) {
+        if (session.status === 'archived') { this.showToast('Restaura esta meditación para volver a trabajar en su aplicación.'); return; }
+        if (!String(session.notes?.respuesta || '').trim()) {
+            await this.openMeditationLibraryEditor(id, 'respuesta'); return;
+        }
+        this.journeyApplicationId = id;
+        this.journeyFocusApplication = true;
+        this.navigate('stats'); return;
+    }
+    if (action === 'library-excerpt' && session) {
+        const host = document.getElementById('library-excerpt-editor');
+        host.innerHTML = `<section class="journey-card"><h3>Una enseñanza para compartir</h3><label for="library-excerpt">Revisa tu extracto</label><textarea id="library-excerpt" maxlength="1200" rows="6">${this.escapeHtml(String(session.notes?.aprendizaje || session.notes?.dios || '').slice(0,1200))}</textarea><p>Tu oración y tu revisión privada no se incluyen. Abriremos un borrador para que lo revises en Comunidad.</p><button type="button" class="journey-button" data-action="library-send-excerpt" data-session-id="${this.escapeHtml(id)}">Revisar en Comunidad</button><button type="button" class="journey-button" data-action="library-cancel-excerpt">Cancelar</button></section>`;
+        document.getElementById('library-excerpt').focus(); return;
+    }
+    if (action === 'library-cancel-excerpt') { document.getElementById('library-excerpt-editor').innerHTML=''; return; }
+    if (action === 'library-send-excerpt' && session) {
+        const text = document.getElementById('library-excerpt').value.trim();
+        if (!text) { this.showToast('Escribe la enseñanza que deseas compartir.'); return; }
+        if (this.hasCommunityDraftContent(this.loadCommunityDraftState())) { this.showToast('Ya tienes un borrador en Comunidad. Consérvalo o descártalo allí antes de preparar otro.'); return; }
+        const model = await this.getMeditationDisplayModel(session);
+        this.updateCommunityDraftState({text, formOpen:true, intent:'reflection', readingDate:session.readingId, reference:model.reference}, {immediate:true});
+        this.communityFormOpen=true; this.navigate('community'); return;
+    }
+}
+
+const openMyMeditations = e.target.closest('[data-action="open-my-meditations"]');
+if (openMyMeditations) { this.closeMeditationLibraryEditor({refreshDetail:false}); this.navigate('meditations-history'); return; }
 
 const libraryBackBtn = e.target.closest('[data-action="library-back"]');
 if (libraryBackBtn) {
@@ -21093,6 +21071,7 @@ const libraryEditBtn = e.target.closest('[data-action="edit-library-meditation"]
 if (libraryEditBtn) {
     const sessionId = libraryEditBtn.getAttribute('data-session-id');
     if (sessionId) {
+        this.trackAnalyticsEvent('meditation_library_continue', { library_action: 'edit' });
         await this.openMeditationLibraryEditor(sessionId);
     }
     return;
@@ -21557,6 +21536,7 @@ document.addEventListener('click', (e) => {
 
 // Capturar teclado para accesibilidad de chips
 document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') this.closePostMenus(true);
     if (e.key === 'Enter' || e.key === ' ') {
         const chip = e.target.closest('.devotional-ref-chip');
         if (chip && !e.target.closest('button')) {
@@ -21599,8 +21579,9 @@ document.addEventListener('keydown', (e) => {
             <section class="meditation-library-view" aria-labelledby="meditation-library-title">
                 <header class="meditation-library-hero">
                     <p class="meditation-library-kicker">Tus meditaciones</p>
-                    <h2 id="meditation-library-title">Biblioteca</h2>
-                    <p>Un lugar para volver con calma a lo que Dios te ha mostrado en Su Palabra.</p>
+                    <h2 id="meditation-library-title">Mis meditaciones</h2>
+                    <p>Vuelve a lo que has escrito, recuerda la Palabra y continúa poniéndola en práctica.</p>
+                    <button class="meditation-detail-back" type="button" data-action="library-journey">← Mi camino</button>
                 </header>
 
                 <div class="meditation-library-toolbar" id="meditation-library-toolbar" hidden>
@@ -21612,10 +21593,11 @@ document.addEventListener('keydown', (e) => {
                     <div class="meditation-library-filters" id="meditation-library-filters"></div>
                 </div>
 
+                <p class="library-local-note">Tus meditaciones son privadas y se guardan en este dispositivo. <button type="button" data-action="library-backup">Guardar respaldo</button></p>
                 <div aria-live="polite" class="sr-only" id="library-a11y-announcer"></div>
 
                 <div class="meditation-library-results" id="library-results-container">
-                    <div class="meditation-library-loading">Preparando tu biblioteca...</div>
+                    <div class="meditation-library-loading">Preparando tus meditaciones…</div>
                 </div>
             </section>
         `;
@@ -21922,7 +21904,7 @@ document.addEventListener('keydown', (e) => {
             : MeditationSessionStorage.get(sessionOrEntry?.id);
         if (!session) return null;
 
-        const metadata = await this.resolveMeditationMetadata(session, { persist: true });
+        const metadata = await this.resolveMeditationMetadata(session, { persist: !session.legacy });
         const excerpt = this.getMeditationExcerpt(session.notes);
         const hasContent = Boolean(excerpt);
         const book = metadata.bookName
@@ -21979,7 +21961,7 @@ document.addEventListener('keydown', (e) => {
                 this.formatLibraryDate(readingDate),
                 version.label,
                 status.label,
-                excerpt,
+                ...this.getMeditationNoteFields(session.notes),
                 book?.name
             ].filter(Boolean).join(' '))
         };
@@ -22018,7 +22000,8 @@ document.addEventListener('keydown', (e) => {
             return this.libraryModelsCache;
         }
 
-        const entries = MeditationLibrary.getAll();
+        // Use the same complete collection as Mi camino, including recoverable old notes.
+        const entries = getJourney(localStorage).allSessions;
         const models = [];
         for (const entry of entries) {
             const model = await this.getMeditationDisplayModel(entry);
@@ -22108,7 +22091,7 @@ document.addEventListener('keydown', (e) => {
             this.libraryState.filters.selectedBookId = '';
         }
 
-        if (this.libraryState.filters.status !== 'all' && !statusIds.has(this.libraryState.filters.status)) {
+        if (!['all', 'draft', 'completed'].includes(this.libraryState.filters.status)) {
             this.libraryState.filters.status = 'all';
         }
         if (options.versions.length <= 1 || (this.libraryState.filters.version !== 'all' && !versionIds.has(this.libraryState.filters.version))) {
@@ -22290,7 +22273,10 @@ document.addEventListener('keydown', (e) => {
             `);
         }
 
-        return controls.join('');
+        const collection = state.filters.collection;
+        const active = state.filters.status === 'draft' && collection === 'all' ? 'draft' : collection;
+        return `<div class="library-quick-filters" aria-label="Seleccionar meditaciones">${[['all','Todas'],['draft','En curso'],['favorites','Favoritas']].map(([id,label]) => `<button type="button" data-action="library-quick-filter" data-filter="${id}" aria-pressed="${active===id}">${label}</button>`).join('')}</div>
+            <details class="library-more-filters" ${state.advancedOpen ? 'open' : ''}><summary>Más opciones${collection==='archived' ? ' · Archivadas' : ''}</summary><div class="library-advanced-grid">${controls.join('')}</div></details>`;
     },
 
     renderMeditationBookList: function(books) {
@@ -22304,7 +22290,7 @@ document.addEventListener('keydown', (e) => {
                         role="listitem"
                         data-action="open-library-book"
                         data-book-id="${this.escapeHtml(book.id)}"
-                        aria-label="Abrir meditaciones de ${this.escapeHtml(book.name)}, ${book.count} meditación${book.count === 1 ? '' : 'es'}"
+                        aria-label="Abrir meditaciones de ${this.escapeHtml(book.name)}, ${book.count} ${book.count === 1 ? 'meditación' : 'meditaciones'}"
                     >
                         <span class="meditation-library-book-name">${this.escapeHtml(book.name)}</span>
                         <span class="meditation-library-book-count">${book.count}</span>
@@ -22321,7 +22307,7 @@ document.addEventListener('keydown', (e) => {
                 <div>
                     <p class="meditation-library-kicker">Libro bíblico</p>
                     <h3>${this.escapeHtml(book.name)}</h3>
-                    <p>${count} meditación${count === 1 ? '' : 'es'}</p>
+                    <p>${count} ${count === 1 ? 'meditación' : 'meditaciones'}</p>
                 </div>
             </div>
         `;
@@ -22401,13 +22387,13 @@ document.addEventListener('keydown', (e) => {
     renderMeditationTimeline: function(models) {
         const groups = this.getMeditationTimelineGroups(models);
         return `
-            <div class="meditation-library-count">${models.length} meditación${models.length === 1 ? '' : 'es'} en cronología</div>
+            <div class="meditation-library-count">${models.length} ${models.length === 1 ? 'meditación' : 'meditaciones'} en cronología</div>
             <div class="meditation-library-timeline" aria-label="Cronología de meditaciones">
                 ${groups.map(group => `
                     <section class="meditation-library-timeline-group" aria-labelledby="library-timeline-${this.escapeHtml(group.id)}">
                         <div class="meditation-library-timeline-head">
                             <h3 id="library-timeline-${this.escapeHtml(group.id)}">${this.escapeHtml(group.label)}</h3>
-                            <span>${group.items.length} meditación${group.items.length === 1 ? '' : 'es'}</span>
+                            <span>${group.items.length} ${group.items.length === 1 ? 'meditación' : 'meditaciones'}</span>
                         </div>
                         <div class="meditation-library-timeline-items">
                             ${group.items.map(model => `
@@ -22449,6 +22435,7 @@ document.addEventListener('keydown', (e) => {
                 <p class="meditation-library-state-kicker">${this.escapeHtml(kicker)}</p>
                 <h3 id="${this.escapeHtml(id)}">${this.escapeHtml(title)}</h3>
                 <p>${this.escapeHtml(body)}</p>
+                ${id === 'library-empty-title' ? '<button class="journey-button" type="button" data-action="library-today">Comenzar con la lectura de hoy</button>' : ''}
             </section>
         `;
     },
@@ -22463,7 +22450,7 @@ document.addEventListener('keydown', (e) => {
                 id: 'library-no-archived-title',
                 kicker: 'Archivadas',
                 title: 'No hay meditaciones archivadas.',
-                body: 'Cuando archives una meditación, aparecerá aquí con calma y sin mezclarse con tu biblioteca principal.'
+                body: 'Cuando archives una meditación, aparecerá aquí con calma y sin mezclarse con tus meditaciones principales.'
             };
         }
 
@@ -22472,7 +22459,7 @@ document.addEventListener('keydown', (e) => {
                 id: 'library-no-archived-title',
                 kicker: 'Archivadas',
                 title: 'No hay meditaciones archivadas.',
-                body: 'Cuando archives una meditación, aparecerá aquí con calma y sin mezclarse con tu biblioteca principal.'
+                body: 'Cuando archives una meditación, aparecerá aquí con calma y sin mezclarse con tus meditaciones principales.'
             };
         }
 
@@ -22516,7 +22503,7 @@ document.addEventListener('keydown', (e) => {
             id: 'library-no-results-title',
             kicker: 'Sin resultados',
             title: 'No hay meditaciones con esos filtros.',
-            body: 'Ajusta el estado, la versión o el libro para volver a explorar tu biblioteca.'
+            body: 'Ajusta el estado, la versión o el libro para volver a explorar tus meditaciones.'
         };
     },
 
@@ -22564,8 +22551,8 @@ document.addEventListener('keydown', (e) => {
             this.updateMeditationLibraryContainer(container, this.renderMeditationLibraryState({
                 id: 'library-empty-title',
                 kicker: 'Todavía no hay meditaciones guardadas',
-                title: 'Tu biblioteca está esperando sus primeras páginas.',
-                body: 'Cuando escribas una meditación, aparecerá aquí para que puedas volver a leerla con calma.'
+                title: 'Tu primera meditación empieza hoy.',
+                body: 'Cuando escribas en Profundiza, tu meditación aparecerá aquí. Podrás continuarla, recordarla y volver al pasaje.'
             }));
             return;
         }
@@ -22574,8 +22561,9 @@ document.addEventListener('keydown', (e) => {
         this.updateMeditationLibraryFilters(filtersContainer, this.renderMeditationLibraryFilters(allModels, options));
 
         const results = this.applyMeditationLibraryFilters(allModels);
+        this.librarySearchHasResults = results.length > 0;
         if (announcer) {
-            announcer.textContent = `Se encontraron ${results.length} meditaciones`;
+            announcer.textContent = results.length === 1 ? 'Se encontró 1 meditación' : `Se encontraron ${results.length} meditaciones`;
         }
 
         if (this.libraryState.exploreBy === 'books' && !this.libraryState.filters.selectedBookId) {
@@ -22620,7 +22608,7 @@ document.addEventListener('keydown', (e) => {
         const paginatedResults = results.slice(0, this.libraryState.limit);
         this.updateMeditationLibraryContainer(container, `
             ${selectedBook ? this.renderMeditationBookResultsHeader(selectedBook, results.length) : ''}
-            <div class="meditation-library-count">${results.length} meditación${results.length === 1 ? '' : 'es'}</div>
+            <div class="meditation-library-count">${results.length} ${results.length === 1 ? 'meditación' : 'meditaciones'}</div>
             <div class="meditation-library-grid">
                 ${paginatedResults.map(model => this.renderMeditationCard(model)).join('')}
             </div>
@@ -22659,12 +22647,18 @@ document.addEventListener('keydown', (e) => {
 
     renderMeditationDetail: async function(sessionId) {
         const decodedSessionId = decodeURIComponent(String(sessionId || ''));
+        if (decodedSessionId.startsWith('legacy:')) {
+            this.currentMeditationSessionId = null;
+            this.openNoteDate = decodedSessionId.slice(7);
+            this.navigate('reading', this.openNoteDate);
+            return;
+        }
         const session = MeditationSessionStorage.get(decodedSessionId);
 
         if (!session) {
             this.$content.innerHTML = `
                 <section class="meditation-detail-view meditation-detail-missing">
-                    <button class="meditation-detail-back" type="button" data-action="library-back" aria-label="Volver a Biblioteca">← Biblioteca</button>
+                    <button class="meditation-detail-back" type="button" data-action="library-back" aria-label="Volver a Mis meditaciones">← Mis meditaciones</button>
                     <div class="meditation-library-state">
                         <p class="meditation-library-state-kicker">No disponible</p>
                         <h2>No encontré esta meditación.</h2>
@@ -22693,7 +22687,7 @@ document.addEventListener('keydown', (e) => {
         this.$content.innerHTML = `
             <article class="meditation-detail-view" aria-labelledby="meditation-detail-title">
                 <header class="meditation-detail-header">
-                    <button class="meditation-detail-back" type="button" data-action="library-back" aria-label="Volver a Biblioteca">← Biblioteca</button>
+                    <button class="meditation-detail-back" type="button" data-action="library-back" aria-label="Volver a Mis meditaciones">← Mis meditaciones</button>
                     <div class="meditation-detail-title-block">
                         <p class="meditation-library-kicker">Meditación</p>
                         <h2 id="meditation-detail-title">${this.escapeHtml(model.reference)}</h2>
@@ -22714,9 +22708,14 @@ document.addEventListener('keydown', (e) => {
                     </ul>
                 ` : ''}
 
+                <p class="library-local-note">El PDF incluye los apartados escritos, incluida tu oración. Para Comunidad, prepara y revisa solo el extracto que quieras compartir.</p>
+                <div id="library-excerpt-editor"></div>
                 <footer class="meditation-detail-actions" aria-label="Acciones de meditación">
-                    <button type="button" data-action="edit-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Editar</button>
-                    <button type="button" data-action="share-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Compartir</button>
+                    <button type="button" data-action="edit-library-meditation" data-session-id="${this.escapeHtml(model.id)}">${model.statusId === 'draft' ? 'Continuar meditación' : 'Editar meditación'}</button>
+                    <button type="button" data-action="share-library-meditation" data-session-id="${this.escapeHtml(model.id)}">Exportar PDF</button>
+                    <button type="button" data-action="library-reading" data-session-id="${this.escapeHtml(model.id)}">Leer el pasaje</button>
+                    <button type="button" data-action="library-application" data-session-id="${this.escapeHtml(model.id)}">Revisar mi aplicación</button>
+                    <button type="button" data-action="library-excerpt" data-session-id="${this.escapeHtml(model.id)}">Preparar extracto para Comunidad</button>
                     <button
                         type="button"
                         data-action="toggle-library-favorite"
@@ -22729,7 +22728,7 @@ document.addEventListener('keydown', (e) => {
         `;
     },
 
-    openMeditationLibraryEditor: async function(sessionId) {
+    openMeditationLibraryEditor: async function(sessionId, field = null) {
         const session = MeditationSessionStorage.get(sessionId);
         if (!session) {
             this.showToast('No se encontró la meditación');
@@ -22744,6 +22743,7 @@ document.addEventListener('keydown', (e) => {
         }
 
         await this.resolveMeditationMetadata(session, { persist: true, reading });
+        if (field) this.activeNoteField = field;
         this.libraryEditorSessionId = sessionId;
         document.body.classList.add('meditation-library-editor-open');
         this.openSlidingNotebook(reading);
@@ -22755,6 +22755,8 @@ document.addEventListener('keydown', (e) => {
         this.closeSlidingNotebook();
         this.libraryEditorSessionId = null;
         document.body.classList.remove('meditation-library-editor-open');
+
+        if (refreshDetail && this.currentView === 'stats') this.renderStats();
 
         if (
             refreshDetail &&
@@ -23295,7 +23297,7 @@ App.deleteMeditationReference = function(stepId, refId) {
 App.updateNotebookSaveStatus = function(statusText) {
     const statusEl = document.getElementById('notebook-save-status');
     if (statusEl) {
-        statusEl.textContent = statusText;
+        statusEl.textContent = statusText === 'Guardado' ? 'Guardado en Mis meditaciones' : statusText;
         statusEl.className = 'notebook-save-status ' + (statusText === 'Guardado' ? 'is-saved' : 'is-saving');
     }
 };

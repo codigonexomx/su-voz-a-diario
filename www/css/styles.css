@@ -19520,3 +19520,80 @@ body.dark-mode .community-intent-badge-header {
 body.dark-mode .community-post-question-quote {
     color: #e2e8f0;
 }
+
+/* Mi camino: scoped to the personal journey; navigation and other views unchanged. */
+.journey-container { max-width: 960px; margin: 0 auto; padding: 0 12px 32px; display: grid; gap: 20px; }
+.journey-hero, .journey-card { border: 1px solid var(--border-color, #bba57855); border-radius: 22px; padding: clamp(20px,4vw,34px); background: var(--bg-card, transparent); min-width: 0; }
+.journey-hero { background: linear-gradient(125deg,#14243a,#253c52); color: #fff5e6; }
+.journey-hero h3, .journey-card h3 { font-family: Georgia,serif; font-size: clamp(1.35rem,4vw,1.8rem); margin: 8px 0 14px; }
+.journey-container p { line-height: 1.65; overflow-wrap: anywhere; }
+.journey-kicker { font-size: .75rem; letter-spacing: .1em; color: #b18b49; }
+.journey-hero .journey-kicker { color: #e1c68f; }
+.journey-button { border: 1px solid #b99558; border-radius: 12px; min-height: 44px; padding: 10px 16px; margin: 6px 6px 6px 0; color: inherit; background: transparent; font: inherit; cursor: pointer; max-width: 100%; overflow-wrap: anywhere; }
+.journey-hero .journey-button:first-of-type { background: #e1c68f; color: #14243a; }
+.journey-button:focus-visible,.journey-container summary:focus-visible { outline: 3px solid #bd954f; outline-offset: 3px; }
+.journey-week { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 6px; margin: 20px 0; }
+.journey-week>div { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 2px; border-radius: 12px; border: 1px solid #a98d5c44; }
+.journey-week .is-active { background: #b9955826; border-color: #b99558; }
+.journey-week span,.journey-week small { font-size: .8rem; }
+.journey-week strong { font-size: 1.3rem; }
+.journey-container summary { cursor: pointer; font-weight: 600; padding: 8px 0; min-height: 44px; }
+.journey-container blockquote { border-left: 3px solid #b99558; padding: 12px 18px; margin: 18px 0; line-height: 1.7; overflow-wrap: anywhere; }
+.journey-container textarea { width: 100%; box-sizing: border-box; resize: vertical; padding: 14px; border: 1px solid #a98d5c77; border-radius: 12px; color: inherit; background: transparent; font: inherit; display:block; margin:10px 0; }
+.journey-memory { border-top: 1px solid #a98d5c44; padding-top: 20px; margin-top:20px; }
+.journey-memory h4 { font-family: Georgia,serif; font-size: 1.2rem; margin: 10px 0; }
+.journey-memory>span,.journey-footer { font-size: .85rem; }
+.journey-month { display:flex; align-items:center; flex-wrap:wrap; gap:10px; margin:16px 0; }
+.journey-month input { font:inherit; padding:10px; border:1px solid #a98d5c77; border-radius:10px; color:inherit; background:transparent; min-width:0; max-width:100%; }
+.journey-container .stats-calendar-layout { min-width:0; }
+@media(max-width:480px) { .journey-container { padding-left:0; padding-right:0; } .journey-card .stats-section { padding: 8px 0; } .journey-week { gap:3px; } }
+
+.journey-container select { width:100%; min-height:44px; padding:10px; border:1px solid var(--border-color,#c7b99a); border-radius:12px; background:var(--bg-primary,#fff); color:var(--text-primary,#233448); font:inherit; margin:8px 0; }
+.journey-preserve { white-space:pre-wrap; overflow-wrap:anywhere; }
+.journey-container textarea:focus-visible,.journey-container select:focus-visible,.journey-button:focus-visible { outline:3px solid #b88a35; outline-offset:3px; }
+
+.reading-version-pill:disabled { opacity:.45; cursor:default; }
+.reading-version-availability { font-size:.85rem; line-height:1.5; margin:8px auto 16px; text-align:center; max-width:44rem; }
+
+/* Community audio: controls stay available after dismissing the options. */
+.community-voice-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-main);
+    font-size: 0.875rem;
+}
+.community-voice-control button {
+    min-height: 44px;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--surface-color);
+    color: var(--text-main);
+    font: inherit;
+    cursor: pointer;
+}
+
+/* Personal meditation collection: calm hierarchy, generous touch targets. */
+.journey-library-entry { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; border-color:rgba(180,143,73,.4); }
+.journey-library-entry h3 { margin:6px 0; }
+.library-local-note { color:var(--text-secondary); font-size:.875rem; line-height:1.6; margin:16px 0; }
+.library-local-note button, .notebook-library-link { background:none; border:0; color:var(--text-main); font:inherit; text-decoration:underline; text-underline-offset:3px; cursor:pointer; min-height:44px; }
+.library-quick-filters { display:flex; flex-wrap:wrap; gap:8px; width:100%; }
+.library-quick-filters button { min-height:44px; padding:10px 18px; border:1px solid var(--border-color); border-radius:999px; background:var(--surface-color); color:var(--text-main); font:inherit; cursor:pointer; }
+.library-quick-filters button[aria-pressed="true"] { background:rgba(180,143,73,.16); border-color:#b48f49; font-weight:600; }
+.library-more-filters { width:100%; margin-top:12px; }
+.library-more-filters summary { padding:12px 0; cursor:pointer; color:var(--text-main); }
+.library-advanced-grid { display:flex; flex-wrap:wrap; gap:12px; padding:8px 0 16px; }
+#library-excerpt-editor textarea { width:100%; box-sizing:border-box; padding:14px; border:1px solid var(--border-color); border-radius:12px; background:var(--surface-color); color:var(--text-main); font:inherit; line-height:1.65; margin:10px 0; }
+.library-quick-filters button:focus-visible, .notebook-library-link:focus-visible { outline:2px solid #b48f49; outline-offset:3px; }
+@media(max-width:480px) { .journey-library-entry>.journey-button { width:100%; } .library-advanced-grid>label { width:100%; } }
+.meditation-library-view .sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
+.meditation-library-search input { min-width:0; width:100%; }
+.meditation-library-toolbar[hidden] { display:none!important; }

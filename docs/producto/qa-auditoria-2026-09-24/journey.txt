@@ -1,0 +1,23 @@
+
+> test:journey
+> node scripts/validate-journey.mjs
+
+OK Días reales, años bisiestos y fechas inválidas
+OK Historial antiguo no fabrica práctica
+OK Atrasadas, duplicados y varias acciones: un día real
+OK Cambio de año y continuidad
+OK Fechas futuras no inflan la racha
+OK Sesiones múltiples, archivo, favoritos y espejo legacy
+OK Meses separados y contenido fuera del catálogo
+OK Revisión privada persistente
+OK Respaldo completo sin credenciales y restauración idempotente
+OK Importar no reemplaza una sesión más reciente
+OK Respaldo malicioso o corrupto no se escribe
+OK Fallo de escritura revierte cambios
+OK Corrupción visible, sin reemplazo silencioso
+OK Medianoche y cambio de horario mantienen días locales
+OK Respaldo incluye estado del cuadernillo antiguo
+OK Eventos incompletos se rechazan antes de importar
+OK Respaldo anterior conserva sesiones y une lecturas
+OK Compartir solo prepara borrador y conserva el anterior
+OK Finalización repetida sin duplicados. 17 casos de servicio + 2 flujos de integración. TZ=sistema

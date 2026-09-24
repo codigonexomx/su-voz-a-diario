@@ -141,7 +141,7 @@ assert.doesNotMatch(
 
 assert.match(
     source,
-    /this\.closeTransientBibleUI\(\);[\s\S]*if \(oldView === 'home'/,
+    /this\.closeTransientBibleUI\(\);[\s\S]*if \(\(?oldView === 'home'/,
     'Cada cambio de ruta debe limpiar overlays transitorios'
 );
 
