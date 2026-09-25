@@ -1,3 +1,4 @@
+import { sanitizeCommunityHtml, communityPlainText } from './utils/communityHtml.js';
 import { ContinuousReader } from './bible/ContinuousReader.js';
 import { getJourney, recordPractice, exportJourney, restoreJourney, validateJourneyBackup, legacyJourneyBackup } from './services/JourneyService.js';
 import { renderJourney, handleJourney } from './JourneyView.js';
@@ -1003,7 +1004,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '253'
+            pwaVersion: '254'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -3677,10 +3678,7 @@ formatCommunityRichText: function(text) {
         .replace(/&quot;/g, '"')
         .replace(/&#39;/g, "'");
 
-    let clean = Sanitizer.sanitizeText(unescaped);
-    clean = clean.replace(/(?:<blockquote[^>]*>\s*){2,}/gi, '<blockquote>');
-    clean = clean.replace(/(?:\s*<\/blockquote>){2,}/gi, '<\/blockquote>');
-    return clean.replace(/\n/g, '<br>');
+    return sanitizeCommunityHtml(unescaped);
 },
 
 applyRichFormatToComposer: function(format) {
@@ -6239,7 +6237,7 @@ renderCommunityThread: async function(postId) {
                                 ` : ''}
                             </div>
                         ` : ''}
-                        <div class="community-post-text">${this.escapeHtml(post.text || '')}</div>
+                        <div class="community-post-text">${this.formatCommunityRichText(post.text || '')}</div>
                         ${post.reference ? `
                             <div class="community-ref">Escuchó en ${this.renderCommunityInteractiveReferenceHtml(post.reference)}</div>
                         ` : ''}
@@ -16695,7 +16693,7 @@ try {
                                         </div>
                                     </div>
 
-                                    <div class="community-text">${this.formatCommunityRichText(post.text)}</div>
+                                    <div class="community-text">${communityPlainText(post.text) ? this.formatCommunityRichText(post.text) : '<p class="community-text-unavailable">Esta publicación no contiene texto legible.</p>'}</div>
 
                                     ${post.audioURL ? `
                                         <div class="audio-player-card" data-audio="${this.escapeHtml(post.audioURL)}">
@@ -19233,7 +19231,7 @@ if (publishCommunityBtn) {
     const anonymousInput = document.getElementById('community-anonymous');
     const reflectionInput = document.getElementById('community-reflection');
 
-    let reflectionText = reflectionInput ? (reflectionInput.innerHTML || '').trim() : '';
+    let reflectionText = sanitizeCommunityHtml(reflectionInput?.innerHTML || '');
     let plainTextLength = reflectionInput ? (reflectionInput.textContent || '').trim().length : 0;
 
     if (plainTextLength > 1200) {
@@ -20344,6 +20342,16 @@ if (navItem) {
 }
 });
         
+        // Paste only balanced formatting; external attributes must never reach the editor.
+        this.$content.addEventListener('paste', (e) => {
+            if (!e.target.closest?.('#community-reflection') || !e.clipboardData) return;
+            e.preventDefault();
+            const html = e.clipboardData.getData('text/html');
+            const plain = e.clipboardData.getData('text/plain');
+            if (html) document.execCommand('insertHTML', false, sanitizeCommunityHtml(html));
+            else document.execCommand('insertText', false, plain);
+        });
+
         // Auto-guardado de notas
        this.$content.addEventListener('input', (e) => {
 
@@ -20391,7 +20399,7 @@ if (navItem) {
         const textContent = (e.target.textContent || '').trim();
 
         this.updateCommunityDraftState({
-            text: htmlContent.slice(0, 3000),
+            text: sanitizeCommunityHtml(htmlContent),
             formOpen: true
         });
 
@@ -22060,19 +22068,7 @@ const Sanitizer = {
     sanitizeText(text) {
         if (!text || typeof text !== 'string') return '';
 
-        let cleaned = text.trim();
-        cleaned = cleaned.substring(0, 1200);
-
-        cleaned = cleaned.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-        cleaned = cleaned.replace(/javascript:/gi, '');
-        cleaned = cleaned.replace(/on\w+=/gi, '');
-
-        // Permitir únicamente etiquetas seguras de formato enriquecido
-        cleaned = cleaned.replace(/<(?!\/?(b|i|u|blockquote|br|span|p)\b)[^>]+>/gi, '');
-
-        cleaned = cleaned.replace(/\r\n?/g, '\n');
-
-        return cleaned.trim();
+        return sanitizeCommunityHtml(text);
     },
 
     sanitizeUsername(name) {
@@ -22100,7 +22096,7 @@ const Sanitizer = {
             return { valid: false, message: 'Escribe algo para compartir' };
         }
 
-        const plainText = text.replace(/<[^>]*>/g, '').trim();
+        const plainText = communityPlainText(text);
 
         if (plainText.length === 0) {
             return { valid: false, message: 'Escribe algo para compartir' };

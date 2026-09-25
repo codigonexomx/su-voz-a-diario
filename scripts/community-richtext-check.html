@@ -1,0 +1,26 @@
+<!doctype html><meta charset="utf-8"><title>Comunidad: aislamiento de publicaciones</title>
+<h1>Pruebas de contenido de Comunidad</h1><pre id="result">Ejecutando…</pre><div id="fixtures"></div>
+<script type="module">
+import {sanitizeCommunityHtml as clean, communityPlainText as plain} from '../js/utils/communityHtml.js';
+const checks=[];
+const check=(name,condition)=>{checks.push({name,passed:!!condition});if(!condition)throw Error(name)};
+try {
+const answer='Esta es mi respuesta completa sobre obedecer a Dios.';
+const pasted='<blockquote style="display:none" class="external"><div data-style="'+'x'.repeat(2400)+'"><b>'+answer+'</b></div></blockquote>';
+check('Texto después de 2400 caracteres de atributos conservado',plain(clean(pasted))===answer);
+check('Atributos de otras aplicaciones eliminados',!/(style=|class=|data-)/.test(clean(pasted)));
+check('Texto de 1200 caracteres sin recortes de etiquetas',plain(clean('<p><b>'+'á'.repeat(1200)+'</b></p>')).length===1200);
+const hostile='<script>alert(1)</scr'+'ipt><img src=x onerror="alert(1)"><svg><script>x</scr'+'ipt></svg><p style="color:transparent">Respuesta visible</p>';
+check('Contenido activo eliminado y respuesta preservada',clean(hostile)==='<p>Respuesta visible</p>');
+const samples=[pasted,'<blockquote><span title="texto truncado','<p><b>Respuesta sin cierre','&lt;img src=x&gt;','<div>Primera línea</div><div>Segunda línea</div>'];
+for(const sample of samples){
+ const host=document.createElement('section');host.innerHTML='<article class="community-card"><div class="community-text">'+clean(sample)+'</div><footer>Reacciones</footer></article><article class="community-card">Otra publicación</article>';
+ check('Publicaciones hermanas: '+samples.indexOf(sample),host.children.length===2&&host.querySelectorAll('.community-card .community-card').length===0);
+ check('Reacciones fuera del texto: '+samples.indexOf(sample),!host.querySelector('.community-text footer'));
+ document.querySelector('#fixtures').append(host);
+}
+check('Párrafos conservados',clean(samples[4])==='<p>Primera línea</p><p>Segunda línea</p>');
+check('Formato repetido estable',clean(clean(pasted))===clean(pasted));
+document.querySelector('#result').textContent=JSON.stringify({passed:true,checks},null,2);
+}catch(error){document.querySelector('#result').textContent=JSON.stringify({passed:false,error:error.message,checks},null,2);}
+</script>
