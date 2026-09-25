@@ -1799,45 +1799,6 @@ body.dark-mode .bible-section-title {
     border-top-color: var(--border-color);
 }
 
-.verse-study-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin-left: 8px;
-    padding: 4px 10px;
-    border: 1px solid rgba(49, 130, 206, 0.22);
-    border-radius: 999px;
-    background: rgba(49, 130, 206, 0.08);
-    color: var(--accent);
-    font-family: var(--font-ui);
-    font-size: 0.72rem;
-    font-weight: 700;
-    line-height: 1.2;
-    cursor: pointer;
-    vertical-align: middle;
-    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
-}
-
-.verse-study-btn:hover {
-    background: rgba(49, 130, 206, 0.14);
-    border-color: rgba(49, 130, 206, 0.36);
-}
-
-.verse-study-btn:active {
-    transform: scale(0.98);
-}
-
-body.dark-mode .verse-study-btn {
-    border-color: rgba(96, 165, 250, 0.28);
-    background: rgba(96, 165, 250, 0.12);
-    color: #93c5fd;
-}
-
-body.dark-mode .verse-study-btn:hover {
-    background: rgba(96, 165, 250, 0.18);
-    border-color: rgba(96, 165, 250, 0.42);
-}
-
 @media (max-width: 480px) {
     .bible-books-grid {
         grid-template-columns: 1fr 1fr;
@@ -12551,298 +12512,7 @@ body.dark-mode .bible-picker-book.is-active {
     }
 }
 
-/* ========================================
-   BOTÓN STRONG / ESTUDIO DE VERSÍCULO
-   ======================================== */
-
-.verse-study-btn {
-    appearance: none;
-    -webkit-appearance: none;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-
-    margin-left: 8px;
-    padding: 3px 9px;
-
-    border: 1px solid rgba(96, 165, 250, 0.28);
-    border-radius: 999px;
-
-    background: rgba(96, 165, 250, 0.10);
-    color: #93c5fd;
-
-    font-family: var(--font-ui);
-    font-size: 0.68rem;
-    font-weight: 700;
-    line-height: 1.2;
-    letter-spacing: 0.01em;
-
-    cursor: pointer;
-    vertical-align: middle;
-
-    box-shadow: none;
-}
-
-.verse-study-btn::before {
-    content: "Strong";
-}
-
-.verse-study-btn {
-    font-size: 0;
-}
-
-.verse-study-btn::before {
-    font-size: 0.68rem;
-}
-
-.verse-study-btn:hover {
-    background: rgba(96, 165, 250, 0.16);
-    border-color: rgba(96, 165, 250, 0.42);
-}
-
-.verse-study-btn:active {
-    transform: scale(0.98);
-}
-
-body.light-mode .verse-study-btn {
-    background: rgba(49, 130, 206, 0.08);
-    border-color: rgba(49, 130, 206, 0.22);
-    color: var(--accent);
-}
-
-body.light-mode .verse-study-btn:hover {
-    background: rgba(49, 130, 206, 0.14);
-    border-color: rgba(49, 130, 206, 0.36);
-}
-
-.verse-study-btn,
-.verse-study-btn *,
-.no-select {
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-touch-callout: none !important;
-}
-
-/* ========================================
-   STRONG SHEET PANEL - DISEÑO PROFESIONAL
-   ======================================== */
-
-.strong-sheet-panel {
-    position: fixed;
-    inset: 0;
-    z-index: 25000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.24s ease;
-}
-
-.strong-sheet-panel.visible {
-    opacity: 1;
-    pointer-events: auto;
-}
-
-.strong-sheet-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(3, 10, 24, 0.62);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
-
-.strong-sheet-content {
-    position: absolute;
-    left: calc(var(--safe-area-left) + ((var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right)) / 2));
-    bottom: calc(10px + var(--safe-area-bottom));
-    width: min(92dvi, 390px, calc(var(--layout-viewport-width, 100dvi) - var(--safe-area-left) - var(--safe-area-right) - 20px));
-    max-height: 54vh;
-    overflow-y: auto;
-
-    background:
-        linear-gradient(180deg, rgba(23, 42, 68, 0.96), rgba(10, 25, 45, 0.98));
-    color: #f8fafc;
-
-    border: 1px solid rgba(147, 197, 253, 0.18);
-    border-radius: 24px;
-    padding: 12px 14px 14px;
-
-    box-shadow:
-        0 24px 70px rgba(0, 0, 0, 0.45),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
-
-    transform: translate(-50%, 110%);
-    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.strong-sheet-panel.visible .strong-sheet-content {
-    transform: translate(-50%, 0);
-}
-
-.strong-sheet-handle {
-    width: 40px;
-    height: 4px;
-    border-radius: 999px;
-    background: rgba(226, 232, 240, 0.42);
-    margin: 0 auto 10px;
-}
-
-.strong-sheet-close {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-
-    width: 34px;
-    height: 34px;
-
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 999px;
-
-    background: rgba(15, 23, 42, 0.58);
-    color: rgba(226, 232, 240, 0.9);
-
-    font-size: 1rem;
-    font-weight: 800;
-    line-height: 1;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.strong-sheet-title {
-    padding: 4px 42px 12px 4px;
-}
-
-.strong-sheet-kicker {
-    display: block;
-    margin-bottom: 5px;
-
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-
-    color: #60a5fa;
-}
-
-.strong-sheet-title h3 {
-    margin: 0;
-
-    font-family: var(--font-reading);
-    font-size: 1.75rem;
-    line-height: 1.05;
-    font-weight: 700;
-
-    color: #f8fafc;
-}
-
-.strong-sheet-title p {
-    display: inline-flex;
-    align-items: center;
-
-    margin: 7px 0 0;
-    padding: 4px 10px;
-
-    border-radius: 999px;
-    background: rgba(96, 165, 250, 0.14);
-
-    font-size: 0.86rem;
-    font-weight: 800;
-
-    color: #60a5fa;
-}
-
-.strong-sheet-card {
-    border: 1px solid rgba(147, 197, 253, 0.14);
-    background: rgba(2, 13, 30, 0.36);
-    border-radius: 18px;
-    padding: 4px 12px;
-    margin-bottom: 12px;
-}
-
-.strong-sheet-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 12px;
-    align-items: center;
-
-    padding: 10px 0;
-
-    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
-}
-
-.strong-sheet-row span,
-.strong-sheet-definition span {
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: rgba(203, 213, 225, 0.72);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-}
-
-.strong-sheet-row strong {
-    max-width: 190px;
-
-    text-align: right;
-    font-size: 0.98rem;
-    font-weight: 800;
-
-    color: #f8fafc;
-}
-
-#strongSheetOriginal {
-    font-size: 1.45rem;
-    font-weight: 800;
-    direction: rtl;
-    line-height: 1.1;
-}
-
-#strongSheetTransliteration {
-    font-size: 0.98rem;
-}
-
-.strong-sheet-definition {
-    padding: 10px 0 12px;
-}
-
-.strong-sheet-definition p {
-    margin: 7px 0 0;
-
-    font-size: 0.94rem;
-    line-height: 1.45;
-
-    color: rgba(248, 250, 252, 0.92);
-}
-
-.strong-sheet-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-}
-
-.strong-sheet-btn {
-    min-height: 46px;
-
-    border: 1px solid rgba(147, 197, 253, 0.25);
-    border-radius: 15px;
-
-    background: rgba(2, 13, 30, 0.42);
-    color: #f8fafc;
-
-    font-size: 0.94rem;
-    font-weight: 800;
-}
-
-.strong-sheet-btn.primary {
-    background: linear-gradient(180deg, #60a5fa, #3b82f6);
-    color: #ffffff;
-    border-color: rgba(96, 165, 250, 0.75);
-}
-
-.strong-sheet-btn:active,
-.strong-sheet-close:active {
-    transform: scale(0.97);
-}
+.no-select { -webkit-user-select: none !important; user-select: none !important; -webkit-touch-callout: none !important; }
 
 .selection-actions-row-pro {
     display: grid;
@@ -13702,69 +13372,7 @@ body.dark-mode .note-guide-panel li {
 
 
 /* ========================================
-   DICCIONARIO STRONG
    ======================================== */
-.strong-dictionary-view { display: flex; flex-direction: column; gap: 16px; width: 100%; max-width: 1040px; margin: 0 auto; }
-.strong-dictionary-hero, .strong-dictionary-panel, .strong-dictionary-detail, .strong-dictionary-state { background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06); }
-.strong-dictionary-hero { padding: 20px; }
-.strong-dictionary-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; color: var(--text-muted); font-size: 0.82rem; font-weight: 700; text-transform: uppercase; }
-.strong-dictionary-hero h2 { margin: 0 0 8px; color: var(--primary); font-size: 1.85rem; line-height: 1.1; }
-.strong-dictionary-hero p { margin: 0; color: var(--text-muted); max-width: 660px; }
-.strong-dictionary-note { margin-top: 10px !important; font-size: 0.84rem; line-height: 1.45; }
-.strong-dictionary-panel { padding: 14px; }
-.strong-dictionary-input-wrap { position: relative; display: flex; align-items: center; }
-.strong-dictionary-input-icon { position: absolute; left: 14px; color: var(--text-muted); font-weight: 700; }
-.strong-dictionary-input { width: 100%; min-height: 50px; padding: 0 44px 0 40px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-color); color: var(--text-main); font: 600 1rem var(--font-ui); outline: none; }
-.strong-dictionary-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.14); }
-.strong-dictionary-clear { position: absolute; right: 10px; width: 30px; height: 30px; border: 0; border-radius: 50%; background: var(--border-color); color: var(--text-main); font-size: 20px; cursor: pointer; }
-.strong-dictionary-filters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
-.strong-filter-btn { min-height: 40px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--surface-color); color: var(--text-main); font-weight: 700; cursor: pointer; }
-.strong-filter-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.strong-verse-context-card { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--border-color); border-radius: 12px; background: var(--surface-color); color: var(--text-muted); box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05); }
-.strong-verse-context-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.strong-verse-context-head div { display: grid; gap: 2px; }
-.strong-verse-context-head span { color: var(--accent); font-size: 0.78rem; font-weight: 800; text-transform: uppercase; }
-.strong-verse-context-head strong { color: var(--text-main); font-size: 1.02rem; }
-.strong-verse-return { border: 1px solid var(--border-color); border-radius: 9px; background: var(--bg-color); color: var(--text-main); padding: 8px 11px; font-weight: 800; cursor: pointer; white-space: nowrap; }
-.strong-verse-context-card p { margin: 0; font-size: 0.9rem; line-height: 1.45; }
-.strong-verse-text { color: var(--text-main) !important; display: -webkit-box; max-width: 760px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
-.strong-consulted-word { width: fit-content; max-width: 100%; border-radius: 999px; background: rgba(49, 130, 206, 0.1); color: var(--text-muted); padding: 7px 10px; font-size: 0.84rem; font-weight: 700; }
-.strong-consulted-word strong { color: var(--accent); }
-.strong-verse-chip-list { display: flex; flex-wrap: wrap; gap: 8px; max-height: 112px; overflow-y: auto; overscroll-behavior: contain; }
-.strong-verse-chip { border: 1px solid var(--border-color); border-radius: 999px; background: var(--bg-color); color: var(--text-main); padding: 8px 12px; font-weight: 800; cursor: pointer; }
-.strong-verse-chip.active, .strong-verse-chip:hover { border-color: var(--accent); background: rgba(49, 130, 206, 0.14); color: var(--accent); box-shadow: inset 0 0 0 1px rgba(49, 130, 206, 0.18); }
-.strong-verse-context-card small { color: var(--text-muted); font-size: 0.78rem; line-height: 1.4; }
-.strong-verse-context-empty { color: var(--text-muted); font-size: 0.84rem !important; }
-.strong-dictionary-results-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--text-muted); font-size: 0.88rem; font-weight: 700; }
-.strong-dictionary-layout { display: grid; grid-template-columns: minmax(0, 0.95fr) minmax(320px, 1.05fr); gap: 16px; align-items: start; }
-.strong-dictionary-results { display: flex; flex-direction: column; gap: 10px; }
-.strong-result-card { width: 100%; display: grid; gap: 7px; padding: 14px; text-align: left; border: 1px solid var(--border-color); border-radius: 10px; background: var(--surface-color); color: var(--text-main); cursor: pointer; }
-.strong-result-card.is-active, .strong-result-card:hover { border-color: var(--accent); box-shadow: 0 8px 20px rgba(49, 130, 206, 0.12); }
-.strong-result-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.strong-result-head strong { color: var(--accent); font-size: 0.95rem; }
-.strong-result-head em { color: var(--text-muted); font-size: 0.78rem; font-style: normal; font-weight: 700; }
-.strong-result-lemma { font-size: 1.28rem; font-weight: 800; line-height: 1.2; }
-.strong-result-meta, .strong-result-definition, .strong-result-translation { color: var(--text-muted); font-size: 0.9rem; }
-.strong-result-translation { color: var(--text-main); }
-.strong-dictionary-detail { position: sticky; top: calc(72px + var(--safe-area-top)); overflow: hidden; }
-.strong-detail-card { padding: 18px; }
-.strong-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
-.strong-detail-head span { display: block; color: var(--text-muted); font-size: 0.78rem; font-weight: 800; text-transform: uppercase; }
-.strong-detail-head h3 { margin: 4px 0 0; color: var(--primary); font-size: 2rem; }
-.strong-detail-copy { border: 1px solid var(--border-color); border-radius: 9px; background: var(--bg-color); color: var(--text-main); padding: 8px 12px; font-weight: 700; cursor: pointer; }
-.strong-detail-list { display: grid; gap: 14px; margin-top: 16px; }
-.strong-detail-list div { display: grid; gap: 4px; }
-.strong-detail-list dt, .strong-detail-refs h4 { color: var(--text-muted); font-size: 0.78rem; font-weight: 800; text-transform: uppercase; }
-.strong-detail-list dd { color: var(--text-main); font-size: 0.95rem; }
-.strong-detail-lemma { font-size: 1.35rem !important; font-weight: 800; }
-.strong-detail-refs { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-color); }
-.strong-ref-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.strong-ref-list button { border: 1px solid var(--border-color); border-radius: 999px; background: var(--bg-color); color: var(--accent); padding: 7px 10px; font-weight: 800; cursor: pointer; }
-.strong-dictionary-empty, .strong-detail-placeholder, .strong-dictionary-state { padding: 24px; color: var(--text-muted); text-align: center; }
-body.dark-mode .strong-dictionary-hero, body.dark-mode .strong-dictionary-panel, body.dark-mode .strong-dictionary-detail, body.dark-mode .strong-result-card, body.dark-mode .strong-dictionary-state, body.dark-mode .strong-verse-context-card { box-shadow: none; }
-body.dark-mode .strong-dictionary-input, body.dark-mode .strong-filter-btn, body.dark-mode .strong-detail-copy, body.dark-mode .strong-ref-list button, body.dark-mode .strong-verse-return { background: #111827; }
-body.dark-mode .strong-verse-chip { background: #111827; }
-@media (max-width: 760px) { .strong-dictionary-view { gap: 14px; } .strong-dictionary-hero { padding: 18px; } .strong-dictionary-hero h2 { font-size: 1.55rem; } .strong-verse-context-head { align-items: flex-start; flex-direction: column; gap: 8px; } .strong-verse-return { width: 100%; } .strong-dictionary-layout { grid-template-columns: 1fr; } .strong-dictionary-detail { position: static; } .strong-dictionary-results-bar { align-items: flex-start; flex-direction: column; gap: 2px; } }
 
 /* ========================================
    BIBLIOTECA DE MEDITACIONES
@@ -19597,3 +19205,86 @@ body.dark-mode .community-post-question-quote {
 .meditation-library-view .sr-only { position:absolute!important; width:1px!important; height:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip:rect(0,0,0,0)!important; white-space:nowrap!important; border:0!important; }
 .meditation-library-search input { min-width:0; width:100%; }
 .meditation-library-toolbar[hidden] { display:none!important; }
+
+/* Translation attribution, below the passage and outside verse selection. */
+.reading-copyright {
+    margin: 1.5rem 0 0;
+    padding-top: 1rem;
+    border-top: 1px solid currentColor;
+    color: var(--text-muted, #626262);
+    font-size: 0.75rem;
+    line-height: 1.65;
+    font-weight: 400;
+    text-align: start;
+    overflow-wrap: anywhere;
+}
+
+/* Continuous Bible chapters retain independent annotation surfaces. */
+.bible-reader-content { overflow-anchor: none; }
+.continuous-chapter-title {
+    margin: 2.5rem 0 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--text-muted);
+    color: var(--text-main);
+    font-family: Georgia, serif;
+    font-size: 1.55rem;
+    line-height: 1.3;
+    scroll-margin-top: 160px;
+}
+.continuous-boundary {
+    display: block;
+    margin: 1rem auto;
+    padding: .8rem 1rem;
+    border: 1px solid var(--text-muted);
+    border-radius: 14px;
+    background: transparent;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: .85rem;
+    min-height: 44px;
+    cursor: pointer;
+}
+.continuous-boundary[hidden] { display: none; }
+.continuous-boundary:disabled { cursor: progress; }
+.continuous-return { max-width: 110px; }
+.continuous-return span:last-child { overflow-wrap: anywhere; }
+.bible-reader-fixed-header {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(576px, calc(100% - 24px));
+    top: calc(56px + var(--safe-area-top));
+}
+.bible-reader-content { padding-top: 148px; }
+.bible-reader-context-bar.has-audio-stop { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+.bible-reader-content .verse-item.bible-voice-current {
+    outline: 1px solid #b39163;
+    outline-offset: 4px;
+    border-radius: 8px;
+}
+
+.continuous-study-sources {
+    margin: 1rem .5rem 2rem;
+    color: var(--text-muted);
+    font-size: .78rem;
+    line-height: 1.6;
+}
+.continuous-study-sources summary { cursor: pointer; padding: .5rem 0; }
+.continuous-study-sources a { color: inherit; text-decoration: underline; }
+
+.bible-reader-view > .loading,
+.bible-reader-view > .empty-state { margin-top: 160px; }
+
+/* Study controls share the reader's quiet gold palette and remain touch friendly. */
+.bible-study-book-filter { display: grid; gap: 8px; margin: 16px 0; color: var(--text-secondary); font-size: .85rem; }
+.bible-study-book-filter select { width: 100%; min-height: 44px; padding: 10px 12px; border: 1px solid rgba(180,145,75,.3); border-radius: 12px; background: var(--bg-card, var(--bg-primary)); color: var(--text-primary); font: inherit; }
+.bible-study-guide { margin: 20px 0 110px; padding: 18px; border: 1px solid rgba(180,145,75,.25); border-radius: 18px; line-height: 1.65; color: var(--text-secondary); }
+.bible-study-guide summary { cursor: pointer; min-height: 44px; color: var(--text-primary); font-weight: 600; }
+.bible-study-guide p { margin: 12px 0; font-size: .9rem; }
+.bible-study-guide button { min-height: 44px; margin: 8px 6px 0 0; }
+.bible-study-book-filter select:focus-visible, .bible-study-guide summary:focus-visible { outline: 2px solid #b99a54; outline-offset: 3px; }
+
+.bible-reading-settings-panel .bible-study-guide, .bible-library-view .bible-study-guide { margin-bottom: 16px; }
+
+.bible-reading-settings-panel { max-height: calc(100dvh - 220px); overflow-y: auto; overscroll-behavior: contain; }

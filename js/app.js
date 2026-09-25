@@ -1,3 +1,4 @@
+import { ContinuousReader } from './bible/ContinuousReader.js';
 import { getJourney, recordPractice, exportJourney, restoreJourney, validateJourneyBackup, legacyJourneyBackup } from './services/JourneyService.js';
 import { renderJourney, handleJourney } from './JourneyView.js';
 import {
@@ -151,8 +152,6 @@ const db = null;
 const auth = null;
 
 const LOCAL_BIBLE_PATH = './data/rv1909.json';
-const STRONG_HEBREW_PATH = './data/strong-hebrew-clean.json';
-const STRONG_GREEK_PATH = './data/strong-greek-dictionary.json';
 
 const BIBLE_CROSS_REFERENCE_ABBREVIATIONS = Object.freeze({
     gen: 'Gn', exo: 'Éx', lev: 'Lv', num: 'Nm', deu: 'Dt', jos: 'Jos',
@@ -214,9 +213,6 @@ function getBibleFootnoteSuperscript(number) {
         .join('');
 }
 
-function escapeRegExp(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 function isRenderableBibleFootnote(note, text) {
     const anchor = note?.rv1909_anchor;
@@ -271,7 +267,7 @@ function renderBibleFootnoteMarker(note, number) {
     ><sup aria-hidden="true">${superscript}</sup></button>`;
 }
 
-function renderBibleTextWithFootnotes(text, strongTokens, footnotes) {
+function renderBibleTextWithFootnotes(text, footnotes) {
     const sourceText = String(text || '');
     const inlineInsertions = new Map();
     const verseEndMarkers = [];
@@ -307,18 +303,9 @@ function renderBibleTextWithFootnotes(text, strongTokens, footnotes) {
     });
     annotatedText += sourceText.slice(cursor);
 
-    let tokenizedText = window.App?.tokenizeVerseText(
-        annotatedText,
-        strongTokens
-    ) || escapeBibleHtml(annotatedText);
+    let tokenizedText = escapeBibleHtml(annotatedText);
 
     markersByPlaceholder.forEach((marker, placeholder) => {
-        const escapedPlaceholder = escapeRegExp(placeholder);
-
-        tokenizedText = tokenizedText.replace(
-            new RegExp(`(data-word="[^"]*)${escapedPlaceholder}([^"]*")`, 'g'),
-            '$1$2'
-        );
         tokenizedText = tokenizedText.split(placeholder).join(marker);
     });
 
@@ -410,15 +397,9 @@ const text = verse.text;
                 const cleanTextForCopy = text.replace(/\[\[REF:[fc]:[^\]]+\]\]/g, '').replace(/\s+/g, ' ').trim();
                 const safeText = escapeBibleHtml(cleanTextForCopy);
 
-                const strongTokens = window.App?.getVerseStrongTokens(
-                    chapterData.bookId,
-                    chapterNumber,
-                    verseNumber
-                );
 
                 const tokenizedText = renderBibleTextWithFootnotes(
                     text,
-                    strongTokens,
                     footnoteMarkersByVerse.get(verseNumber) || []
                 );
 
@@ -736,81 +717,11 @@ const App = {
         return (startA <= endB && startB <= endA);
     },
 
-    tokenizeVerseText: function(text, tokens = []) {
-
-    if (!tokens || tokens.length === 0) {
-
-        return escapeBibleHtml(text);
-
-    }
-
-    const words = text.split(/\s+/);
-
-    return words.map((word, index) => {
-
-        const token = tokens[index] || {};
-
-        const cleanWord = word.trim();
-
-        const strong = token.strong || '';
-
-        const original = token.original || '';
-
-        const transliteration = token.transliteration || '';
-
-        const definition = token.definition || '';
-
-        return `
-
-            <span
-
-                class="strong-word"
-
-                data-word="${escapeBibleHtml(cleanWord)}"
-
-                data-strong="${escapeBibleHtml(strong)}"
-
-                data-original="${escapeBibleHtml(original)}"
-
-                data-transliteration="${escapeBibleHtml(transliteration)}"
-
-                data-definition="${escapeBibleHtml(definition)}"
-
-            >
-
-                ${escapeBibleHtml(cleanWord)}
-
-            </span>
-
-        `;
-
-    }).join(' ');
-
-},
-
     selectedBibleBook: null,
     selectedBibleChapter: null,
     bibleChapterPickerMode: false,
     bibleLibraryTestament: 'old',
     currentBibleChapterData: null,
-    strongHebrew: {},
-    strongHebrewReady: false,
-    strongGreek: {},
-    strongGreekReady: false,
-    strongDictionaryEntries: [],
-    strongDictionaryReady: false,
-    strongDictionaryLoading: false,
-    strongDictionaryLoadPromise: null,
-    strongDictionaryQuery: '',
-    strongDictionaryFilter: 'all',
-    strongDictionaryResults: [],
-    strongDictionarySelectedId: null,
-    strongDictionaryBibleContext: null,
-    strongDictionaryConsultedWord: '',
-    pendingStrongContext: null,
-    strongVerseData: {},
-    strongVerseDataReady: false,
-
     bibleSearchIndexReady: false,
     bibleSearchData: [],
     bibleSearchIndex: new Map(),
@@ -834,6 +745,8 @@ const App = {
     bibleCrossReferenceHistoryDepth: 0,
     bibleCrossReferenceHistoryCleanup: false,
     bibleSearchFilter: 'all', // 'all', 'old', 'new'
+    bibleSearchBook: '',
+    bibleStudyReturn: null,
     bibleReaderPickerOpen: false,
     bibleReaderPickerTestament: 'old',
     bibleReaderPickerBook: null,
@@ -1012,7 +925,7 @@ this.initTheme();
 this.initNotifications();
 this.setupSWCommunication();
 this.bindEvents();
-this.bindStrongNativeLongPress();
+
 this.bindHeaderControlsToggle();
 this.bindKeyboardViewportFix();
 this.bindBottomNavStateGuard();
@@ -1090,7 +1003,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '243'
+            pwaVersion: '253'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1274,11 +1187,6 @@ console.log('[App] Inicialización completada');
             return;
         }
 
-        const strongSheetPanel = document.getElementById('strongSheetPanel');
-        if (strongSheetPanel?.classList.contains('visible')) {
-            this.closeStrongSheet();
-            return;
-        }
 
         if (this.bibleReaderPickerOpen) {
             this.closeBibleReaderPicker();
@@ -1436,7 +1344,6 @@ cacheDOM: function() {
     this.$selectionNote = document.getElementById('selectionNote');
     this.$selectionCopyBtn = document.getElementById('copyBtn');
     this.$selectionShareImageBtn = document.getElementById('shareImageBtn');
-    this.$selectionStrongBtn = document.getElementById('strongSearchBtn');
     this.$selectionClearBtn = document.getElementById('clearBtn');
     this.$selectionCloseBtn = document.getElementById('closePanel');
     this.$selectionSaveNoteBtn = document.getElementById('saveNoteBtn');
@@ -1510,7 +1417,7 @@ scheduleKeyboardViewportUpdate: function() {
     getBottomNavItems: function() {
         return [
             { btn: this.$navHome, views: ['home', 'reading'] },
-            { btn: this.$navBible, views: ['bible', 'bible-reading', 'bible-search', 'bible-memory', 'strong-dictionary'] },
+            { btn: this.$navBible, views: ['bible', 'bible-reading', 'bible-search', 'bible-memory'] },
             { btn: this.$navCalendar, views: ['calendar'] },
             { btn: this.$navCommunity, views: ['community', 'community-thread'] },
             { btn: this.$navStats, views: ['stats', 'meditations-history'] }
@@ -2265,84 +2172,6 @@ applyBibleReadingSettingsToDOM: function() {
         .forEach(className => readerView.classList.add(className));
 },
 
-openStrongForWord: function(strongWord) {
-    const word = strongWord.dataset.word || strongWord.textContent.trim();
-    const strong = strongWord.dataset.strong || '—';
-    const original = strongWord.dataset.original || '—';
-    const transliteration = strongWord.dataset.transliteration || '—';
-    const definition = strongWord.dataset.definition || 'Información Strong no disponible para esta palabra.';
-
-    document.getElementById('strongSheetWord').textContent = word;
-    document.getElementById('strongSheetNumber').textContent = strong;
-    document.getElementById('strongSheetOriginal').textContent = original;
-    document.getElementById('strongSheetTransliteration').textContent = transliteration;
-    document.getElementById('strongSheetDefinition').textContent = definition;
-
-    const panel = document.getElementById('strongSheetPanel');
-    if (!panel) return;
-
-    panel.classList.add('visible');
-    panel.setAttribute('aria-hidden', 'false');
-},
-
-closeStrongSheet: function() {
-    const panel = document.getElementById('strongSheetPanel');
-    if (!panel) return;
-
-    panel.classList.remove('visible');
-    panel.setAttribute('aria-hidden', 'true');
-},
-
-bindStrongNativeLongPress: function() {
-    let strongPressTimer = null;
-    let startX = 0;
-    let startY = 0;
-    let pressedWord = null;
-
-    const LONG_PRESS_MS = 700;
-    const MOVE_LIMIT = 14;
-
-    this.$content.addEventListener('touchstart', (e) => {
-        const strongWord = e.target.closest('.strong-word');
-
-        if (!strongWord) return;
-
-        const touch = e.touches[0];
-
-        startX = touch.clientX;
-        startY = touch.clientY;
-        pressedWord = strongWord;
-
-        strongPressTimer = setTimeout(() => {
-            this.openStrongForWord(pressedWord);
-            strongPressTimer = null;
-        }, LONG_PRESS_MS);
-    }, { passive: true });
-
-    this.$content.addEventListener('touchmove', (e) => {
-        if (!strongPressTimer || !pressedWord) return;
-
-        const touch = e.touches[0];
-        const movedX = Math.abs(touch.clientX - startX);
-        const movedY = Math.abs(touch.clientY - startY);
-
-        if (movedX > MOVE_LIMIT || movedY > MOVE_LIMIT) {
-            clearTimeout(strongPressTimer);
-            strongPressTimer = null;
-            pressedWord = null;
-        }
-    }, { passive: true });
-
-    this.$content.addEventListener('touchend', () => {
-        if (strongPressTimer) {
-            clearTimeout(strongPressTimer);
-            strongPressTimer = null;
-        }
-
-        pressedWord = null;
-    }, { passive: true });
-},
-
 bindHeaderControlsToggle: function() {
     if (!this.$headerControlsBtn) return;
 
@@ -2354,19 +2183,7 @@ bindHeaderControlsToggle: function() {
 
     this.$headerControlsBtn.addEventListener('click', toggleHeaderControls);
 
-    this.$headerControlsDropdown?.addEventListener('click', (e) => {
-        const strongBetaBtn = e.target.closest('[data-action="open-strong-dictionary"]');
 
-        if (!strongBetaBtn) return;
-
-        e.preventDefault();
-        e.stopPropagation();
-        this.$headerControlsDropdown.classList.remove('show');
-        // Acceso secundario temporal: Strong se conserva en beta sin interferir con la lectura.
-        this.strongDictionaryBibleContext = null;
-        this.strongDictionaryConsultedWord = '';
-        this.navigate('strong-dictionary');
-    });
 
     // Cerrar al hacer clic fuera del dropdown
     document.addEventListener('click', (e) => {
@@ -7302,7 +7119,7 @@ syncAppBadge: function(count) {
         }
 
         const readingText = this.getDailyReadingText(reading);
-        const readingHtml = this.renderVerseText(readingText, reading.date);
+        const readingHtml = this.renderVerseText(readingText, reading.date) + this.renderDailyReadingCopyright(reading);
         const versions = [
             { id: 'rvr60', label: 'RVR60' },
             { id: 'ntv', label: 'NTV' },
@@ -7319,7 +7136,7 @@ syncAppBadge: function(count) {
             getReadingHtml: versionId => this.renderVerseText(
                 this.getDailyReadingText(reading, versionId),
                 reading.date
-            ),
+            ) + this.renderDailyReadingCopyright(reading, versionId),
             onVersionChange: () => {
                 if (this.dailyReadingVoice.date === reading.date && this.dailyReadingVoice.status !== 'idle') {
                     this.stopDailyReadingVoice(true);
@@ -8691,89 +8508,6 @@ getBibleSelectionReferenceLabel: function() {
     return `${bookName} ${chapter}:${verseLabel}`;
 },
 
-cleanStrongVerseText: function(text) {
-    return String(text || '')
-        .replace(/^\s*\d+\s+/, ' ')
-        .replace(/[.,;:!?¡¿()[\]{}"“”'‘’`´…]/g, ' ')
-        .replace(/[—–-]/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-},
-
-normalizeStrongVerseWord: function(word) {
-    return String(word || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-},
-
-extractStrongVerseKeywords: function(text) {
-    const stopWords = new Set([
-        'a', 'al', 'ante', 'aquel', 'aquella', 'aquellas', 'aquellos', 'asi', 'aun', 'cada', 'como', 'con', 'contra',
-        'cual', 'cuando', 'de', 'del', 'desde', 'donde', 'e', 'el', 'ella',
-        'ellas', 'ellos', 'en', 'entre', 'era', 'es', 'esa', 'esas', 'ese',
-        'esos', 'esta', 'estas', 'este', 'estos', 'fue', 'ha', 'han', 'hasta',
-        'hay', 'la', 'las', 'lo', 'los', 'manera', 'mas', 'me', 'mi', 'mis', 'ni', 'no',
-        'o', 'os', 'para', 'pero', 'por', 'porque', 'que', 'se', 'ser', 'si', 'sin',
-        'sobre', 'su', 'sus', 'tal', 'te', 'todo', 'tu', 'tus', 'un', 'una',
-        'unas', 'uno', 'unos', 'y', 'ya'
-    ]);
-
-    const seen = new Set();
-
-    return this.cleanStrongVerseText(text)
-        .split(/\s+/)
-        .map(word => word.trim())
-        .filter(Boolean)
-        .filter(word => {
-            const normalized = this.normalizeStrongVerseWord(word);
-
-            if (!normalized || normalized.length < 3 || stopWords.has(normalized) || seen.has(normalized)) {
-                return false;
-            }
-
-            seen.add(normalized);
-            return true;
-        })
-        .slice(0, 16);
-},
-
-openStrongDictionaryFromSelectedVerse: function() {
-    // Conservado para una futura Biblia de Estudio Strong con datos palabra a Strong.
-    if (this.getSelectedTextSource() !== 'bible') {
-        this.showToast('Strong está disponible desde los versículos de Biblia');
-        return;
-    }
-
-    const verseText = this.currentSelectedText || '';
-    const reference = this.getBibleSelectionReferenceLabel();
-    const keywords = this.extractStrongVerseKeywords(verseText);
-    const readingKey = parseBibleReadingKey(this.currentSelectionDate);
-    const bookId = readingKey?.bookId || '';
-    const chapter = readingKey?.chapter || '';
-    const verse = Number(this.currentSelectedVerse?.getAttribute('data-verse-number')) || '';
-
-    if (!verseText.trim()) {
-        this.showToast('No se encontró texto del versículo');
-        return;
-    }
-
-    this.hideSelectionPanel();
-    window.getSelection()?.removeAllRanges();
-
-    this.openStrongDictionaryFromBible({
-        source: 'bible-verse',
-        reference,
-        verseText,
-        keywords,
-        bookId,
-        chapter,
-        verse,
-        query: keywords.length === 1 ? keywords[0] : ''
-    });
-},
-
 drawVerseImageBackground: function(ctx, canvas) {
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
 
@@ -9574,14 +9308,13 @@ if (this.$selectionShareImageBtn) {
     });
 }
 
-    if (this.$selectionStrongBtn) {
-        this.$selectionStrongBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+    this.$selectionMeditationBtn?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.meditateOnSelectedPassage();
+    });
 
-            this.openStrongDictionaryFromSelectedVerse();
-        });
-    }
+
 
     if (this.$selectionNoteBtn) {
     this.$selectionNoteBtn.addEventListener('click', (e) => {
@@ -10225,7 +9958,7 @@ closeTransientBibleUI: function() {
     const view = parts[0];
     const param = parts[1] || null;
     const oldView = this.currentView;
-
+    this._bibleReaderEpoch = (this._bibleReaderEpoch || 0) + 1;
     this.closeTransientBibleUI();
     if (this.currentlySpeakingPostId != null && view !== oldView) this.stopCommunitySpeech();
 
@@ -10242,6 +9975,11 @@ closeTransientBibleUI: function() {
         this.bibleSuppressScrollSave = true;
         this.stopBibleChapterVoice(true);
     }
+
+    this.continuousReader?.dispose();
+    this.continuousReader = null;
+    if (this._bibleScrollSaveTimer) clearTimeout(this._bibleScrollSaveTimer);
+    this._bibleScrollSaveTimer = null;
 
     // ✅ GUARDAR SCROLL AL SALIR DE COMUNIDAD
     if (this.currentView === 'community' && view !== 'community') {
@@ -10312,8 +10050,7 @@ if (view !== 'settings' && oldView !== 'settings') {
     });
 } else if (view === 'bible-memory') {
     this.$content.innerHTML = this.renderBibleMemoryView();
-} else if (view === 'strong-dictionary') {
-    await this.renderStrongDictionaryView();
+
 	} else if (view === 'bible-reading') {
 	    if (!this.selectedBibleBook || !this.selectedBibleChapter) {
 	        this.bibleRestoreScrollPending = true;
@@ -10431,6 +10168,20 @@ getHomeViewingDate: function() {
     return this.homeViewingDate || this.getTodayDateStr();
 },
 
+renderDailyReadingCopyright: function(reading, version = this.currentVersion) {
+    if (!reading) return '';
+    const versions = reading.versions || {};
+    // Follow the same fallback as getDailyReadingText: credit the text actually shown.
+    const displayed = typeof versions[version] === 'string' && versions[version].trim()
+        ? version : versions.rvr60 ? 'rvr60' : versions.ntv ? 'ntv' : reading.text ? 'rvr60' : null;
+    const notices = {
+        rvr60: 'Reina-Valera 1960® · © Sociedades Bíblicas en América Latina, 1960. Renovado © Sociedades Bíblicas Unidas, 1988. Reina-Valera 1960® es una marca registrada de Sociedades Bíblicas Unidas y se puede usar solamente bajo licencia.',
+        tla: 'Traducción en lenguaje actual® · © Sociedades Bíblicas Unidas, 2002, 2004. Traducción en lenguaje actual® es una marca registrada de Sociedades Bíblicas Unidas y puede ser usada solo bajo licencia.',
+        ntv: 'Santa Biblia, Nueva Traducción Viviente (NTV) · © 2010 Tyndale House Foundation. Todos los derechos reservados.'
+    };
+    return notices[displayed] ? `<p class="reading-copyright" data-translation="${displayed}">${this.escapeHtml(notices[displayed])}</p>` : '';
+},
+
 getDailyReadingText: function(reading, version = this.currentVersion) {
     if (!reading) return '';
 
@@ -10473,6 +10224,8 @@ updateVisibleDailyReadingText: async function() {
 
     if (reading.versions?.[this.currentVersion]?.trim()) this.$content.querySelector('.reading-version-availability')?.remove();
     textContainer.innerHTML = this.renderVerseText(readingText, reading.date);
+    shell.querySelector('.reading-copyright')?.remove();
+    shell.insertAdjacentHTML('beforeend', this.renderDailyReadingCopyright(reading));
     this.restoreHighlightsInDOMForVerses(reading.date);
     this.restoreSelectionNotesInDOM(reading.date);
     this.updateDailyReadingVoiceUI();
@@ -10848,6 +10601,7 @@ playBibleChapterVoiceSequence: async function(token) {
 
             if (!verse) break;
 
+            this.updateBibleChapterVoiceUI();
             const completed = await this.speakBibleChapterVerse(verse, token);
             if (!completed || !this.isBibleChapterVoiceTokenActive(token)) return;
 
@@ -10971,9 +10725,14 @@ stopBibleChapterVoice: function(silent = false, skipEngine = false) {
 },
 
 updateBibleChapterVoiceUI: function() {
-    const control = document.querySelector('.daily-reading-voice[data-bible-voice-key]');
+    document.querySelectorAll('.bible-voice-current').forEach(verse => verse.classList.remove('bible-voice-current'));
+    if (['playing', 'paused'].includes(this.bibleChapterVoice.status)) {
+        const entry = this.continuousReader?.findVoice(this.bibleChapterVoice.key);
+        const verseNumber = this.bibleChapterVoice.verses[this.bibleChapterVoice.currentVerseIndex]?.number;
+        entry?.element.querySelector(`.verse-item[data-verse-number="${Number(verseNumber)}"]`)?.classList.add('bible-voice-current');
+    }
 
-    if (control) {
+    for (const control of document.querySelectorAll('.daily-reading-voice[data-bible-voice-key]')) {
         const mainBtn = control.querySelector('[data-action="bible-chapter-voice-toggle"]');
 
         if (mainBtn) {
@@ -12379,21 +12138,6 @@ if (footnoteMarker) {
     return;
 }
 
-   const verseStudyBtn = e.target.closest('[data-action="open-verse-study"]');
-
-if (verseStudyBtn) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    this.openVerseStudy({
-        bookId: verseStudyBtn.dataset.bookId,
-        chapter: verseStudyBtn.dataset.chapter,
-        verse: verseStudyBtn.dataset.verse,
-        verseText: verseStudyBtn.dataset.verseText
-    });
-
-    return;
-}
 
     const crossReferenceMarker = e.target.closest('[data-action="open-cross-reference"]');
     if (crossReferenceMarker) {
@@ -12447,6 +12191,48 @@ clearVerseSelection: function() {
     this.currentSelectedVerse = null;
 },
 
+meditateOnSelectedPassage: async function() {
+    if (this._addingBibleMeditation) return;
+    const text = String(this.currentSelectedText || '').trim();
+    if (!text) return;
+    const bibleKey = parseBibleReadingKey(this.currentSelectionDate);
+    const date = bibleKey ? this.getTodayDateStr() : this.currentSelectionDate;
+    const label = bibleKey ? this.getBibleSelectionReferenceLabel() : 'Pasaje de la lectura';
+    const version = bibleKey?.versionId || this.currentVersion;
+    const quotation = `${label} (${this.getBibleVersionLabel(version)})\n«${text}»`;
+    this._addingBibleMeditation = true;
+    try {
+        const reading = await this.getReadingByDate(date);
+        if (!reading) { this.showToast('No se pudo abrir la meditación de hoy. Tu selección permanece disponible.'); return; }
+        const existing = MeditationSessionStorage.getAllMetadata().find(item => item.readingId === date && item.status === 'draft');
+        const session = existing ? MeditationSessionStorage.get(existing.id) : {
+            id: this.generateUUID(), readingId: date, createdAt: Date.now(), updatedAt: Date.now(),
+            completedAt: null, status: 'draft', favorite: false, title: `Meditación ${date}`,
+            bibleVersion: this.currentVersion || 'rvr60', bookId: null, chapter: null,
+            verseStart: null, verseEnd: null,
+            notes: { dios: '', aprendizaje: '', respuesta: '', oracion: '' }, references: {}
+        };
+        if (!session) { this.showToast('No se pudo recuperar el borrador. Intenta de nuevo.'); return; }
+        const previous = String(session.notes?.aprendizaje || '');
+        if (!previous.includes(quotation)) {
+            session.notes = { ...session.notes, aprendizaje: [previous, quotation].filter(Boolean).join('\n\n') };
+            session.updatedAt = Date.now();
+            this.attachMeditationMetadataSync(session, reading);
+            MeditationSessionStorage.save(session);
+            this.invalidateMeditationLibraryCache();
+        }
+        this.hideSelectionPanel();
+        this.stopBibleChapterVoice();
+        await this.openMeditationLibraryEditor(session.id, 'aprendizaje');
+        this.showToast('Pasaje añadido a Enseñanza. Escribe cómo lo vivirás hoy.');
+    } catch (error) {
+        console.error('[BibleStudy] No se pudo guardar el pasaje:', error);
+        this.showToast('No se pudo guardar el pasaje. Intenta de nuevo.');
+    } finally {
+        this._addingBibleMeditation = false;
+    }
+},
+
 showSelectionPanelForVerse: function() {
     const panel = this.$selectionPanel;
     if (!panel) return;
@@ -12468,9 +12254,7 @@ showSelectionPanelForVerse: function() {
         this.$selectionNote.value = existingSelectionNote?.note || '';
     }
 
-    if (this.$selectionStrongBtn) {
-        this.$selectionStrongBtn.hidden = this.getSelectedTextSource() !== 'bible';
-    }
+
     
     this.currentSelectionColorDraft = highlightState.colors[0] || null;
     
@@ -12693,6 +12477,7 @@ restoreCalendarPosition: function() {
                     <div class="reading-text selection-surface verse-container" data-selection-surface="true">
                         ${this.renderVerseText(readingText, reading.date)}
                     </div>
+                    ${this.renderDailyReadingCopyright(reading)}
                 </div>
             </div>
 
@@ -12872,6 +12657,7 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
     <div class="reading-text selection-surface verse-container" data-selection-surface="true">
         ${this.renderVerseText(readingText, reading.date)}
     </div>
+    ${this.renderDailyReadingCopyright(reading)}
 </div>
                </div>
 
@@ -13171,8 +12957,9 @@ renderBibleSearch: function() {
                         type="search"
                         class="bible-search-input"
                         id="bible-search-input"
-                        placeholder="Buscar Juan 3:16, gracia, pacto…"
-                        value="${this.escapeHtml(this.bibleSearchQuery)}"
+                        aria-label="Referencia, palabra o frase bíblica"
+                        placeholder="Juan 3:16, gracia o &quot;no temas&quot;"
+                        value="${escapeBibleHtml(this.bibleSearchQuery)}"
                         autocomplete="off"
                         inputmode="search"
                     />
@@ -13189,9 +12976,15 @@ renderBibleSearch: function() {
                 </div>
 
                 <p class="bible-search-index-note">
-                    Las búsquedas de palabras se realizan sobre RV1909. Los resultados pueden abrirse en cualquier versión disponible.
+                    Las palabras se buscan en RV1909. Usa comillas para una frase exacta, por ejemplo: “no temas”.
                 </p>
 
+                <label class="bible-study-book-filter">Buscar dentro de
+                    <select id="bible-search-book" aria-label="Filtrar búsqueda por libro">
+                        <option value="">Todos los libros</option>
+                        ${this.bibleBooks.map(book => `<option value="${book.id}" ${this.bibleSearchBook === book.id ? 'selected' : ''}>${this.escapeHtml(book.name)}</option>`).join('')}
+                    </select>
+                </label>
                 <div class="bible-search-filters">
                     <button
                         class="bible-filter-btn ${this.bibleSearchFilter === 'all' ? 'active' : ''}"
@@ -13349,12 +13142,14 @@ buildLocalBibleSearchIndex: function() {
 },
 
 matchesBibleFilter: function(verse, filter = this.bibleSearchFilter) {
+    if (this.bibleSearchBook && verse.bookId !== this.bibleSearchBook) return false;
     if (filter === 'all') return true;
     return verse.testament === filter;
 },
 
 searchLocalBible: function(query, filter = this.bibleSearchFilter) {
-    const normalizedQuery = this.normalizeBibleWord(query);
+    const exactPhrase = /^["“].*["”]$/.test(String(query).trim());
+    const normalizedQuery = this.normalizeBibleWord(String(query).trim().replace(/^["“]|["”]$/g, ''));
 
     if (!normalizedQuery || normalizedQuery.length < 2) {
         return [];
@@ -13383,6 +13178,7 @@ searchLocalBible: function(query, filter = this.bibleSearchFilter) {
         .map(id => this.bibleSearchVerseMap.get(id))
         .filter(Boolean)
         .filter(verse => this.matchesBibleFilter(verse, filter))
+        .filter(verse => !exactPhrase || (` ${this.normalizeBibleWord(verse.text)} `).includes(` ${normalizedQuery} `))
         .sort((a, b) => {
             const orderA = Number(a.bookOrder || 999);
             const orderB = Number(b.bookOrder || 999);
@@ -13409,6 +13205,9 @@ applyBibleSearchPagination: function(allResults) {
 
 resetBibleSearchState: function() {
     this.bibleSearchQuery = '';
+    this.bibleSearchBook = '';
+    const bookSelect = document.getElementById('bible-search-book');
+    if (bookSelect) bookSelect.value = '';
     this.bibleSearchResults = [];
     this.bibleSearchLoading = false;
     this.bibleSearchError = '';
@@ -13601,6 +13400,9 @@ setBibleSearchFilter: function(filter) {
     if (this.bibleSearchFilter === filter) return;
 
     this.bibleSearchFilter = filter;
+    this.bibleSearchBook = '';
+    const bookSelect = document.getElementById('bible-search-book');
+    if (bookSelect) bookSelect.value = '';
     this.bibleSearchPage = 1;
     this.updateFilterButtonsUI();
 
@@ -13682,6 +13484,9 @@ navigateToVerse: function(apiBookId, chapter, verse, endVerse = null) {
         return;
     }
     
+    if (this.currentView === 'bible-search') {
+        this.bibleStudyReturn = { view: 'bible-search', label: 'Volver a la búsqueda', scrollY: window.scrollY || 0 };
+    }
     this.selectedBibleBook = ourBookId;
     this.selectedBibleChapter = Number.parseInt(chapter, 10);
     const targetVerse = Number.parseInt(verse, 10);
@@ -13707,14 +13512,19 @@ scrollToTargetVerse: function() {
 
     if (!start) return;
     
+    const bookId = this.selectedBibleBook;
+    const chapter = this.selectedBibleChapter;
+    const version = this.currentBibleVersion;
     setTimeout(() => {
-        const verseElement = document.querySelector(`.verse-item[data-verse-number="${start}"]`);
+        const shell = this.$content?.querySelector(`[data-reading-date="${createBibleReadingKey(version, bookId, chapter)}"]`);
+        if (!shell) return;
+        const verseElement = shell.querySelector(`.verse-item[data-verse-number="${start}"]`);
         if (verseElement) {
             verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
             
             // Highlight the range
             for (let i = start; i <= end; i++) {
-                const v = document.querySelector(`.verse-item[data-verse-number="${i}"]`);
+                const v = shell.querySelector(`.verse-item[data-verse-number="${i}"]`);
                 if (v) {
                     v.classList.add('highlight-temporary');
                     setTimeout(() => {
@@ -13760,6 +13570,8 @@ normalizeBibleReadingState: function(value = null) {
         bookId,
         chapter,
         scrollY,
+        verseNumber: Math.max(0, Number(value?.verseNumber) || 0),
+        verseOffset: Number(value?.verseOffset) || 0,
         updatedAt: String(value?.updatedAt || new Date().toISOString())
     };
 },
@@ -13816,6 +13628,8 @@ saveBibleLastLocation: function(bookId, chapter, options = {}) {
         bookId,
         chapter: chapterNumber,
         scrollY,
+        verseNumber: Number(options.verseNumber ?? (shouldPreserveScroll ? existing?.verseNumber : 0)) || 0,
+        verseOffset: Number(options.verseOffset ?? (shouldPreserveScroll ? existing?.verseOffset : 0)) || 0,
         updatedAt: new Date().toISOString()
     });
 
@@ -13857,8 +13671,11 @@ saveBibleReadingScrollPosition: function() {
         return false;
     }
 
+    const anchor = this.continuousReader?.anchor();
     return this.saveBibleLastLocation(this.selectedBibleBook, this.selectedBibleChapter, {
-        scrollY: window.scrollY || window.pageYOffset || 0
+        verseNumber: Number(anchor?.verse?.dataset.verseNumber) || 0,
+        verseOffset: anchor?.top || 0,
+        scrollY: this.continuousReader ? Math.max(0, -(this.continuousReader.activeEntry().element.getBoundingClientRect().top) + (this.$content.querySelector('.bible-reader-content')?.offsetTop || 0)) : (window.scrollY || window.pageYOffset || 0)
     });
 },
 
@@ -13929,13 +13746,14 @@ shouldAutoRestoreBibleReading: function(oldView) {
 	        return;
 	    }
 
-	    const scrollY = Math.max(0, Number(location.scrollY) || 0);
+	    const verse = location.verseNumber ? this.$content?.querySelector(`.verse-item[data-verse-number="${location.verseNumber}"]`) : null;
+        const scrollY = verse ? Math.max(0, window.scrollY + verse.getBoundingClientRect().top - location.verseOffset) : Math.max(0, Number(location.scrollY) || 0);
 
 	    this.bibleSuppressScrollSave = true;
 	    requestAnimationFrame(() => {
-	        window.scrollTo({ top: scrollY, behavior: 'auto' });
+	        window.scrollTo({ top: scrollY, behavior: 'instant' });
 	        requestAnimationFrame(() => {
-		            window.scrollTo({ top: scrollY, behavior: 'auto' });
+		            window.scrollTo({ top: scrollY, behavior: 'instant' });
 	            setTimeout(() => {
 	                this.bibleSuppressScrollSave = false;
 	                this.saveBibleReadingScrollPosition();
@@ -14071,6 +13889,7 @@ renderBible: function() {
                 </div>
             </div>
 
+            ${this.renderBibleStudyGuide()}
             <section class="bible-quick-actions" aria-label="Acciones rápidas de Biblia">
                 <button class="bible-quick-action" type="button" data-action="open-bible-search">
                     <div class="bible-quick-icon-box">
@@ -14211,6 +14030,7 @@ getBibleMemoryItems: function() {
             order: order++,
             date: dateStr,
             bookId: meta.bookId,
+            versionId: meta.versionId,
             chapter: meta.chapter,
             reference: meta.reference,
             text: cleanText,
@@ -14275,7 +14095,7 @@ renderBibleMemoryCard: function(item) {
         <article class="bible-memory-card">
             <div class="bible-memory-card-head">
                 <div>
-                    <span class="bible-memory-reference">${this.escapeHtml(item.reference)}</span>
+                    <span class="bible-memory-reference">${this.escapeHtml(item.reference)} · ${this.escapeHtml(this.getBibleVersionLabel(item.versionId))}</span>
                     <div class="bible-memory-badges">
                         ${item.hasNote ? '<span>Nota</span>' : ''}
                         ${item.hasHighlight ? `<span>Resaltado${item.colors.length > 1 ? 's' : ''}</span>` : ''}
@@ -14299,10 +14119,11 @@ renderBibleMemoryCard: function(item) {
                 class="bible-memory-open"
                 type="button"
                 data-action="open-bible-memory-passage"
+                data-memory-id="${escapeBibleHtml(item.id)}"
                 data-book-id="${this.escapeHtml(item.bookId)}"
                 data-chapter="${item.chapter}"
             >
-                Abrir pasaje
+                Volver al texto y editar nota
             </button>
         </article>
     `;
@@ -14329,7 +14150,7 @@ renderBibleMemoryView: function() {
                     <span>Memoria bíblica</span>
                 </div>
                 <h2>Notas y resaltados</h2>
-                <p>Vuelve a los pasajes que marcaste mientras leías la Biblia.</p>
+                <p>Vuelve a tus pasajes y abre el texto para editar la nota tocando el versículo. Estas anotaciones se conservan en este dispositivo.</p>
             </section>
 
             <nav class="bible-memory-filters" aria-label="Filtrar memoria bíblica">
@@ -14641,7 +14462,7 @@ getBibleReaderVersions: function() {
         { id: 'nbla', label: 'NBLA', name: 'Nueva Biblia de las Américas' },
         { id: 'nvi', label: 'NVI', name: 'Nueva Versión Internacional' },
         { id: 'biblia-libre', label: 'BL', name: 'Biblia Libre' }
-    ];
+    ].filter(version => version.id === 'rv1909' || canAccessRemoteBibleVersions());
 },
 
 renderBibleReaderVersionSwitcher: function() {
@@ -14671,8 +14492,20 @@ renderBibleReaderVersionSwitcher: function() {
     `;
 },
 
+renderBibleStudyGuide: function() {
+    return `            <aside class="bible-study-guide" aria-label="Herramientas de estudio">
+                ${this.bibleStudyReturn ? `<button type="button" class="btn-secondary" data-action="return-bible-study">← ${this.escapeHtml(this.bibleStudyReturn.label)}</button>` : ''}
+                <details><summary>Leer, comprender y llevarlo a tu vida</summary>
+                    <p>Toca un versículo para resaltarlo, escribir una nota o añadirlo a Enseñanza en tu meditación del día. Vuelve a tus anotaciones en Notas y resaltados.</p>
+                    <p>Lee los párrafos que lo rodean. Las referencias te permiten consultar otros pasajes sin perder el lugar. Los títulos y las notas son ayudas de estudio: consulta su procedencia en «Acerca de las ayudas de estudio».</p>
+                    <p>Al meditar: ¿qué enseña este pasaje? ¿Cómo puedo vivirlo hoy? Guarda tu reflexión en Mis meditaciones; desde allí puedes compartirla en comunidad.</p>
+                </details>
+                <button type="button" class="btn-secondary" data-action="open-bible-memory" data-memory="notes">Mis notas bíblicas</button>
+            </aside>`;
+},
+
 renderBibleReaderContextBar: function(bookName, chapterNumber) {
-    const key = `${bookName}-${chapterNumber}`;
+    const key = this.bibleChapterVoice.key || `${bookName}-${chapterNumber}`;
     const status = this.getBibleChapterVoiceStatus(key);
     const isPlaying = status === 'playing';
     const isPaused = status === 'paused';
@@ -14694,6 +14527,7 @@ renderBibleReaderContextBar: function(bookName, chapterNumber) {
                 <span>${audioLabel}</span>
             </button>
             ${isPlaying || isPaused ? `
+                <button class="bible-reader-tool continuous-return" type="button" data-action="return-to-bible-audio" aria-label="Volver al pasaje que se está leyendo"><span>↩</span><span>${this.escapeHtml(this.bibleChapterVoice.reference || 'Volver al audio')}</span></button>
                 <button
                     class="bible-reader-tool"
                     type="button"
@@ -14707,11 +14541,11 @@ renderBibleReaderContextBar: function(bookName, chapterNumber) {
             <button
                 class="bible-reader-tool"
                 type="button"
-                data-action="open-bible-search"
-                aria-label="Buscar en la Biblia"
+                data-action="${this.bibleStudyReturn ? 'return-bible-study' : 'open-bible-search'}"
+                aria-label="${this.bibleStudyReturn ? this.escapeHtml(this.bibleStudyReturn.label) : 'Buscar en la Biblia'}"
             >
                 <span class="bible-reader-tool-icon" aria-hidden="true">⌕</span>
-                <span>Buscar</span>
+                <span>${this.bibleStudyReturn ? 'Volver' : 'Buscar'}</span>
             </button>
             <button
                 class="bible-reader-tool ${this.bibleReadingSettingsOpen ? 'is-active' : ''}"
@@ -14791,6 +14625,7 @@ renderBibleReadingSettingsPanel: function() {
                 <span>Modo enfoque</span>
                 <strong>${focusMode ? 'Activo' : 'Inactivo'}</strong>
             </button>
+            ${this.renderBibleStudyGuide()}
         </div>
     `;
 },
@@ -14847,6 +14682,8 @@ toggleBibleReadingFocusMode: function() {
 },
 
 toggleBibleChapterVoiceFromContext: function() {
+    if (this.bibleChapterVoice.status === 'playing') { this.pauseBibleChapterVoice(); return; }
+    if (this.bibleChapterVoice.status === 'paused') { this.resumeBibleChapterVoice(); return; }
     const book = this.bibleBooks.find(item => item.id === this.selectedBibleBook);
     const chapter = Number(this.selectedBibleChapter);
 
@@ -14866,7 +14703,7 @@ toggleBibleChapterVoiceFromContext: function() {
 },
 
 captureBibleReaderScrollAnchor: function() {
-    const shell = this.$content?.querySelector('.bible-reader-content .reading-text-shell');
+    const shell = this.continuousReader?.activeEntry()?.element || this.$content?.querySelector('.bible-reader-content .reading-text-shell');
     const verses = Array.from(shell?.querySelectorAll('.verse-item') || []);
     const topGuard = Math.max(
         72,
@@ -14895,7 +14732,7 @@ restoreBibleReaderScrollAnchor: function(anchor) {
 
     requestAnimationFrame(() => {
         const nextAnchor = this.$content?.querySelector(
-            `.bible-reader-content .verse-item[data-verse-number="${anchor.verseNumber}"]`
+            `.bible-reader-content [data-reading-date="${createBibleReadingKey(this.currentBibleVersion, this.selectedBibleBook, this.selectedBibleChapter)}"] .verse-item[data-verse-number="${anchor.verseNumber}"]`
         );
 
         if (!nextAnchor) return;
@@ -14934,6 +14771,7 @@ updateBibleReaderVersionButtons: function({ loadingVersionId = '' } = {}) {
 },
 
 async switchBibleReaderVersion(versionId) {
+    const requestEpoch = this._bibleReaderEpoch = (this._bibleReaderEpoch || 0) + 1;
     this.closeBibleFootnotePopover();
     this.closeBibleCrossReferencePopover({ restoreHistory: false });
     const nextVersionId = String(versionId || '').trim().toLowerCase();
@@ -14948,6 +14786,12 @@ async switchBibleReaderVersion(versionId) {
     if (nextVersionId === previousVersionId) return;
 
     const anchor = this.captureBibleReaderScrollAnchor();
+    this.continuousReader?.dispose();
+    this.continuousReader = null;
+    content.querySelectorAll('.reading-text-shell').forEach(shell => {
+        if (shell.dataset.continuousBook && (shell.dataset.continuousBook !== requestedBookId || Number(shell.dataset.continuousChapter) !== requestedChapter)) shell.remove();
+    });
+    content.querySelectorAll('.continuous-boundary').forEach(edge => edge.remove());
     this.stopBibleChapterVoice(true);
     this.currentBibleVersion = nextVersionId;
     localStorage.setItem('current-bible-version', this.currentBibleVersion);
@@ -14972,14 +14816,16 @@ async switchBibleReaderVersion(versionId) {
             ),
             this.getBibleChapterSectionHeadings(requestedBookId, requestedChapter, nextVersionId)
         ]);
+        const footnotesByVerse = await footnotesPromise;
         const chapterData = await getBibleChapter(
             requestedBookId,
             requestedChapter,
             nextVersionId,
-            { crossReferencesByVerse, sectionHeadingsByVerse }
+            { crossReferencesByVerse, sectionHeadingsByVerse, footnotesByVerse }
         );
 
         if (
+            requestEpoch !== this._bibleReaderEpoch ||
             this.currentView !== 'bible-reading' ||
             this.selectedBibleBook !== requestedBookId ||
             Number(this.selectedBibleChapter) !== requestedChapter ||
@@ -15012,15 +14858,8 @@ async switchBibleReaderVersion(versionId) {
         this.updateBibleReaderContextBarUI();
         this.updateBibleReaderVersionButtons();
         this.restoreBibleReaderScrollAnchor(anchor);
-        void this.hydrateBibleChapterFootnotes({
-            bookId: requestedBookId,
-            chapter: requestedChapter,
-            versionId: nextVersionId,
-            requestedBook,
-            crossReferencesByVerse,
-            sectionHeadingsByVerse,
-            footnotesPromise
-        });
+
+        this.mountContinuousBibleReader(requestedBook, requestedChapter, nextVersionId);
         requestAnimationFrame(() => {
             this.saveBibleLastLocation(requestedBookId, requestedChapter, {
                 versionId: nextVersionId,
@@ -15028,16 +14867,58 @@ async switchBibleReaderVersion(versionId) {
             });
         });
     } catch (error) {
+        if (requestEpoch !== this._bibleReaderEpoch || this.currentView !== 'bible-reading') return;
         console.error('[Bible] Error cambiando versión sin recargar vista:', error);
         this.currentBibleVersion = previousVersionId;
         localStorage.setItem('current-bible-version', previousVersionId);
         this.updateBibleReaderContextBarUI();
         this.updateBibleReaderVersionButtons();
+        this.mountContinuousBibleReader(requestedBook, requestedChapter, previousVersionId);
         this.showToast(error?.message || 'No se pudo cambiar la versión bíblica');
     }
 },
 
+loadContinuousBibleChapter: async function(bookId, chapter, versionId) {
+    const [crossReferencesByVerse, sectionHeadingsByVerse, footnotesByVerse] = await Promise.all([
+        this.getBibleChapterCrossReferences(bookId, chapter, versionId),
+        this.getBibleChapterSectionHeadings(bookId, chapter, versionId),
+        this.getBibleChapterFootnotes(bookId, chapter, versionId)
+    ]);
+    return getBibleChapter(bookId, chapter, versionId, { crossReferencesByVerse, sectionHeadingsByVerse, footnotesByVerse });
+},
+
+mountContinuousBibleReader: function(book, chapter, versionId, alignInitial = false, position = null) {
+    this.continuousReader?.dispose();
+    const root = this.$content?.querySelector('.bible-reader-content');
+    if (!root || this.currentView !== 'bible-reading' || this.currentBibleVersion !== versionId) return;
+    this.continuousReader = new ContinuousReader({
+        root, books: this.bibleBooks, alignInitial, position,
+        initial: { book, chapter, data: this.currentBibleChapterData },
+        load: (bookId, number) => this.loadContinuousBibleChapter(bookId, number, versionId),
+        render: entry => `<section class="reading-text-shell" data-reading-date="${this.escapeHtml(createBibleReadingKey(versionId, entry.book.id, entry.chapter))}"><div class="reading-text bible-api-content selection-surface">${this.renderBibleChapterVoiceControl(entry.book.name, entry.chapter)}${entry.data.content}</div></section>`,
+        restore: entry => this.restoreHighlightsInDOMForVerses(createBibleReadingKey(versionId, entry.book.id, entry.chapter)),
+        activate: entry => {
+            this.selectedBibleBook = entry.book.id;
+            this.selectedBibleChapter = entry.chapter;
+            this.currentBibleChapterData = entry.data;
+            const name = this.$content.querySelector('.bible-reader-book');
+            const number = this.$content.querySelector('.bible-reader-chapter');
+            if (name) name.textContent = entry.book.name;
+            if (number) number.textContent = `Cap. ${entry.chapter} ▼`;
+            this.$content.querySelector('.bible-reader-chapter-btn')?.setAttribute('aria-label', `Abrir selector de ${entry.book.name} ${entry.chapter}`);
+            const prev = this.$content.querySelector('[data-action="bible-prev-chapter"]');
+            const next = this.$content.querySelector('[data-action="bible-next-chapter"]');
+            if (prev) prev.disabled = entry.chapter <= 1;
+            if (next) next.disabled = entry.chapter >= entry.book.chapters;
+            this.updateBibleReaderContextBarUI();
+        }
+    });
+},
+
 renderBibleReading: async function() {
+    const initialPosition = this.bibleRestoreScrollPending ? this.getBibleLastLocation() : null;
+    const preserveInitialPosition = this.bibleRestoreScrollPending || Boolean(this.targetVerse);
+    const requestEpoch = this._bibleReaderEpoch = (this._bibleReaderEpoch || 0) + 1;
     this.closeBibleFootnotePopover();
     this.closeBibleCrossReferencePopover({ restoreHistory: false });
     this.stopBibleChapterVoice(true);
@@ -15129,6 +15010,7 @@ renderBibleReading: async function() {
             </div>
 
             ${bodyHtml}
+            ${this.renderBibleStudyGuide()}
             ${this.renderBibleReaderContextBar(requestedBook.name, requestedChapter)}
             ${this.renderBibleReadingSettingsPanel()}
             ${this.renderBibleReaderPicker()}
@@ -15157,14 +15039,16 @@ renderBibleReading: async function() {
             ),
             this.getBibleChapterSectionHeadings(requestedBookId, requestedChapter, requestedVersionId)
         ]);
+        const footnotesByVerse = await footnotesPromise;
         const chapterData = await getBibleChapter(
             requestedBookId,
             requestedChapter,
             requestedVersionId,
-            { crossReferencesByVerse, sectionHeadingsByVerse }
+            { crossReferencesByVerse, sectionHeadingsByVerse, footnotesByVerse }
         );
 
         if (
+            requestEpoch !== this._bibleReaderEpoch ||
             this.currentView !== 'bible-reading' ||
             this.selectedBibleBook !== requestedBookId ||
             Number(this.selectedBibleChapter) !== requestedChapter
@@ -15204,16 +15088,20 @@ renderBibleReading: async function() {
             this.bibleSuppressScrollSave = false;
         }
 
-        void this.hydrateBibleChapterFootnotes({
-            bookId: requestedBookId,
-            chapter: requestedChapter,
-            versionId: requestedVersionId,
-            requestedBook,
-            crossReferencesByVerse,
-            sectionHeadingsByVerse,
-            footnotesPromise
-        });
+
+        // Let the route's initial scroll reset finish before prepending neighbours.
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        if (requestEpoch === this._bibleReaderEpoch && this.currentView === 'bible-reading' && this.selectedBibleBook === requestedBookId && Number(this.selectedBibleChapter) === requestedChapter) {
+            this.mountContinuousBibleReader(requestedBook, requestedChapter, requestedVersionId, !preserveInitialPosition, initialPosition);
+            if (this.bibleMemoryTargetText) {
+                const text = this.bibleMemoryTargetText.replace(/\s+/g, ' ').trim();
+                this.bibleMemoryTargetText = null;
+                const verse = Array.from(this.$content.querySelectorAll('.verse-item')).find(element => (element.dataset.verseText || element.textContent).replace(/\s+/g, ' ').includes(text));
+                if (verse) verse.scrollIntoView({ block: 'center', behavior: 'instant' });
+            }
+        }
     } catch (error) {
+        if (requestEpoch !== this._bibleReaderEpoch) return;
         const isOffline = error?.code === 'BIBLE_OFFLINE';
 
         console.error('[renderBibleReading] Excepción capturada al cargar capítulo:', {
@@ -18243,695 +18131,6 @@ savePushToken: async function(token) {
     console.log('[App] ✅ Listeners Push configurados');
 },
 
-openVerseStudy: function({ strongNumber = '', bookId = '', chapter = '', verse = '' } = {}) {
-    this.openStrongDictionaryFromBible({ strongNumber, bookId, chapter, verse });
-},
-
-openStrongDictionaryFromBible: function({
-    strongNumber = '',
-    query = '',
-    source = '',
-    reference = '',
-    verseText = '',
-    keywords = [],
-    bookId = '',
-    chapter = '',
-    verse = ''
-} = {}) {
-    this.pendingStrongContext = { bookId, chapter, verse };
-    this.strongDictionaryBibleContext = source === 'bible-verse'
-        ? {
-            reference,
-            verseText,
-            keywords: Array.isArray(keywords) ? keywords : [],
-            bookId,
-            chapter,
-            verse
-        }
-        : null;
-    this.strongDictionaryConsultedWord = source === 'bible-verse' && query ? query : '';
-
-    if (strongNumber) {
-        this.strongDictionaryQuery = strongNumber;
-        this.strongDictionarySelectedId = this.normalizeStrongLookupId(strongNumber) || null;
-    } else {
-        this.strongDictionaryQuery = query || '';
-        this.strongDictionarySelectedId = null;
-    }
-
-    this.navigate('strong-dictionary');
-},
-
-loadStrongHebrew: async function() {
-    if (this.strongHebrewReady) return this.strongHebrew;
-
-    const response = await fetch(STRONG_HEBREW_PATH);
-
-    if (!response.ok) {
-        throw new Error('No se pudo cargar el diccionario Strong hebreo.');
-    }
-
-    this.strongHebrew = await response.json();
-    this.strongHebrewReady = true;
-
-    return this.strongHebrew;
-},
-
-loadStrongGreek: async function() {
-    if (this.strongGreekReady) return this.strongGreek;
-
-    const response = await fetch(STRONG_GREEK_PATH);
-
-    if (!response.ok) {
-        throw new Error('No se pudo cargar el diccionario Strong griego.');
-    }
-
-    this.strongGreek = await response.json();
-    this.strongGreekReady = true;
-
-    return this.strongGreek;
-},
-
-ensureStrongDictionaryLoaded: async function() {
-    if (this.strongDictionaryReady) return this.strongDictionaryEntries;
-    if (this.strongDictionaryLoadPromise) return this.strongDictionaryLoadPromise;
-
-    this.strongDictionaryLoading = true;
-
-    this.strongDictionaryLoadPromise = Promise.all([
-        this.loadStrongHebrew(),
-        this.loadStrongGreek()
-    ]).then(([hebrew, greek]) => {
-        const hebrewEntries = Object.entries(hebrew || {}).map(([id, entry]) =>
-            this.createStrongDictionaryEntry(id, 'hebrew', entry)
-        );
-
-        const greekEntries = Object.entries(greek || {}).map(([id, entry]) =>
-            this.createStrongDictionaryEntry(id, 'greek', entry)
-        );
-
-        this.strongDictionaryEntries = [...hebrewEntries, ...greekEntries].sort((a, b) => {
-            if (a.language !== b.language) return a.language === 'hebrew' ? -1 : 1;
-            return a.numberValue - b.numberValue;
-        });
-
-        this.strongDictionaryReady = true;
-        this.strongDictionaryLoading = false;
-        this.updateStrongDictionaryResults();
-
-        return this.strongDictionaryEntries;
-    }).catch(error => {
-        this.strongDictionaryLoading = false;
-        this.strongDictionaryLoadPromise = null;
-        throw error;
-    });
-
-    return this.strongDictionaryLoadPromise;
-},
-
-createStrongDictionaryEntry: function(id, language, entry = {}) {
-    const definitionParts = Array.isArray(entry.definition)
-        ? entry.definition
-        : [entry.strongs_def || entry.definition || ''];
-
-    const definition = definitionParts
-        .filter(Boolean)
-        .map(part => String(part).trim())
-        .filter(Boolean)
-        .join('\n');
-
-    const translation = entry.translation || entry.kjv_def || '';
-    const transliteration = entry.xlit || entry.translit || '';
-    const pronunciation = entry.pronunciation || entry.pron || '';
-    const derivation = entry.derivation || '';
-    const spanishGloss = entry.spanishGloss || '';
-    const spanishDefinition = entry.spanishDefinition || '';
-    const spanishAliases = Array.isArray(entry.spanishAliases) ? entry.spanishAliases : [];
-    const searchableText = [
-        id,
-        id.replace(/^[HG]/, ''),
-        language === 'hebrew' ? 'hebreo' : 'griego',
-        entry.lemma,
-        transliteration,
-        pronunciation,
-        definition,
-        translation,
-        derivation,
-        spanishGloss,
-        spanishDefinition,
-        spanishAliases.join(' ')
-    ].filter(Boolean).join(' ');
-
-    return {
-        id,
-        numberValue: Number(String(id).replace(/^[HG]/, '')) || 0,
-        language,
-        languageLabel: language === 'hebrew' ? 'Hebreo' : 'Griego',
-        lemma: entry.lemma || '',
-        transliteration,
-        pronunciation,
-        definition,
-        translation,
-        derivation,
-        spanishGloss,
-        spanishDefinition,
-        spanishAliases,
-        searchText: this.normalizeStrongSearchText(searchableText),
-        internalRefs: this.extractStrongInternalRefs([definition, translation, derivation].join(' '))
-    };
-},
-
-normalizeStrongSearchText: function(value) {
-    return String(value || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[ʼʾʿʻ‘’`´]/g, '')
-        .replace(/[^\p{L}\p{N}\s]/gu, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-},
-
-getStrongQueryTerms: function(query) {
-    const normalized = this.normalizeStrongSearchText(query);
-    if (!normalized) return [];
-
-    const terms = normalized.split(' ').filter(Boolean);
-    const aliases = {
-        amor: ['love', 'charity', 'affection', 'benevolence', 'G25', 'G26', 'H160', 'H7355'],
-        bendicion: ['blessing', 'blessed', 'bless', 'H1288', 'H1293', 'G2129'],
-        dios: ['god', 'deity', 'divine', 'H430', 'G2316'],
-        espiritu: ['spirit', 'breath', 'wind', 'H7307', 'G4151'],
-        fe: ['faith', 'belief', 'believe', 'G4102'],
-        gracia: ['grace', 'favor', 'favour', 'kindness', 'G5485', 'H2580'],
-        justicia: ['justice', 'righteousness', 'righteous', 'judgment', 'H6664', 'H6666', 'G1343'],
-        ley: ['law', 'commandment', 'torah', 'H8451', 'G3551'],
-        luz: ['light', 'shine', 'H216', 'G5457'],
-        misericordia: ['mercy', 'kindness', 'compassion', 'lovingkindness', 'H2617', 'H7356', 'G1656'],
-        muerte: ['death', 'die', 'dead', 'H4194', 'G2288'],
-        pacto: ['covenant', 'alliance', 'pledge', 'H1285', 'G1242'],
-        paz: ['peace', 'welfare', 'prosperity', 'quietness', 'H7965', 'G1515'],
-        pecado: ['sin', 'offence', 'transgression', 'iniquity', 'H2403', 'H6588', 'G266'],
-        palabra: ['word', 'speech', 'saying', 'matter', 'H1697', 'G3056'],
-        principio: ['beginning', 'first', 'chief', 'H7225', 'G746'],
-        salvacion: ['salvation', 'deliverance', 'saving', 'rescue', 'H3444', 'H8668', 'G4991'],
-        santo: ['holy', 'saint', 'sacred', 'sanctify', 'H6918', 'G40'],
-        senor: ['lord', 'master', 'sir', 'owner', 'H136', 'G2962'],
-        verdad: ['truth', 'true', 'faithfulness', 'H571', 'G225'],
-        vida: ['life', 'living', 'alive', 'H2416', 'G2222']
-    };
-    const variants = {
-        amo: ['amor', 'amar', 'love'],
-        amar: ['amor', 'love'],
-        creo: ['crear', 'create', 'created', 'make', 'made'],
-        crear: ['create', 'created', 'make', 'made'],
-        cree: ['creer', 'fe', 'believe', 'faith'],
-        creyo: ['creer', 'fe', 'believe', 'faith'],
-        creer: ['fe', 'believe', 'faith'],
-        vivira: ['vida', 'life', 'living'],
-        vida: ['life', 'living', 'alive', 'H2416', 'G2222'],
-        murio: ['muerte', 'death', 'die', 'dead'],
-        muerte: ['death', 'die', 'dead', 'H4194', 'G2288'],
-        santidad: ['santo', 'holy', 'saint', 'sacred'],
-        santo: ['holy', 'saint', 'sacred', 'sanctify', 'H6918', 'G40']
-    };
-
-    return [
-        ...new Set(
-            terms
-                .flatMap(term => {
-                    const seeds = variants[term] || [term];
-                    return seeds.flatMap(seed => [seed, ...(aliases[seed] || [])]);
-                })
-                .map(term => this.normalizeStrongSearchText(term))
-                .filter(Boolean)
-        )
-    ];
-},
-
-normalizeStrongLookupId: function(value, preferredLanguage = this.strongDictionaryFilter) {
-    const raw = String(value || '').trim().toUpperCase();
-    const match = raw.match(/^([HG])?0*(\d{1,5})$/);
-
-    if (!match) return null;
-
-    const prefix = match[1] || (preferredLanguage === 'greek' ? 'G' : 'H');
-    return `${prefix}${Number(match[2])}`;
-},
-
-extractStrongInternalRefs: function(text) {
-    const refs = new Set();
-    const source = String(text || '');
-
-    source.replace(/\b([HG])0*(\d{1,5})\b/g, (_, prefix, number) => {
-        refs.add(`${prefix}${Number(number)}`);
-        return '';
-    });
-
-    return [...refs].sort((a, b) => {
-        if (a[0] !== b[0]) return a[0].localeCompare(b[0]);
-        return Number(a.slice(1)) - Number(b.slice(1));
-    });
-},
-
-getStrongEntryById: function(id) {
-    return this.strongDictionaryEntries.find(entry => entry.id === id) || null;
-},
-
-entryMatchesStrongFilter: function(entry, filter = this.strongDictionaryFilter) {
-    if (filter === 'all') return true;
-    return entry.language === filter;
-},
-
-searchStrongDictionary: function(query = this.strongDictionaryQuery, filter = this.strongDictionaryFilter) {
-    if (!this.strongDictionaryReady) return [];
-
-    const trimmed = String(query || '').trim();
-    const baseEntries = this.strongDictionaryEntries.filter(entry => this.entryMatchesStrongFilter(entry, filter));
-
-    if (!trimmed) {
-        return baseEntries.slice(0, 30);
-    }
-
-    const lookupMatch = trimmed.toUpperCase().match(/^([HG])?0*(\d{1,5})$/);
-
-    if (lookupMatch) {
-        const number = Number(lookupMatch[2]);
-        const explicitPrefix = lookupMatch[1] || null;
-
-        return baseEntries
-            .filter(entry => {
-                if (entry.numberValue !== number) return false;
-                return !explicitPrefix || entry.id.startsWith(explicitPrefix);
-            })
-            .sort((a, b) => {
-                if (a.id[0] !== b.id[0]) return a.id[0] === 'H' ? -1 : 1;
-                return a.numberValue - b.numberValue;
-            });
-    }
-
-    const terms = this.getStrongQueryTerms(trimmed);
-
-    if (!terms.length) return [];
-
-    return baseEntries
-        .map(entry => {
-            let score = 0;
-
-            for (const term of terms) {
-                if (!entry.searchText.includes(term)) continue;
-
-                score += 1;
-
-                if (this.normalizeStrongSearchText(entry.lemma).includes(term)) score += 5;
-                if (this.normalizeStrongSearchText(entry.transliteration).includes(term)) score += 4;
-                if (this.normalizeStrongSearchText(entry.translation).includes(term)) score += 3;
-                if (this.normalizeStrongSearchText(entry.definition).includes(term)) score += 2;
-                if (this.normalizeStrongSearchText(entry.spanishGloss).includes(term)) score += 4;
-                if (this.normalizeStrongSearchText(entry.spanishDefinition).includes(term)) score += 4;
-                if (entry.spanishAliases.some(alias => this.normalizeStrongSearchText(alias).includes(term))) score += 4;
-            }
-
-            return { entry, score };
-        })
-        .filter(item => item.score > 0)
-        .sort((a, b) => b.score - a.score || a.entry.numberValue - b.entry.numberValue)
-        .slice(0, 80)
-        .map(item => item.entry);
-},
-
-updateStrongDictionaryResults: function() {
-    this.strongDictionaryResults = this.searchStrongDictionary();
-
-    if (this.strongDictionarySelectedId) {
-        const selected = this.getStrongEntryById(this.strongDictionarySelectedId);
-
-        if (!selected || !this.entryMatchesStrongFilter(selected)) {
-            this.strongDictionarySelectedId = this.strongDictionaryResults[0]?.id || null;
-        }
-    } else if (this.strongDictionaryResults.length) {
-        this.strongDictionarySelectedId = this.strongDictionaryResults[0].id;
-    }
-},
-
-renderStrongDictionaryView: async function() {
-    this.$content.innerHTML = this.renderStrongDictionaryShell({ loading: true });
-
-    try {
-        await this.ensureStrongDictionaryLoaded();
-        this.updateStrongDictionaryResults();
-        this.$content.innerHTML = this.renderStrongDictionaryShell();
-        requestAnimationFrame(() => {
-            document.getElementById('strong-dictionary-input')?.focus({ preventScroll: true });
-        });
-    } catch (error) {
-        console.error('[Strong] Error cargando Diccionario Strong:', error);
-        this.$content.innerHTML = this.renderStrongDictionaryShell({ error });
-    }
-},
-
-renderStrongDictionaryShell: function({ loading = false, error = null } = {}) {
-    const query = this.escapeHtml(this.strongDictionaryQuery);
-    const count = this.strongDictionaryResults.length;
-    const selected = this.getStrongEntryById(this.strongDictionarySelectedId) || this.strongDictionaryResults[0] || null;
-    const bibleContextHtml = this.renderStrongBibleContextCard();
-
-    let bodyHtml = '';
-
-    if (loading) {
-        bodyHtml = `
-            <div class="strong-dictionary-state">
-                <div class="spinner"></div>
-                <p>Cargando Diccionario Strong...</p>
-            </div>
-        `;
-    } else if (error) {
-        bodyHtml = `
-            <div class="strong-dictionary-state">
-                <h3>No se pudo cargar el diccionario</h3>
-                <p>${this.escapeHtml(error.message || 'Intenta nuevamente.')}</p>
-            </div>
-        `;
-    } else {
-        bodyHtml = `
-            <div class="strong-dictionary-results-bar">
-                <span>${count} resultado${count === 1 ? '' : 's'}</span>
-                <small>Diccionario, no concordancia</small>
-            </div>
-
-            <div class="strong-dictionary-layout">
-                <div class="strong-dictionary-results">
-                    ${count ? this.strongDictionaryResults.map(entry => this.renderStrongDictionaryResult(entry)).join('') : `
-                        <div class="strong-dictionary-empty">
-                            <h3>Sin resultados</h3>
-                            <p>${this.strongDictionaryBibleContext && this.strongDictionaryQuery
-                                ? 'No encontramos una entrada clara. Prueba con otra palabra del versículo.'
-                                : 'Prueba con un número Strong, lema, transliteración o una palabra de la definición.'
-                            }</p>
-                        </div>
-                    `}
-                </div>
-
-                <aside class="strong-dictionary-detail" aria-live="polite">
-                    ${selected ? this.renderStrongDictionaryDetail(selected) : `
-                        <div class="strong-detail-placeholder">Selecciona una entrada para ver el detalle.</div>
-                    `}
-                </aside>
-            </div>
-        `;
-    }
-
-    return `
-        <div class="strong-dictionary-view">
-            <div class="strong-dictionary-hero">
-                <div class="strong-dictionary-topline">
-                    <button class="bible-search-back" type="button" data-action="back-to-bible-books">← Biblia</button>
-                    <span>Fase 1</span>
-                </div>
-
-                <h2>Diccionario Strong</h2>
-                <p>Busca entradas hebreas y griegas por número, lema, transliteración, definición o glosa.</p>
-                <p class="strong-dictionary-note">
-                    Las definiciones originales están basadas en fuentes Strong en inglés. Estamos preparando una capa de consulta en español.
-                </p>
-            </div>
-
-            <section class="strong-dictionary-panel">
-                <div class="strong-dictionary-input-wrap">
-                    <span class="strong-dictionary-input-icon">⌕</span>
-                    <input
-                        id="strong-dictionary-input"
-                        class="strong-dictionary-input"
-                        type="search"
-                        placeholder="H7225, G26, amor, principio..."
-                        value="${query}"
-                        autocomplete="off"
-                        inputmode="search"
-                    />
-
-                    ${this.strongDictionaryQuery ? `
-                        <button class="strong-dictionary-clear" type="button" data-action="clear-strong-dictionary" aria-label="Limpiar búsqueda">×</button>
-                    ` : ''}
-                </div>
-
-                <div class="strong-dictionary-filters" role="group" aria-label="Filtrar idioma">
-                    ${[
-                        ['all', 'Todo'],
-                        ['hebrew', 'Hebreo'],
-                        ['greek', 'Griego']
-                    ].map(([id, label]) => `
-                        <button
-                            class="strong-filter-btn ${this.strongDictionaryFilter === id ? 'active' : ''}"
-                            type="button"
-                            data-action="set-strong-filter"
-                            data-filter="${id}"
-                        >
-                            ${label}
-                        </button>
-                    `).join('')}
-                </div>
-            </section>
-
-            ${bibleContextHtml}
-            ${bodyHtml}
-        </div>
-    `;
-},
-
-renderStrongBibleContextCard: function() {
-    const context = this.strongDictionaryBibleContext;
-    if (!context) return '';
-
-    const reference = this.escapeHtml(context.reference || 'Biblia');
-    const verseText = this.escapeHtml(this.cleanStrongVerseText(context.verseText || ''));
-    const keywords = Array.isArray(context.keywords) ? context.keywords : [];
-    const activeWord = this.normalizeStrongVerseWord(this.strongDictionaryConsultedWord || this.strongDictionaryQuery);
-    const consultedWord = this.strongDictionaryConsultedWord || '';
-
-    return `
-        <section class="strong-verse-context-card" aria-label="Búsqueda Strong desde Biblia">
-            <div class="strong-verse-context-head">
-                <div>
-                    <span>Desde Biblia</span>
-                    <strong>${reference}</strong>
-                </div>
-                <button class="strong-verse-return" type="button" data-action="return-to-strong-verse">Volver al versículo</button>
-            </div>
-            ${verseText ? `<p class="strong-verse-text">${verseText}</p>` : ''}
-            <p>Selecciona una palabra del versículo para buscarla en Strong.</p>
-            ${consultedWord ? `
-                <div class="strong-consulted-word">Palabra consultada: <strong>${this.escapeHtml(consultedWord)}</strong></div>
-            ` : ''}
-            ${keywords.length ? `
-                <div class="strong-verse-chip-list">
-                    ${keywords.map(keyword => `
-                        <button
-                            class="strong-verse-chip ${activeWord === this.normalizeStrongVerseWord(keyword) ? 'active' : ''}"
-                            type="button"
-                            data-action="search-strong-keyword"
-                            data-keyword="${this.escapeHtml(keyword)}"
-                        >
-                            ${this.escapeHtml(keyword)}
-                        </button>
-                    `).join('')}
-                </div>
-            ` : `
-                <p class="strong-verse-context-empty">No se detectaron palabras clave claras en este versículo.</p>
-            `}
-            <small>Búsqueda léxica desde el texto bíblico. Para una relación exacta palabra ↔ Strong se requiere una Biblia etiquetada.</small>
-        </section>
-    `;
-},
-
-renderStrongDictionaryResult: function(entry) {
-    const definition = this.getStrongBriefDefinition(entry);
-
-    return `
-        <button
-            class="strong-result-card ${this.strongDictionarySelectedId === entry.id ? 'is-active' : ''}"
-            type="button"
-            data-action="select-strong-entry"
-            data-strong-id="${this.escapeHtml(entry.id)}"
-            aria-pressed="${this.strongDictionarySelectedId === entry.id ? 'true' : 'false'}"
-        >
-            <span class="strong-result-head">
-                <strong>${this.escapeHtml(entry.id)}</strong>
-                <em>${this.escapeHtml(entry.languageLabel)}</em>
-            </span>
-            <span class="strong-result-lemma">${this.escapeHtml(entry.lemma || 'Sin lema')}</span>
-            <span class="strong-result-meta">${this.escapeHtml([entry.transliteration, entry.pronunciation].filter(Boolean).join(' · '))}</span>
-            <span class="strong-result-definition">${this.escapeHtml(definition)}</span>
-            ${entry.translation ? `<span class="strong-result-translation">${this.escapeHtml(entry.translation)}</span>` : ''}
-        </button>
-    `;
-},
-
-renderStrongDictionaryDetail: function(entry) {
-    const fullDefinition = entry.definition || 'Sin definición disponible.';
-    const refs = entry.internalRefs.filter(ref => this.getStrongEntryById(ref));
-
-    return `
-        <div class="strong-detail-card">
-            <div class="strong-detail-head">
-                <div>
-                    <span>${this.escapeHtml(entry.languageLabel)}</span>
-                    <h3>${this.escapeHtml(entry.id)}</h3>
-                </div>
-                <button class="strong-detail-copy" type="button" data-action="copy-strong-entry" data-strong-id="${this.escapeHtml(entry.id)}">Copiar</button>
-            </div>
-
-            <dl class="strong-detail-list">
-                <div>
-                    <dt>Lema</dt>
-                    <dd class="strong-detail-lemma">${this.escapeHtml(entry.lemma || 'No disponible')}</dd>
-                </div>
-                <div>
-                    <dt>Transliteración</dt>
-                    <dd>${this.escapeHtml(entry.transliteration || 'No disponible')}</dd>
-                </div>
-                <div>
-                    <dt>Pronunciación</dt>
-                    <dd>${this.escapeHtml(entry.pronunciation || 'No disponible')}</dd>
-                </div>
-                <div>
-                    <dt>Definición original</dt>
-                    <dd>${this.escapeHtml(fullDefinition).replace(/\n/g, '<br>')}</dd>
-                </div>
-                ${entry.translation ? `
-                    <div>
-                        <dt>Glosa</dt>
-                        <dd>${this.escapeHtml(entry.translation)}</dd>
-                    </div>
-                ` : ''}
-                ${entry.derivation ? `
-                    <div>
-                        <dt>Derivación</dt>
-                        <dd>${this.escapeHtml(entry.derivation)}</dd>
-                    </div>
-                ` : ''}
-            </dl>
-
-            <div class="strong-detail-refs">
-                <h4>Referencias internas</h4>
-                ${refs.length ? `
-                    <div class="strong-ref-list">
-                        ${refs.map(ref => `
-                            <button type="button" data-action="select-strong-entry" data-strong-id="${this.escapeHtml(ref)}">${this.escapeHtml(ref)}</button>
-                        `).join('')}
-                    </div>
-                ` : '<p>No se detectaron referencias internas disponibles en esta entrada.</p>'}
-            </div>
-        </div>
-    `;
-},
-
-getStrongBriefDefinition: function(entry) {
-    const firstLine = String(entry.definition || '').split('\n').find(Boolean) || '';
-    const clean = firstLine.replace(/^\d+[a-z]?\)\s*/, '').trim();
-
-    if (clean.length <= 150) return clean;
-    return `${clean.slice(0, 147).trim()}...`;
-},
-
-setStrongDictionaryFilter: function(filter) {
-    if (!['all', 'hebrew', 'greek'].includes(filter)) return;
-
-    this.strongDictionaryFilter = filter;
-    this.updateStrongDictionaryResults();
-    this.$content.innerHTML = this.renderStrongDictionaryShell();
-},
-
-setStrongDictionaryQuery: function(query, options = {}) {
-    this.strongDictionaryQuery = query;
-    if (options.fromVerseChip) {
-        this.strongDictionaryConsultedWord = query;
-    } else if (options.clearConsulted || !this.strongDictionaryBibleContext) {
-        this.strongDictionaryConsultedWord = '';
-    }
-    this.strongDictionarySelectedId = null;
-    this.updateStrongDictionaryResults();
-    this.$content.innerHTML = this.renderStrongDictionaryShell();
-    const input = document.getElementById('strong-dictionary-input');
-    if (input) {
-        input.focus({ preventScroll: true });
-        const end = input.value.length;
-        input.setSelectionRange(end, end);
-    }
-},
-
-returnToStrongSourceVerse: function() {
-    const context = this.strongDictionaryBibleContext;
-    if (!context) {
-        this.navigate('bible-reading');
-        return;
-    }
-
-    if (context.bookId && context.chapter) {
-        this.selectedBibleBook = context.bookId;
-        this.selectedBibleChapter = Number(context.chapter);
-        this.saveBibleLastLocation(this.selectedBibleBook, this.selectedBibleChapter);
-    }
-
-    if (context.verse) {
-        this.targetVerse = Number(context.verse);
-    }
-
-    this.navigate('bible-reading');
-
-    if (context.verse) {
-        const verseToFocus = Number(context.verse);
-        setTimeout(() => {
-            const verseElement = document.querySelector(`.verse-item[data-verse-number="${verseToFocus}"]`);
-            if (!verseElement) return;
-
-            verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            verseElement.classList.add('verse-searched');
-            setTimeout(() => {
-                verseElement.classList.remove('verse-searched');
-            }, 2000);
-        }, 650);
-    }
-},
-
-selectStrongDictionaryEntry: function(id) {
-    if (!id || !this.getStrongEntryById(id)) return;
-
-    this.strongDictionarySelectedId = id;
-    this.$content.innerHTML = this.renderStrongDictionaryShell();
-    document.querySelector('.strong-dictionary-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-},
-
-copyStrongDictionaryEntry: function(id) {
-    const entry = this.getStrongEntryById(id);
-    if (!entry) return;
-
-    const text = [
-        `${entry.id} · ${entry.languageLabel}`,
-        entry.lemma,
-        entry.transliteration ? `Transliteración: ${entry.transliteration}` : '',
-        entry.pronunciation ? `Pronunciación: ${entry.pronunciation}` : '',
-        entry.definition,
-        entry.translation ? `Glosa: ${entry.translation}` : ''
-    ].filter(Boolean).join('\n');
-
-    navigator.clipboard?.writeText(text);
-    this.showToast('Entrada Strong copiada');
-},
-
-loadStrongVerseData: async function() {
-    this.strongVerseData = {};
-    this.strongVerseDataReady = false;
-    return this.strongVerseData;
-},
-
-getVerseStrongTokens: function(bookId, chapter, verse) {
-    const key = `${bookId}.${Number(chapter)}.${Number(verse)}`;
-    return this.strongVerseData?.[key] || null;
-},
-    
-    // ========================================
-    // EVENTOS
-    // ========================================
 bindEvents: function() {
 
 // Fase 10: Eventos de la Biblioteca
@@ -18987,49 +18186,10 @@ document.addEventListener('change', (e) => {
     }
 });
 
-document.addEventListener('click', (e) => {
 
 
-    const closeStrong = e.target.closest('[data-action="close-strong-sheet"]');
-
-    if (closeStrong) {
-        e.preventDefault();
-        this.closeStrongSheet();
-        return;
-    }
-
-    const copyStrong = e.target.closest('[data-action="copy-strong-info"]');
-
-    if (copyStrong) {
-        e.preventDefault();
-
-        const word = document.getElementById('strongSheetWord')?.textContent || '';
-        const strong = document.getElementById('strongSheetNumber')?.textContent || '';
-        const definition = document.getElementById('strongSheetDefinition')?.textContent || '';
-
-        navigator.clipboard?.writeText(`${word} ${strong}: ${definition}`);
-
-        this.showToast('Strong copiado');
-        return;
-    }
-});
 
 
-document.addEventListener('click', (e) => {
-    const strongWord = e.target.closest('.strong-word');
-
-    if (!strongWord) return;
-
-    e.stopPropagation();
-
-    console.log('[Strong Word]', {
-        word: strongWord.dataset.word,
-        strong: strongWord.dataset.strong,
-        original: strongWord.dataset.original,
-        transliteration: strongWord.dataset.transliteration,
-        definition: strongWord.dataset.definition
-    });
-});
         // Navegación
         if (this.$navHome) {
     this.$navHome.addEventListener('click', () => {
@@ -19159,21 +18319,6 @@ document.addEventListener('click', (e) => {
         return;
     }
 
-    const verseStudyBtn = e.target.closest('[data-action="open-verse-study"]');
-
-    if (verseStudyBtn) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        this.openVerseStudy({
-            bookId: verseStudyBtn.dataset.bookId,
-            chapter: verseStudyBtn.dataset.chapter,
-            verse: verseStudyBtn.dataset.verse,
-            verseText: verseStudyBtn.dataset.verseText
-        });
-
-        return;
-    }
 
     if (e.target.closest('[data-action="font-increase"]')) {
         this.changeFontSize(0.05);
@@ -19288,13 +18433,14 @@ if (openBibleMemoryBtn) {
 }
 
 // Abrir búsqueda
-const openStrongDictionaryBtn = e.target.closest('[data-action="open-strong-dictionary"]');
-if (openStrongDictionaryBtn) {
-    this.$headerControlsDropdown?.classList.remove('show');
-    // Acceso secundario temporal: Strong se conserva en beta sin interferir con la lectura.
-    this.strongDictionaryBibleContext = null;
-    this.strongDictionaryConsultedWord = '';
-    this.navigate('strong-dictionary');
+
+const returnStudyBtn = e.target.closest('[data-action="return-bible-study"]');
+if (returnStudyBtn && this.bibleStudyReturn) {
+    const destination = this.bibleStudyReturn;
+    this.navigate(destination.view);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (this.currentView === destination.view) window.scrollTo({ top: destination.scrollY, behavior: 'instant' });
+    }));
     return;
 }
 
@@ -19303,15 +18449,7 @@ if (openSearchBtn) {
     clearTimeout(this.searchTimeout);
     this.searchTimeout = null;
     this.bibleSearchComposing = false;
-    this.bibleSearchFilter = 'all';
-    this.bibleSearchQuery = '';
-    this.bibleSearchResults = [];
     this.bibleSearchLoading = false;
-    this.bibleSearchError = '';
-    this.bibleSearchRequestId += 1;
-    this.bibleSearchTotal = 0;
-    this.bibleSearchTotalPages = 0;
-    this.bibleSearchPage = 1;
     this.navigate('bible-search');
     return;
 }
@@ -19382,6 +18520,15 @@ if (bibleMemoryFilterBtn) {
 
 const bibleMemoryPassageBtn = e.target.closest('[data-action="open-bible-memory-passage"]');
 if (bibleMemoryPassageBtn) {
+    const item = this.getBibleMemoryItems().find(entry => entry.id === bibleMemoryPassageBtn.dataset.memoryId);
+    if (!item) return;
+    if (!this.getBibleReaderVersions().some(version => version.id === item.versionId)) {
+        this.showToast('La versión de esta nota no está disponible. Tu anotación sigue guardada aquí.');
+        return;
+    }
+    this.currentBibleVersion = item.versionId;
+    this.bibleStudyReturn = { view: 'bible-memory', label: 'Volver a mis notas', scrollY: window.scrollY || 0 };
+    this.bibleMemoryTargetText = item.text;
     const bookId = bibleMemoryPassageBtn.getAttribute('data-book-id');
     const chapter = Number(bibleMemoryPassageBtn.getAttribute('data-chapter'));
     const book = this.bibleBooks.find(item => item.id === bookId);
@@ -19392,7 +18539,7 @@ if (bibleMemoryPassageBtn) {
 	    this.bibleChapterPickerMode = false;
 	    this.saveBibleLastLocation(book.id, chapter, { scrollY: 0 });
 	    this.navigate('bible-reading');
-	    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+	    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     }
     return;
 }
@@ -19437,42 +18584,6 @@ if (bibleReadingSettingBtn) {
 const bibleFocusModeBtn = e.target.closest('[data-action="toggle-bible-focus-mode"]');
 if (bibleFocusModeBtn) {
     this.toggleBibleReadingFocusMode();
-    return;
-}
-
-const selectStrongEntryBtn = e.target.closest('[data-action="select-strong-entry"]');
-if (selectStrongEntryBtn) {
-    this.selectStrongDictionaryEntry(selectStrongEntryBtn.getAttribute('data-strong-id'));
-    return;
-}
-
-const searchStrongKeywordBtn = e.target.closest('[data-action="search-strong-keyword"]');
-if (searchStrongKeywordBtn) {
-    this.setStrongDictionaryQuery(searchStrongKeywordBtn.getAttribute('data-keyword') || '', { fromVerseChip: true });
-    return;
-}
-
-const returnToStrongVerseBtn = e.target.closest('[data-action="return-to-strong-verse"]');
-if (returnToStrongVerseBtn) {
-    this.returnToStrongSourceVerse();
-    return;
-}
-
-const copyStrongEntryBtn = e.target.closest('[data-action="copy-strong-entry"]');
-if (copyStrongEntryBtn) {
-    this.copyStrongDictionaryEntry(copyStrongEntryBtn.getAttribute('data-strong-id'));
-    return;
-}
-
-const clearStrongDictionaryBtn = e.target.closest('[data-action="clear-strong-dictionary"]');
-if (clearStrongDictionaryBtn) {
-    this.setStrongDictionaryQuery('', { clearConsulted: true });
-    return;
-}
-
-const strongFilterBtn = e.target.closest('[data-action="set-strong-filter"]');
-if (strongFilterBtn) {
-    this.setStrongDictionaryFilter(strongFilterBtn.getAttribute('data-filter'));
     return;
 }
 
@@ -19588,7 +18699,7 @@ if (readerPickerChapterBtn) {
 	    document.body.classList.remove('bible-picker-open');
 	    this.saveBibleLastLocation(book.id, chapter, { scrollY: 0 });
 	    this.navigate('bible-reading');
-	    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+	    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     }
     return;
 }
@@ -19631,7 +18742,7 @@ if (openBibleChapterBtn) {
 	this.saveBibleLastLocation(bookId, chapter, { scrollY: 0 });
 
 	this.navigate('bible-reading');
-    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'auto' }));
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     return;
 }
 
@@ -19849,15 +18960,21 @@ if (dailyReadingVoiceStopBtn) {
     return;
 }
 
+if (e.target.closest('[data-action="return-to-bible-audio"]')) {
+    this.continuousReader?.returnToVoice(this.bibleChapterVoice);
+    return;
+}
+
 const bibleChapterVoiceToggleBtn = e.target.closest('[data-action="bible-chapter-voice-toggle"]');
 if (bibleChapterVoiceToggleBtn) {
     const key = bibleChapterVoiceToggleBtn.getAttribute('data-key');
     const reference = bibleChapterVoiceToggleBtn.getAttribute('data-reference') || '';
-    const book = this.bibleBooks.find(item => item.id === this.selectedBibleBook);
+    const entry = this.continuousReader?.findVoice(key);
+    const book = entry?.book || this.bibleBooks.find(item => item.id === this.selectedBibleBook);
     const verses = this.getBibleChapterVoiceVerses(
-        this.currentBibleChapterData,
+        entry?.data || this.currentBibleChapterData,
         book?.name || 'Biblia',
-        Number(this.selectedBibleChapter)
+        entry?.chapter || Number(this.selectedBibleChapter)
     );
     this.toggleBibleChapterVoice(key, verses, reference);
     return;
@@ -21229,11 +20346,7 @@ if (navItem) {
         
         // Auto-guardado de notas
        this.$content.addEventListener('input', (e) => {
-    const strongDictionaryInput = e.target.closest('#strong-dictionary-input');
-    if (strongDictionaryInput) {
-        this.setStrongDictionaryQuery(strongDictionaryInput.value, { clearConsulted: true });
-        return;
-    }
+
         if (e.target.matches('.community-reply-textarea')) {
     const postId = e.target.getAttribute('data-post-id');
     if (postId) {
@@ -21359,6 +20472,14 @@ if (e.target.id === 'bible-search-input') {
 });
 
         this.$content.addEventListener('change', (e) => {
+    if (e.target.id === 'bible-search-book') {
+        this.bibleSearchBook = this.bibleBooks.some(book => book.id === e.target.value) ? e.target.value : '';
+        this.bibleSearchFilter = 'all';
+        this.updateFilterButtonsUI();
+        this.bibleSearchRequestId += 1;
+        this.performBibleSearch(this.bibleSearchQuery, true);
+        return;
+    }
     if (e.target.id === 'community-anonymous') {
         const nameInput = document.getElementById('community-name');
         const nameGroup = nameInput?.closest('.community-name-group');

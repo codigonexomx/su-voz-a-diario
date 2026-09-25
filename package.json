@@ -23,7 +23,10 @@
     "test:connections": "node scripts/validate-app-connections.mjs",
     "test:catalog": "node scripts/validate-reading-catalog.mjs",
     "test:community-voice": "node scripts/validate-community-voice.mjs",
-    "test:library": "node scripts/validate-library-upgrade.mjs"
+    "test:library": "node scripts/validate-library-upgrade.mjs",
+    "test:bible-continuous": "node scripts/validate-continuous-reader.mjs && node scripts/validate-bible-continuous-voice.mjs",
+    "test:bible-study": "node scripts/validate-bible-study.mjs",
+    "test:bible-without-strong": "node scripts/validate-bible-without-strong.mjs"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^8.0.2",

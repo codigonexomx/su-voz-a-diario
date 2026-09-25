@@ -19,7 +19,7 @@ import {
     resolveInternalBibleVersion
 } from '../js/bible/bibleInternalTest.js';
 
-const testWindow = {};
+const testWindow = { __bibleInternalPreview: true };
 const remoteRequests = [];
 const remoteClient = {
     supportsVersionCatalog: false,

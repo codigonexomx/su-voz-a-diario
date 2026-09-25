@@ -13,3 +13,6 @@ firebase-debug.log*
 artifacts/
 
 /legado/su-voz-firebase/
+
+# Local Firestore emulator output
+firestore-debug.log*

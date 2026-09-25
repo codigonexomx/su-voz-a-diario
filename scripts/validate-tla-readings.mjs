@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 
 const parseSourceReadings = source => {
     const trimmed = String(source || '').trim();
@@ -47,9 +48,15 @@ const dedupeByDateAndReference = readings => {
     return deduped;
 };
 
-const sourceReadings = dedupeByDateAndReference(parseSourceReadings(
-    readFileSync(`${process.env.HOME}/Downloads/readings_tla_jul_aug_2026.json`, 'utf8')
-));
+// Optional source comparison: node scripts/validate-tla-readings.mjs /path/to/original.json
+const sourcePath = process.argv[2];
+const sourceReadings = sourcePath
+    ? dedupeByDateAndReference(parseSourceReadings(readFileSync(sourcePath, 'utf8')))
+    : JSON.parse(readFileSync(new URL('./fixtures/tla-jul-aug-2026.json', import.meta.url), 'utf8')).readings;
+const assertTlaMatches = (actual, expected) => {
+    if (sourcePath) assert.equal(actual, expected.versions.tla);
+    else assert.equal(createHash('sha256').update(actual).digest('hex'), expected.tlaSha256, `${expected.date}: TLA difiere de la versión confirmada en Git`);
+};
 const indexHtml = readFileSync('index.html', 'utf8');
 const appSource = readFileSync('js/app.js', 'utf8');
 
@@ -92,7 +99,7 @@ const assertReadingsMatchSource = (readings, sourceReadingsForFile, label) => {
         assert.ok(reading, `Falta ${sourceReading.date} ${sourceReading.reference} en ${label}.`);
         assert.ok(reading.versions.rvr60, `${sourceReading.reference} perdió RVR60 en ${label}.`);
         assert.ok(reading.versions.ntv, `${sourceReading.reference} perdió NTV en ${label}.`);
-        assert.equal(reading.versions.tla, sourceReading.versions.tla);
+        assertTlaMatches(reading.versions.tla, sourceReading);
         assertValidTlaHtml(reading.versions.tla, `${sourceReading.date} ${sourceReading.reference}`);
     }
 };
@@ -132,8 +139,8 @@ for (const root of ['data', 'www/data']) {
         assert.ok(aggregateReading, `Falta ${sourceReading.date} ${sourceReading.reference} en ${root}/readings.json.`);
         assert.ok(monthlyReading.versions.rvr60, `${sourceReading.reference} perdió RVR60.`);
         assert.ok(monthlyReading.versions.ntv, `${sourceReading.reference} perdió NTV.`);
-        assert.equal(monthlyReading.versions.tla, sourceReading.versions.tla);
-        assert.equal(aggregateReading.versions.tla, sourceReading.versions.tla);
+        assertTlaMatches(monthlyReading.versions.tla, sourceReading);
+        assertTlaMatches(aggregateReading.versions.tla, sourceReading);
         assertValidTlaHtml(monthlyReading.versions.tla, `${sourceReading.date} ${sourceReading.reference}`);
     }
 

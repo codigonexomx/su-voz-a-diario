@@ -13,7 +13,7 @@ export function setBibleAdminState(state) {
 }
 
 export function canAccessRemoteBibleVersions(target = globalThis.window || globalThis) {
-    return true;
+    return bibleAdminState || target?.__bibleInternalPreview === true;
 }
 
 export function getInternalBibleTestVersion(

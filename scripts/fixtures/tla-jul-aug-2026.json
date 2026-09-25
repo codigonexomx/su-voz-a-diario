@@ -1,0 +1,316 @@
+{
+  "sourceCommit": "a2d008fd6c02785ba14bfdd5b9342808fcccae57",
+  "description": "Regression baseline from previously committed imported readings; not a replacement for original-source editorial verification.",
+  "readings": [
+    {
+      "date": "2026-07-01",
+      "reference": "Salmos 100:1-5",
+      "tlaSha256": "07e4f73c98801462e06924bcb7b9d19312692fc0d4ad28b2716c985e800823eb"
+    },
+    {
+      "date": "2026-07-02",
+      "reference": "Salmos 101:1-8",
+      "tlaSha256": "0662bbd65b0d604d1f627ba191196418dc9daa513f5669d6965151b2bf8caf12"
+    },
+    {
+      "date": "2026-07-03",
+      "reference": "Salmos 102:1-11",
+      "tlaSha256": "9998c72d8bad17fc9cf075c055d8208f2beb14b08e68fb27c4ff132b94fc34d2"
+    },
+    {
+      "date": "2026-07-04",
+      "reference": "Salmos 102:12-28",
+      "tlaSha256": "b7c8b9b16bffbc73789cbc18bbd6217463d31100a1ef3ae08d6f61cf2fd42229"
+    },
+    {
+      "date": "2026-07-05",
+      "reference": "Salmos 103:1-22",
+      "tlaSha256": "b3139e095346b20bed6ef7676a4803b1bc2c45874cb18a702f852adea8febe48"
+    },
+    {
+      "date": "2026-07-06",
+      "reference": "Salmos 104:1-18",
+      "tlaSha256": "2c49871f1c5a4721c9835dd6edda415e974e7f0c15aceaa1abd561df4f959091"
+    },
+    {
+      "date": "2026-07-07",
+      "reference": "Salmos 104:19-35",
+      "tlaSha256": "6de744c56602dae0ac89799f82e5ca36176f0cef4244ca3c27359c5dde4160c2"
+    },
+    {
+      "date": "2026-07-08",
+      "reference": "Salmos 105:1-22",
+      "tlaSha256": "537d4e55a8a19f8b69e8f142b8abb1783cd80cd2d5b50a9b618d6e0ccc097065"
+    },
+    {
+      "date": "2026-07-09",
+      "reference": "Salmos 105:23-45",
+      "tlaSha256": "aaee6074614c6458fda7e0961ee1b5c8f6aa1ac3d8be6ee62353ae212679fc47"
+    },
+    {
+      "date": "2026-07-10",
+      "reference": "Salmos 106:1-18",
+      "tlaSha256": "962ab620d484bdeb6e6e2130666ecc368e3f489c016cea3475687853fa6574e4"
+    },
+    {
+      "date": "2026-07-11",
+      "reference": "Salmos 106:19-39",
+      "tlaSha256": "654eac63dff67a73fe28a37d7c49e7e2e0489fe9c26b0938372a7d9b875b2387"
+    },
+    {
+      "date": "2026-07-12",
+      "reference": "Salmos 106:40-48",
+      "tlaSha256": "bfca365704095864aa6c417a9e44c00f56ea801c10e3e029e6d6d1f919aa0f34"
+    },
+    {
+      "date": "2026-07-13",
+      "reference": "Salmos 107:1-22",
+      "tlaSha256": "59b4a0631013c32fb3e84779f8a6c753c754470b70eb7bae1d5cb9d960faa5a4"
+    },
+    {
+      "date": "2026-07-14",
+      "reference": "Salmos 107:23-43",
+      "tlaSha256": "000d5f30a55aad9c915a42492f940d67f1282126fad1f197a229e6b52f03f635"
+    },
+    {
+      "date": "2026-07-15",
+      "reference": "Salmos 108:1-13",
+      "tlaSha256": "2d8191fc8f4cbf9a3b19d02933122ea4bf520f59b91fb0c8dbf2d0a204e3ba46"
+    },
+    {
+      "date": "2026-07-16",
+      "reference": "Salmos 109:1-20",
+      "tlaSha256": "820a2468215a85c2e63359ae6428324f6ab9ae3d6942774ea0c44d4a8bfe4d5e"
+    },
+    {
+      "date": "2026-07-17",
+      "reference": "Salmos 109:21-31",
+      "tlaSha256": "120bf717449dcfcdb5e96c59a0b03ea59e32ce771fdcbf128b4e6ae4d53ff307"
+    },
+    {
+      "date": "2026-07-18",
+      "reference": "Salmos 110:1-7",
+      "tlaSha256": "c620051e24e842cad696964f86fae9ef1cd462ab5e672501f78c8ddc2285c262"
+    },
+    {
+      "date": "2026-07-19",
+      "reference": "Salmos 111:1-10",
+      "tlaSha256": "be2db8ed90ca4d2f7152b43ed40c9be350f26a9e17806fc0baf319fcbfe5130f"
+    },
+    {
+      "date": "2026-07-20",
+      "reference": "Salmos 112:1-10",
+      "tlaSha256": "5d5996933562b082d31eb958681c4f01de08dfffb3a21ce80ad082e9ca9b365c"
+    },
+    {
+      "date": "2026-07-21",
+      "reference": "Salmos 113:1-9",
+      "tlaSha256": "42ee0dd18ae6462c351f571f116f3c97dc1b521b4bb57e2ae3f97ba938df332b"
+    },
+    {
+      "date": "2026-07-22",
+      "reference": "Salmos 114:1-8",
+      "tlaSha256": "aeb6077121de89108fd3908b0d4da777e2747a3a8e54b312d8a530e75437a417"
+    },
+    {
+      "date": "2026-07-23",
+      "reference": "Salmos 115:1-18",
+      "tlaSha256": "3662a63113a5df869ed580fe3c74ab92db1ff5b2b3ccebff66d2b0a0926a0654"
+    },
+    {
+      "date": "2026-07-24",
+      "reference": "Salmos 116:1 – 117:2",
+      "tlaSha256": "acc890bf3a8259477dcb1f0f2bfe4a77732d991b0a9e050b1dca841e6a284df7"
+    },
+    {
+      "date": "2026-07-25",
+      "reference": "Salmos 118:1-29",
+      "tlaSha256": "3f73bf3445b48f14ca206adf1eaa16cef19a118a7daaeed688a1a2607f4564e0"
+    },
+    {
+      "date": "2026-07-26",
+      "reference": "Salmos 119:1-16",
+      "tlaSha256": "a2711e84ed8d9db4847087aa423489fc7fc52dd553b70052da769cb7b1a421b0"
+    },
+    {
+      "date": "2026-07-27",
+      "reference": "Salmos 119:17-32",
+      "tlaSha256": "7f1222f8bc0d64d69227c54d9d5d826f9278b73d1b6f63a832896f6ee41d193b"
+    },
+    {
+      "date": "2026-07-28",
+      "reference": "Salmos 119:33-48",
+      "tlaSha256": "46c21fd27cf440eab83bf633aed0480aa5ee38de30fba49e8117cd7b591b2721"
+    },
+    {
+      "date": "2026-07-29",
+      "reference": "Salmos 119:49-64",
+      "tlaSha256": "6d993f72f98cc6cd06ebe35f8f99c439eed356972de40efc573cbcdcab5ae917"
+    },
+    {
+      "date": "2026-07-30",
+      "reference": "Salmos 119:65-80",
+      "tlaSha256": "09724d87aa5a157cab5e73020f18bd985e54f3ec8548775405bc4a9f72cb3464"
+    },
+    {
+      "date": "2026-07-31",
+      "reference": "Salmos 119:81-96",
+      "tlaSha256": "3a1f8ce31cc72e2566c8678c0f5440d10318e339d2f19e21f76cf4754c6976ae"
+    },
+    {
+      "date": "2026-08-01",
+      "reference": "Salmos 119:97-112",
+      "tlaSha256": "d6c6149ad7c98ece176364b2ca6fb26ba2837efd9ad715e41a008993e06e0a20"
+    },
+    {
+      "date": "2026-08-02",
+      "reference": "Salmos 119:113-128",
+      "tlaSha256": "ea80b8a4d4f58193341e28206debee99fae3824585c7310955e7116ba00052b2"
+    },
+    {
+      "date": "2026-08-03",
+      "reference": "Salmos 119:129-144",
+      "tlaSha256": "ddfa2c5a783de0f86e6388655249bc0223ea25c8a08a9712ee5c27cc8f46f500"
+    },
+    {
+      "date": "2026-08-04",
+      "reference": "Salmos 119:145-160",
+      "tlaSha256": "9389aea709c091d04fdca9d7f020eda29e45d365f27d672934da2456ed2330ca"
+    },
+    {
+      "date": "2026-08-05",
+      "reference": "Salmos 119:161-176",
+      "tlaSha256": "2283c47b5208ca9fdb2c8f7f651153dddc5a1a8d3ac4d656448b314adb326b1e"
+    },
+    {
+      "date": "2026-08-06",
+      "reference": "Salmos 120:1 – 121:8",
+      "tlaSha256": "d6cfe42af2864a74950e614b3e23a7198d03931cf86b42b5d5d40baaf1d58045"
+    },
+    {
+      "date": "2026-08-07",
+      "reference": "Salmos 122:1 – 123:4",
+      "tlaSha256": "3cf84bab8529d89864c737bc85526241ffb0ce33cf7eaebfc44e18c34946729f"
+    },
+    {
+      "date": "2026-08-08",
+      "reference": "Salmos 124:1 – 125:5",
+      "tlaSha256": "29c9a3afb9111b4006a9ff0666a8b892d22c2775b6d50945f1299c70c3b826a3"
+    },
+    {
+      "date": "2026-08-09",
+      "reference": "Salmos 126:1 – 127:5",
+      "tlaSha256": "6cf05c99bcd3f8078005a82f9767fac8c9f494d2570a4641d6f66956bc7c4a67"
+    },
+    {
+      "date": "2026-08-10",
+      "reference": "Salmos 128:1 – 129:8",
+      "tlaSha256": "f82cb06a5a12b523ec4718329d2ddab995a071e711aeb27880c69940a8df057f"
+    },
+    {
+      "date": "2026-08-11",
+      "reference": "Salmos 130:1 – 131:3",
+      "tlaSha256": "6c71bd8e799acb4e0746c22dbf399a25c7bde810b64e1131f594a712e711f726"
+    },
+    {
+      "date": "2026-08-12",
+      "reference": "Salmos 132:1-18",
+      "tlaSha256": "dd5cacfd6eb3e73704368ce4a0805bbfa9e25edf2528045cdfb026a6d594a3ec"
+    },
+    {
+      "date": "2026-08-13",
+      "reference": "Salmos 133:1 – 134:3",
+      "tlaSha256": "3e82875d8fc59e8e5a628beef2aefb40d4752af2fbe356d5787efbce5cff95b5"
+    },
+    {
+      "date": "2026-08-14",
+      "reference": "Salmos 135:1-21",
+      "tlaSha256": "c4471d23318fd65fffcffa66043d573f1039cee1afc440acda4faf9f0eee69ad"
+    },
+    {
+      "date": "2026-08-15",
+      "reference": "Salmos 136:1-15",
+      "tlaSha256": "e1414cb35690938a5b443f70660ed2049370b3ff3fb008f826a7c6d7dd86ce0b"
+    },
+    {
+      "date": "2026-08-16",
+      "reference": "Salmos 136:16-26",
+      "tlaSha256": "717fce5593af8efadc138618d5c195aa9eb1e92540aa6822cc4fc6305fc6ec5c"
+    },
+    {
+      "date": "2026-08-17",
+      "reference": "Salmos 137:1-9",
+      "tlaSha256": "e468da67c6e218b7df995b5792d03873bb430497c22ae458c7c9d700f91c58ee"
+    },
+    {
+      "date": "2026-08-18",
+      "reference": "Salmos 138:1-8",
+      "tlaSha256": "5b35294c276a955b7745b4c0f14e1bece165cfc48a9e0dbbb04a5ad35aafe2d8"
+    },
+    {
+      "date": "2026-08-19",
+      "reference": "Salmos 139:1-12",
+      "tlaSha256": "68129e78e4f8f48a844d0bf3271d407e084a898925977f962b8fc671b769e01d"
+    },
+    {
+      "date": "2026-08-20",
+      "reference": "Salmos 139:13-24",
+      "tlaSha256": "fe15533433550939c7c22950426219315062fd0c0da1d05d9fb0ded3b6ce2299"
+    },
+    {
+      "date": "2026-08-21",
+      "reference": "Salmos 140:1-13",
+      "tlaSha256": "539b7de03c2868c53ced1ddc46da475374a9f5fa0d09afd4a2923f8332d45b32"
+    },
+    {
+      "date": "2026-08-22",
+      "reference": "Salmos 141:1-10",
+      "tlaSha256": "9de01091f6f7ed7585f7860dc486c9e72a75f44aa97faf3e7244dc281a01a0d0"
+    },
+    {
+      "date": "2026-08-23",
+      "reference": "Salmos 142:1-7",
+      "tlaSha256": "0948fb3c16cd716da7e00da9f87849ba788308e8c9a4c591849823660e3aa495"
+    },
+    {
+      "date": "2026-08-24",
+      "reference": "Salmos 143:1-12",
+      "tlaSha256": "bcc61b94e56d7eafc6403082a24ecee368d982e3c29d5a94ee93ccfdade5f2f5"
+    },
+    {
+      "date": "2026-08-25",
+      "reference": "Salmos 144:1-15",
+      "tlaSha256": "4a87d53124b17b7b4171d3f233dfbf740fa0f18bb015c800264c93334705f824"
+    },
+    {
+      "date": "2026-08-26",
+      "reference": "Salmos 145:1-21",
+      "tlaSha256": "2fcbf88e1ed33a44a383790bc5b8d217b776ca886ae6ba18a4826b51ec7c7b07"
+    },
+    {
+      "date": "2026-08-27",
+      "reference": "Salmos 146:1-10",
+      "tlaSha256": "b664a03b8a18f1a40c9c12e3e11bee268c2b4d872f179cbf329598fa1a62daab"
+    },
+    {
+      "date": "2026-08-28",
+      "reference": "Salmos 147:1-20",
+      "tlaSha256": "7710f4963693244394821b69aa814a6d4f521f00cb42882040e03f128d00c14e"
+    },
+    {
+      "date": "2026-08-29",
+      "reference": "Salmos 148:1-14",
+      "tlaSha256": "ee89a252f4ad3c222f10d3d717bd1b36153d4a9f88006057f167cd98af004587"
+    },
+    {
+      "date": "2026-08-30",
+      "reference": "Salmos 149:1-9",
+      "tlaSha256": "7da961eb091766df16a620b7344e723cbd3b73adbec5c179a2fbf49da7fc58e5"
+    },
+    {
+      "date": "2026-08-31",
+      "reference": "Salmos 150:1-6",
+      "tlaSha256": "1e6beee20a9dd7b64af100b8d708d1ea30cb6cd010cecedf882cce8bcc739c1f"
+    }
+  ]
+}
