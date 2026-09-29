@@ -12,15 +12,16 @@ export function setBibleAdminState(state) {
     bibleAdminState = !!state;
 }
 
-export function canAccessRemoteBibleVersions(target = globalThis.window || globalThis) {
-    return bibleAdminState || target?.__bibleInternalPreview === true;
+export function canAccessRemoteBibleVersions() {
+    // Public reading access is independent from internal version overrides.
+    return true;
 }
 
 export function getInternalBibleTestVersion(
     target = globalThis.window || globalThis
 ) {
     if (!BIBLE_REMOTE_INTERNAL_TEST) return null;
-    if (!canAccessRemoteBibleVersions(target)) return null;
+    if (!bibleAdminState && target?.__bibleInternalPreview !== true) return null;
 
     const versionId = String(
         target?.__bibleTestVersion || ''

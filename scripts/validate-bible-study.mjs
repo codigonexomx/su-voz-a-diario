@@ -24,10 +24,10 @@ app.bibleSearchBook='jhn';assert.equal(app.searchLocalBible('"no temas"').length
 app.bibleSearchBook='';assert.equal(app.searchLocalBible('"no temas"','old').length,1);
 assert.equal(app.searchLocalBible('palabrainexistente').length,0);
 app.applyBibleSearchPagination(app.searchLocalBible('no temas'));assert.equal(app.bibleSearchTotal,3);
-assert.equal(canAccessRemoteBibleVersions({}),false);
+assert.equal(canAccessRemoteBibleVersions({}),true);
 assert.equal(getInternalBibleTestVersion({__bibleTestVersion:'nbla'}),null);
 assert.equal(getInternalBibleTestVersion({__bibleInternalPreview:true,__bibleTestVersion:'nbla'}),'nbla');
-assert.deepEqual(Array.from(app.getBibleReaderVersions(),v=>v.id),['rv1909']);
+assert.deepEqual(Array.from(app.getBibleReaderVersions(),v=>v.id),['rv1909','nbla','nvi','biblia-libre']);
 const records={
  'su-voz-selection-notes-bible-jhn-3':[{text:'Dios amó al mundo',note:'Reflexión local'}],
  'su-voz-selection-notes-bible-nvi-jhn-3':[{text:'Dios amó al mundo',note:'Otra edición'}]

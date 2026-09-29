@@ -13,6 +13,7 @@ import {
 } from '../js/bible/RemoteBibleProvider.js';
 import {
     BIBLE_REMOTE_INTERNAL_TEST,
+    canAccessRemoteBibleVersions,
     createBibleReadingKey,
     getInternalBibleTestVersion,
     parseBibleReadingKey,
@@ -65,6 +66,22 @@ const repository = new BibleRepository([
 
 assert.equal(BIBLE_REMOTE_INTERNAL_TEST, true);
 assert.ok(REMOTE_BIBLE_VERSIONS.every(version => version.enabled === false));
+
+// Public access must work without an administrator or internal-preview override.
+const publicProvider = new RemoteBibleProvider({
+    client: remoteClient,
+    canUseDisabledVersion: () => canAccessRemoteBibleVersions({}),
+    isOnline: () => true
+});
+for (const versionId of ['nbla', 'nvi', 'biblia-libre']) {
+    for (const number of [3, 4, 2]) {
+        const chapter = await publicProvider.getChapter(versionId, 'jhn', number);
+        assert.equal(chapter.versionId, versionId);
+        assert.equal(chapter.chapter, number);
+        assert.equal(chapter.verses.length, 36);
+    }
+}
+remoteRequests.length = 0;
 
 for (const versionId of ['nbla', 'nvi', 'biblia-libre']) {
     testWindow.__bibleTestVersion = versionId;
