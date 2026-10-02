@@ -64,9 +64,34 @@ Analytics del flujo web vinculado muestra paises, tanto en el informe agregado c
 
 Comunidad recibe voluntariamente peticiones, testimonios y reflexiones religiosas. Propuesta para revision del propietario: Creencias politicas o religiosas, opcional, con finalidad Funciones y Seguridad por moderacion; no Publicidad. Que la app no infiera un perfil formal no excluye por si solo el contenido que transmite. Es una clasificacion propuesta, no afirmacion de que se recopile filiacion politica ni certificacion juridica. No inspeccionar publicaciones privadas o historicas para justificar esta propuesta.
 
-Audio: VoiceReflectionRecorder incluye una ruta legacy a Storage, pero app.js de las versiones 40 y 41 solo crea la instancia y reproduce audioURL preexistente; no se encontraron llamadas a startRecording ni uploadAudio desde esas interfaces. La sintesis de voz no equivale a subir la voz del usuario. No reactivar grabacion ni marcar recopilacion basandose solo en RECORD_AUDIO. Sigue pendiente comprobar el canal alpha antiguo activo y cualquier ruta efectiva de ese cliente antes de decidir la respuesta global de Audio.
+Audio: VoiceReflectionRecorder incluye una ruta legacy a Storage, pero app.js de las versiones 40 y 41 solo crea la instancia y reproduce audioURL preexistente; no se encontraron llamadas a startRecording ni uploadAudio desde esas interfaces. La sintesis de voz no equivale a subir la voz del usuario. Los paquetes originales 14 y 15 tampoco contienen getUserMedia, MediaRecorder, startRecording, uploadAudio, uploadBytes ni audioURL en su JavaScript; sus plugins declarados no incluyen grabador. Propuesta: no declarar grabacion/subida de voz basandose solo en RECORD_AUDIO o en codigo legacy sin interfaz activa. Esto es inspeccion estatica, no garantiza el comportamiento de todos los motores de voz del dispositivo ni autoriza reactivar grabacion.
 
-Servicios externos: existen videos integrados en www.youtube.com y recursos de Fonts/cdnjs. No concluir No se comparten datos solo por ausencia de anuncios. Revisar ajustes de Analytics y usos de terceros frente a las excepciones de proveedor/accion iniciada por el usuario. La consola de Analytics exige guardar preferencias de correo para acceder a su administracion; se solicito conservar las cuatro opciones promocionales desmarcadas, sin aplicarlo todavia. No alterar ni omitir ese aviso sin confirmacion.
+Servicios externos: existen videos integrados en www.youtube.com y recursos de Fonts/cdnjs. El iframe se inserta al mostrar una lectura con introduccion, no solo al pulsar reproducir; no hay consentimiento especifico previo en esa ruta. YouTube explica que el reproductor comparte datos basicos al cargarse, incluso antes de reproducir. No concluir No se comparten datos solo por ausencia de anuncios ni aplicar automaticamente la excepcion de accion iniciada por el usuario. La clasificacion exacta de datos/finalidades de estos terceros sigue pendiente antes de guardar la declaracion. Referencia: [politicas del reproductor](https://developers.google.com/youtube/terms/developer-policies).
+
+### Ajustes Efectivos de Analytics
+
+El propietario aprobo conservar desmarcadas las cuatro comunicaciones promocionales. Se guardo esa seleccion y se verificaron las cuatro opciones desactivadas; los avisos importantes de cuenta siguen habilitados. No se cambiaron otras preferencias ni se aceptaron condiciones.
+
+Lectura de la propiedad conectada, sin modificar su configuracion:
+
+- Google Signals no esta activado. La recopilacion granular de ubicacion/dispositivo si esta habilitada para 307 de 307 regiones; confirma la propuesta de Ubicacion aproximada para Analytics.
+- La personalizacion publicitaria esta permitida para 307 de 307 regiones, pero no hay vinculos de Google Ads. El ajuste no demuestra una campana activa ni autoriza habilitar anuncios o Signals.
+- No se habilito recopilacion de datos proporcionados por usuarios ni se acepto el aviso de consentimiento.
+- Los cuatro ajustes adicionales de compartir datos de la cuenta estan desactivados: productos/servicios de Google, modelo/estadisticas empresariales, asistencia tecnica y recomendaciones empresariales.
+- La consola indica que los terminos de tratamiento de datos no estan aceptados. No se aceptaron en nombre del propietario; revisar su aplicabilidad y alcance de cuenta antes de cualquier gestion juridica.
+
+No extrapolar estos ajustes a todos los proveedores ni a un SDK Analytics nativo. La validacion de eventos anterior corresponde al flujo web.
+
+### Canales Antiguos Activos
+
+Play muestra Produccion 40/1.5.8, prueba abierta 15/1.1.13 y prueba cerrada Alpha 14/1.1.12, ademas de la prueba interna 41/1.5.9 exclusiva del propietario. Los canales abiertos/cerrados entran en la revision global de Data Safety; no se pausaron ni se cambiaron verificadores. Referencia: [alcance de la declaracion](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en).
+
+Se descargaron de Play los AAB originales 14 y 15 solo para inspeccion, sin ejecutarlos, instalarlos ni reconstruirlos. Sus configuraciones Capacitor usan recursos locales, sin server.url remoto. Ambos incluyen PWA 95; no incluyen import de Firebase Analytics en index.html. No inferir por ello ausencia de datos de Auth, Firestore, FCM o terceros.
+
+| Paquete | SHA-256 del original descargado |
+| --- | --- |
+| 14 / 1.1.12 | 166bcfbf48ae333836bbb8a7c542bbc8bc831109af2e9cff3d2d0936dc5efb80 |
+| 15 / 1.1.13 | 1d2c042e79864b518893c240e4a801fa8ea2254b7b6e9316263f5b57367c7948 |
 
 El borrador definitivo y su envio quedan separados: primero cerrar estos puntos, probar vinculacion/recuperacion, habilitar moderacion verificada y revisar el procedimiento de eliminacion. Despues presentar al propietario las respuestas exactas antes de modificar/enviar la declaracion. La version interna 41 no se ha publicado en produccion por haber pasado las cuatro pruebas manuales.
 
@@ -105,7 +130,7 @@ El 2 de octubre el propietario confirmo: las cuatro pruebas pasaron en la Lenovo
 | Respaldo en Ajustes y Mis meditaciones | Ambos selectores de compartir abren; cancelacion sin enviar el archivo. No se certifica recepcion externa ni importacion sobre notas reales. |
 | Lectura previamente cargada en modo avion | Aprobada; conectividad restablecida al terminar. No prueba primera instalacion ni descarga de contenido remoto sin red. |
 
-Pendientes separados: App Links en frio/caliente, notificaciones dirigidas y permisos, recuperacion de cuenta entre dispositivos e iPhone. La comprobacion actual de moderacion en dry-run sigue indicando que no existe cuenta del correo confirmado; el propietario debe vincularla y verificarla personalmente antes de conceder acceso. No confundir pasar estas cuatro pruebas con publicar el candidato en produccion.
+Pendientes separados: App Links en frio/caliente, notificaciones dirigidas y permisos, recuperacion de cuenta entre dispositivos e iPhone. El propietario ya vinculo su correo y la ultima comprobacion de moderacion en dry-run confirma cuenta habilitada y verificada. El mensaje de verificacion estaba en Spam; solo se revisaron sus metadatos para localizarlo, sin abrir su enlace/codigo ni modificar etiquetas. La asignacion del unico moderador aun requiere la confirmacion concreta solicitada y comprobar el panel tras renovar el token. No confundir pasar estas cuatro pruebas con publicar el candidato en produccion.
 
 La instalacion Play utiliza certificado distinto de la APK local. Conservar instalacion y datos; no resolver INSTALL_FAILED_UPDATE_INCOMPATIBLE mediante desinstalacion, clear data, nuevo package o downgrade. Subir el mismo AAB a borrador interno solo con autorizacion especifica. Comprobar codigo, firma y recursos de APKs descargados para auditoria del paquete; la firma no prueba que sean aptos para ejecutarse instalados por USB. Para QA de una version protegida utilizar el canal interno y obtenerla realmente desde Play. Publicar a verificadores o a produccion son autorizaciones distintas de subir un borrador.
 
@@ -132,7 +157,7 @@ Reportes, deduplicacion y outbox: no se definio ni activo TTL. Primero fijar fin
 
 ## Dependencias Externas
 
-- Moderacion: vinculacion/verificacion personal; despues asignacion concreta de seguridad.
+- Moderacion: vinculacion/verificacion completadas; asignacion concreta de seguridad y comprobacion del panel pendientes.
 - Editorial: fuente aprobada para 2027; no hay enero en el catalogo. Importar y validar sin inventar textos ni fechas.
 - Derechos: esperar respuesta sustantiva segun el expediente existente. Acuse, compra de Logos y acceso API no conceden licencia de redistribucion.
 - Restauracion gestionada: prueba aislada pendiente, sin sobrescribir produccion ni transferir datos a otro proyecto sin confirmar destino/acceso.
