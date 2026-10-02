@@ -18,7 +18,7 @@ checks.push(['scripts/check-reading-coverage.mjs']);
 for (const name of [
     'bibleProxy', 'communityIdentity', 'communityPrayer', 'migrateCommunityAnonymousLegacy',
     'backfillCommunityReplyCounts', 'communityDiscovery', 'communityEditorialModel',
-    'communityUIIntegration6C', 'communityIntent6G', 'communityOrphanCleanup',
+    'communityUIIntegration6C', 'communityIntent6G', 'communityOrphanCleanup', 'accountDeletionInventory',
 ]) checks.push([`functions/${name}.test.js`]);
 checks.push(['--check', 'functions/index.js']);
 
@@ -32,7 +32,8 @@ if (process.argv.includes('--emulator')) {
     checks.push(['scripts/test-account-auth-emulator.mjs']);
     for (const file of ['scripts/test-community-rules.mjs', 'functions/stabilization.test.js',
         'functions/communityIdentityConcurrency.test.js', 'functions/communityPrayerConcurrency.test.js',
-        'functions/communityReplyCountsConcurrency.test.js', 'functions/communityOrphanCleanupEmulator.test.js']) checks.push([file]);
+        'functions/communityReplyCountsConcurrency.test.js', 'functions/communityOrphanCleanupEmulator.test.js',
+        'functions/accountDeletionInventoryEmulator.test.js']) checks.push([file]);
 }
 
 const failed = [];

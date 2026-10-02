@@ -35,6 +35,31 @@ Esta herramienta NO borra publicaciones, cuentas, audio, notificaciones, ledgers
 
 Inventario actual: cero solicitudes y cero denuncias. No crear solicitudes reales ni contenido de Comunidad para QA. Pruebas de moderacion y titularidad con fixtures/emuladores.
 
+Estado posterior confirmado: el propietario autorizo la asignacion exclusiva de su cuenta habilitada/verificada. configureModerator.js termino correctamente y verifico pin y claim; no se reemplazo otra identidad. Tras renovar su token, el propietario comprobo que Pendientes, Revisadas y Solicitudes de cuenta abren sin error en la Lenovo. Esta comprobacion no realizo decisiones sobre contenido real ni borro cuentas.
+
+### Inventario Privado de una Solicitud
+
+Herramienta nueva: functions/inventoryAccountDeletion.js. Solo lectura; rechaza --apply, --write y argumentos desconocidos. Requiere referencia completa de una solicitud pending cuyo hash corresponda al UID autenticado, proyecto confirmado y cuenta Auth existente. Rechaza cuentas administrativas o el UID fijado como moderador, incluso si existe una solicitud con ese UID.
+
+```sh
+node functions/inventoryAccountDeletion.js \
+  --project=PROYECTO_CONFIRMADO \
+  --confirm-project=PROYECTO_CONFIRMADO \
+  --request=REFERENCIA_PRIVADA_COMPLETA \
+  --out=RUTA_ABSOLUTA_EN_ARTIFACTS_VALIDATION_JSON \
+  --firebase-cli-auth-module=RUTA_CONFIRMADA_DE_FIREBASE_TOOLS_LIB_AUTH_JS
+```
+
+El resultado se crea una sola vez, con permisos 0600, dentro de artifacts/validation, fuera de Git. La consola muestra conteos y SHA-256, no UID, correo, textos, tokens ni rutas de archivos personales. --pending-count consulta solo el numero de solicitudes pendientes sin generar inventario de una persona; consulta real posterior: cero.
+
+Revisa metadata de perfiles, identidad privada/publica, publicaciones/respuestas, oraciones/compromisos, reacciones, notificaciones/push, nombres, terminos, limites y bloqueos propios o dirigidos a esa identidad. Identifica respuestas/reacciones de otros usuarios asociadas a un padre propio, separadas de sus registros no relacionados. No borra perfiles ajenos solo porque un campo mencione el UID; tampoco confunde IDs con un prefijo parecido.
+
+Enumera paginas completas y padres ausentes con subdocumentos. Colecciones nuevas, subdocumentos desconocidos, propietarios contradictorios, denuncias, outbox compartido, ledgers y cascadas incompletas quedan en revision, no en un borrado automatico. Indica los recuentos de respuestas/oracion que requieren ajuste. Los audios se identifican por metadata de propiedad, con generaciones/versiones; el nombre por si solo no acredita propiedad. Backups gestionados y datos de proveedores tienen tratamiento separado.
+
+No lee el texto de publicaciones, notas, denuncias, contrasenas, tokens push ni contenido de archivos. Las consultas de Firestore usan una mascara de campos; Storage solo metadata, sin descargar audio. Comprueba al terminar que cuenta, solicitud y configuracion del moderador no cambiaron. No es una instantanea transaccional ni un plan aprobado/ejecutable de eliminacion. Se mantienen pendientes respaldo vigente, revocacion de acceso, decisiones de retencion, borrado definitivo y verificacion integral; no cerrar solicitudes mediante este inventario.
+
+Pruebas: unitarias adversariales y Firestore/Auth locales reales, incluyendo propiedad privada anonima, padres ausentes, paginacion/proyeccion, estabilidad de todos los fixtures, cuenta privilegiada protegida y salida privada exclusiva. Storage utiliza metadata ficticia explicita: no se certifica borrado ni restauracion de objetos reales. Suite integrada completa: 45/45. Las pruebas se ejecutaron con logs fuera del repositorio; no se desplegaron nuevas Functions ni reglas por incorporar esta herramienta administrativa.
+
 ## Revision de Seguridad de los Datos
 
 Declaracion leida, no modificada: se recopilan datos, cifrado en transito, no creacion de cuentas, sin metodo de eliminacion y sin correo. Ya constan nombre opcional, UID, interacciones, contenido opcional de usuarios e IDs de dispositivo; no datos compartidos, segun la declaracion del propietario.
@@ -130,7 +155,7 @@ El 2 de octubre el propietario confirmo: las cuatro pruebas pasaron en la Lenovo
 | Respaldo en Ajustes y Mis meditaciones | Ambos selectores de compartir abren; cancelacion sin enviar el archivo. No se certifica recepcion externa ni importacion sobre notas reales. |
 | Lectura previamente cargada en modo avion | Aprobada; conectividad restablecida al terminar. No prueba primera instalacion ni descarga de contenido remoto sin red. |
 
-Pendientes separados: App Links en frio/caliente, notificaciones dirigidas y permisos, recuperacion de cuenta entre dispositivos e iPhone. El propietario ya vinculo su correo y la ultima comprobacion de moderacion en dry-run confirma cuenta habilitada y verificada. El mensaje de verificacion estaba en Spam; solo se revisaron sus metadatos para localizarlo, sin abrir su enlace/codigo ni modificar etiquetas. La asignacion del unico moderador aun requiere la confirmacion concreta solicitada y comprobar el panel tras renovar el token. No confundir pasar estas cuatro pruebas con publicar el candidato en produccion.
+Pendientes separados: App Links en frio/caliente, notificaciones dirigidas y permisos, recuperacion de cuenta entre dispositivos e iPhone. El propietario ya vinculo/verifico su cuenta, autorizo la asignacion exclusiva de moderador y confirmo las tres pestanas del panel tras actualizar el token; pin y claim tambien verificados. El mensaje de verificacion estaba en Spam; solo se revisaron sus metadatos para localizarlo, sin abrir su enlace/codigo ni modificar etiquetas. No confundir pasar estas pruebas con publicar el candidato en produccion.
 
 La instalacion Play utiliza certificado distinto de la APK local. Conservar instalacion y datos; no resolver INSTALL_FAILED_UPDATE_INCOMPATIBLE mediante desinstalacion, clear data, nuevo package o downgrade. Subir el mismo AAB a borrador interno solo con autorizacion especifica. Comprobar codigo, firma y recursos de APKs descargados para auditoria del paquete; la firma no prueba que sean aptos para ejecutarse instalados por USB. Para QA de una version protegida utilizar el canal interno y obtenerla realmente desde Play. Publicar a verificadores o a produccion son autorizaciones distintas de subir un borrador.
 
@@ -157,7 +182,7 @@ Reportes, deduplicacion y outbox: no se definio ni activo TTL. Primero fijar fin
 
 ## Dependencias Externas
 
-- Moderacion: vinculacion/verificacion completadas; asignacion concreta de seguridad y comprobacion del panel pendientes.
+- Moderacion: vinculacion, verificacion, asignacion autorizada y comprobacion del panel completadas. Ejecucion integral de eliminacion de cuenta sigue separada y pendiente; inventario privado probado.
 - Editorial: fuente aprobada para 2027; no hay enero en el catalogo. Importar y validar sin inventar textos ni fechas.
 - Derechos: esperar respuesta sustantiva segun el expediente existente. Acuse, compra de Logos y acceso API no conceden licencia de redistribucion.
 - Restauracion gestionada: prueba aislada pendiente, sin sobrescribir produccion ni transferir datos a otro proyecto sin confirmar destino/acceso.
