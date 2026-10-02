@@ -56,6 +56,20 @@ No declarar auditoria independiente, cifrado extremo a extremo ni borrado automa
 
 Referencias: [Seguridad de los datos](https://support.google.com/googleplay/android-developer/answer/10787469?hl=es), [eliminacion de cuentas](https://support.google.com/googleplay/android-developer/answer/13327111?hl=es), [divulgacion Firebase Android](https://firebase.google.com/docs/android/play-data-disclosure). El inventario propio del WebView prevalece sobre asumir que todos los SDK nativos listados por Firebase estan instalados.
 
+### Revision Adicional antes del Borrador
+
+Lectura de Play sin cambiar respuestas: UID recopilado, no compartido, no efimero y obligatorio; finalidades Funciones y Seguridad. Administracion de la cuenta no esta seleccionada. La vista previa sigue sin correo ni metodo de eliminacion. No se guardo ni envio declaracion nueva.
+
+Analytics del flujo web vinculado muestra paises, tanto en el informe agregado como en la tarjeta de actividad reciente. La implementacion estandar de Google Analytics obtiene geolocalizacion aproximada; Google Play incluye la ubicacion inferida por IP en esa categoria aunque no exista permiso GPS. Propuesta: incluir Ubicacion aproximada, para Estadisticas, no efimera. No hay control de exclusion de Analytics disponible en el cliente revisado, por lo que no declararla opcional sin ese control para todos los usuarios. No se cambio la configuracion de geolocalizacion ni se habilito ningun permiso. Referencia: [recopilacion de Analytics](https://support.google.com/analytics/answer/11593727?hl=en). Revisar los ajustes reales de la propiedad y todos los canales activos antes de enviar.
+
+Comunidad recibe voluntariamente peticiones, testimonios y reflexiones religiosas. Propuesta para revision del propietario: Creencias politicas o religiosas, opcional, con finalidad Funciones y Seguridad por moderacion; no Publicidad. Que la app no infiera un perfil formal no excluye por si solo el contenido que transmite. Es una clasificacion propuesta, no afirmacion de que se recopile filiacion politica ni certificacion juridica. No inspeccionar publicaciones privadas o historicas para justificar esta propuesta.
+
+Audio: VoiceReflectionRecorder incluye una ruta legacy a Storage, pero app.js de las versiones 40 y 41 solo crea la instancia y reproduce audioURL preexistente; no se encontraron llamadas a startRecording ni uploadAudio desde esas interfaces. La sintesis de voz no equivale a subir la voz del usuario. No reactivar grabacion ni marcar recopilacion basandose solo en RECORD_AUDIO. Sigue pendiente comprobar el canal alpha antiguo activo y cualquier ruta efectiva de ese cliente antes de decidir la respuesta global de Audio.
+
+Servicios externos: existen videos integrados en www.youtube.com y recursos de Fonts/cdnjs. No concluir No se comparten datos solo por ausencia de anuncios. Revisar ajustes de Analytics y usos de terceros frente a las excepciones de proveedor/accion iniciada por el usuario. La consola de Analytics exige guardar preferencias de correo para acceder a su administracion; se solicito conservar las cuatro opciones promocionales desmarcadas, sin aplicarlo todavia. No alterar ni omitir ese aviso sin confirmacion.
+
+El borrador definitivo y su envio quedan separados: primero cerrar estos puntos, probar vinculacion/recuperacion, habilitar moderacion verificada y revisar el procedimiento de eliminacion. Despues presentar al propietario las respuestas exactas antes de modificar/enviar la declaracion. La version interna 41 no se ha publicado en produccion por haber pasado las cuatro pruebas manuales.
+
 ## Prueba Android y Publicacion
 
 Candidato: artifacts/android-1.5.9-41/su-voz-1.5.9-41.aab; SHA-256 1f2331f7e72f888bff484be4a13b7b5f69379b29982720ae4112faa135d9ffd0. Produccion consultada: 1.5.8 (40), 100% desde el 25 de septiembre. No confundir AAB construido, borrador subido y version publicada.
@@ -79,6 +93,19 @@ Enlace oficial de acceso: https://play.google.com/apps/internaltest/470170064972
 Recuperacion confirmada: el propietario obtuvo la app desde Play y reporto que abre normalmente, sin la portada de descarga. Consulta de paquete a las 15:40:16 locales: 41/1.5.9, installerPackageName=com.android.vending e initiatingPackageName=com.android.vending; appId, inodes CE/DE y firstInstallTime conservados. No hizo falta desinstalar, limpiar datos, crear version 42 ni desactivar proteccion. Logs del proceso actual desde la instalacion oficial: cero coincidencias de errores JS criticos y fatales nativos; es una revision acotada, no certificado de ausencia historica de fallos. Dominio verified, preferencia de usuario aun Disabled; no modificada. Recorrido, audio audible, meditaciones, respaldo/Share y modo avion solicitados al propietario para QA; no afirmar resultados aun no recibidos.
 
 Evidencia local: /tmp/suvoz-play-1.5.9-41-interna-disponible-2026-10-02.jpg y /tmp/suvoz-play-qa-solo-propietario-2026-10-02.jpg. Referencia del mecanismo: [comprobacion del instalador](https://support.google.com/googleplay/android-developer/answer/15621622?hl=es). No instalar nuevamente la APK protegida por USB para repetir el mismo fallo.
+
+### QA Manual Confirmada por el Propietario
+
+El 2 de octubre el propietario confirmo: las cuatro pruebas pasaron en la Lenovo, despues de recuperar la instalacion oficial de Play 41. Resultado acotado, no certificacion de todos los dispositivos ni observacion automatizada de datos privados:
+
+| Prueba solicitada | Resultado comunicado |
+| --- | --- |
+| Lectura diaria, Profundizar y audio audible | Aprobada. |
+| Meditaciones anteriores tras actualizar | Conservadas, segun comprobacion personal. No se inspecciono ni difundio su texto. |
+| Respaldo en Ajustes y Mis meditaciones | Ambos selectores de compartir abren; cancelacion sin enviar el archivo. No se certifica recepcion externa ni importacion sobre notas reales. |
+| Lectura previamente cargada en modo avion | Aprobada; conectividad restablecida al terminar. No prueba primera instalacion ni descarga de contenido remoto sin red. |
+
+Pendientes separados: App Links en frio/caliente, notificaciones dirigidas y permisos, recuperacion de cuenta entre dispositivos e iPhone. La comprobacion actual de moderacion en dry-run sigue indicando que no existe cuenta del correo confirmado; el propietario debe vincularla y verificarla personalmente antes de conceder acceso. No confundir pasar estas cuatro pruebas con publicar el candidato en produccion.
 
 La instalacion Play utiliza certificado distinto de la APK local. Conservar instalacion y datos; no resolver INSTALL_FAILED_UPDATE_INCOMPATIBLE mediante desinstalacion, clear data, nuevo package o downgrade. Subir el mismo AAB a borrador interno solo con autorizacion especifica. Comprobar codigo, firma y recursos de APKs descargados para auditoria del paquete; la firma no prueba que sean aptos para ejecutarse instalados por USB. Para QA de una version protegida utilizar el canal interno y obtenerla realmente desde Play. Publicar a verificadores o a produccion son autorizaciones distintas de subir un borrador.
 
