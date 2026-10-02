@@ -12,6 +12,7 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  serverTimestamp,
   updateDoc,
 } from 'firebase/firestore';
 
@@ -188,7 +189,31 @@ try {
   // CASO R16: User attempts to list entire collection communityPrayerCommitments (DENY)
   await assertFails(getDocs(collection(userDb, 'communityPrayerCommitments')));
 
-  console.log('community rules tests passed (including Oración R1-R16)');
+  const reaction = { postId: 'post-public', userId: 'user-a', reactions: { useful: true, thanks: false }, updatedAt: serverTimestamp() };
+  await assertSucceeds(setDoc(doc(userDb, 'communityReactions/post-public_user-a'), reaction));
+  await assertFails(setDoc(doc(userDb, 'communityReactions/duplicate'), reaction));
+  await assertFails(setDoc(doc(userDb, 'communityReactions/nonexistent_user-a'), { ...reaction, postId: 'nonexistent' }));
+  await assertFails(setDoc(doc(userDb, 'communityReactions/post-public_user-a'), { ...reaction, privileged: true }));
+  await assertFails(updateDoc(doc(userBDb, 'communityReactions/post-public_user-a'), { reactions: { useful: false, thanks: true }, updatedAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(userDb, 'communityReactions/post-public_user-a'), { postId: 'different', updatedAt: serverTimestamp() }));
+  await assertFails(setDoc(doc(userDb, 'communityReactions/post-public_user-a'), { ...reaction, updatedAt: new Date(0) }));
+  await assertSucceeds(updateDoc(doc(userDb, 'communityReactions/post-public_user-a'), { reactions: { useful: false, thanks: true }, updatedAt: serverTimestamp() }));
+  await assertSucceeds(deleteDoc(doc(userDb, 'communityReactions/post-public_user-a')));
+  await assertFails(setDoc(doc(userDb, 'communityReports/forged'), { reportedBy: 'user-a', status: 'resolved' }));
+  await assertFails(getDocs(collection(userDb, 'communityReports')));
+  await assertFails(getDocs(collection(userDb, 'accountDeletionRequests')));
+  await assertFails(setDoc(doc(userDb, 'accountDeletionRequests/forged'), { uid: 'user-a' }));
+  await assertFails(getDoc(doc(userDb, 'communityBlocks/user-a/authors/user-b')));
+  await assertFails(setDoc(doc(userDb, 'userMetrics/user-a'), { postsCreated: 9999 }));
+  await assertFails(setDoc(doc(userDb, 'notifications/forged'), { userId: 'user-a', body: 'Forged' }));
+  await testEnv.withSecurityRulesDisabled(async context => setDoc(doc(context.firestore(), 'notifications/server-created'), { userId: 'user-a', body: 'Test', isRead: false }));
+  await assertSucceeds(updateDoc(doc(userDb, 'notifications/server-created'), { isRead: true }));
+  await assertFails(updateDoc(doc(userDb, 'notifications/server-created'), { body: 'Modified' }));
+  await assertFails(updateDoc(doc(userBDb, 'notifications/server-created'), { isRead: false }));
+  await testEnv.withSecurityRulesDisabled(async context => updateDoc(doc(context.firestore(), 'communityPosts/post-public'), { moderationStatus: 'hidden' }));
+  await assertFails(setDoc(doc(userDb, 'communityReactions/post-public_user-a'), reaction));
+
+  console.log('community rules tests passed (Oración R1-R16, unique reactions, schema, timestamps, moderation privacy)');
 } finally {
   await testEnv.cleanup();
 }

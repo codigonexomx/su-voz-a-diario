@@ -2,6 +2,7 @@ import { sanitizeCommunityHtml, communityPlainText } from './utils/communityHtml
 import { ContinuousReader } from './bible/ContinuousReader.js';
 import { getJourney, recordPractice, exportJourney, restoreJourney, validateJourneyBackup, legacyJourneyBackup } from './services/JourneyService.js';
 import { renderJourney, handleJourney } from './JourneyView.js';
+import { renderAccountPanel } from './AccountPanel.js';
 import {
     formatDateEs,
     formatDateForCompare,
@@ -1004,7 +1005,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '255'
+            pwaVersion: '256'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -2721,6 +2722,7 @@ loadCurrentCommunityIdentityProfile: async function({ force = false } = {}) {
 
     try {
         const snapshot = await fns.getDoc(fns.doc(dbRef, 'communityProfiles', user.uid));
+        if (this.currentUser?.uid !== user.uid) return null;
         this.communityIdentityProfileLoaded = true;
 
         if (!snapshot.exists()) {
@@ -2744,6 +2746,7 @@ loadCurrentCommunityIdentityProfile: async function({ force = false } = {}) {
         } catch (error) {}
         return profile;
     } catch (error) {
+        if (this.currentUser?.uid !== user.uid) return null;
         this.communityIdentityProfileLoaded = true;
         if (this.isCommunityPermissionDeniedError(error)) {
             console.debug('[Community Identity] communityProfiles no disponible temporalmente por Rules de transición.');
@@ -3149,6 +3152,7 @@ isCommunityOwnReply: function(reply) {
 },
 
 loadCommunityOwnershipForItems: async function(posts = [], repliesSummary = {}) {
+    const uid = this.currentUser?.uid;
     if (!this.currentUser?.uid || !navigator.onLine) {
         this.communityOwnedPosts = {};
         this.communityOwnedReplies = {};
@@ -3172,9 +3176,11 @@ loadCommunityOwnershipForItems: async function(posts = [], repliesSummary = {}) 
     try {
         const callable = await this.getCommunityIdentityCallable('getCommunityOwnership');
         const response = await callable({ postIds, replyIds });
+        if (this.currentUser?.uid !== uid) return;
         this.communityOwnedPosts = response?.data?.posts || {};
         this.communityOwnedReplies = response?.data?.replies || {};
     } catch (error) {
+        if (this.currentUser?.uid !== uid) return;
         console.warn('[Community] No se pudo comprobar ownership privado:', error);
         this.communityOwnedPosts = {};
         this.communityOwnedReplies = {};
@@ -4465,12 +4471,14 @@ async addCommunityPost(post) {
             };
         }
 
+        if (this.moderation && !(await this.moderation.ensureTerms())) return { success: false, message: 'Acepta las normas para publicar.' };
         const callable = await this.getCommunityIdentityCallable('createCommunityPost');
         const postPayload = {
             reference: Sanitizer.sanitizeReference(post.reference),
             text: Sanitizer.sanitizeText(post.text),
             date: post.date,
-            isAnonymous: post.isAnonymous === true
+            isAnonymous: post.isAnonymous === true,
+            termsVersion: this.moderation?.termsVersion
         };
         if (post.intent === 'dailyQuestionResponse') {
             postPayload.intent = 'dailyQuestionResponse';
@@ -4642,6 +4650,7 @@ loadMoreCommunityPrayerPosts: async function() {
 },
 
 loadCommunityPrayerOwnership: async function(prayers = []) {
+    const uid = this.currentUser?.uid;
     if (!this.currentUser?.uid || !Array.isArray(prayers) || prayers.length === 0) {
         this.prayerOwnershipMap = this.prayerOwnershipMap || {};
         return this.prayerOwnershipMap;
@@ -4657,6 +4666,7 @@ loadCommunityPrayerOwnership: async function(prayers = []) {
     try {
         const callable = await this.getCommunityIdentityCallable('getPrayerOwnership');
         const res = await callable({ requestIds: missingIds });
+        if (this.currentUser?.uid !== uid) return this.prayerOwnershipMap;
         const ownershipData = res?.data?.requests || {};
 
         Object.assign(this.prayerOwnershipMap, ownershipData);
@@ -4668,6 +4678,7 @@ loadCommunityPrayerOwnership: async function(prayers = []) {
 },
 
 loadCommunityPrayerCommitments: async function(prayers = []) {
+    const uid = this.currentUser?.uid;
     if (!this.currentUser?.uid || !Array.isArray(prayers) || prayers.length === 0) {
         this.prayerCommitmentMap = this.prayerCommitmentMap || {};
         return this.prayerCommitmentMap;
@@ -4683,6 +4694,7 @@ loadCommunityPrayerCommitments: async function(prayers = []) {
     try {
         const callable = await this.getCommunityIdentityCallable('getPrayerCommitmentStatus');
         const res = await callable({ requestIds: missingIds });
+        if (this.currentUser?.uid !== uid) return this.prayerCommitmentMap;
         const commitmentsData = res?.data?.commitments || {};
 
         Object.assign(this.prayerCommitmentMap, commitmentsData);
@@ -4840,10 +4852,12 @@ addCommunityPrayerPost: async function(prayerData) {
             };
         }
 
+        if (this.moderation && !(await this.moderation.ensureTerms())) return { success: false, message: 'Acepta las normas para publicar.' };
         const callable = await this.getCommunityIdentityCallable('createPrayerRequest');
         const response = await callable({
             text: Sanitizer.sanitizeText(prayerData.text, 800),
-            isAnonymous: prayerData.isAnonymous === true
+            isAnonymous: prayerData.isAnonymous === true,
+            termsVersion: this.moderation?.termsVersion
         });
         const created = response?.data || {};
 
@@ -5134,6 +5148,7 @@ renderCommunityPrayerCardHtml: function(prayer) {
                 </div>
             ` : ''}
 
+            ${!isOwner ? this.renderCommunitySafetyControls('prayer', prayer.id) : ''}
             ${isOwner ? `
                 <footer class="prayer-card-footer">
                     <div class="prayer-owner-actions">
@@ -5345,6 +5360,7 @@ renderCommunityPrayerTestimonyCardHtml: function(prayer) {
             </div>
 
             <footer class="prayer-card-footer prayer-testimony-footer">
+                ${this.prayerOwnershipMap?.[prayer.id] !== true ? this.renderCommunitySafetyControls('prayer', prayer.id) : ''}
                 ${answeredDateStr ? `<span class="prayer-answered-date">Respondida el ${this.escapeHtml(answeredDateStr)}</span>` : ''}
                 ${prayingCount > 0 ? `
                     <div class="prayer-testimony-prayed-count">
@@ -5489,32 +5505,6 @@ async getRepliesSummary(posts) {
     }
 },
 
-createInAppNotification: async function(targetUserId, type, title, body, postId) {
-    if (!targetUserId || !this.currentUser?.uid) return;
-    if (targetUserId === this.currentUser.uid) return;
-
-    const db = window.firebaseDb;
-    const fns = window.firebaseFns;
-
-    if (!db || !fns?.collection || !fns?.addDoc) {
-        return;
-    }
-
-    try {
-        await fns.addDoc(fns.collection(db, 'notifications'), {
-            userId: targetUserId,
-            type: type,
-            title: title,
-            body: body,
-            postId: postId || null,
-            isRead: false,
-            createdAt: fns.serverTimestamp ? fns.serverTimestamp() : new Date()
-        });
-    } catch (error) {
-        console.warn('[Notification] Error creando notificación in-app:', error);
-    }
-},
-
 async addCommunityReply(reply) {
     try {
         if (!navigator.onLine) {
@@ -5535,33 +5525,19 @@ async addCommunityReply(reply) {
             return { success: false, message: `Máximo ${this.replyCharLimit} caracteres` };
         }
 
+        if (this.moderation && !(await this.moderation.ensureTerms())) return { success: false, message: 'Acepta las normas para responder.' };
         const callable = await this.getCommunityIdentityCallable('createCommunityReply');
         const response = await callable({
             postId: reply.postId,
             text: cleanText,
             date: reply.date,
-            isAnonymous: reply.isAnonymous === true
+            isAnonymous: reply.isAnonymous === true,
+            termsVersion: this.moderation?.termsVersion
         });
         const createdReply = response?.data || {};
 
         if (!createdReply.success || !createdReply.id) {
             return { success: false, code: 'function-failed', message: 'No se pudo guardar la respuesta' };
-        }
-
-        const feedState = this.getCommunityFeedState();
-        const post = feedState?.recent?.posts?.find(p => p.id === reply.postId) ||
-                     feedState?.history?.posts?.find(p => p.id === reply.postId) ||
-                     (this.communityThreadState?.post?.id === reply.postId ? this.communityThreadState.post : null);
-
-        if (post && post.ownerUid) {
-            const replyName = reply.name || 'Alguien de la comunidad';
-            await this.createInAppNotification(
-                post.ownerUid,
-                'newReply',
-                'Nueva respuesta',
-                `${replyName} respondió a tu reflexión`,
-                reply.postId
-            );
         }
 
         return { success: true, id: createdReply.id };
@@ -6004,6 +5980,12 @@ getReactionDocId: function(postId, userId) {
     return `${postId}_${userId}`;
 },
 
+renderCommunitySafetyControls: function(type, id) {
+    if (!this.moderation) return '';
+    const target = `data-content-type="${this.escapeHtml(type)}" data-content-id="${this.escapeHtml(id)}"`;
+    return `<div class="community-safety-actions" role="group" aria-label="Seguridad de Comunidad"><button type="button" data-action="report-community-content" ${target}>Denunciar</button><button type="button" data-action="block-community-author" ${target}>Bloquear autor</button></div>`;
+},
+
 renderCommunityReactionBar: function(postId, reactionData = null) {
     const state = reactionData || this.getEmptyCommunityReactionState();
 
@@ -6139,7 +6121,7 @@ renderCommunityThread: async function(postId) {
             fns.where("postId", "==", postId)
         );
         const replySnaps = await fns.getDocs(repliesQuery);
-        const replies = replySnaps.docs.map(docSnap => ({
+        let replies = replySnaps.docs.map(docSnap => ({
             id: docSnap.id,
             ...docSnap.data()
         }));
@@ -6158,6 +6140,14 @@ renderCommunityThread: async function(postId) {
         await this.getUserProfilesBatch(authorUids);
         await this.loadCurrentCommunityIdentityProfile();
         await this.loadCommunityOwnershipForItems([post], { [postId]: replies });
+        try { await this.moderation?.refresh({ post: [post], reply: replies }); }
+        catch (error) { console.warn('[Community] Seguridad no disponible:', error.code || error.message); }
+        if (this.currentView !== 'community-thread' || window.location.hash !== `#community-thread/${postId}`) return;
+        if (post.moderationStatus === 'hidden' || (this.moderation && !this.moderation.isVisible(post, 'post'))) {
+            this.$content.innerHTML = '<section class="community-container"><p>Esta reflexión no está disponible.</p><button type="button" data-action="back-to-community">Volver a Comunidad</button></section>';
+            return;
+        }
+        replies = replies.filter(reply => reply.moderationStatus !== 'hidden' && (!this.moderation || this.moderation.isVisible(reply, 'reply')));
         const reactionSummary = await this.getCommunityReactionSummary([post]);
         const reactionData = reactionSummary[post.id] || null;
 
@@ -6245,6 +6235,7 @@ renderCommunityThread: async function(postId) {
 
                     <div class="community-card-footer">
                         ${this.renderCommunityReactionBar(post.id, reactionData)}
+                        ${!this.isCommunityOwnPost(post) ? this.renderCommunitySafetyControls('post', post.id) : ''}
                     </div>
                 </div>
 
@@ -6293,6 +6284,7 @@ renderCommunityThread: async function(postId) {
                                     ` : ''}
                                 </div>
                                 <div class="community-thread-reply-text">${this.escapeHtml(reply.text || '')}</div>
+                                ${!this.isCommunityOwnReply(reply) ? this.renderCommunitySafetyControls('reply', reply.id) : ''}
                             </div>
                         `;
                     }).join('')}
@@ -6448,7 +6440,7 @@ getCommunityReactionSummary: async function(posts) {
                 const userId = data.userId;
                 const reactions = data.reactions || {};
 
-                if (!summary[postId]) return;
+                if (!summary[postId] || typeof userId !== 'string' || !userId || docSnap.id !== this.getReactionDocId(postId, userId)) return;
 
                 Object.keys(summary[postId].counts).forEach(key => {
                     if (reactions[key] === true) {
@@ -6513,21 +6505,6 @@ toggleCommunityReaction: async function(postId, reaction) {
             reactions: currentReactions,
             updatedAt: serverTimestamp()
         });
-
-        if (currentReactions[reaction] === true) {
-            const post = this.getCommunityFeedState().posts.find(p => p.id === postId);
-            if (post && post.ownerUid) {
-                const prefs = this.getUserCommunityPreferences();
-                const userName = (prefs && !prefs.isAnonymous && prefs.name) ? prefs.name : 'Alguien de la comunidad';
-                await this.createInAppNotification(
-                    post.ownerUid,
-                    'newReaction',
-                    'Nueva reacción',
-                    `${userName} reaccionó a tu reflexión`,
-                    postId
-                );
-            }
-        }
 
         return { success: true, removed: false };
     } catch (error) {
@@ -6696,6 +6673,7 @@ syncAppBadge: function(count) {
 },
     
    getNote: function(dateStr) {
+    if (this.pendingMeditationNotes?.[dateStr]) return this.pendingMeditationNotes[dateStr];
     const defaultNote = { dios: '', aprendizaje: '', respuesta: '', oracion: '' };
     if (this.currentMeditationSessionId) {
         const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
@@ -6717,7 +6695,11 @@ syncAppBadge: function(count) {
             noteObj = NotebookAnalytics.updateTimestamps(noteObj);
         }
 
-        this.storage.set(this.getNoteKey(dateStr), noteObj);
+        this.pendingMeditationNotes = this.pendingMeditationNotes || {};
+        this.pendingMeditationNotes[dateStr] = noteObj;
+        if (!this.storage.set(this.getNoteKey(dateStr), noteObj)) {
+            throw new Error('No se pudo guardar la meditación. Conserva el texto y libera espacio en el dispositivo.');
+        }
         
         if (this.currentMeditationSessionId) {
             const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
@@ -6729,7 +6711,7 @@ syncAppBadge: function(count) {
                 this.invalidateMeditationLibraryCache();
             }
         }
-        
+        delete this.pendingMeditationNotes[dateStr];
         this.sendToSW({ type: 'NOTE_SAVED', date: dateStr });
     },
 
@@ -7167,6 +7149,7 @@ syncAppBadge: function(count) {
                     this.saveDeepeningPanelUIState(reading.date, uiState);
                 }
             },
+            onSaveError: () => this.showToast('No se pudo guardar. Conserva el texto y libera espacio antes de cerrar.', 7000),
             onRestore: () => {
                 if (this.openNoteDate === reading.date) {
                     this.toggleNote(reading.date);
@@ -16191,6 +16174,14 @@ renderCommunityComposerLocally: function() {
             }
         }
 
+        try { await this.moderation?.refresh({ post: posts, reply: Object.values(repliesSummary).flat(), prayer: [...prayers, ...testimonies] }); }
+        catch (error) { console.warn('[Community] Seguridad no disponible:', error.code || error.message); }
+        const visible = (item, type) => item.moderationStatus !== 'hidden' && (!this.moderation || this.moderation.isVisible(item, type));
+        posts = posts.filter(item => visible(item, 'post'));
+        prayers = prayers.filter(item => visible(item, 'prayer'));
+        testimonies = testimonies.filter(item => visible(item, 'prayer'));
+        repliesSummary = Object.fromEntries(Object.entries(repliesSummary).map(([id, replies]) => [id, replies.filter(item => visible(item, 'reply'))]));
+
         loadingCompleted = true;
     } catch (error) {
         if (options.preserveOnError) {
@@ -16268,6 +16259,8 @@ try {
                     >
                         Normas
                     </button>
+                    <button class="community-rules-btn" type="button" data-action="show-blocked-authors">Autores bloqueados</button>
+                    ${this.moderation?.isModerator ? '<button class="community-rules-btn" type="button" data-action="show-moderation-queue">Moderación</button>' : ''}
                 </div>
             </section>
 
@@ -16659,6 +16652,7 @@ try {
                                         <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
                                         <button type="button" data-action="speech-post" data-post-id="${post.id}">${this.currentlySpeakingPostId === post.id ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta'}</button>
                                         <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar favorito'}</button>
+                                        ${!this.isCommunityOwnPost(post) ? this.renderCommunitySafetyControls('post', post.id) : ''}
                                         ${this.isCommunityOwnPost(post) ? `
                                             <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
                                         ` : ''}
@@ -17199,6 +17193,7 @@ renderStats: function() {
     renderSettings: function() {
         this.$content.innerHTML = `
             <div class="settings-container">
+                <section class="account-settings" id="account-settings" aria-label="Cuenta y recuperación"></section>
                 <div class="setting-card">
                     <h3>🔔 Notificaciones</h3>
                     <div class="setting-item">
@@ -17289,6 +17284,7 @@ renderStats: function() {
         const resetBtn = document.getElementById('reset-data');
         const importFile = document.getElementById('import-file');
         const themeToggleSettings = document.getElementById('theme-toggle-settings');
+        renderAccountPanel(this, document.getElementById('account-settings'));
         
 if (reminderTime) {
     reminderTime.addEventListener('change', async (e) => {
@@ -17395,7 +17391,8 @@ if (notificationsToggle) {
         }
     },
     
-   exportAllData: function() {
+   exportAllData: async function() {
+    try {
     const uid = this.currentUser?.uid || null;
     let userProfile = uid ? this.userProfilesCache?.[uid] : null;
 
@@ -17454,16 +17451,24 @@ if (notificationsToggle) {
         }
     }
 
+    for (const [date, note] of Object.entries(this.pendingMeditationNotes || {})) {
+        allData.notes[date] = note;
+        allData.journeyBackup.entries[this.getNoteKey(date)] = JSON.stringify(note);
+    }
+    for (const [id, raw] of MeditationSessionStorage.pendingSessions || []) {
+        allData.journeyBackup.entries[MeditationSessionStorage.getSessionKey(id)] = raw;
+    }
+    allData.journeyBackup.entries[MeditationSessionStorage.getIndexKey()] = JSON.stringify(MeditationSessionStorage.getAllMetadata());
     const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `su-voz-backup-${this.getTodayDateStr()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const result = await window.ShareService.exportBackup(blob, `su-voz-backup-${this.getTodayDateStr()}.json`);
+    if (result?.canceled) return;
 
-    alert('Este archivo contiene tu avatar, preferencias y datos. Guárdalo en un lugar seguro. Si cambias de dispositivo o desinstalas la app, podrás restaurar todo con este archivo.');
-    this.showToast('Datos y avatar exportados correctamente', 'success');
+    alert('Este respaldo contiene tus meditaciones, lecturas, avatar y preferencias locales. No recupera tu identidad de Comunidad ni el control de publicaciones en otro dispositivo. Guárdalo en un lugar seguro.');
+    this.showToast('Respaldo de datos locales exportado correctamente');
+    } catch (error) {
+        console.error('[Backup] No se pudo exportar:', error);
+        this.showToast('No se pudo generar el respaldo. Tus datos no se han borrado.', 7000);
+    }
 },
     
     importData: function(file) {
@@ -17631,7 +17636,7 @@ if (notificationsToggle) {
                 onAuthStateChanged(
                     auth,
                     user => {
-                        this.currentUser = user || null;
+                        this.setCurrentAuthUser(user || null);
                     },
                     error => {
                         console.warn(`[Auth] El observador de sesión reportó un error: ${JSON.stringify({
@@ -18042,7 +18047,53 @@ initPushNotifications: async function() {
     }
 },
 
+setCurrentAuthUser: function(user, previousUid = this.currentUser?.uid) {
+    this.currentUser = user;
+    if (!previousUid || previousUid === user?.uid) return;
+    this.communityIdentityProfile = null;
+    this.communityIdentityProfileLoaded = false;
+    this.communityOwnedPosts = {};
+    this.communityOwnedReplies = {};
+    this.prayerOwnershipMap = {};
+    this.prayerCommitmentMap = {};
+    this.invalidateCommunityCache();
+    this.resetCommunityPrayerState();
+    this.resetCommunityPrayerTestimonyState();
+    if (this.moderation) {
+        this.moderation.hidden = { post: {}, reply: {}, prayer: {} };
+        this.moderation.blocked = [];
+        this.moderation.isModerator = false;
+    }
+},
+
+prepareAccountRecovery: async function() {
+    this._accountRecoveryPending = true;
+    try {
+        const deviceId = localStorage.getItem('su-voz-device-id');
+        if (!deviceId) return;
+        if (this._pushTokenWrite) await this._pushTokenWrite;
+        const detach = await this.getCommunityIdentityCallable('detachAccountPushDevice');
+        await detach({ deviceId });
+    } catch (error) {
+        this._accountRecoveryPending = false;
+        throw error;
+    }
+},
+
+finishAccountRecovery: async function() {
+    this._accountRecoveryPending = false;
+    try {
+        const token = localStorage.getItem('su-voz-fcm-token');
+        if (token && this.settings.notificationsEnabled && !(await this.savePushToken(token))) {
+            this.showToast('Revisa las notificaciones en Ajustes: no se pudo actualizar su registro.');
+        }
+    } catch {
+        this.showToast('Revisa las notificaciones en Ajustes: no se pudo actualizar su registro.');
+    }
+},
+
 savePushToken: async function(token) {
+    if (this._accountRecoveryPending) return false;
     const normalizedToken = typeof token === 'string' ? token.trim() : '';
     const uid = typeof this.currentUser?.uid === 'string'
         ? this.currentUser.uid.trim()
@@ -18073,7 +18124,7 @@ savePushToken: async function(token) {
             : DEFAULT_SETTINGS.reminderTime;
         const tokenRef = doc(db, 'pushTokens', deviceId);
 
-        await setDoc(tokenRef, {
+        const write = setDoc(tokenRef, {
             token: normalizedToken,
             uid,
             deviceId,
@@ -18084,6 +18135,10 @@ savePushToken: async function(token) {
             lastActive: serverTimestamp(),
             updatedAt: serverTimestamp()
         }, { merge: true });
+        this._pushTokenWrite = write;
+        try { await write; } finally {
+            if (this._pushTokenWrite === write) this._pushTokenWrite = null;
+        }
 
         console.log('[App] Token Push guardado en Firestore');
         return true;
@@ -19652,6 +19707,20 @@ if (openCommunityRefBtn) {
     return;
 }
 
+const safetyAction = e.target.closest('[data-action="report-community-content"], [data-action="block-community-author"], [data-action="show-blocked-authors"], [data-action="show-moderation-queue"]');
+if (safetyAction) {
+    this.closePostMenus();
+    const target = { type: safetyAction.dataset.contentType, id: safetyAction.dataset.contentId };
+    try {
+        if (!this.moderation) throw new Error('No se pudo abrir el control de seguridad.');
+        if (safetyAction.dataset.action === 'report-community-content') this.moderation.showReportDialog(target);
+        else if (safetyAction.dataset.action === 'block-community-author') await this.moderation.blockAuthor(target);
+        else if (safetyAction.dataset.action === 'show-blocked-authors') await this.moderation.showBlockedAuthors();
+        else await this.moderation.showModerationQueue();
+    } catch (error) { this.showToast(error.message || 'No se pudo completar la acción.'); }
+    return;
+}
+
 const toggleMenuBtn = e.target.closest('[data-action="toggle-post-menu"]');
 if (toggleMenuBtn) {
     const postId = toggleMenuBtn.getAttribute('data-post-id');
@@ -20092,7 +20161,7 @@ if (libraryAction) {
     const id = libraryAction.dataset.sessionId;
     const session = id ? MeditationSessionStorage.get(id) : null;
     if (action === 'library-journey') { this.navigate('stats'); return; }
-    if (action === 'library-backup') { this.exportData(); return; }
+    if (action === 'library-backup') { this.exportAllData(); return; }
     if (action === 'library-today') { this.navigate('reading', this.getTodayDateStr()); return; }
     if (action === 'library-quick-filter') {
         const filter = libraryAction.dataset.filter;
@@ -22164,6 +22233,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 window.App = App;
+window.addEventListener('beforeunload', event => {
+    if (!Object.keys(App.pendingMeditationNotes || {}).length && !MeditationSessionStorage.pendingSessions.size) return;
+    event.preventDefault();
+    event.returnValue = '';
+});
 
 window.addEventListener('load', () => {
     hideSplashScreen(1200);

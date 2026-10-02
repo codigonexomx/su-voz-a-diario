@@ -10,6 +10,24 @@ service cloud.firestore {
       return isSignedIn() && resource.data.uid == request.auth.uid;
     }
 
+    function validReaction(reactionId) {
+      return request.resource.data.keys().hasOnly(['postId', 'userId', 'reactions', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['postId', 'userId', 'reactions', 'updatedAt'])
+        && request.resource.data.postId is string
+        && request.resource.data.postId.size() > 0
+        && request.resource.data.userId == request.auth.uid
+        && reactionId == request.resource.data.postId + '_' + request.auth.uid
+        && exists(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId))
+        && (!('moderationStatus' in get(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)).data)
+          || get(/databases/$(database)/documents/communityPosts/$(request.resource.data.postId)).data.moderationStatus != 'hidden')
+        && request.resource.data.reactions is map
+        && request.resource.data.reactions.keys().hasOnly(['useful', 'thanks'])
+        && request.resource.data.reactions.keys().hasAll(['useful', 'thanks'])
+        && request.resource.data.reactions.useful is bool
+        && request.resource.data.reactions.thanks is bool
+        && request.resource.data.updatedAt == request.time;
+    }
+
     function validPushToken(deviceId) {
       return request.resource.data.keys().hasOnly([
           'token',
@@ -129,22 +147,12 @@ service cloud.firestore {
     match /communityReactions/{reactionId} {
       allow read: if true;
 
-      allow create: if isSignedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.postId is string
-        && request.resource.data.reactions is map
-        && request.resource.data.reactions.keys().hasOnly(['useful', 'thanks'])
-        && request.resource.data.reactions.useful is bool
-        && request.resource.data.reactions.thanks is bool;
+      allow create: if isSignedIn() && validReaction(reactionId);
 
       allow update: if isSignedIn()
         && resource.data.userId == request.auth.uid
-        && request.resource.data.userId == request.auth.uid
         && request.resource.data.postId == resource.data.postId
-        && request.resource.data.reactions is map
-        && request.resource.data.reactions.keys().hasOnly(['useful', 'thanks'])
-        && request.resource.data.reactions.useful is bool
-        && request.resource.data.reactions.thanks is bool;
+        && validReaction(reactionId);
 
       allow delete: if isSignedIn()
         && resource.data.userId == request.auth.uid;
@@ -161,21 +169,8 @@ service cloud.firestore {
     }
 
     match /communityReports/{reportId} {
-      allow read: if isSignedIn() &&
-        (request.auth.uid == resource.data.reportedBy ||
-         request.auth.token.moderator == true);
-      allow create: if isSignedIn() &&
-        request.auth.uid == request.resource.data.reportedBy &&
-        request.resource.data.reason in [
-          'Contenido inapropiado',
-          'Spam o promoción',
-          'Contenido ofensivo',
-          'Información engañosa',
-          'Acoso o bullying',
-          'Otro motivo'
-        ];
-      allow update: if request.auth.token.moderator == true;
-      allow delete: if request.auth.token.moderator == true;
+      // Reports contain sensitive context; access only through authenticated callables.
+      allow read, write: if false;
     }
 
     match /communityProfiles/{uid} {
@@ -189,15 +184,23 @@ service cloud.firestore {
 
     match /userMetrics/{userId} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isSignedIn() &&
-        (request.auth.uid == userId || request.auth.token.moderator == true);
+      allow write: if false;
     }
 
     match /notifications/{notificationId} {
-      allow read: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow write: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow delete: if isSignedIn() && request.auth.uid == resource.data.userId;
+      function ownsNotification() {
+        return isSignedIn() && resource != null
+          && resource.data.keys().hasAll(['userId'])
+          && request.auth.uid == resource.data.userId;
+      }
+
+      allow read: if ownsNotification();
+      allow create: if false;
+      allow update: if ownsNotification()
+        && request.resource.data.keys().hasAll(['isRead'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isRead'])
+        && request.resource.data.isRead is bool;
+      allow delete: if ownsNotification();
     }
 
     match /userProfiles/{userId} {

@@ -70,7 +70,7 @@ export function renderJourney(app) {
 }
 export async function handleJourney(app, element) {
     const kind=element.dataset.journey, id=element.dataset.id;
-    if (kind==='backup') {app.exportData();return;}
+    if (kind==='backup') {await app.exportAllData();return;}
     if (kind==='today') {app.navigate('reading',app.getTodayDateStr());return;}
     if (kind==='library') {app.navigate('meditations-history');return;}
     if (kind==='open' || kind==='resume') {

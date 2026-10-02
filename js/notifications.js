@@ -207,15 +207,14 @@ class NotificationCenter {
 
     async markAsRead(notificationId) {
         const item = this.notifications.find(n => n.id === notificationId);
-        if (item) item.isRead = true;
-        this.unreadCount = this.notifications.filter(n => !n.isRead).length;
-        this.updateBadgeUI();
-
         const db = window.firebaseDb;
         const fns = window.firebaseFns;
         if (db && fns?.updateDoc && fns?.doc) {
             try {
                 await fns.updateDoc(fns.doc(db, 'notifications', notificationId), { isRead: true });
+                if (item) item.isRead = true;
+                this.unreadCount = this.notifications.filter(n => !n.isRead).length;
+                this.updateBadgeUI();
             } catch (e) {
                 console.warn('[NotificationCenter] Error marcando notificación:', e);
             }
@@ -223,10 +222,7 @@ class NotificationCenter {
     }
 
     async markAllAsRead() {
-        this.notifications.forEach(n => n.isRead = true);
-        this.unreadCount = 0;
-        this.updateBadgeUI();
-        this.renderList();
+        const unread = this.notifications.filter(n => !n.isRead);
 
         const db = window.firebaseDb;
         const fns = window.firebaseFns;
@@ -234,10 +230,14 @@ class NotificationCenter {
 
         try {
             const batch = fns.writeBatch(db);
-            this.notifications.filter(n => !n.isRead).forEach(n => {
+            unread.forEach(n => {
                 batch.update(fns.doc(db, 'notifications', n.id), { isRead: true });
             });
             await batch.commit();
+            unread.forEach(n => { n.isRead = true; });
+            this.unreadCount = this.notifications.filter(n => !n.isRead).length;
+            this.updateBadgeUI();
+            this.renderList();
         } catch (e) {
             console.warn('[NotificationCenter] Error en batch markAllAsRead:', e);
         }

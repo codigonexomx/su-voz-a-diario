@@ -3,6 +3,8 @@
 const { logger } = require("firebase-functions");
 const { defineSecret } = require("firebase-functions/params");
 const { HttpsError, onCall } = require("firebase-functions/v2/https");
+const { getFirestore } = require("firebase-admin/firestore");
+const { requireUser, consumeRateLimit } = require("./communitySafety");
 const {
   YouVersionBibleClient,
 } = require("./youVersionBibleClient");
@@ -473,6 +475,7 @@ function createBibleProxyHandlers({
 }
 
 function toHttpsError(error) {
+  if (error instanceof HttpsError) return error;
   if (error instanceof HttpsError) {
     return error;
   }
@@ -505,6 +508,8 @@ function toHttpsError(error) {
 function createCallable(handler, options = CALLABLE_OPTIONS) {
   return onCall(options, async (request) => {
     try {
+      const uid = requireUser(request);
+      await consumeRateLimit(getFirestore(), uid, "bible");
       return await handler(request);
     } catch (error) {
       logger.warn("Consulta bíblica remota rechazada.", {

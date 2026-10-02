@@ -132,7 +132,7 @@ class VoiceReflectionRecorder {
     async uploadAudio(audioBlob = this.audioBlob) {
         if (!audioBlob) return null;
 
-        const auth = window.firebaseAuth?.() || window.firebase?.auth?.();
+        const auth = typeof window.firebaseAuth === 'function' ? window.firebaseAuth() : window.firebaseAuth;
         const currentUser = auth?.currentUser;
         if (!currentUser?.uid) {
             console.warn('[VoiceRecorder] No hay usuario autenticado para subir audio.');
@@ -141,25 +141,27 @@ class VoiceReflectionRecorder {
 
         const uid = currentUser.uid;
         const timestamp = Date.now();
-        const storage = window.firebaseStorage?.() || window.firebase?.storage?.();
+        try {
+        const app = window.firebaseApp;
+        const storageModule = app ? await import('https://www.gstatic.com/firebasejs/12.11.0/firebase-storage.js') : null;
+        const storage = storageModule?.getStorage(app);
 
         if (!storage) {
             console.warn('[VoiceRecorder] Firebase Storage no está inicializado.');
             return null;
         }
 
-        const storageRef = storage.ref(`community/audio/${timestamp}-${uid}.webm`);
+        const storageRef = storageModule.ref(storage, `community/audio/${timestamp}-${uid}.webm`);
 
-        try {
-            const uploadTask = await storageRef.put(audioBlob, {
+            await storageModule.uploadBytes(storageRef, audioBlob, {
                 contentType: audioBlob.type || 'audio/webm',
                 customMetadata: {
-                    uid: uid,
+                    ownerUid: uid,
                     duration: String(this.currentDuration)
                 }
             });
 
-            const downloadURL = await storageRef.getDownloadURL();
+            const downloadURL = await storageModule.getDownloadURL(storageRef);
             return downloadURL;
         } catch (error) {
             console.error('[VoiceRecorder] Error al subir audio a Storage:', error);

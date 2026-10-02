@@ -15,6 +15,11 @@ export class ContinuousReader {
         this.pending = new Set();
         this.failed = new Set();
         this.disposed = false;
+        this.autoLoadDirections = new Set([-1, 1]);
+        this.onIntent = event => {
+            if (event.type === 'keydown' && !['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', ' '].includes(event.key)) return;
+            this.autoLoadDirections = new Set([-1, 1]);
+        };
         initial.element = root.querySelector('.reading-text-shell');
         this.decorate(initial);
         this.top = this.boundary(-1);
@@ -34,12 +39,18 @@ export class ContinuousReader {
             if (!this.frame) this.frame = requestAnimationFrame(() => { this.frame = null; this.update(); });
         };
         window.addEventListener('scroll', this.onScroll, { passive: true });
+        root.addEventListener('wheel', this.onIntent, { passive: true });
+        root.addEventListener('touchmove', this.onIntent, { passive: true });
+        root.addEventListener('keydown', this.onIntent);
         this.update();
     }
     alive() { return !this.disposed && this.root.isConnected; }
     dispose() {
         this.disposed = true;
         window.removeEventListener('scroll', this.onScroll);
+        this.root.removeEventListener('wheel', this.onIntent);
+        this.root.removeEventListener('touchmove', this.onIntent);
+        this.root.removeEventListener('keydown', this.onIntent);
         cancelAnimationFrame(this.frame);
     }
     decorate(entry) {
@@ -85,7 +96,12 @@ export class ContinuousReader {
         for (const direction of [-1, 1]) {
             const edge = direction < 0 ? this.top : this.bottom;
             const rect = edge.getBoundingClientRect();
-            if (rect.bottom > -300 && rect.top < window.innerHeight + 400 && !this.failed.has(direction)) void this.extend(direction);
+            if (rect.bottom > -300 && rect.top < window.innerHeight + 400 && !this.failed.has(direction)
+                && this.autoLoadDirections.has(direction) && this.entries.length < 8) {
+                // Layout/scroll restoration must not start an unbounded prefetch chain.
+                this.autoLoadDirections.delete(direction);
+                void this.extend(direction);
+            }
         }
     }
     async extend(direction) {
@@ -108,7 +124,7 @@ export class ContinuousReader {
             if (direction < 0) { this.top.after(entry.element); this.entries.unshift(entry); }
             else { this.bottom.before(entry.element); this.entries.push(entry); }
             this.restore(entry);
-            if (direction < 0 && anchor.verse) window.scrollBy({ top: anchor.verse.getBoundingClientRect().top - anchor.top, behavior: 'instant' });
+            if (anchor.verse) window.scrollBy({ top: anchor.verse.getBoundingClientRect().top - anchor.top, behavior: 'instant' });
             edge.textContent = direction < 0 ? 'Cargar capítulo anterior' : 'Cargar capítulo siguiente';
         } catch {
             if (!this.alive()) return;

@@ -11,6 +11,9 @@ const {
 const { HttpsError, onCall } = require("firebase-functions/v2/https");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const {
+  getContentOwner, eventRef, incrementRecipientOnce, incrementCommunityOnce, deletePostCascade,
+} = require("./communityActivity");
+const {
   getRemoteBibleBooks,
   getRemoteBibleChapter,
   searchRemoteBible,
@@ -38,6 +41,10 @@ const {
   togglePrayerCommitmentLogic,
   getPrayerCommitmentStatusLogic,
 } = require("./communityPrayer");
+const communitySafety = require("./communitySafety");
+for (const name of ["acceptCommunityTerms", "reportCommunityContent", "blockCommunityAuthor", "unblockCommunityAuthor", "getCommunitySafetyState", "listCommunityReports", "resolveCommunityReport", "requestAccountDeletion", "listAccountDeletionRequests", "detachAccountPushDevice"]) {
+  exports[name] = communitySafety[name];
+}
 
 if (getApps().length === 0) {
   initializeApp();
@@ -80,79 +87,8 @@ function getCurrentReminderTime(date = new Date()) {
   return `${hour}:${minute}`;
 }
 
-async function incrementUserActivity(db, uid) {
-  if (typeof uid !== "string" || uid.length === 0) {
-    return null;
-  }
-
-  const activityRef = db.collection("userActivity").doc(uid);
-  return db.runTransaction(async (transaction) => {
-    const activitySnapshot = await transaction.get(activityRef);
-
-    if (!activitySnapshot.exists) {
-      return null;
-    }
-
-    const currentCount = activitySnapshot.get("unreadCommunityCount");
-    const badgeCount = Number.isInteger(currentCount) && currentCount >= 0
-      ? currentCount + 1
-      : 1;
-
-    transaction.update(activityRef, {
-      unreadCommunityCount: badgeCount,
-    });
-
-    return { uid, badgeCount };
-  });
-}
-
-async function incrementCommunityForAllUsers(db, actorUid) {
-  const snapshot = await db.collection("userActivity").get();
-  const recipientDocuments = snapshot.docs.filter(
-    (document) => document.id !== actorUid
-  );
-  const updates = [];
-
-  for (const documentsBatch of chunk(
-    recipientDocuments,
-    MAX_FIRESTORE_BATCH_WRITES
-  )) {
-    const writeBatch = db.batch();
-
-    for (const document of documentsBatch) {
-      writeBatch.update(document.ref, {
-        unreadCommunityCount: FieldValue.increment(1),
-      });
-    }
-
-    await writeBatch.commit();
-
-    const updatedSnapshots = await db.getAll(
-      ...documentsBatch.map((document) => document.ref)
-    );
-
-    for (const activitySnapshot of updatedSnapshots) {
-      const badgeCount = activitySnapshot.get("unreadCommunityCount");
-
-      if (Number.isInteger(badgeCount) && badgeCount > 0) {
-        updates.push({
-          uid: activitySnapshot.id,
-          badgeCount,
-        });
-      }
-    }
-  }
-
-  return updates;
-}
-
 async function getCommunityPostOwner(db, postId) {
-  if (typeof postId !== "string" || postId.length === 0) {
-    return null;
-  }
-
-  const postSnapshot = await db.collection("communityPosts").doc(postId).get();
-  return postSnapshot.exists ? postSnapshot.get("ownerUid") : null;
+  return getContentOwner(db, "communityPosts", "communityPostPrivate", postId);
 }
 
 exports.togglePrayerCommitment = onCall(
@@ -464,16 +400,6 @@ async function resolveReplyOwnership(db, replyId, uid) {
   return privateSnapshot.exists && privateSnapshot.get("ownerUid") === uid;
 }
 
-async function deleteDocumentsInBatches(db, refs) {
-  const uniqueRefs = [...new Map(refs.map((ref) => [ref.path, ref])).values()];
-
-  for (const refsBatch of chunk(uniqueRefs, MAX_FIRESTORE_BATCH_WRITES)) {
-    const writeBatch = db.batch();
-    refsBatch.forEach((ref) => writeBatch.delete(ref));
-    await writeBatch.commit();
-  }
-}
-
 async function deleteInvalidTokens(db, documents) {
   const batches = chunk(documents, MAX_MULTICAST_TOKENS);
 
@@ -781,7 +707,7 @@ exports.createCommunityPost = onCall(
       );
     }
 
-    const uid = request.auth.uid;
+    const uid = communitySafety.requireUser(request);
     const reference = sanitizeCommunityReference(request.data?.reference);
     const text = sanitizeCommunityText(request.data?.text, 1200);
     const date = sanitizeCommunityDate(request.data?.date);
@@ -804,6 +730,8 @@ exports.createCommunityPost = onCall(
     const db = getFirestore();
 
     if (isAnonymous) {
+      await communitySafety.requireCommunityTerms(db, uid, request.data);
+      await communitySafety.consumeRateLimit(db, uid, "post");
       const postRef = db.collection("communityPosts").doc();
       const privateRef = db.collection("communityPostPrivate").doc(postRef.id);
       const batch = db.batch();
@@ -832,6 +760,8 @@ exports.createCommunityPost = onCall(
 
     const authorSnapshot = await getRequiredCommunityAuthorSnapshot(db, uid);
 
+    await communitySafety.requireCommunityTerms(db, uid, request.data);
+    await communitySafety.consumeRateLimit(db, uid, "post");
     const timestamp = FieldValue.serverTimestamp();
     const postRef = await db.collection("communityPosts").add(createIdentifiedPostDocument({
       reference,
@@ -862,7 +792,7 @@ exports.createCommunityReply = onCall(
       );
     }
 
-    const uid = request.auth.uid;
+    const uid = communitySafety.requireUser(request);
     const postId = sanitizeCommunityDocumentId(request.data?.postId, "POST_ID_INVALID");
     const text = sanitizeCommunityText(request.data?.text, 300);
     const date = sanitizeCommunityDate(request.data?.date);
@@ -874,6 +804,10 @@ exports.createCommunityReply = onCall(
     if (!postSnapshot.exists) {
       throw new HttpsError("not-found", "POST_NOT_FOUND");
     }
+
+    if (postSnapshot.get("moderationStatus") === "hidden") throw new HttpsError("failed-precondition", "CONTENT_UNAVAILABLE");
+    await communitySafety.requireCommunityTerms(db, uid, request.data);
+    await communitySafety.consumeRateLimit(db, uid, "reply");
 
     if (isAnonymous) {
       const replyRef = db.collection("communityReplies").doc();
@@ -1005,26 +939,7 @@ exports.deleteCommunityPost = onCall(
       throw new HttpsError("permission-denied", "NOT_OWNER");
     }
 
-    const refsToDelete = [
-      postRef,
-      db.collection("communityPostPrivate").doc(postId),
-    ];
-
-    const [repliesSnapshot, reactionsSnapshot] = await Promise.all([
-      db.collection("communityReplies").where("postId", "==", postId).get(),
-      db.collection("communityReactions").where("postId", "==", postId).get(),
-    ]);
-
-    repliesSnapshot.docs.forEach((document) => {
-      refsToDelete.push(document.ref);
-      refsToDelete.push(db.collection("communityReplyPrivate").doc(document.id));
-    });
-
-    reactionsSnapshot.docs.forEach((document) => {
-      refsToDelete.push(document.ref);
-    });
-
-    await deleteDocumentsInBatches(db, refsToDelete);
+    await deletePostCascade(db, postId);
 
     return {
       success: true,
@@ -1044,9 +959,11 @@ exports.createPrayerRequest = onCall(
       );
     }
 
-    const uid = request.auth.uid;
+    const uid = communitySafety.requireUser(request);
     const db = getFirestore();
 
+    await communitySafety.requireCommunityTerms(db, uid, request.data);
+    await communitySafety.consumeRateLimit(db, uid, "prayer");
     return createPrayerRequestLogic(
       db,
       FieldValue,
@@ -1227,6 +1144,8 @@ exports.countNewCommunityPost = onDocumentCreated(
   {
     document: "communityPosts/{postId}",
     region: "us-central1",
+    retry: true,
+    maxInstances: 10,
   },
   async (event) => {
     const post = event.data?.data();
@@ -1236,19 +1155,13 @@ exports.countNewCommunityPost = onDocumentCreated(
       event.params.postId,
       post?.createdAt || event.data?.createTime
     );
-    const updates = await incrementCommunityForAllUsers(
-      db,
-      post?.ownerUid
-    );
-    const pushResult = await sendCommunityBadgeUpdates(db, updates, {
-      postId: event.params.postId,
-    });
+    const actorUid = await getCommunityPostOwner(db, event.params.postId);
+    if (!actorUid) return;
+    const updatedUsers = await incrementCommunityOnce(db, event.id, actorUid, event.params.postId);
 
     logger.info("Actividad de publicación contabilizada.", {
       postId: event.params.postId,
-      actorUid: post?.ownerUid || null,
-      updatedUsers: updates.length,
-      ...pushResult,
+      updatedUsers,
     });
   }
 );
@@ -1257,6 +1170,8 @@ exports.countNewCommunityReply = onDocumentCreated(
   {
     document: "communityReplies/{replyId}",
     region: "us-central1",
+    retry: true,
+    maxInstances: 10,
   },
   async (event) => {
     const reply = event.data?.data();
@@ -1267,22 +1182,15 @@ exports.countNewCommunityReply = onDocumentCreated(
       reply?.createdAt || event.data?.createTime
     );
     const postOwnerUid = await getCommunityPostOwner(db, reply?.postId);
-    const update = postOwnerUid !== reply?.ownerUid
-      ? await incrementUserActivity(db, postOwnerUid)
+    const actorUid = await getContentOwner(db, "communityReplies", "communityReplyPrivate", event.params.replyId);
+    const update = actorUid && postOwnerUid !== actorUid
+      ? await incrementRecipientOnce(db, "reply", event.id, postOwnerUid, reply?.postId)
       : null;
-    const pushResult = await sendCommunityBadgeUpdates(
-      db,
-      update ? [update] : [],
-      { postId: reply?.postId }
-    );
 
     logger.info("Actividad de respuesta contabilizada.", {
       replyId: event.params.replyId,
       postId: reply?.postId || null,
-      actorUid: reply?.ownerUid || null,
-      recipientUid: postOwnerUid,
       badgeCount: update?.badgeCount || 0,
-      ...pushResult,
     });
   }
 );
@@ -1291,6 +1199,8 @@ exports.countNewCommunityReaction = onDocumentWritten(
   {
     document: "communityReactions/{reactionId}",
     region: "us-central1",
+    retry: true,
+    maxInstances: 10,
   },
   async (event) => {
     const before = event.data?.before?.exists
@@ -1308,127 +1218,101 @@ exports.countNewCommunityReaction = onDocumentWritten(
     const db = getFirestore();
     const postOwnerUid = await getCommunityPostOwner(db, reaction?.postId);
     const update = postOwnerUid !== reaction?.userId
-      ? await incrementUserActivity(db, postOwnerUid)
+      ? await incrementRecipientOnce(db, "reaction", event.id, postOwnerUid, reaction?.postId)
       : null;
-    const pushResult = await sendCommunityBadgeUpdates(
-      db,
-      update ? [update] : [],
-      { postId: reaction?.postId }
-    );
 
     logger.info("Actividad de reacción contabilizada.", {
       reactionId: event.params.reactionId,
       postId: reaction?.postId || null,
-      actorUid: reaction?.userId || null,
-      recipientUid: postOwnerUid,
       badgeCount: update?.badgeCount || 0,
-      ...pushResult,
     });
   }
 );
 
-exports.updateMetricsOnPost = onDocumentCreated(
-  {
-    document: "communityPosts/{postId}",
-    region: "us-central1",
-  },
-  async (event) => {
-    const post = event.data?.data();
-    if (!post?.ownerUid) return;
-
+exports.deliverCommunityBadgeUpdates = onDocumentCreated(
+  { document: "communityActivityDeliveries/{deliveryId}", region: "us-central1", retry: true, maxInstances: 10 },
+  async event => {
     const db = getFirestore();
-    const userId = post.ownerUid;
-    const metricRef = db.collection("userMetrics").doc(userId);
-
-    await metricRef.set(
-      {
-        userId: userId,
-        postsCreated: FieldValue.increment(1),
-        lastActiveDate: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    const metricDoc = await metricRef.get();
-    const metrics = metricDoc.data() || {};
-
-    if (
-      metrics.postsCreated >= 1 &&
-      !metrics.achievements?.includes("firstEcho")
-    ) {
-      await metricRef.update({
-        achievements: FieldValue.arrayUnion("firstEcho"),
-      });
-
-      await db.collection("notifications").add({
-        userId: userId,
-        type: "achievement",
-        title: "¡Logro desbloqueado!",
-        body: 'Has ganado el logro "Primer Eco"',
-        isRead: false,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-    }
+    const ref = db.collection("communityActivityDeliveries").doc(event.params.deliveryId);
+    const delivery = await ref.get();
+    if (!delivery.exists || delivery.get("delivered") === true) return;
+    const updates = delivery.get("updates") || [];
+    const snapshots = updates.length ? await db.getAll(...updates.map(item => db.collection("userActivity").doc(item.uid))) : [];
+    const current = snapshots.filter(item => item.exists && item.get("unreadCommunityCount") > 0)
+      .map(item => ({ uid: item.id, badgeCount: item.get("unreadCommunityCount") }));
+    const result = await sendCommunityBadgeUpdates(db, current, { postId: delivery.get("postId") });
+    if (result.failureCount > result.invalidTokensDeleted) throw new Error("Community badge delivery failed; retry pending");
+    await ref.update({ delivered: true, deliveredAt: FieldValue.serverTimestamp() });
   }
 );
 
+async function updateCommunityMetrics(event) {
+  const db = getFirestore();
+  const post = event.data?.data();
+  const userId = await getCommunityPostOwner(db, event.params.postId);
+  if (!userId) return;
+  const created = post?.createdAt || event.data?.createTime;
+  const date = created?.toDate?.() || new Date(event.time);
+  const format = new Intl.DateTimeFormat("en-CA", { timeZone: TIME_ZONE, year: "numeric", month: "2-digit", day: "2-digit" });
+  const day = format.format(date);
+  const previousDay = format.format(new Date(date.getTime() - 86400000));
+  const metricRef = db.collection("userMetrics").doc(userId);
+  const ledger = eventRef(db, "metrics", `${event.params.postId}:${created?.toMillis?.() || event.time}`);
+  await db.runTransaction(async transaction => {
+    const [seen, snapshot] = await transaction.getAll(ledger, metricRef);
+    if (seen.exists) return;
+    const metrics = snapshot.data() || {};
+    const legacyDate = metrics.lastActiveDate?.toDate?.();
+    const lastDay = metrics.communityStreakDate
+      || (legacyDate && Number.isFinite(legacyDate.getTime()) ? format.format(legacyDate) : null);
+    const newStreak = !lastDay || day > lastDay
+      ? (lastDay === previousDay ? (metrics.currentStreak || 0) + 1 : 1)
+      : (metrics.currentStreak || 1);
+    const first = !Array.isArray(metrics.achievements) || !metrics.achievements.includes("firstEcho");
+    transaction.set(metricRef, {
+      userId, postsCreated: FieldValue.increment(1),
+      currentStreak: newStreak, longestStreak: Math.max(newStreak, metrics.longestStreak || 0),
+      communityStreakDate: lastDay && lastDay > day ? lastDay : day,
+      lastActiveDate: FieldValue.serverTimestamp(),
+      ...(first ? { achievements: FieldValue.arrayUnion("firstEcho") } : {}),
+    }, { merge: true });
+    transaction.create(ledger, { completed: true, createdAt: FieldValue.serverTimestamp() });
+    if (first) transaction.create(db.collection("notifications").doc(`${ledger.id}-achievement`), {
+      userId, type: "achievement", title: "Logro desbloqueado", body: 'Has ganado el logro "Primer Eco"',
+      isRead: false, createdAt: FieldValue.serverTimestamp(),
+    });
+  });
+}
+
+exports.updateMetricsOnPost = onDocumentCreated(
+  { document: "communityPosts/{postId}", region: "us-central1", retry: true, maxInstances: 10 }, updateCommunityMetrics
+);
+// Preserve the deployed trigger name; both paths share a post-specific ledger.
 exports.updateStreakOnPost = onDocumentCreated(
-  {
-    document: "communityPosts/{postId}",
-    region: "us-central1",
-  },
-  async (event) => {
-    const post = event.data?.data();
-    if (!post?.ownerUid) return;
-
-    const db = getFirestore();
-    const userId = post.ownerUid;
-    const today = new Date().toISOString().split("T")[0];
-
-    const metricRef = db.collection("userMetrics").doc(userId);
-    const metricDoc = await metricRef.get();
-
-    if (metricDoc.exists) {
-      const lastActive = metricDoc.data()?.lastActiveDate;
-      const lastDate = lastActive
-        ? lastActive.toDate().toISOString().split("T")[0]
-        : null;
-
-      if (lastDate !== today) {
-        const yesterdayDate = new Date(Date.now() - 86400000);
-        const yesterday = yesterdayDate.toISOString().split("T")[0];
-        const currentStreak = metricDoc.data()?.currentStreak || 0;
-        const newStreak = lastDate === yesterday ? currentStreak + 1 : 1;
-        const longestStreak = Math.max(
-          newStreak,
-          metricDoc.data()?.longestStreak || 0
-        );
-
-        await metricRef.update({
-          currentStreak: newStreak,
-          longestStreak: longestStreak,
-          lastActiveDate: FieldValue.serverTimestamp(),
-        });
-      }
-    }
-  }
+  { document: "communityPosts/{postId}", region: "us-central1", retry: true, maxInstances: 10 }, updateCommunityMetrics
 );
 
 exports.notifyPostOwnerInApp = onDocumentCreated(
   {
     document: "communityReplies/{replyId}",
     region: "us-central1",
+    retry: true,
+    maxInstances: 10,
   },
   async (event) => {
     const reply = event.data?.data();
-    if (!reply?.postId || !reply?.ownerUid) return;
+    if (!reply?.postId) return;
 
     const db = getFirestore();
     const postOwnerUid = await getCommunityPostOwner(db, reply.postId);
 
-    if (postOwnerUid && postOwnerUid !== reply.ownerUid) {
+    const actorUid = await getContentOwner(db, "communityReplies", "communityReplyPrivate", event.params.replyId);
+    if (actorUid && postOwnerUid && postOwnerUid !== actorUid) {
       const replyAuthor = reply.authorSnapshot?.displayName || reply.name || "Alguien de la comunidad";
-      await db.collection("notifications").add({
+      const notification = db.collection("notifications").doc(eventRef(db, "reply-notification", event.params.replyId).id);
+      await db.runTransaction(async transaction => {
+        if ((await transaction.get(notification)).exists) return;
+        transaction.create(notification, {
         userId: postOwnerUid,
         type: "newReply",
         title: "Nueva respuesta",
@@ -1436,6 +1320,7 @@ exports.notifyPostOwnerInApp = onDocumentCreated(
         postId: reply.postId,
         isRead: false,
         createdAt: FieldValue.serverTimestamp(),
+        });
       });
     }
   }
@@ -1452,24 +1337,18 @@ exports.cleanupOldData = onSchedule(
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - 90);
 
-    const oldPosts = await db
-      .collection("communityPosts")
-      .where("createdAt", "<", cutoffDate)
-      .get();
-
-    if (oldPosts.empty) {
-      logger.info("No hay publicaciones antiguas para limpiar.");
-      return;
+    let removed = 0;
+    const pending = await db.collection("communityDeletionJobs").limit(100).get();
+    for (const job of pending.docs) await deletePostCascade(db, job.id);
+    for (;;) {
+      const oldPosts = await db.collection("communityPosts").where("createdAt", "<", cutoffDate).limit(100).get();
+      if (oldPosts.empty) break;
+      for (const post of oldPosts.docs) {
+        await deletePostCascade(db, post.id);
+        removed++;
+      }
     }
-
-    const batches = chunk(oldPosts.docs, MAX_FIRESTORE_BATCH_WRITES);
-    for (const docBatch of batches) {
-      const batch = db.batch();
-      docBatch.forEach((doc) => batch.delete(doc.ref));
-      await batch.commit();
-    }
-
-    logger.info(`Limpiadas ${oldPosts.size} publicaciones antiguas.`);
+    logger.info("Limpieza de publicaciones y datos asociados completada.", { removed });
   }
 );
 

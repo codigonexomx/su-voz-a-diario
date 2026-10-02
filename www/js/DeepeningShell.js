@@ -768,6 +768,7 @@
                 version: options.currentVersion || ''
             },
             onAutoSave: options.onAutoSave,
+            onSaveError: options.onSaveError,
             onClose: () => {
                 unmount({
                     restore: true,

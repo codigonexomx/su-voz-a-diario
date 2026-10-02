@@ -297,9 +297,18 @@
 
             if (!force && !noteChanged && !uiChanged) return;
 
-            options.onAutoSave(note, uiState, { noteChanged, uiChanged });
+            try {
+                if (options.onAutoSave(note, uiState, { noteChanged, uiChanged }) === false) {
+                    throw new Error('Meditation save failed');
+                }
+            } catch (error) {
+                console.error('[Meditation] No se pudo guardar:', error);
+                options.onSaveError?.(error);
+                return false;
+            }
             lastSavedNoteSignature = nextNoteSignature;
             lastSavedUIStateSignature = nextUIStateSignature;
+            return true;
         }
 
         function scheduleAutoSave() {

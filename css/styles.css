@@ -16261,8 +16261,24 @@ body.keyboard-open .report-overlay {
 .report-actions {
     display: flex;
     justify-content: flex-end;
+    flex-wrap: wrap;
     gap: 10px;
 }
+
+.community-safety-actions { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 0; }
+.community-safety-actions button, .moderation-row button, .report-actions button {
+    min-height: 40px; padding: 8px 12px; border: 1px solid var(--border-color);
+    border-radius: 6px; background: var(--surface-color); color: var(--text-main); cursor: pointer;
+    font: inherit; white-space: normal;
+}
+.report-actions button:disabled { opacity: .55; cursor: default; }
+.post-menu-dropdown .community-safety-actions { display: contents; }
+.moderation-list { min-width: 0; }
+.moderation-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-color); }
+.moderation-report { padding: 16px 0; border-bottom: 1px solid var(--border-color); overflow-wrap: anywhere; }
+.report-dialog [role="alert"] { color: var(--text-main); margin: 0; }
+.report-dialog textarea { box-sizing: border-box; }
+.community-hero-actions { flex-wrap: wrap; }
 
 /* 6. Métricas y Logros */
 .achievements-container {
@@ -19288,3 +19304,13 @@ body.dark-mode .community-post-question-quote {
 .bible-reading-settings-panel .bible-study-guide, .bible-library-view .bible-study-guide { margin-bottom: 16px; }
 
 .bible-reading-settings-panel { max-height: calc(100dvh - 220px); overflow-y: auto; overscroll-behavior: contain; }
+.account-settings { padding: 20px 0; border-bottom: 1px solid var(--border-color, #ddd); }
+.account-settings h3 { margin: 0 0 12px; font-size: 1.1rem; }
+.account-settings p { overflow-wrap: anywhere; }
+.account-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.account-actions button, .account-form button { padding: 10px 14px; border: 1px solid var(--border-color, #bbb); border-radius: 6px; background: var(--card-bg, #fff); color: var(--text-main, #222); cursor: pointer; }
+.account-form { display: grid; gap: 14px; }
+.account-form label:not(.report-reason-option) { display: grid; gap: 6px; }
+.account-form input:not([type="checkbox"]) { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--border-color, #bbb); border-radius: 4px; font: inherit; }
+.account-form .report-reason-option { align-items: start; flex-wrap: wrap; }
+.account-form [role="alert"] { color: var(--danger, #aa2424); }

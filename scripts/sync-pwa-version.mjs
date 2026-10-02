@@ -10,7 +10,7 @@ if (!versionPattern.test(APP_VERSION)) {
 const files = {
     index: ['index.html', 'www/index.html', 'compartir/index.html', 'www/compartir/index.html'],
     serviceWorker: ['sw.js', 'www/sw.js'],
-    app: ['js/app.js', 'www/js/app.js']
+    app: ['js/app.js', 'www/js/app.js', 'js/acquisitionLanding.js', 'www/js/acquisitionLanding.js']
 };
 
 const localVersionedAssetPattern =

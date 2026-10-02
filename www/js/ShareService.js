@@ -57,13 +57,13 @@
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    async function writeNativeFile(blob, fileName, directory = 'CACHE') {
+    async function writeNativeFile(blob, fileName, directory = 'CACHE', folder = 'meditations') {
         const Filesystem = getPlugin('Filesystem');
         if (!Filesystem?.writeFile || !Filesystem?.getUri) {
             throw new Error('Filesystem nativo no disponible');
         }
 
-        const path = `meditations/${Date.now()}-${fileName}`;
+        const path = `${folder}/${Date.now()}-${fileName}`;
         const data = await blobToBase64(blob);
 
         await Filesystem.writeFile({
@@ -99,6 +99,23 @@
             fileName,
             webDownload: true
         };
+    }
+
+    async function exportBackup(blob, fileName) {
+        if (!isNativePlatform()) {
+            downloadBlob(blob, fileName);
+            return { downloaded: true };
+        }
+        const Share = getPlugin('Share');
+        if (!Share?.share) throw new Error('Guardado nativo no disponible');
+        try {
+            const file = await writeNativeFile(blob, fileName, 'CACHE', 'backups');
+            await Share.share({ title: 'Respaldo privado de Su Voz', files: [file.uri], dialogTitle: 'Guardar respaldo' });
+            return { shared: true };
+        } catch (error) {
+            if (isUserCancellation(error)) return { canceled: true };
+            throw error;
+        }
     }
 
     async function sharePdf(blob, fileName, options = {}) {
@@ -163,6 +180,7 @@
     }
 
     window.ShareService = {
+        exportBackup,
         savePdf,
         sharePdf,
         isUserCancellation
