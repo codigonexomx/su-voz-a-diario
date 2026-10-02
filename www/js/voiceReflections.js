@@ -170,8 +170,8 @@ class VoiceReflectionRecorder {
     }
 
     showPermissionError(msg) {
-        if (window.app?.showToast) {
-            window.app.showToast(msg || 'No se pudo acceder al micrófono');
+        if (window.App?.showToast) {
+            window.App.showToast(msg || 'No se pudo acceder al micrófono');
         } else {
             alert('No se pudo acceder al micrófono: ' + msg);
         }

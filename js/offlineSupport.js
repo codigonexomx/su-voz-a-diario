@@ -38,8 +38,8 @@ class OfflineManager {
     }
 
     async createPostOffline(postData) {
-        if (window.app?.showToast) {
-            window.app.showToast('Necesitas conexión a internet para publicar en Comunidad.');
+        if (window.App?.showToast) {
+            window.App.showToast('Necesitas conexión a internet para publicar en Comunidad.');
         }
 
         return { success: false, offline: true, message: 'Necesitas conexión a internet para publicar en Comunidad.' };
@@ -51,14 +51,14 @@ class OfflineManager {
     }
 
     showOfflineBanner() {
-        if (window.app?.showToast) {
-            window.app.showToast('Modo sin conexión activo.', 'warning');
+        if (window.App?.showToast) {
+            window.App.showToast('Modo sin conexión activo.', 'warning');
         }
     }
 
     hideOfflineBanner() {
-        if (window.app?.showToast) {
-            window.app.showToast('Conexión reestablecida.', 'success');
+        if (window.App?.showToast) {
+            window.App.showToast('Conexión reestablecida.', 'success');
         }
     }
 }

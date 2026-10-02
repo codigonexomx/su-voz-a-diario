@@ -35,8 +35,8 @@ class CommunityFilters {
     setFilter(key, value) {
         if (key in this.filters) {
             this.filters[key] = value;
-            if (window.app?.renderCommunity) {
-                window.app.renderCommunity({ showSkeleton: false });
+            if (window.App?.renderCommunity) {
+                window.App.renderCommunity({ showSkeleton: false });
             }
         }
     }

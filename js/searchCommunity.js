@@ -32,7 +32,7 @@ class CommunitySearch {
         }
 
         // Búsqueda fallback en memoria sobre el feed cargado
-        const state = window.app?.getCommunityFeedState?.() || {};
+        const state = window.App?.getCommunityFeedState?.() || {};
         const posts = state.posts || [];
         this.searchResults = posts.filter(post => {
             const text = (post.text || '').toLowerCase();
@@ -93,8 +93,8 @@ class CommunitySearch {
         container.querySelectorAll('.search-result-item').forEach(item => {
             item.addEventListener('click', () => {
                 const postId = item.dataset.postId;
-                if (window.app?.focusCommunityTarget) {
-                    window.app.focusCommunityTarget(postId, null, true);
+                if (window.App?.focusCommunityTarget) {
+                    window.App.focusCommunityTarget(postId, null, true);
                 }
                 container.style.display = 'none';
             });

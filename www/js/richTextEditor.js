@@ -134,7 +134,7 @@ class RichTextEditor {
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
         
-        const todayReference = window.app?.getCommunityTodayContext?.().reference || 'Lectura de hoy';
+        const todayReference = window.App?.getCommunityTodayContext?.().reference || 'Lectura de hoy';
         
         modal.innerHTML = `
             <div class="verse-picker-dialog">

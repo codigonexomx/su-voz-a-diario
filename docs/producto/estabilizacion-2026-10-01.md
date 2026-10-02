@@ -1,6 +1,6 @@
 # Estabilizacion y Operacion de Su Voz a Diario
 
-Fecha local: 1 de octubre de 2026. Estado: backend publicado; candidato web y Android verificados, publicacion web pendiente.
+Fecha local: 1 de octubre de 2026. Estado: backend publicado; correcciones web verificadas y candidato Android preparado. Publicacion web bloqueada por rechazo HTTP 403 de la credencial Git.
 
 ## Baseline y Alcance
 
@@ -36,6 +36,8 @@ Android: WRITE_EXTERNAL_STORAGE limitado a API 28, coherente con guardado legacy
 Coste: limites por UID para publicaciones/respuestas/oracion/denuncias/bloqueo/Biblia; fan-out paginado a 100 y maxInstances 10 en callables nuevos y triggers con reintentos. Sigue siendo O(numero de usuarios) por publicacion y las identidades anonimas pueden recrearse. No afirmar proteccion completa contra abuso sin App Check y observacion de consumo. App Check web no tiene proveedor configurado; no se activo enforcement que bloquearia a clientes existentes.
 
 Mantenimiento: runner unico, pruebas adversariales y workflow CI; sintaxis de todo el JavaScript fuente. No se reescribio app.js ni el CSS general para limitar regresiones.
+
+QA final encontro y corrigio dos fallos de integracion: los modulos de Comunidad usaban window.app, pero la aplicacion expone window.App; y la primera ruta directa a Comunidad se dibujaba antes de inicializar moderacion. Ahora se inicializa antes de cargar la primera ruta y no se reemplaza despues de consultar filtros. Prueba de regresion con el global real, sin alias que oculte el fallo. No se reactivo el listener legacy de notificaciones.
 
 ## Moderador Unico
 
@@ -78,28 +80,32 @@ Referencias oficiales: https://firebase.google.com/docs/auth/admin/custom-claims
 
 ## Validacion Local
 
-- Suite integrada: 40 comprobaciones con reglas/concurrencia y Auth en emulador; ultima ejecucion completa 40/40.
+- Suite integrada: 41 comprobaciones con reglas/concurrencia y Auth en emulador; ultima ejecucion completa 41/41. Incluye inicializacion de moderacion antes de la primera ruta y persistencia de su instancia.
 - Casos nuevos: duplicados, timestamps, acceso privado, moderador unico, bloqueo anonimo, limites/terminos/App Check, fan-out concurrente/reintentos, 520 respuestas en cascada, trabajo interrumpido, respaldo/restore con cuota y borradores, offline y lector continuo.
 - Android Debug/unit tests/lint y build de simulador iOS sin firma: correctos; no son certificacion en dispositivo/tienda. Lint de la app: cero errores y 19 advertencias de versiones/iconos/recursos heredados; Gradle tambien avisa de flatDir, deprecaciones y formatos SDK XML. No se ocultaron mediante nuevos suppressions.
 - npm audit raiz/Functions: cero vulnerabilidades reportadas durante el trabajo.
-- QA local: lectura diaria, abrir/cerrar Profundizar, Salmos 66/NVI, cambio de version y recarga con capitulo estable; sin overflow horizontal a 390 px. Denunciar abre y cancelar cierra sin enviar; no se prueban los callables nuevos contra produccion antes de publicarlos. Respaldo llega al aviso; navegador integrado no permite certificar descarga completa.
+- QA local: lectura diaria, abrir/cerrar Profundizar, Salmos 66/NVI, cambio de version y recarga con capitulo estable; sin overflow horizontal a 390 px. Tras publicar el backend, Autores bloqueados consulta el callable real y abre correctamente. La primera carga directa muestra Denunciar/Bloquear autor; denuncia abre y cancelar cierra, sin enviar reportes ni crear contenido real. Respaldo llega al aviso; navegador integrado no permite certificar descarga completa.
 - git diff --check correcto. Backend probado sin tokens reales de push.
-- Workflow CI preparado, no ejecutado en GitHub porque no se hizo push.
+- Workflow CI preparado, no ejecutado en GitHub porque el push fue rechazado con HTTP 403. La cuenta autenticada tiene rol de escritura/admin confirmado por API; no se concluye que falte el rol del usuario. La credencial o politica de GitHub debe revisarse mediante autenticacion personal. No se borraron credenciales ni se crearon tokens.
 
 ## Produccion e Inventario
 
 Respaldo Firestore en el bucket del mismo proyecto: export gestionado completo SUCCESSFUL, 3196 documentos; referencia de operacion privada en artifacts/validation/production-backup-operation.json. Un export no es una instantanea transaccional de escrituras concurrentes; no demuestra restauracion real. Referencia: https://firebase.google.com/docs/firestore/manage-data/export-import
 
-Inventario de solo lectura: 243 posts, 71 replies, 1981 reacciones, 612 userActivity y 19 registros push. Huerfanos: 49 replies, 21 documentos communityPostPrivate y 888 reacciones; cero privados de reply huerfanos y cero IDs no canonicos de reaccion. Dos posts superan 90 dias, sujetos a la retencion diaria preexistente. No se ejecutaron migraciones ni borrados historicos; autorizacion especifica solicitada.
+Inventario de solo lectura: 243 posts, 71 replies, 1981 reacciones, 612 userActivity y 19 registros push. Huerfanos: 49 replies, 21 documentos communityPostPrivate y 888 reacciones; cero privados de reply huerfanos y cero IDs no canonicos de reaccion. Dos posts superan 90 dias, sujetos a la retencion diaria preexistente. No se ejecutaron migraciones ni borrados historicos.
+
+Plan privado posterior: artifacts/validation/production-orphan-cleanup-plan.json, fuera de Git y con permisos 0600. Comprueba nuevamente ausencia de todos los posts padres. Incluye 49 privados asociados a las 49 respuestas huerfanas, que tambien deben retirarse para no crear nuevos huerfanos: alcance total propuesto de 1007 documentos. Se solicito autorizacion especifica de este alcance. No basta el inventario para borrar: verificar de nuevo cada padre y updateTime en transaccion antes de cualquier lote, sin incluir publicaciones existentes ni ampliar el plan.
 
 Backend: 36 Functions ACTIVE, runtime nodejs22, sin eliminar nombres anteriores. Despliegue con filtro explicito por nombre; --force solo confirmo failurePolicy/reintentos idempotentes. Firestore y Storage compilados y publicados. Firebase CLI aviso de una version mas nueva de firebase-functions; npm audit no reporta vulnerabilidades en la instalada.
+
+HTTP posterior al intento de push: suvoz.app devuelve 200 y mantiene PWA 255; configuracion Analytics presente. /eliminar-cuenta.html devuelve 404. Por tanto, las correcciones web/PWA 256 y la pagina externa de eliminacion NO estan publicadas; no usar esa URL en Play como si ya estuviera disponible.
 
 ## Pendientes que No Deben Ocultarse
 
 - El propietario debe vincular/verificar su correo; luego dry-run y asignacion del moderador unico.
-- Publicacion web y QA/Analytics post-produccion. Backend y Auth ya publicados.
+- Resolver rechazo Git 403, publicar web y comprobar QA/Analytics post-produccion. Backend y Auth ya publicados. No desviar Hosting ni forzar push para eludir el bloqueo.
 - Catalogo editorial aprobado para 2027; guard de cobertura ya avisa/bloquea faltantes cercanos.
-- Autorizar la limpieza historica inventariada; definir retencion de reportes/ledgers/outbox antes de borrar trazabilidad. Los ledgers evitan replays duplicados y no se eliminan a ciegas.
+- Autorizar el plan historico exacto de 1007 documentos, incluidos privados asociados; definir retencion de reportes/ledgers/outbox antes de borrar trazabilidad. Los ledgers evitan replays duplicados y no se eliminan a ciegas.
 - App Check y pruebas fisicas Android/iOS: permisos, modo avion, descarga/Share y actualizacion sin perdida.
 - Licencias escritas/condiciones por traduccion. Atribucion o acceso API no concede derechos. Revisados los hilos de seguimiento a Logos y a SBU/ABS enviados el 1 de octubre: no contienen respuesta al momento de consulta. No se duplicaron solicitudes enviadas hace pocas horas ni se aceptaron contratos.
 
@@ -110,3 +116,11 @@ Backend: 36 Functions ACTIVE, runtime nodejs22, sin eliminar nombres anteriores.
 SHA-256: `238b4ea901225db3e192bf59c5d2282dade27bf0c35daec070d4966f3859354a`.
 
 Contiene PWA 254 y no es candidato para publicar esta estabilizacion.
+
+## Candidato Android Nuevo
+
+artifacts/android-1.5.9-41/su-voz-1.5.9-41.aab. VersionName 1.5.9, versionCode 41, PWA 256. El SHA-256 vigente y resultados de auditoria se guardan fuera de Git en artifacts/android-1.5.9-41/audit-release.json despues de reconstruir desde el HEAD final.
+
+Bundletool valida el paquete y jarsigner verifica la firma; certificado de subida identico al AAB anterior. Los 124 recursos de ejecucion de www coinciden byte a byte con el paquete, normalizando nombres Unicode para comparar rutas. .nojekyll y .well-known son metadata web excluida por el empaquetado Android, no recursos de ejecucion faltantes. No se incluyen logs, marketing, node_modules, Functions, artefactos ni keystores.
+
+Jarsigner avisa de certificado autofirmado, ausencia de timestamp y diferencias de lectura JarFile/JarInputStream por el orden del manifiesto. La ultima advertencia tambien aparece en el AAB anterior; no se oculta ni se atribuye a los cambios funcionales. Bundletool no rechazo el paquete. Validacion fisica y aceptacion de Google Play siguen pendientes; no hubo subida a tienda.

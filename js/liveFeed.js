@@ -24,7 +24,7 @@ class LiveCommunityFeed {
             return;
         }
 
-        const cutoffDate = window.app?.getCommunityCutoff ? window.app.getCommunityCutoff() : new Date(Date.now() - 15 * 86400000);
+        const cutoffDate = window.App?.getCommunityCutoff ? window.App.getCommunityCutoff() : new Date(Date.now() - 15 * 86400000);
 
         try {
             const postsRef = fns.query(
@@ -42,7 +42,7 @@ class LiveCommunityFeed {
                     if (change.type === 'added' && !this.isInitialLoad) {
                         const postData = { id: change.doc.id, ...change.doc.data() };
                         // Solo contar si no es del usuario actual para no duplicar su propia publicación
-                        if (postData.ownerUid !== window.app?.currentUser?.uid) {
+                        if (postData.ownerUid !== window.App?.currentUser?.uid) {
                             this.handleNewPost(postData);
                         }
                     }
@@ -111,8 +111,8 @@ class LiveCommunityFeed {
 
         const scrollPos = this.captureScrollPosition();
 
-        if (window.app?.renderCommunity) {
-            window.app.renderCommunity({
+        if (window.App?.renderCommunity) {
+            window.App.renderCommunity({
                 forceRefresh: true,
                 showSkeleton: false,
                 preserveAnchor: true

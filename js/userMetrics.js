@@ -70,7 +70,7 @@ class UserMetrics {
     }
 
     async loadUserMetrics(userId) {
-        const uid = userId || window.app?.currentUser?.uid;
+        const uid = userId || window.App?.currentUser?.uid;
         if (!uid) return this.metrics;
 
         const db = window.firebaseDb;

@@ -41,12 +41,12 @@ class NotificationCenter {
     listenNotifications() {
         // Notificaciones in-app desactivadas temporalmente
         return;
-        if (!window.app?.currentUser?.uid) {
+        if (!window.App?.currentUser?.uid) {
             console.warn('[NotificationCenter] Omitiendo listener: Usuario no autenticado aún');
             return;
         }
 
-        const currentUser = window.app.currentUser;
+        const currentUser = window.App.currentUser;
         const db = window.firebaseDb;
         const fns = window.firebaseFns;
 
@@ -185,8 +185,8 @@ class NotificationCenter {
                 const postId = item.dataset.postId;
                 this.markAsRead(id);
 
-                if (postId && window.app?.focusCommunityTarget) {
-                    window.app.focusCommunityTarget(postId, null, true);
+                if (postId && window.App?.focusCommunityTarget) {
+                    window.App.focusCommunityTarget(postId, null, true);
                 }
                 this.closeDropdown();
             });

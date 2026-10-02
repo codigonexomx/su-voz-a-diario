@@ -900,6 +900,7 @@ _authInitPromise: null,
     console.log('[App] Inicializando...');
 
     this.cacheDOM();
+    this.initializeCommunitySafety();
     this.bindSelectionPanelEvents();
     this.bindVerseImageEditorEvents();
     this.showAprilMessageIfNeeded();
@@ -5668,13 +5669,19 @@ setUserCommunityPreferences: function(prefs) {
     localStorage.setItem('communityPrefs', JSON.stringify(updated));
 },
 
+initializeCommunitySafety: function() {
+    if (!this.moderation && typeof window.ModerationSystem !== 'undefined') {
+        this.moderation = new window.ModerationSystem();
+    }
+},
+
 initializeCommunityPremium: async function() {
     try {
         if (typeof window.AvatarGenerator !== 'undefined') this.avatarGenerator = window.AvatarGenerator;
         if (typeof window.RichTextEditor !== 'undefined') this.richTextEditor = window.RichTextEditor;
         if (typeof window.VoiceReflectionRecorder !== 'undefined') this.voiceRecorder = new window.VoiceReflectionRecorder();
         if (typeof window.LiveCommunityFeed !== 'undefined') this.liveFeed = new window.LiveCommunityFeed();
-        if (typeof window.ModerationSystem !== 'undefined') this.moderation = new window.ModerationSystem();
+        this.initializeCommunitySafety();
         if (typeof window.UserMetrics !== 'undefined') this.userMetrics = new window.UserMetrics();
         if (typeof window.NotificationCenter !== 'undefined') {
             this.notificationCenter = new window.NotificationCenter();

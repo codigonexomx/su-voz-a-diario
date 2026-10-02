@@ -11,7 +11,7 @@ class ModerationSystem {
 
     async call(name, data) {
         if (!navigator.onLine) throw new Error('Necesitas conexión a internet para esta acción.');
-        const app = window.app;
+        const app = window.App;
         await app.initAuth();
         const callable = await app.getCommunityIdentityCallable(name);
         return (await callable(data))?.data || {};
@@ -53,7 +53,7 @@ class ModerationSystem {
     }
 
     async ensureTerms() {
-        const uid = window.app?.currentUser?.uid;
+        const uid = window.App?.currentUser?.uid;
         const key = `su-voz-community-terms-${uid}`;
         try { if (localStorage.getItem(key) === this.termsVersion) return true; } catch { /* Server also validates acceptance. */ }
         if (this.termsPromise) return this.termsPromise;
@@ -83,7 +83,7 @@ class ModerationSystem {
     }
 
     async refresh({ post = [], reply = [], prayer = [] } = {}) {
-        const uid = window.app?.currentUser?.uid;
+        const uid = window.App?.currentUser?.uid;
         const key = `su-voz-community-hidden-${uid}`;
         if (!navigator.onLine) {
             try { this.hidden = JSON.parse(localStorage.getItem(key)) || this.hidden; } catch { /* Keep current cache. */ }
@@ -95,7 +95,7 @@ class ModerationSystem {
         for (let page = 0; page < pages; page++) {
             const data = Object.fromEntries(Object.entries(inputs).map(([type, items]) => [type, [...new Set(items.map(item => item.id))].slice(page * 50, (page + 1) * 50)]));
             const state = await this.call('getCommunitySafetyState', data);
-            if (window.app?.currentUser?.uid !== uid) return;
+            if (window.App?.currentUser?.uid !== uid) return;
             for (const type of Object.keys(nextHidden)) Object.assign(nextHidden[type], state.hidden?.[type] || {});
             this.blocked = state.blocked || [];
             this.isModerator = state.moderator === true;
@@ -126,7 +126,7 @@ class ModerationSystem {
                     comments: overlay.querySelector('textarea').value.trim(),
                 });
                 close();
-                window.app.showToast(`Denuncia recibida. Referencia: ${result.reference}`, 7000);
+                window.App.showToast(`Denuncia recibida. Referencia: ${result.reference}`, 7000);
             } catch {
                 overlay.querySelector('[data-moderation-error]').textContent = 'No se pudo enviar. La denuncia no ha sido registrada; puedes reintentar.';
                 submit.disabled = false;
@@ -137,9 +137,9 @@ class ModerationSystem {
     async blockAuthor(target) {
         if (!confirm('¿Bloquear a este autor? Dejarás de ver sus publicaciones y respuestas. Puedes deshacerlo en Autores bloqueados.')) return;
         await this.call('blockCommunityAuthor', target);
-        window.app.showToast('Autor bloqueado.');
-        if (window.app.currentView === 'community-thread') window.app.navigate('community');
-        else await window.app.renderCommunity({ showSkeleton: false });
+        window.App.showToast('Autor bloqueado.');
+        if (window.App.currentView === 'community-thread') window.App.navigate('community');
+        else await window.App.renderCommunity({ showSkeleton: false });
     }
 
     async showBlockedAuthors() {
@@ -150,8 +150,8 @@ class ModerationSystem {
             try {
                 await this.call('unblockCommunityAuthor', { key: button.dataset.unblock });
                 button.closest('.moderation-row').remove();
-                window.app.showToast('Autor desbloqueado.');
-                await window.app.renderCommunity({ showSkeleton: false });
+                window.App.showToast('Autor desbloqueado.');
+                await window.App.renderCommunity({ showSkeleton: false });
             } catch {
                 button.disabled = false;
                 overlay.querySelector('[data-moderation-error]').textContent = 'No se pudo desbloquear. Inténtalo nuevamente.';
@@ -163,7 +163,7 @@ class ModerationSystem {
         if (status === 'accounts') {
             const result = await this.call('listAccountDeletionRequests', {});
             const { overlay } = this.openDialog('Solicitudes de eliminación', `<div class="report-actions"><button type="button" data-back-reports>Denuncias</button></div><div class="moderation-list">${result.requests?.length ? result.requests.map(item => `<article class="moderation-report"><strong>${this.escapeHtml(item.email || 'Identidad sin correo verificado')}</strong><p>Referencia: ${this.escapeHtml(item.reference.slice(0, 12))}</p><p>Revisar y tramitar la eliminación con el procedimiento privado de operación.</p></article>`).join('') : '<p>No hay solicitudes pendientes.</p>'}</div>`);
-            overlay.querySelector('[data-back-reports]').addEventListener('click', () => this.showModerationQueue().catch(error => window.app.showToast(error.message)));
+            overlay.querySelector('[data-back-reports]').addEventListener('click', () => this.showModerationQueue().catch(error => window.App.showToast(error.message)));
             return;
         }
         const result = await this.call('listCommunityReports', { status });
@@ -173,7 +173,7 @@ class ModerationSystem {
         accountsButton.dataset.queue = 'accounts';
         accountsButton.textContent = 'Solicitudes de cuenta';
         overlay.querySelector('.report-actions').appendChild(accountsButton);
-        overlay.querySelectorAll('[data-queue]').forEach(button => button.addEventListener('click', () => this.showModerationQueue(button.dataset.queue).catch(error => window.app.showToast(error.message))));
+        overlay.querySelectorAll('[data-queue]').forEach(button => button.addEventListener('click', () => this.showModerationQueue(button.dataset.queue).catch(error => window.App.showToast(error.message))));
         overlay.querySelectorAll('[data-resolve]').forEach(button => button.addEventListener('click', async () => {
             if (!confirm('¿Confirmar esta decisión de moderación?')) return;
             const row = button.closest('.moderation-report');
@@ -181,10 +181,10 @@ class ModerationSystem {
             try {
                 await this.call('resolveCommunityReport', { reference: button.dataset.reference, decision: button.dataset.resolve });
                 row.remove();
-                window.app.invalidateCommunityCache();
-                window.app.resetCommunityPrayerState();
-                window.app.resetCommunityPrayerTestimonyState();
-                await window.app.renderCommunity({ forceRefresh: true, showSkeleton: false });
+                window.App.invalidateCommunityCache();
+                window.App.resetCommunityPrayerState();
+                window.App.resetCommunityPrayerTestimonyState();
+                await window.App.renderCommunity({ forceRefresh: true, showSkeleton: false });
             } catch {
                 row.querySelectorAll('button').forEach(control => { control.disabled = false; });
                 overlay.querySelector('[data-moderation-error]').textContent = 'No se pudo guardar la decisión.';
