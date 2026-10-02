@@ -28,6 +28,10 @@ jobs:
           java-version: '21'
       - run: npm ci --ignore-scripts
       - run: npm --prefix functions ci --ignore-scripts
+      - name: Prepare native web assets for validation
+        run: |
+          npx cap copy android
+          npx cap copy ios
       - run: npm audit --audit-level=moderate
       - run: npm --prefix functions audit --audit-level=moderate
       - run: npm exec --yes --package=firebase-tools@15.14.0 -- firebase emulators:exec --only firestore,auth --project demo-su-voz-stability "node scripts/run-tests.mjs --emulator"

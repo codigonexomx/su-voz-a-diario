@@ -1,12 +1,12 @@
 # Estabilizacion y Operacion de Su Voz a Diario
 
-Fecha local: 1 de octubre de 2026. Estado: backend publicado; correcciones web verificadas y candidato Android preparado. Publicacion web bloqueada por rechazo HTTP 403 de la credencial Git.
+Fecha inicial: 1 de octubre de 2026. Actualizacion local: 2 de octubre de 2026. Estado: backend y web/PWA 256 publicados; candidato Android preparado, sin subir a Play. El rechazo Git 403 se resolvio con acceso exclusivo para el repositorio de Su Voz, guardado personalmente por el propietario en el Llavero.
 
 ## Baseline y Alcance
 
 HEAD inicial: `2e4a136b163d8c6b7e282ffa61c332580d35f78d`, main sincronizada con origin/main. No habia cambios tracked. `marketing/` era untracked y no se modifico.
 
-PWA: 255 -> 256 para invalidar el cache anterior y alinear Analytics. Android: candidato 1.5.9 (41), sin subir a Google Play; AAB 1.5.8 (40) preservado. iOS conserva su version/build. Se actualizo privacy.html para la vinculacion opcional y los reportes privados, sin trackers. Se publicaron las Functions y reglas de Firestore/Storage, con respaldo previo. No se asignaron permisos reales de moderador ni se ejecutaron limpiezas historicas.
+PWA: 255 -> 256 para invalidar el cache anterior y alinear Analytics. Android: candidato 1.5.9 (41), sin subir a Google Play; AAB 1.5.8 (40) preservado. iOS conserva su version/build. Se actualizo privacy.html para la vinculacion opcional y los reportes privados, sin trackers. Se publicaron las Functions y reglas de Firestore/Storage, con respaldo previo. El push no forzado de los dos commits de estabilizacion publico la web desde af971a793072c93a977acf1fcaeebe10f28bce6a. No se asignaron permisos reales de moderador ni se ejecutaron limpiezas historicas.
 
 ## Hallazgos de la Auditoria
 
@@ -23,7 +23,7 @@ PWA: 255 -> 256 para invalidar el cache anterior y alinear Analytics. Android: c
 | F9 Corrupcion/cuota | Indice reconstruido desde registros; rollback parcial; borrador pendiente en memoria; error visible/reintento; respaldo incluye pendientes. | Cerrar proceso puede perder un borrador no persistido. Exportar antes y liberar espacio. |
 | F10 Identidad y respaldo | Vinculacion opcional email/password conserva UID, verificacion, recuperacion explicita y solicitud privada de eliminacion; sin credenciales en respaldos. Auth habilitado conservando acceso anonimo, proteccion de enumeracion y minimo de ocho caracteres. | El propietario debe vincular/verificar su propia cuenta. Recuperar otra identidad no fusiona cuentas ni sincroniza notas; la eliminacion requiere tramitacion operativa. |
 | F11 Dependencias | Locks actualizados sin audit fix --force; overrides acotados; Capacitor iOS alineado con core/Android. | Revisar futuras actualizaciones con CI/builds. Audit no garantiza inmunidad futura. |
-| F12 Version Analytics | Landing/app/service worker y copias publicas comparten PWA 256; sync incluye landing. | Verificar configuracion/eventos despues de publicar. |
+| F12 Version Analytics | Landing/app/service worker y copias publicas comparten PWA 256; sync incluye landing. Configuracion e inicializacion del SDK verificadas en produccion, con registros de dispatch durante debug temporal. | Recepcion en DebugView/Realtime no confirmada en esta revision; no confundir aceptacion del SDK con recepcion. |
 
 ## Otras Correcciones y Limites
 
@@ -86,7 +86,8 @@ Referencias oficiales: https://firebase.google.com/docs/auth/admin/custom-claims
 - npm audit raiz/Functions: cero vulnerabilidades reportadas durante el trabajo.
 - QA local: lectura diaria, abrir/cerrar Profundizar, Salmos 66/NVI, cambio de version y recarga con capitulo estable; sin overflow horizontal a 390 px. Tras publicar el backend, Autores bloqueados consulta el callable real y abre correctamente. La primera carga directa muestra Denunciar/Bloquear autor; denuncia abre y cancelar cierra, sin enviar reportes ni crear contenido real. Respaldo llega al aviso; navegador integrado no permite certificar descarga completa.
 - git diff --check correcto. Backend probado sin tokens reales de push.
-- Workflow CI preparado, no ejecutado en GitHub porque el push fue rechazado con HTTP 403. La cuenta autenticada tiene rol de escritura/admin confirmado por API; no se concluye que falte el rol del usuario. La credencial o politica de GitHub debe revisarse mediante autenticacion personal. No se borraron credenciales ni se crearon tokens.
+- Git 403 resuelto: el token anterior solo tenia acceso a otro proyecto. El propietario genero y guardo un token exclusivo para Su Voz, con Contents/Workflows de escritura y vencimiento el 1 de noviembre. No se reemplazo el acceso del otro proyecto ni se guardaron secretos en fuentes, archivos de respaldo o informes.
+- Primera ejecucion real de CI: 39/41. Faltaban los recursos nativos generados en el checkout limpio y una prueba de migracion heredaba el proyecto demo de Firebase CLI, distinto del proyecto de sus fixtures. Se reproduce el fallo en emuladores y se corrige preparando recursos con cap copy y fijando el proyecto de los procesos hijos de la prueba. No se omiten comprobaciones ni se cambia el migrador de produccion. Suite completa posterior bajo emulators:exec: 41/41; los logs de esta ejecucion se generan fuera del repositorio. La nueva ejecucion de GitHub verifica estas correcciones despues del push.
 
 ## Produccion e Inventario
 
@@ -98,12 +99,16 @@ Plan privado posterior: artifacts/validation/production-orphan-cleanup-plan.json
 
 Backend: 36 Functions ACTIVE, runtime nodejs22, sin eliminar nombres anteriores. Despliegue con filtro explicito por nombre; --force solo confirmo failurePolicy/reintentos idempotentes. Firestore y Storage compilados y publicados. Firebase CLI aviso de una version mas nueva de firebase-functions; npm audit no reporta vulnerabilidades en la instalada.
 
-HTTP posterior al intento de push: suvoz.app devuelve 200 y mantiene PWA 255; configuracion Analytics presente. /eliminar-cuenta.html devuelve 404. Por tanto, las correcciones web/PWA 256 y la pagina externa de eliminacion NO estan publicadas; no usar esa URL en Play como si ya estuviera disponible.
+Publicacion del 2 de octubre: Pages build and deployment finalizo correctamente para af971a793072c93a977acf1fcaeebe10f28bce6a. suvoz.app, sw.js y /eliminar-cuenta.html devuelven 200; PWA 256 y measurementId G-X95Y1G3BE0 presentes. Diez archivos criticos coinciden byte a byte con las fuentes locales, incluidos privacy.html, la pagina de eliminacion, recuperacion de cuenta y moderacion.
+
+QA web posterior: lectura diaria, abrir/cerrar Profundizar, iniciar/detener los controles de lectura en voz alta, Genesis 1/RV1909, Calendario y Mi camino cargan. El SDK Analytics inicializa y registra dispatch sin advertencias/errores en la consola revisada. Debug usado unicamente mediante el parametro temporal y retirado al volver a la URL normal; no se escribe la preferencia persistente. No se afirma recepcion en DebugView/Realtime ni prueba auditiva en dispositivos fisicos. Ajustes muestra Cuenta y recuperacion; se solicito al propietario vincular/verificar personalmente su correo antes de asignar moderacion.
+
+GitHub avisa que el repositorio se traslado a codigonexomx/su-voz-a-diario. El origin anterior sigue redirigiendo y acepto el push normal; no se cambio el remoto ni se ampliaron permisos para eludir el bloqueo.
 
 ## Pendientes que No Deben Ocultarse
 
 - El propietario debe vincular/verificar su correo; luego dry-run y asignacion del moderador unico.
-- Resolver rechazo Git 403, publicar web y comprobar QA/Analytics post-produccion. Backend y Auth ya publicados. No desviar Hosting ni forzar push para eludir el bloqueo.
+- Completar QA en dispositivos y confirmar recepcion Analytics en DebugView/Realtime. Git 403 y publicacion web ya resueltos; backend y Auth publicados. No desviar Hosting ni forzar push.
 - Catalogo editorial aprobado para 2027; guard de cobertura ya avisa/bloquea faltantes cercanos.
 - Autorizar el plan historico exacto de 1007 documentos, incluidos privados asociados; definir retencion de reportes/ledgers/outbox antes de borrar trazabilidad. Los ledgers evitan replays duplicados y no se eliminan a ciegas.
 - App Check y pruebas fisicas Android/iOS: permisos, modo avion, descarga/Share y actualizacion sin perdida.

@@ -13,11 +13,23 @@ const {
   createIdentifiedReplyDocument,
 } = require("./communityIdentity");
 
+if (!/^127\.0\.0\.1:\d+$/.test(process.env.FIRESTORE_EMULATOR_HOST || "")) {
+  throw new Error("A local Firestore emulator is required. Production is forbidden.");
+}
+
+const projectId = "demo-su-voz-concurrency";
 if (getApps().length === 0) {
-  initializeApp({ projectId: "demo-su-voz-concurrency" });
+  initializeApp({ projectId });
 }
 
 const db = getFirestore();
+// Firebase CLI supplies a different default project to nested processes.
+const emulatorEnv = {
+  ...process.env,
+  FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST,
+  GCLOUD_PROJECT: projectId,
+  FIREBASE_CONFIG: JSON.stringify({ projectId }),
+};
 
 // Helper to simulate createCommunityReply logic atomically
 async function createReplyHelper({ postId, uid, text, isAnonymous }) {
@@ -279,7 +291,7 @@ async function run() {
   console.log("[Test Suite] Running backfill script --apply...");
   execSync("node backfillCommunityReplyCounts.js --apply", {
     cwd: __dirname,
-    env: { ...process.env, FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080" },
+    env: emulatorEnv,
     stdio: "inherit",
   });
 
@@ -297,7 +309,7 @@ async function run() {
   console.log("[Test Suite] Testing backfill script idempotency...");
   const secondRunOutput = execSync("node backfillCommunityReplyCounts.js --apply", {
     cwd: __dirname,
-    env: { ...process.env, FIRESTORE_EMULATOR_HOST: process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080" },
+    env: emulatorEnv,
     encoding: "utf8",
   });
 
