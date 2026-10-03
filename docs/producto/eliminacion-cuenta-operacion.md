@@ -1,6 +1,16 @@
 # Eliminacion de Cuenta: Operacion Privada
 
-Estado: implementacion y pruebas locales, no autorizacion de borrado de una persona ni certificacion juridica. No ejecutar sobre la cuenta del moderador. No usar la limpieza de 1007 huerfanos como autorizacion para borrar cuentas.
+Estado: protecciones desplegadas y activadas el 3 de octubre de 2026, no autorizacion de borrado de una persona ni certificacion juridica. No ejecutar sobre la cuenta del moderador. No usar la limpieza de 1007 huerfanos como autorizacion para borrar cuentas.
+
+## Activacion Verificada el 3 de Octubre
+
+Suite integra en emuladores: 49/49 comprobaciones correctas. La primera corrida tuvo un error de transaccion cerrada en una prueba de concurrencia; la repeticion integra paso sin omitir pruebas ni modificar su comportamiento. Conservar esta incidencia para observar su recurrencia, no afirmar ausencia de inestabilidad futura.
+
+Respaldo Firestore gestionado completo en el bucket privado: SUCCESSFUL antes del despliegue. El propietario aprobo concretamente el rol oficial de consulta Firestore para el agente de Storage; se verifico su asignacion sin alterar otros bindings IAM. No se concedieron roles a personas.
+
+Despliegue acotado: `firebase deploy --only functions,firestore:rules,storage`. Las 36 Functions quedaron ACTIVE con Node 22 y tiempos de llamada no superiores a 60 segundos. Ambas reglas compiladas coinciden exactamente con los archivos revisados y contienen la barrera. Solo entonces se creo y se verifico el marcador privado descrito abajo. Consulta final: cero solicitudes pendientes. No se congelo ni borro ninguna cuenta real ni se restauro el respaldo sobre produccion.
+
+Las evidencias privadas de respaldo, IAM, despliegue, rulesets y marcador estan en artifacts/validation, ignoradas por Git. No publicarlas ni usarlas como aprobacion de un caso individual. La restauracion gestionada real en un destino aislado y la politica de retencion siguen siendo verificaciones independientes.
 
 ## Activacion Separada
 
