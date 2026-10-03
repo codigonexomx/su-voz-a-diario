@@ -2,7 +2,8 @@
 
 const { createHash } = require("node:crypto");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { HttpsError, onCall } = require("firebase-functions/v2/https");
+const { HttpsError } = require("firebase-functions/v2/https");
+const { onCall } = require("./accountDeletionAccess");
 const { getContentOwner } = require("./communityActivity");
 
 const TERMS_VERSION = "2026-10-01";

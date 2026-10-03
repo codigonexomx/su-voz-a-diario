@@ -3,6 +3,7 @@
 const { createHash } = require("node:crypto");
 const { FieldPath, FieldValue } = require("firebase-admin/firestore");
 const { getStorage } = require("firebase-admin/storage");
+const { blockedAccounts } = require("./accountDeletionAccess");
 
 async function getContentOwner(db, collectionName, privateCollection, id) {
   if (typeof id !== "string" || !id || id.includes("/")) return null;
@@ -26,6 +27,7 @@ async function incrementRecipientOnce(db, kind, eventId, uid, postId = "") {
   const activity = db.collection("userActivity").doc(uid);
   return db.runTransaction(async transaction => {
     const [seen, snapshot] = await transaction.getAll(ledger, activity);
+    if ((await blockedAccounts(db, [uid], transaction)).has(uid)) return null;
     if (seen.exists) return null;
     transaction.create(ledger, { completed: true, createdAt: FieldValue.serverTimestamp() });
     if (!snapshot.exists) return null;
@@ -46,13 +48,15 @@ async function incrementCommunityOnce(db, eventId, actorUid, postId) {
   for (;;) {
     const result = await db.runTransaction(async transaction => {
       const progress = await transaction.get(ledger);
+      if ((await blockedAccounts(db, [actorUid], transaction)).has(actorUid)) return null;
       if (progress.get("completed") === true) return null;
       let query = db.collection("userActivity").orderBy(FieldPath.documentId()).limit(100);
       if (progress.get("cursor")) query = query.startAfter(progress.get("cursor"));
       const page = await transaction.get(query);
+      const blocked = await blockedAccounts(db, page.docs.map(document => document.id), transaction);
       const updates = [];
       for (const document of page.docs) {
-        if (document.id === actorUid) continue;
+        if (document.id === actorUid || blocked.has(document.id)) continue;
         const count = document.get("unreadCommunityCount");
         const badgeCount = Number.isInteger(count) && count >= 0 ? count + 1 : 1;
         transaction.update(document.ref, { unreadCommunityCount: badgeCount });

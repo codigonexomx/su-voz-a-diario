@@ -2,7 +2,8 @@
 
 const { logger } = require("firebase-functions");
 const { defineSecret } = require("firebase-functions/params");
-const { HttpsError, onCall } = require("firebase-functions/v2/https");
+const { HttpsError } = require("firebase-functions/v2/https");
+const { onCall } = require("./accountDeletionAccess");
 const { getFirestore } = require("firebase-admin/firestore");
 const { requireUser, consumeRateLimit } = require("./communitySafety");
 const {

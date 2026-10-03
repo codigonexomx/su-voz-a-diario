@@ -34,5 +34,5 @@ jobs:
           npx cap copy ios
       - run: npm audit --audit-level=moderate
       - run: npm --prefix functions audit --audit-level=moderate
-      - run: npm exec --yes --package=firebase-tools@15.14.0 -- firebase emulators:exec --only firestore,auth --project demo-su-voz-stability "node scripts/run-tests.mjs --emulator"
+      - run: npm exec --yes --package=firebase-tools@15.14.0 -- firebase emulators:exec --only firestore,auth,storage --project demo-su-voz-stability "node scripts/run-tests.mjs --emulator"
       - run: git diff --exit-code

@@ -8,7 +8,8 @@ const {
   onDocumentCreated,
   onDocumentWritten,
 } = require("firebase-functions/v2/firestore");
-const { HttpsError, onCall } = require("firebase-functions/v2/https");
+const { HttpsError } = require("firebase-functions/v2/https");
+const { onCall, blockedAccounts } = require("./accountDeletionAccess");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const {
   getContentOwner, eventRef, incrementRecipientOnce, incrementCommunityOnce, deletePostCascade,
@@ -445,8 +446,11 @@ async function sendNotification(db, recipients, data) {
   const invalidDocuments = [];
 
   for (const recipientBatch of chunk(recipients, MAX_MULTICAST_TOKENS)) {
+    const blocked = await blockedAccounts(db, recipientBatch.flatMap(item => item.documents.map(doc => doc.get("uid"))));
+    const activeBatch = recipientBatch.filter(item => item.documents.some(doc => !blocked.has(doc.get("uid"))));
+    if (!activeBatch.length) continue;
     const response = await getMessaging().sendEachForMulticast({
-      tokens: recipientBatch.map(({ token }) => token),
+      tokens: activeBatch.map(({ token }) => token),
       notification: {
         title: data.title || "Su Voz a Diario",
         body: data.body || "Tienes una nueva notificación.",
@@ -474,7 +478,7 @@ async function sendNotification(db, recipients, data) {
       const errorCode = result.error?.code;
 
       if (!result.success && INVALID_TOKEN_CODES.has(errorCode)) {
-        invalidDocuments.push(...recipientBatch[index].documents);
+        invalidDocuments.push(...activeBatch[index].documents);
       }
     });
   }
@@ -1260,6 +1264,7 @@ async function updateCommunityMetrics(event) {
   const ledger = eventRef(db, "metrics", `${event.params.postId}:${created?.toMillis?.() || event.time}`);
   await db.runTransaction(async transaction => {
     const [seen, snapshot] = await transaction.getAll(ledger, metricRef);
+    if ((await blockedAccounts(db, [userId], transaction)).has(userId)) return;
     if (seen.exists) return;
     const metrics = snapshot.data() || {};
     const legacyDate = metrics.lastActiveDate?.toDate?.();
@@ -1311,7 +1316,8 @@ exports.notifyPostOwnerInApp = onDocumentCreated(
       const replyAuthor = reply.authorSnapshot?.displayName || reply.name || "Alguien de la comunidad";
       const notification = db.collection("notifications").doc(eventRef(db, "reply-notification", event.params.replyId).id);
       await db.runTransaction(async transaction => {
-        if ((await transaction.get(notification)).exists) return;
+        const previous = await transaction.get(notification);
+        if ((await blockedAccounts(db, [actorUid, postOwnerUid], transaction)).size || previous.exists) return;
         transaction.create(notification, {
         userId: postOwnerUid,
         type: "newReply",

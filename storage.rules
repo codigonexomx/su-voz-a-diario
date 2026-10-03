@@ -2,19 +2,23 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    function accountActive() {
+      return request.auth != null
+        && !firestore.exists(/databases/(default)/documents/accountDeletionGuards/$(request.auth.uid));
+    }
     // Reglas para reflexiones de audio de la sección Comunidad
     match /community/audio/{fileName} {
       // Permitir lectura a todos los usuarios
       allow read: if true;
       
       // Permitir subida si el usuario está autenticado, el tamaño es menor a 10MB y es un archivo de audio
-      allow create: if request.auth != null
+      allow create: if accountActive()
                     && request.resource.metadata.ownerUid == request.auth.uid
                     && request.resource.size < 10 * 1024 * 1024
                     && request.resource.contentType.matches('audio/.*');
                     
       // Permitir eliminación únicamente al propietario del audio
-      allow delete: if request.auth != null &&
+      allow delete: if accountActive() &&
         (('ownerUid' in resource.metadata && request.auth.uid == resource.metadata.ownerUid)
           || (!('ownerUid' in resource.metadata) && 'uid' in resource.metadata && request.auth.uid == resource.metadata.uid));
     }

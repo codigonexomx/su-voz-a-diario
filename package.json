@@ -3,7 +3,7 @@
   "scripts": {
     "test": "node scripts/run-tests.mjs",
     "test:stabilization": "node scripts/validate-stabilization.mjs",
-    "test:all:emulator": "firebase emulators:exec --only firestore,auth --project demo-su-voz-stability \"node scripts/run-tests.mjs --emulator\"",
+    "test:all:emulator": "firebase emulators:exec --only firestore,auth,storage --project demo-su-voz-stability \"node scripts/run-tests.mjs --emulator\"",
     "check:readings-coverage": "node scripts/check-reading-coverage.mjs",
     "android:copy": "rsync -av --delete --delete-excluded --prune-empty-dirs --exclude '.DS_Store' --exclude '*.log' --exclude '*.test.js' --exclude '/.git/***' --exclude '/node_modules/***' --exclude '/android/***' --exclude '/ios/***' --exclude '/www/***' --include '/.well-known/***' --include '/assets/***' --include '/compartir/***' --include '/css/***' --include '/data/' --include '/data/*.json' --include '/data/readings/***' --include '/hoy/***' --include '/icons/***' --include '/js/***' --include '/lectura/***' --include '/media/***' --include '/CNAME' --include '/.nojekyll' --include '/imagen modo oscuro.png' --include '/imagendefondo.png' --include '/index.html' --include '/manifest.json' --include '/privacy.html' --include '/eliminar-cuenta.html' --include '/sw.js' --exclude '*' ./ www/",
     "android:sync": "npm run android:copy && npx cap sync android",

@@ -3,7 +3,7 @@
 const { createHash } = require("node:crypto");
 
 const COLLECTIONS = Object.freeze([
-  "accountDeletionRequests", "communityConfiguration", "communityPosts", "communityPostPrivate",
+  "accountDeletionRequests", "accountDeletionGuards", "communityConfiguration", "communityPosts", "communityPostPrivate",
   "communityReplies", "communityReplyPrivate", "communityPrayerRequests", "communityPrayerPrivate",
   "communityPrayerCommitments", "communityReactions", "communityProfiles", "communityNames",
   "userProfiles", "userActivity", "userMetrics", "communityClock", "pushTokens", "notifications",
@@ -95,7 +95,7 @@ async function buildInventory({ project, reference, transport, getUser, now = ()
   const prayerIds = ownIds("communityPrayerRequests", "communityPrayerPrivate");
   for (const record of documents.values()) {
     const [collection, id] = record.path.split("/"), data = record.data;
-    if (collection === "accountDeletionRequests" || collection === "communityConfiguration") continue;
+    if (collection === "accountDeletionRequests" || collection === "accountDeletionGuards" || collection === "communityConfiguration") continue;
     const directOwned = DIRECT.has(collection) && id === uid;
     const owned = directOwned || Object.hasOwn(OWNER_BY_COLLECTION, collection) && data[OWNER_BY_COLLECTION[collection]] === uid;
     if (directOwned) scanParents.add(record.path);
