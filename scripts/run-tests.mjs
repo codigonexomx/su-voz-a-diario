@@ -9,7 +9,7 @@ const checks = [
     'validate-community-voice', 'validate-library-upgrade', 'validate-continuous-reader',
     'validate-bible-continuous-voice', 'validate-bible-study', 'validate-bible-without-strong',
     'validate-bible-phase3', 'validate-bible-phase6', 'validate-bible-phase7',
-    'validate-bottom-nav', 'validate-glass-nav', 'validate-deep-links',
+    'validate-bottom-nav', 'validate-deepening-keyboard', 'validate-glass-nav', 'validate-deep-links',
     'test-community-hotfix-203', 'audit-bottom-nav', 'validate-stabilization', 'validate-account-recovery',
     'validate-community-global',
 ].map(name => [`scripts/${name}.mjs`]);

@@ -75,6 +75,7 @@
         return {
             isKeyboardOpen: false,
             visibleHeight,
+            visibleOffsetTop: 0,
             baselineHeight,
             heightReduction: 0,
             threshold: getThreshold(baselineHeight, visibleHeight),
@@ -88,6 +89,7 @@
     function resolveState({
         hasKeyboardFocus,
         visibleHeight,
+        visibleOffsetTop,
         baselineHeight,
         orientation,
         virtualKeyboardHeight,
@@ -107,6 +109,7 @@
         return createState({
             isKeyboardOpen,
             visibleHeight: safeVisibleHeight,
+            visibleOffsetTop: Math.max(0, Number(visibleOffsetTop) || 0),
             baselineHeight: safeBaselineHeight,
             heightReduction,
             threshold,
@@ -137,6 +140,7 @@
         const changed = [
             'isKeyboardOpen',
             'visibleHeight',
+            'visibleOffsetTop',
             'baselineHeight',
             'orientation',
             'hasKeyboardFocus',
@@ -186,6 +190,7 @@
         return setState(resolveState({
             hasKeyboardFocus,
             visibleHeight,
+            visibleOffsetTop: window.visualViewport?.offsetTop,
             baselineHeight,
             orientation,
             virtualKeyboardHeight,

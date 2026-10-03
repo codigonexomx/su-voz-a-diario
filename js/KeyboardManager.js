@@ -213,23 +213,28 @@
             const visibleHeight = viewportState.visibleHeight || getViewportHeight();
             const keyboardOpen = Boolean(viewportState.isKeyboardOpen);
             const targetHeight = Math.round(keyboardOpen ? visibleHeight : baseVisibleHeight);
+            // iOS pans the visual viewport as well as shrinking it for the keyboard.
+            const viewportTop = keyboardOpen ? (viewportState.visibleOffsetTop || 0) : 0;
             recordLayoutLifecycle('applyViewportPosition:before', {
                 baseVisibleHeight,
                 targetHeight,
                 keyboardOpen,
-                visibleHeight
+                visibleHeight,
+                viewportTop
             });
             rootElement.style.setProperty(
                 '--deepening-shell-height',
                 `${targetHeight}px`
             );
+            rootElement.style.setProperty('--deepening-viewport-top', `${viewportTop}px`);
             shellElement.style.removeProperty('--deepening-layout-height');
             shellElement.classList.toggle('is-keyboard-open', keyboardOpen);
             recordLayoutLifecycle('applyViewportPosition:after', {
                 baseVisibleHeight,
                 targetHeight,
                 keyboardOpen,
-                visibleHeight
+                visibleHeight,
+                viewportTop
             });
             ensureCursorVisible();
         }
@@ -294,6 +299,7 @@
             unbindBackgroundLifecycle();
 
             rootElement?.style.setProperty('--deepening-shell-height', `${Math.round(baseVisibleHeight)}px`);
+            rootElement?.style.removeProperty('--deepening-viewport-top');
             shellElement?.style.removeProperty('--deepening-layout-height');
             shellElement?.classList.remove('is-keyboard-open');
 
