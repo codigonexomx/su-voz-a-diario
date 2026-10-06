@@ -1,0 +1,108 @@
+{
+  "downloadedAt": "2026-10-04T13:12:55.060Z",
+  "cssSource": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap",
+  "assets": [
+    {
+      "path": "assets/fonts/cormorant-garamond-normal-400.ttf",
+      "source": "https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_v86GnM.ttf",
+      "bytes": 290236,
+      "sha256": "6d37a86241a25d63f8fe6018b4c083449886b7165c1acb15edd0f574f690ecf7"
+    },
+    {
+      "path": "assets/fonts/cormorant-garamond-normal-500.ttf",
+      "source": "https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_s06GnM.ttf",
+      "bytes": 290496,
+      "sha256": "1724047c8988ca5155bff667bc48fa52e97d57aabc6b42eebbf986f21a4be20b"
+    },
+    {
+      "path": "assets/fonts/cormorant-garamond-normal-600.ttf",
+      "source": "https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_iE9GnM.ttf",
+      "bytes": 290392,
+      "sha256": "69e7ae35cba23d962227b86f99217c250e642e4c6f6104b4f3ec465039e4e2d8"
+    },
+    {
+      "path": "assets/fonts/cormorant-garamond-normal-700.ttf",
+      "source": "https://fonts.gstatic.com/s/cormorantgaramond/v21/co3umX5slCNuHLi8bLeY9MK7whWMhyjypVO7abI26QOD_hg9GnM.ttf",
+      "bytes": 289992,
+      "sha256": "440daf036a35abd6d2bdfa92b14ab0f150cce690fe6d767ee5cab15a1a10a87f"
+    },
+    {
+      "path": "assets/fonts/inter-normal-400.ttf",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf",
+      "bytes": 324820,
+      "sha256": "1b08e7fc267a5c7e1d614100f604b83e7e8a0be241f0f288faa2b3ac93a683ba"
+    },
+    {
+      "path": "assets/fonts/inter-normal-500.ttf",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fMZg.ttf",
+      "bytes": 325304,
+      "sha256": "8c883f63b2c4157d997319f2c8bc6995ed4357ef371940d31ca159004a4aae63"
+    },
+    {
+      "path": "assets/fonts/inter-normal-600.ttf",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYMZg.ttf",
+      "bytes": 326048,
+      "sha256": "e7a1aaf7eda9f2fad4131725fa556265ec75ca7b2d756260173a040363e8d4f7"
+    },
+    {
+      "path": "assets/fonts/inter-normal-700.ttf",
+      "source": "https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf",
+      "bytes": 326468,
+      "sha256": "b37284b5701b6b168dfc770aa1a4ac492106422fd3ba76bc7641e37434e8019c"
+    },
+    {
+      "path": "assets/fonts/merriweather-italic-400.ttf",
+      "source": "https://fonts.gstatic.com/s/merriweather/v33/u-4B0qyriQwlOrhSvowK_l5-eTxCVx0ZbwLvKH2Gk9hLmp0v5yA-xXPqCzLvPee1XYk_XSf-FmTCUF3w.ttf",
+      "bytes": 595652,
+      "sha256": "afff81272b7653417bb6f8bef57add055b1f9fda36f27eba5f32b40752bd08da"
+    },
+    {
+      "path": "assets/fonts/merriweather-normal-300.ttf",
+      "source": "https://fonts.gstatic.com/s/merriweather/v33/u-4D0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiScCmDxhtNOKl8yDrgCcqEw.ttf",
+      "bytes": 585732,
+      "sha256": "bbff895ad97ee6c29182a071ab3d25d15d2f1a3742442f156e8aff478a106207"
+    },
+    {
+      "path": "assets/fonts/merriweather-normal-400.ttf",
+      "source": "https://fonts.gstatic.com/s/merriweather/v33/u-4D0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiScCmDxhtNOKl8yDr3icqEw.ttf",
+      "bytes": 585976,
+      "sha256": "e029d3b71e5bae3877c73f4f2b15af28db16593d49b0aed2a328d37ff7075846"
+    },
+    {
+      "path": "assets/fonts/merriweather-normal-700.ttf",
+      "source": "https://fonts.gstatic.com/s/merriweather/v33/u-4D0qyriQwlOrhSvowK_l5UcA6zuSYEqOzpPe3HOZJ5eX1WtLaQwmYiScCmDxhtNOKl8yDrOSAqEw.ttf",
+      "bytes": 586052,
+      "sha256": "90b7db4460fcd1a5ca49575c2668a793f3cd6447664d312a068d690e1c01e6bc"
+    },
+    {
+      "path": "assets/fonts/inter-OFL.txt",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/OFL.txt",
+      "bytes": 4377,
+      "sha256": "5b9321a4298cfeb6b34354164a1c3afc3db114569984c502b9b35d988fd58c57"
+    },
+    {
+      "path": "assets/fonts/cormorantgaramond-OFL.txt",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/cormorantgaramond/OFL.txt",
+      "bytes": 4387,
+      "sha256": "60700d351cac4650c51f3f9db318d2a420f8b45052dba2715eb5fec41f0f6956"
+    },
+    {
+      "path": "assets/fonts/merriweather-OFL.txt",
+      "source": "https://raw.githubusercontent.com/google/fonts/main/ofl/merriweather/OFL.txt",
+      "bytes": 4438,
+      "sha256": "715bd349bfa6116f99e351e1548321dcfa25b91df65502d22ca8d624557697d2"
+    },
+    {
+      "path": "js/vendor/jspdf-4.2.1.umd.min.js",
+      "source": "https://raw.githubusercontent.com/parallax/jsPDF/v4.2.1/dist/jspdf.umd.min.js",
+      "bytes": 420165,
+      "sha256": "e6551fcdc32f09d6853b2c5126d18d01d9447e0da618a41a11ebeee0f6c20d54"
+    },
+    {
+      "path": "js/vendor/jspdf-LICENSE.txt",
+      "source": "https://raw.githubusercontent.com/parallax/jsPDF/v4.2.1/LICENSE",
+      "bytes": 1142,
+      "sha256": "dc388ec35ff463288cdde3588a36fd4ed12a45deff053243b37309acc9ef583b"
+    }
+  ]
+}

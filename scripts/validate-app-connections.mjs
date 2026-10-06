@@ -22,9 +22,10 @@ const values=new Map([['su-voz-note-2026-09-22',JSON.stringify({dios:'Espejo ant
 context.localStorage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),get length(){return values.size},key:i=>[...values.keys()][i]};storage.get=k=>JSON.parse(values.get(k)||'{}');
 const count=sessions.size;method('migrateLegacyNotebookToSessions','openMeditationSession').call(app);assert.equal(sessions.size,count);
 console.log('OK: perder el indicador de migración no duplica una fecha ya migrada');
-const sw=fs.readFileSync('sw.js','utf8'),staticAssets=sw.slice(sw.indexOf('const STATIC_ASSETS'),sw.indexOf('const REQUIRED_ASSETS')),required=sw.slice(sw.indexOf('const REQUIRED_ASSETS'),sw.indexOf('// Firebase compat'));
+const sw=fs.readFileSync('sw.js','utf8');
+const assetLists=vm.runInNewContext(sw.slice(0,sw.indexOf('// Firebase compat'))+'; ({staticAssets: STATIC_ASSETS, required: Array.from(REQUIRED_ASSETS)})');
 const seen=new Set();function walk(file){if(seen.has(file))return;seen.add(file);for(const [,rel] of fs.readFileSync(file,'utf8').matchAll(/from\s+['"](\.[^'"]+)['"]/g)){const target=path.normalize(path.join(path.dirname(file),rel));assert(fs.existsSync(target),target);walk(target);}}
-walk('js/app.js');for(const file of seen){for(const [name,list] of [['precache',staticAssets],['required',required]])assert(list.includes(`'./${file}'`)||list.includes(`'./${file}?`),`${file} missing ${name}`);}
+walk('js/app.js');for(const file of seen){for(const [name,list] of [['precache',assetLists.staticAssets],['required',assetLists.required]])assert(list.some(asset=>asset.split('?')[0]===`./${file}`),`${file} missing ${name}`);}
 console.log(`OK: ${seen.size} módulos transitivos presentes y obligatorios para instalación offline`);
 // Keep the public entry points and the native copy consistent.
 for(const file of seen)assert.equal(fs.readFileSync(file,'utf8'),fs.readFileSync('www/'+file,'utf8'),`Copia Android: ${file}`);

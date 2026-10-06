@@ -120,6 +120,11 @@ public class NavAuditInstrumentation extends Instrumentation {
         awaitJs("document.querySelector('#nav-home') && document.querySelector('#app-content')?.textContent.length > 100");
         SystemClock.sleep(1500);
         String phase = arguments.getString("phase", "candidate");
+        if (phase.equals("backup44")) {
+            assertEquals("Network isolated before install", "1", shell("settings get global airplane_mode_on"));
+            nativeBackupRoundTrip();
+            return;
+        }
         if (phase.equals("seed36")) {
             js("localStorage.setItem('suvoz-nav-qa-upgrade','version36-preserved'); localStorage.setItem('reading-size','1.2');");
             save("baseline36", data("({marker:localStorage.getItem('suvoz-nav-qa-upgrade'),readingSize:localStorage.getItem('reading-size')})"));
@@ -183,8 +188,10 @@ public class NavAuditInstrumentation extends Instrumentation {
                 // Focus the actual Bible search field and request the real Android IME.
                 js("location.hash='bible-search'; window.dispatchEvent(new PopStateEvent('popstate'))");
                 awaitJs("document.getElementById('bible-search-input')");
-                js("document.getElementById('bible-search-input').focus()");
-                JSONObject inputRect = data("(()=>{const r=document.getElementById('bible-search-input').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2}})()");
+                js("document.getElementById('bible-search-input').scrollIntoView({block:'center',behavior:'instant'})");
+                SystemClock.sleep(1200);
+                JSONObject inputRect = data("(()=>{const e=document.getElementById('bible-search-input'),r=e.getBoundingClientRect(),x=r.x+r.width/2,y=r.y+r.height/2;return {x,y,hit:document.elementFromPoint(x,y)?.id}})()");
+                assertEquals("Visible field receives the trusted touch", "bible-search-input", inputRect.getString("hit"));
                 int[] webLocation = new int[2];
                 inst.runOnMainSync(() -> web.getLocationOnScreen(webLocation));
                 float density = activity.getResources().getDisplayMetrics().density;
@@ -199,14 +206,17 @@ public class NavAuditInstrumentation extends Instrumentation {
                 });
                 SystemClock.sleep(1500);
                 snapshot(phase+"-"+mode+"-keyboard");
-                save("keyboard-diagnostic",data("({state:window.KeyboardViewportManager?.getState(),innerHeight,visibleHeight:visualViewport.height,focus:document.activeElement?.id,classes:document.body.className})"));
+                JSONObject keyboard = data("(()=>{const e=document.getElementById('bible-search-input'),r=e.getBoundingClientRect(),v=visualViewport;return {state:window.KeyboardViewportManager?.getState(),innerHeight,visibleHeight:v.height,viewportTop:v.offsetTop,focus:document.activeElement?.id,classes:document.body.className,fieldTop:r.top,fieldBottom:r.bottom,fieldVisible:r.top>=v.offsetTop&&r.bottom<=v.offsetTop+v.height}})()");
+                save("keyboard-"+mode,keyboard);
                 awaitJs("document.body.classList.contains('keyboard-open')");
                 assertEquals("true",js("document.querySelector('.bottom-nav').inert"));
+                assertEquals("Actual input retains focus", "bible-search-input", keyboard.getString("focus"));
+                assertTrue("Focused input is visible above the real IME", keyboard.getBoolean("fieldVisible"));
                 inst.runOnMainSync(() -> ((InputMethodManager)activity.getSystemService(Context.INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(web.getWindowToken(), 0));
                 js("document.activeElement.blur()");
                 awaitJs("!document.body.classList.contains('keyboard-open')");
                 save("mode-"+mode, new JSONObject().put("rows",rows));
-                modes.put(new JSONObject().put("mode",mode).put("rows",rows).put("keyboardOpenClose",true));
+                modes.put(new JSONObject().put("mode",mode).put("rows",rows).put("keyboard",keyboard).put("keyboardOpenClose",true));
             }
             save(phase, new JSONObject().put("passed",true).put("phase",phase).put("orientation",orientation).put("modes",modes));
         } finally {
@@ -214,5 +224,127 @@ public class NavAuditInstrumentation extends Instrumentation {
             shell(originalHandwriting.equals("null") ? "settings delete secure stylus_handwriting_enabled" : "settings put secure stylus_handwriting_enabled "+originalHandwriting);
             shell(originalHardwareIme.equals("null") ? "settings delete secure show_ime_with_hard_keyboard" : "settings put secure show_ime_with_hard_keyboard "+originalHardwareIme);
         }
+    }
+
+    private void openBackupSettings() throws Exception {
+        awaitJs("window.App?._pushRouteReady===true");
+        for (int i=0; i<250 && !"true".equals(js("!document.getElementById('splash-screen')")); i++) SystemClock.sleep(100);
+        assertEquals("Splash no longer intercepts touches", "true", js("!document.getElementById('splash-screen')"));
+        js("if(window.App.currentView!=='settings') document.getElementById('header-settings-btn').click()");
+        awaitJs("document.getElementById('import-file') && window.App && window.ShareService");
+        js("window.__qaAlerts=[]; window.__qaConfirmCalls=0; window.alert=m=>window.__qaAlerts.push(m); window.confirm=()=>{window.__qaConfirmCalls++;return true;}");
+    }
+
+    private void chooseFixture(File file, boolean canceled) throws Exception {
+        android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(inst.getTargetContext(), "app.suvoz.fileprovider", file);
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.List<String> actions = new java.util.ArrayList<>();
+        ActivityMonitor monitor = new ActivityMonitor() {
+            @Override public ActivityResult onStartActivity(Intent intent) {
+                String action = intent.getAction();
+                actions.add(String.valueOf(action));
+                if (Intent.ACTION_CHOOSER.equals(action) || Intent.ACTION_GET_CONTENT.equals(action) || Intent.ACTION_OPEN_DOCUMENT.equals(action)) {
+                    calls.incrementAndGet();
+                    Intent result = new Intent().setData(uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    return new ActivityResult(canceled ? Activity.RESULT_CANCELED : Activity.RESULT_OK, result);
+                }
+                return null;
+            }
+        };
+        inst.addMonitor(monitor);
+        try {
+            js("document.getElementById('import-file').value=''; document.getElementById('import-data').scrollIntoView({block:'center',behavior:'instant'})");
+            SystemClock.sleep(1200);
+            js("window.__qaClicks=[]; document.addEventListener('click',e=>window.__qaClicks.push({id:e.target.id,trusted:e.isTrusted}),{once:true}); document.getElementById('import-file').addEventListener('click',()=>window.__qaClicks.push({id:'input-handler'}),{once:true})");
+            JSONObject rect = data("(()=>{const r=document.getElementById('import-data').getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2,hit:document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)?.outerHTML}})()");
+            int[] location = new int[2];
+            inst.runOnMainSync(() -> web.getLocationOnScreen(location));
+            float density = activity.getResources().getDisplayMetrics().density;
+            float x = location[0]+(float)rect.getDouble("x")*density;
+            float y = location[1]+(float)rect.getDouble("y")*density;
+            long when = SystemClock.uptimeMillis();
+            android.view.MotionEvent down = android.view.MotionEvent.obtain(when,when,android.view.MotionEvent.ACTION_DOWN,x,y,0);
+            android.view.MotionEvent up = android.view.MotionEvent.obtain(when,when+50,android.view.MotionEvent.ACTION_UP,x,y,0);
+            try { inst.sendPointerSync(down); inst.sendPointerSync(up); }
+            finally { down.recycle(); up.recycle(); }
+            for (int i=0; i<100 && calls.get()==0; i++) SystemClock.sleep(100);
+            if (calls.get()==0) {
+                save("backup44-picker-diagnostic", new JSONObject().put("rect",rect).put("density",density).put("nativeX",x).put("nativeY",y).put("actions",new org.json.JSONArray(actions)).put("clicks",js("window.__qaClicks")).put("body",js("document.body.innerText")).put("focus",activity.hasWindowFocus()));
+                snapshot("backup44-picker-diagnostic");
+            }
+            assertEquals("Native file chooser invoked exactly once", 1, calls.get());
+        } finally { inst.removeMonitor(monitor); }
+    }
+
+    private File backupFixture(String name, String json) throws Exception {
+        File directory = new File(inst.getTargetContext().getCacheDir(), "backups");
+        assertTrue("QA backup directory", directory.isDirectory() || directory.mkdirs());
+        File file = new File(directory, name);
+        try (FileOutputStream output = new FileOutputStream(file)) { output.write(json.getBytes(StandardCharsets.UTF_8)); }
+        return file;
+    }
+
+    private void nativeBackupRoundTrip() throws Exception {
+        assertEquals("Native bridge", "true", js("window.Capacitor.isNativePlatform() && typeof window.Capacitor.Plugins.FirebaseAppCheck.initialize==='function'"));
+        nativeBackupExportCancellation();
+        js("localStorage.setItem('su-voz-note-2026-10-03',JSON.stringify({dios:'QA44 nota previa ficticia'})); localStorage.setItem('qa44-auth-marker','unchanged')");
+        String note = new JSONObject().put("dios", "QA44 importacion ficticia").toString();
+        String good = new JSONObject().put("notes", new JSONObject().put("2026-10-04", new JSONObject(note)))
+            .put("readDates", new org.json.JSONArray().put("2026-10-04"))
+            .put("settings", new JSONObject().put("fontSize", 1.2).put("notificationsEnabled", true)).toString();
+        openBackupSettings();
+        js("window.__qaReloadMarker=true");
+        chooseFixture(backupFixture("qa44-good.json", good), false);
+        awaitJs("JSON.parse(localStorage.getItem('su-voz-note-2026-10-04')||'{}').dios==='QA44 importacion ficticia'");
+        assertEquals("Previous local note", "\"QA44 nota previa ficticia\"", js("JSON.parse(localStorage.getItem('su-voz-note-2026-10-03')).dios"));
+        assertEquals("No identity import", "\"unchanged\"", js("localStorage.getItem('qa44-auth-marker')"));
+        assertEquals("No notification consent import", "false", js("JSON.parse(localStorage.getItem('su-voz-settings')).notificationsEnabled"));
+        awaitJs("window.__qaReloadMarker===undefined && window.App?._pushRouteReady===true");
+        openBackupSettings();
+        chooseFixture(backupFixture("qa44-cancel.json", good), true);
+        SystemClock.sleep(500);
+        assertEquals("Canceled picker does not request restore", "0", js("window.__qaConfirmCalls"));
+        String invalid = new JSONObject(good).put("settings", new JSONObject().put("fontSize", "invalid")).toString();
+        chooseFixture(backupFixture("qa44-invalid.json", invalid), false);
+        awaitJs("window.__qaAlerts.length===1");
+        assertEquals("Invalid preferences rejected before confirmation", "0", js("window.__qaConfirmCalls"));
+        assertEquals("Imported note persisted across reload", "\"QA44 importacion ficticia\"", js("JSON.parse(localStorage.getItem('su-voz-note-2026-10-04')).dios"));
+        int versionCode = activity.getPackageManager().getPackageInfo(activity.getPackageName(), 0).versionCode;
+        JSONObject result = new JSONObject().put("versionCode",versionCode).put("offline",true)
+            .put("nativeFilePickerResult",true).put("realFileReader",true).put("priorNotePreserved",true)
+            .put("identityPreserved",true).put("notificationConsentPreserved",true)
+            .put("cancelNoWrite",true).put("invalidPreferencesNoWrite",true).put("survivesReload",true)
+            .put("nativeExportFileProvider",true).put("nativeExportCancellation",true)
+            .put("syntheticDataOnly",true).put("pickerUiManuallyTested",false);
+        save("backup44", result);
+        snapshot("backup44-settings");
+    }
+
+    private void nativeBackupExportCancellation() throws Exception {
+        java.util.concurrent.atomic.AtomicInteger calls = new java.util.concurrent.atomic.AtomicInteger();
+        ActivityMonitor monitor = new ActivityMonitor() {
+            @Override public ActivityResult onStartActivity(Intent intent) {
+                if (!Intent.ACTION_CHOOSER.equals(intent.getAction())) return null;
+                Intent send = intent.getParcelableExtra(Intent.EXTRA_INTENT, Intent.class);
+                assertNotNull(send);
+                android.net.Uri uri = send.getParcelableExtra(Intent.EXTRA_STREAM, android.net.Uri.class);
+                assertNotNull(uri);
+                assertEquals("Private FileProvider", "app.suvoz.fileprovider", uri.getAuthority());
+                assertTrue("Only backup cache shared", uri.getPath().startsWith("/shared_backups/"));
+                assertTrue("Temporary read grant", (send.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0);
+                calls.incrementAndGet();
+                return new ActivityResult(Activity.RESULT_CANCELED, null);
+            }
+        };
+        inst.addMonitor(monitor);
+        try {
+            js("window.__qaShareResult=null; window.ShareService.exportBackup(new Blob(['{\"qa\":\"fictional-only\"}'],{type:'application/json'}),'qa44-share.json').then(r=>window.__qaShareResult=r,e=>window.__qaShareResult={error:String(e)})");
+            awaitJs("window.__qaShareResult!==null");
+            assertEquals("Native export chooser invoked", 1, calls.get());
+            assertEquals("Cancellation is not reported as shared", "true", js("window.__qaShareResult.canceled===true && !window.__qaShareResult.shared"));
+            File directory = new File(inst.getTargetContext().getCacheDir(), "backups");
+            File[] files = directory.listFiles((dir, name) -> name.endsWith("-qa44-share.json"));
+            assertTrue("Filesystem wrote synthetic export", files != null && files.length > 0);
+        } finally { inst.removeMonitor(monitor); }
     }
 }

@@ -51,7 +51,7 @@
 
     <title>Su voz a diario</title>
 
-    <link rel="manifest" href="./manifest.json?v=257">
+    <link rel="manifest" href="./manifest.json?v=260">
     <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
     <link rel="apple-touch-startup-image" href="./icons/splash%202.png">
     <link rel="apple-touch-startup-image" href="./icons/splash%202.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
@@ -66,17 +66,13 @@
     <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
     <link rel="preload" as="image" href="./icons/splash%202.png">
-    <link rel="stylesheet" href="./css/styles.css?v=257">
-    <link rel="stylesheet" href="./css/deepening-mode.css?v=257">
-    <link rel="stylesheet" href="./css/deepening-shell.css?v=257">
-    <link rel="stylesheet" href="./css/meditation-document-viewer.css?v=257">
-    <link rel="stylesheet" href="./css/meditation-actions-panel.css?v=257">
+    <link rel="stylesheet" href="./css/styles.css?v=260">
+    <link rel="stylesheet" href="./css/deepening-mode.css?v=260">
+    <link rel="stylesheet" href="./css/deepening-shell.css?v=260">
+    <link rel="stylesheet" href="./css/meditation-document-viewer.css?v=260">
+    <link rel="stylesheet" href="./css/meditation-actions-panel.css?v=260">
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;0,700;1,400&display=swap"
-        rel="stylesheet">
+    <link rel="stylesheet" href="./css/fonts-local.css?v=260">
 </head>
 
 <body>
@@ -578,7 +574,7 @@
   </div>
 </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="./js/vendor/jspdf-4.2.1.umd.min.js?v=260"></script>
 
 <script>
 (function () {
@@ -600,8 +596,17 @@
         import("https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js"),
         import("https://www.gstatic.com/firebasejs/12.11.0/firebase-functions.js")
     ])
-        .then(([appModule, firestoreModule, authModule, functionsModule]) => {
+        .then(async ([appModule, firestoreModule, authModule, functionsModule]) => {
             const app = appModule.initializeApp(firebaseConfig);
+
+            try {
+                const [{ APP_CHECK_CONFIG }, { initializeClientAppCheck }] = await Promise.all([
+                    import('./js/core/securityConfig.js'), import('./js/services/AppCheckService.js')
+                ]);
+                window.suVozAppCheckStatus = await initializeClientAppCheck(app, APP_CHECK_CONFIG);
+            } catch {
+                window.suVozAppCheckStatus = { status: 'unavailable' };
+            }
 
             window.firebaseApp = app;
             window.firebaseDb = firestoreModule.getFirestore(app);
@@ -720,39 +725,39 @@
 })();
 </script>
 
-<script src="js/NotebookGestureController.js?v=257"></script>
-<script src="js/DeepeningFocusDiagnostics.js?v=257"></script>
-<script src="js/ReadingPositionManager.js?v=257"></script>
-<script src="js/ReadingDocument.js?v=257"></script>
-<script src="js/DocumentFactory.js?v=257"></script>
-<script src="js/DocumentExporter.js?v=257"></script>
-<script src="js/PdfDocumentBuilder.js?v=257"></script>
-<script src="js/PdfExporter.js?v=257"></script>
-<script src="js/ShareService.js?v=257"></script>
-<script src="js/MeditationDocumentViewer.js?v=257"></script>
-<script src="js/MeditationActionsPanel.js?v=257"></script>
-<script src="js/MeditationDocument.js?v=257"></script>
-<script src="js/KeyboardViewportManager.js?v=257"></script>
-<script src="js/KeyboardManager.js?v=257"></script>
-<script src="js/DeepeningShell.js?v=257"></script>
-<script src="js/utils/dompurify.min.js?v=257"></script>
-<script src="js/communityIdentity.js?v=257"></script>
-<script src="js/avatarGenerator.js?v=257"></script>
-<script src="js/richTextEditor.js?v=257"></script>
-<script src="js/voiceReflections.js?v=257"></script>
-<script src="js/liveFeed.js?v=257"></script>
-<script src="js/moderation.js?v=257"></script>
-<script src="js/userMetrics.js?v=257"></script>
-<script src="js/notifications.js?v=257"></script>
-<script src="js/performance.js?v=257"></script>
-<script src="js/accessibility.js?v=257"></script>
-<script src="js/i18n.js?v=257"></script>
-<script src="js/toastManager.js?v=257"></script>
-<script src="js/communityAnalytics.js?v=257"></script>
-<script src="js/searchCommunity.js?v=257"></script>
-<script src="js/filters.js?v=257"></script>
-<script src="js/offlineSupport.js?v=257"></script>
-<script type="module" src="js/app.js?v=257"></script>
+<script src="js/NotebookGestureController.js?v=260"></script>
+<script src="js/DeepeningFocusDiagnostics.js?v=260"></script>
+<script src="js/ReadingPositionManager.js?v=260"></script>
+<script src="js/ReadingDocument.js?v=260"></script>
+<script src="js/DocumentFactory.js?v=260"></script>
+<script src="js/DocumentExporter.js?v=260"></script>
+<script src="js/PdfDocumentBuilder.js?v=260"></script>
+<script src="js/PdfExporter.js?v=260"></script>
+<script src="js/ShareService.js?v=260"></script>
+<script src="js/MeditationDocumentViewer.js?v=260"></script>
+<script src="js/MeditationActionsPanel.js?v=260"></script>
+<script src="js/MeditationDocument.js?v=260"></script>
+<script src="js/KeyboardViewportManager.js?v=260"></script>
+<script src="js/KeyboardManager.js?v=260"></script>
+<script src="js/DeepeningShell.js?v=260"></script>
+<script src="js/utils/dompurify.min.js?v=260"></script>
+<script src="js/communityIdentity.js?v=260"></script>
+<script src="js/avatarGenerator.js?v=260"></script>
+<script src="js/richTextEditor.js?v=260"></script>
+<script src="js/voiceReflections.js?v=260"></script>
+<script src="js/liveFeed.js?v=260"></script>
+<script src="js/moderation.js?v=260"></script>
+<script src="js/userMetrics.js?v=260"></script>
+<script src="js/notifications.js?v=260"></script>
+<script src="js/performance.js?v=260"></script>
+<script src="js/accessibility.js?v=260"></script>
+<script src="js/i18n.js?v=260"></script>
+<script src="js/toastManager.js?v=260"></script>
+<script src="js/communityAnalytics.js?v=260"></script>
+<script src="js/searchCommunity.js?v=260"></script>
+<script src="js/filters.js?v=260"></script>
+<script src="js/offlineSupport.js?v=260"></script>
+<script type="module" src="js/app.js?v=260"></script>
 
 <script>
 (function () {
@@ -773,7 +778,7 @@
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const appVersion = '257';
+                const appVersion = '260';
                 const versionKey = 'su-voz-app-version';
                 const reloadKey = `su-voz-update-reloaded-${appVersion}`;
                 const currentCacheNames = new Set([
@@ -835,7 +840,7 @@
                     worker.postMessage({ type: 'SKIP_WAITING' });
                 };
 
-                const registration = await navigator.serviceWorker.register('./sw.js?v=257', {
+                const registration = await navigator.serviceWorker.register('./sw.js?v=260', {
                     scope: './',
                     updateViaCache: 'none'
                 });

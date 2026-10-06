@@ -105,6 +105,8 @@ export class FirebaseBibleApiClient extends BibleApiClient {
             );
         }
 
+        await firebaseAuth.authStateReady();
+
         if (!firebaseAuth.currentUser) {
             if (typeof firebaseFns.signInAnonymously !== 'function') {
                 throw new BibleProviderError(

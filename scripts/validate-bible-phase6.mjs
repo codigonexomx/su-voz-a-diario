@@ -69,7 +69,7 @@ const client = new FirebaseBibleApiClient({
     firebaseReady: async () => undefined,
     getFirebaseFns: () => firebaseFns,
     getFirebaseApp: () => ({ name: 'phase-6-app' }),
-    getFirebaseAuth: () => firebaseAuth
+    getFirebaseAuth: () => ({ ...firebaseAuth, authStateReady: async () => {} })
 });
 const enabledTestVersions = REMOTE_BIBLE_VERSIONS.map(version => ({
     ...version,

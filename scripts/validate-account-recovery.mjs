@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { AccountRecoveryService, accountErrorMessage } from '../js/services/AccountRecoveryService.js';
+import { FirebaseBibleApiClient } from '../js/bible/FirebaseBibleApiClient.js';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { parse } from 'acorn';
@@ -84,5 +85,113 @@ await begin;
 method('setCurrentAuthUser').call(app, { uid: 'new' });
 response({ data: { posts: { stale: true } } }); await loading;
 assert.equal(Object.keys(app.communityOwnedPosts).length, 0, 'A stale ownership response must not cross accounts');
+
+async function validateAuthStartup(restoredUser, concurrent = false) {
+    let settle, initializationReached;
+    const requested = new Promise(resolve => { initializationReached = resolve; });
+    const restoring = new Promise(resolve => { settle = resolve; });
+    const fixtureAuth = { currentUser: null, authStateReady() { initializationReached(); return restoring; } };
+    let anonymousCalls = 0, observers = 0;
+    const fixture = {
+        window: { firebaseAuth: fixtureAuth, suVozFirebaseReady: Promise.resolve(true),
+            firebaseFns: { onAuthStateChanged() {}, signInAnonymously() {} } },
+        auth: null, console: { log() {}, warn() {}, error() {} },
+        onAuthStateChanged(_, next) { observers++; restoring.then(() => next(fixtureAuth.currentUser)); },
+        async signInAnonymously() {
+            anonymousCalls++; initializationReached(); await restoring;
+            if (!fixtureAuth.currentUser?.isAnonymous) fixtureAuth.currentUser = { uid: 'new-anonymous', isAnonymous: true };
+            return { user: fixtureAuth.currentUser };
+        },
+    };
+    const initializing = { currentUser: null, withTimeout: value => Promise.resolve(value),
+        setCurrentAuthUser(user) { this.currentUser = user; } };
+    const node = findProperty(appTree, 'initAuth');
+    const initialize = vm.runInNewContext(`(${appSource.slice(node.value.start, node.value.end)})`, fixture);
+    const first = initialize.call(initializing);
+    const second = concurrent ? initialize.call(initializing) : null;
+    await requested;
+    const callsBeforeRestoration = anonymousCalls;
+    fixtureAuth.currentUser = restoredUser;
+    settle();
+    const user = await first;
+    if (second) assert.equal(await second, user, 'Concurrent startup must reuse the same identity');
+    assert.equal(callsBeforeRestoration, 0, 'Do not start anonymous sign-in before persisted Auth settles');
+    assert.equal(anonymousCalls, restoredUser ? 0 : 1);
+    assert.equal(user.uid, restoredUser?.uid || 'new-anonymous');
+    assert.equal(initializing.currentUser, user);
+    assert.equal(observers, 1);
+    assert.equal(initializing._authInitPromise, null);
+}
+await validateAuthStartup({ uid: 'linked-account', isAnonymous: false, emailVerified: true }, true);
+await validateAuthStartup({ uid: 'restored-anonymous', isAnonymous: true });
+await validateAuthStartup(null, true);
+
+let restoreRemote;
+const remoteRestoration = new Promise(resolve => { restoreRemote = resolve; });
+const remoteAuth = { currentUser: null, authStateReady: () => remoteRestoration };
+let remoteAnonymousCalls = 0;
+const remoteClient = new FirebaseBibleApiClient({ firebaseReady: () => Promise.resolve(true),
+    getFirebaseAuth: () => remoteAuth, getFirebaseApp: () => ({}), getFirebaseFns: () => ({
+        getFunctions: () => ({}), httpsCallable: () => async () => ({ data: { books: [] } }),
+        signInAnonymously: async () => { remoteAnonymousCalls++; },
+    }) });
+const remoteBooks = remoteClient.getBooks({ versionId: 'fixture' });
+await Promise.resolve();
+assert.equal(remoteAnonymousCalls, 0, 'A Bible query must wait for persisted Auth too');
+remoteAuth.currentUser = { uid: 'linked-account', isAnonymous: false };
+restoreRemote();
+await remoteBooks;
+assert.equal(remoteAnonymousCalls, 0, 'A Bible query must not replace a restored linked account');
+assert.equal(remoteAuth.currentUser.uid, 'linked-account');
+
+for (const failedRestoration of [() => Promise.reject(new Error('test restoration failure')), undefined]) {
+    let anonymousCalls = 0;
+    const fixtureAuth = { currentUser: null, authStateReady: failedRestoration };
+    const fixture = { window: { firebaseAuth: fixtureAuth, firebaseFns: { onAuthStateChanged() {}, signInAnonymously() {} } },
+        auth: null, console: { log() {}, warn() {}, error() {} }, onAuthStateChanged() {},
+        async signInAnonymously() { anonymousCalls++; return { user: { uid: 'unexpected' } }; } };
+    const node = findProperty(appTree, 'initAuth');
+    const initialize = vm.runInNewContext(`(${appSource.slice(node.value.start, node.value.end)})`, fixture);
+    const initializing = { currentUser: null, withTimeout: value => Promise.resolve(value), setCurrentAuthUser() {} };
+    assert.equal(await initialize.call(initializing), null);
+    assert.equal(anonymousCalls, 0, 'A restoration failure must not replace a potentially persisted identity');
+    assert.equal(initializing._authInitPromise, null);
+}
+
+let recovered = 0;
+const recoveryCalls = [];
+context.localStorage = { getItem: () => 'test-device' };
+const recovering = { getCommunityIdentityCallable: async name => {
+    recoveryCalls.push(name);
+    assert.equal(name, 'detachAccountPushDevice');
+    return async () => { throw { code: 'functions/permission-denied', message: 'NOT_OWNER' }; };
+} };
+await method('prepareAccountRecovery').call(recovering);
+assert.equal(recovering._accountRecoveryPending, true, 'Push writes stay paused until sign-in finishes');
+const recoveryAuth = { currentUser: { uid: 'temporary-anonymous', isAnonymous: true } };
+const recoveringService = new AccountRecoveryService({ auth: recoveryAuth,
+    sdk: { signInWithEmailAndPassword: async (_, email, password) => {
+        if (password !== 'fixture-only-password') throw { code: 'auth/invalid-credential' };
+        recovered++; recoveryAuth.currentUser = { uid: 'recovered-owner' }; return { user: recoveryAuth.currentUser };
+    } },
+    beforeRecover: () => method('prepareAccountRecovery').call(recovering),
+    afterRecover: () => { recovering._accountRecoveryPending = false; }, onChanged() {} });
+await assert.rejects(recoveringService.recover('owner@example.test', 'wrong', true), value => value.code === 'auth/invalid-credential');
+assert.equal(recoveryAuth.currentUser.uid, 'temporary-anonymous', 'A foreign registration must never bypass credential verification');
+assert.equal(recovering._accountRecoveryPending, false);
+await recoveringService.recover('owner@example.test', 'fixture-only-password', true);
+assert.equal(recovered, 1);
+assert.deepEqual(recoveryCalls, ['detachAccountPushDevice', 'detachAccountPushDevice', 'detachAccountPushDevice'],
+    'Recovery may only attempt the ownership-checked detach; no foreign registration rewrite');
+assert.equal(recovering._accountRecoveryPending, false);
+
+for (const error of [{ code: 'functions/permission-denied', message: 'OTHER_REASON' },
+    { code: 'functions/unavailable' }, { code: 'functions/unauthenticated' }]) {
+    recovering.getCommunityIdentityCallable = async () => async () => { throw error; };
+    await assert.rejects(method('prepareAccountRecovery').call(recovering), value => value === error);
+    assert.equal(recovering._accountRecoveryPending, false, 'Unexpected errors must abort and resume the previous session');
+}
 console.log('OK: same-UID linking, conflicts without merge, verification retry, explicit recovery, failed sign-in, generic password reset, deletion confirmation/reauthentication, operation lock and safe errors');
 console.log('OK: identity switches clear ownership, prayer commitments and moderator state; stale async ownership is discarded');
+console.log('OK: delayed Auth restoration, existing linked/anonymous identities, concurrent startup, empty session and fail-closed restoration');
+console.log('OK: foreign push registration remains protected without blocking credential recovery; unrelated errors still abort');

@@ -1,6 +1,7 @@
 import { sanitizeCommunityHtml, communityPlainText } from './utils/communityHtml.js';
 import { ContinuousReader } from './bible/ContinuousReader.js';
-import { getJourney, recordPractice, exportJourney, restoreJourney, validateJourneyBackup, legacyJourneyBackup } from './services/JourneyService.js';
+import { getJourney, recordPractice, exportJourney } from './services/JourneyService.js';
+import { prepareLocalBackup, restoreLocalBackup, MAX_BACKUP_BYTES } from './services/BackupService.js';
 import { renderJourney, handleJourney } from './JourneyView.js';
 import { renderAccountPanel } from './AccountPanel.js';
 import {
@@ -1006,7 +1007,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '257'
+            pwaVersion: '260'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -17480,17 +17481,17 @@ if (notificationsToggle) {
     
     importData: function(file) {
         if (!file) return;
+        if (file.size > MAX_BACKUP_BYTES) {
+            this.showToast('El respaldo supera el limite de 20 MB. No se ha importado.', 7000);
+            return;
+        }
         const reader = new FileReader();
         reader.onload = async (e) => {
+            let restored = false;
             try {
                 const data = JSON.parse(e.target.result);
                 
-                if (!data || typeof data !== 'object') {
-                    throw new Error('Archivo de respaldo no válido');
-                }
-
-                const personalBackup = data.journeyBackup || legacyJourneyBackup(data);
-                validateJourneyBackup(personalBackup);
+                const plan = prepareLocalBackup(data, { uid: this.currentUser?.uid || null, settings: this.settings });
 
                 const summaryItems = [
                     data.journeyBackup ? '• Mi camino, meditaciones completas, referencias y revisiones' : null,
@@ -17507,18 +17508,12 @@ if (notificationsToggle) {
                     return;
                 }
 
-                // Restore the complete personal history transactionally before other preferences.
-                restoreJourney(localStorage, personalBackup);
+                restoreLocalBackup(localStorage, plan);
+                restored = true;
 
-                if (data.userProfile) {
+                if (plan.profile) {
                     const uid = this.currentUser?.uid;
-                    const profileData = {
-                        userId: uid || data.userProfile.userId || 'local_user',
-                        avatarIcon: data.userProfile.avatarIcon || '🕊️',
-                        avatarColor: data.userProfile.avatarColor || '#4A90D9',
-                        avatarCategory: data.userProfile.avatarCategory || window.AvatarPicker?.findCategoryForIcon(data.userProfile.avatarIcon) || 'Símbolos Bíblicos',
-                        updatedAt: new Date().toISOString()
-                    };
+                    const profileData = plan.profile;
 
                     if (!this.userProfilesCache) this.userProfilesCache = {};
                     if (uid) this.userProfilesCache[uid] = profileData;
@@ -17527,10 +17522,6 @@ if (notificationsToggle) {
                     this.selectedAvatarColor = profileData.avatarColor;
 
                     if (uid) {
-                        try {
-                            localStorage.setItem(`suvoz_avatar_profile_${uid}`, JSON.stringify(profileData));
-                        } catch (err) {}
-
                         try {
                             if (window.AvatarPicker) {
                                 await window.AvatarPicker.saveToFirestore(
@@ -17546,13 +17537,8 @@ if (notificationsToggle) {
                     }
                 }
 
-                if (data.communityPreferences) {
-                    this.setUserCommunityPreferences(data.communityPreferences);
-                }
-
-                if (data.settings) {
-                    this.settings = { ...this.settings, ...data.settings };
-                    this.saveSettings();
+                if (plan.settings) {
+                    this.settings = plan.settings;
                     this.initTheme();
                     this.loadFontSize();
                 }
@@ -17561,9 +17547,12 @@ if (notificationsToggle) {
                 setTimeout(() => location.reload(), 1500);
             } catch (error) {
                 console.error('Error importando:', error);
-                alert('Error al importar: archivo inválido o corrupto');
+                alert(restored ? 'El respaldo local se restauró, pero no se pudo actualizar la vista. Cierra y vuelve a abrir Su Voz.'
+                    : error instanceof AggregateError ? error.message
+                    : 'No se pudo importar el respaldo. Revisa el archivo y el espacio disponible. No se han aplicado los cambios de la importación.');
             }
         };
+        reader.onerror = () => this.showToast('No se pudo leer el respaldo. No se ha importado.', 7000);
         reader.readAsText(file);
     },
     
@@ -17638,6 +17627,13 @@ if (notificationsToggle) {
                 this.currentUser = null;
                 return null;
             }
+
+            // Restore persisted Auth before deciding whether an anonymous identity is needed.
+            await this.withTimeout(
+                window.firebaseAuth.authStateReady(),
+                authTimeout,
+                'La restauracion de la sesion tardo demasiado'
+            );
 
             if (!this._authListenerReady) {
                 onAuthStateChanged(
@@ -18082,6 +18078,8 @@ prepareAccountRecovery: async function() {
         const detach = await this.getCommunityIdentityCallable('detachAccountPushDevice');
         await detach({ deviceId });
     } catch (error) {
+        // This session cannot detach another identity's registration; leave it untouched.
+        if (error?.code === 'functions/permission-denied' && error?.message === 'NOT_OWNER') return;
         this._accountRecoveryPending = false;
         throw error;
     }

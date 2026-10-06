@@ -1,6 +1,7 @@
 import {
     INTRO_VIDEO_CONFIG
 } from '../core/constants.js';
+import { escapeHtml } from './dom.js';
 
 export function getHighlightColorLabel(color) {
     const labels = {
@@ -158,16 +159,24 @@ export function getVerseImageTemplate(templateKey = 'midnight') {
 }
 
 export function renderIntroVideoHtml(config = INTRO_VIDEO_CONFIG) {
+    let url;
+    try { url = new URL(config.url); } catch { return ''; }
+    const match = /^\/embed\/([A-Za-z0-9_-]{11})$/.exec(url.pathname);
+    if (url.origin !== 'https://www.youtube.com' || !match) return '';
+    const watchUrl = `https://www.youtube.com/watch?v=${match[1]}`;
     return `
             <div class="intro-video-card">
                 <div class="intro-video-head">
-                    <div class="intro-video-label">${config.label}</div>
-                    <div class="intro-video-title">${config.title}</div>
+                    <div class="intro-video-label">${escapeHtml(config.label)}</div>
+                    <div class="intro-video-title">${escapeHtml(config.title)}</div>
                 </div>
                 <div class="intro-video-frame">
-                    <iframe src="${config.url}" title="${config.title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                    <a class="intro-video-open" href="${watchUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">
+                        <span class="intro-video-play" aria-hidden="true">&#9654;</span>
+                        <span>Abrir en YouTube</span>
+                    </a>
                 </div>
-                <div class="intro-video-note">${config.note}</div>
+                <div class="intro-video-note">${escapeHtml(config.note)}</div>
             </div>
         `;
 }

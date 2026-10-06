@@ -13,6 +13,11 @@ const palettes = {
 
 const patterns = ['circles', 'waves', 'mountains', 'rays', 'leaves'];
 
+function escapeAvatarMarkup(value) {
+    const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value).replace(/[&<>"']/g, character => entities[character]);
+}
+
 function hashString(str) {
     if (!str || typeof str !== 'string') return 12345;
     let hash = 0;
@@ -66,9 +71,10 @@ function renderPatternSVG(pattern, colors) {
 }
 
 function createIconSVG(palette, pattern, initialOrIcon, hash, customColor) {
-    const c1 = customColor || palette[0] || '#4A90D9';
+    const c1 = typeof customColor === 'string' && /^#[0-9a-f]{6}$/i.test(customColor)
+        ? customColor : (palette[0] || '#4A90D9');
 
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="100%" height="100%"><circle cx="25" cy="25" r="25" fill="${c1}" /><g opacity="0.35">${renderPatternSVG(pattern, palette)}</g><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="'Inter', 'Apple Color Emoji', 'Segoe UI Emoji', system-ui, sans-serif" font-size="22" font-weight="800">${initialOrIcon}</text></svg>`.trim();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="100%" height="100%"><circle cx="25" cy="25" r="25" fill="${c1}" /><g opacity="0.35">${renderPatternSVG(pattern, palette)}</g><text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="'Inter', 'Apple Color Emoji', 'Segoe UI Emoji', system-ui, sans-serif" font-size="22" font-weight="800">${escapeAvatarMarkup(initialOrIcon)}</text></svg>`.trim();
 
     const base64 = typeof btoa !== 'undefined'
         ? btoa(unescape(encodeURIComponent(svg)))
@@ -115,7 +121,7 @@ class AvatarGenerator {
         ].filter(Boolean).join(' ');
 
         return `
-            <div class="${classes}" title="${isAnonymous ? 'Anónimo' : (displayName || 'Usuario')}" style="background-image: url('${dataUri}'); background-size: cover; background-position: center; cursor: pointer;" data-action="open-avatar-picker">
+            <div class="${classes}" title="${escapeAvatarMarkup(isAnonymous ? 'Anónimo' : (displayName || 'Usuario'))}" style="background-image: url('${dataUri}'); background-size: cover; background-position: center; cursor: pointer;" data-action="open-avatar-picker">
                 ${isActive ? '<span class="status-indicator" title="Activo"></span>' : ''}
             </div>
         `;
