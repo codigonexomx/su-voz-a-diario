@@ -1,0 +1,9 @@
+# Preserve pinned upstream distributions and license text byte for byte.
+assets/fonts/inter-OFL.txt whitespace=-blank-at-eol
+assets/fonts/cormorantgaramond-OFL.txt whitespace=-blank-at-eol
+assets/fonts/merriweather-OFL.txt whitespace=-blank-at-eol
+js/vendor/jspdf-4.2.1.umd.min.js whitespace=-blank-at-eol
+www/assets/fonts/inter-OFL.txt whitespace=-blank-at-eol
+www/assets/fonts/cormorantgaramond-OFL.txt whitespace=-blank-at-eol
+www/assets/fonts/merriweather-OFL.txt whitespace=-blank-at-eol
+www/js/vendor/jspdf-4.2.1.umd.min.js whitespace=-blank-at-eol

@@ -52,4 +52,6 @@ Permanecen separados: condiciones de tratamiento Analytics que debe revisar el p
 
 Sin cambios en Functions, reglas, IAM, datos productivos, privacy.html ni fuentes iOS. Sin deploy, envio de correos, nuevos acuerdos o promociones a produccion. marketing/ permanece fuera de la entrega. La suite local regenero el archivo ignorado `firestore-debug.log`; no se puede afirmar que su hash siga intacto. `functions/firestore-debug.log` conserva el hash previo. Ambos quedan fuera del commit y de los paquetes. No se corrigieron ni borraron manualmente esos logs.
 
+Las fuentes revisadas quedaron guardadas localmente en `d418587b4fcdcfd4e5123ab6ad92e5141cb479f4`, sin push. El control del diff completo senalo espacios finales existentes en los originales de las tres licencias OFL y la distribucion jsPDF. Se conservan sus bytes y hashes: `.gitattributes` permite solamente esos espacios en los ocho archivos exactos root/www, sin excluir los demas controles ni archivos propios. Este ajuste de metadata y el registro no cambian el AAB/APK congelados.
+
 Comandos reproducibles: `node scripts/audit-android-44.mjs --candidate45`, `node scripts/test-native-backup44.mjs --candidate45`, y el mismo runner con `--navigation`, opcionalmente `--landscape`. Las opciones explicitas evitan sobrescribir los directorios y pruebas congelados de 44.
