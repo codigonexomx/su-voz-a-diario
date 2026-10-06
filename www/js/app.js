@@ -1007,7 +1007,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '260'
+            pwaVersion: '261'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1101,12 +1101,12 @@ console.log('[App] Inicialización completada');
         if (!result.handled) return false;
 
         const sharedKey = `${result.normalizedUrl}:${result.hash}`;
-        if (this._lastDeepLinkKey === sharedKey) {
+        const shouldRefreshHome = result.hash === '#home' && this.homeViewingDate !== null;
+        if (this._lastDeepLinkKey === sharedKey && window.location.hash === result.hash && !shouldRefreshHome) {
             return true;
         }
         this._lastDeepLinkKey = sharedKey;
 
-        const shouldRefreshHome = result.hash === '#home' && this.homeViewingDate !== null;
         if (result.hash === '#home') {
             this.homeViewingDate = null;
         }

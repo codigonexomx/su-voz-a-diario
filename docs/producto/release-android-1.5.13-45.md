@@ -1,6 +1,8 @@
 # Android 1.5.13 candidato final de la auditoria
 
-Actualizado: 5 de octubre de 2026. Candidato 45 compilado y validado localmente. Integra la correccion visual de Comunidad detectada en la Lenovo con 44 y conserva los ajustes de recuperacion, respaldos y privacidad descritos en los informes anteriores. No se ha subido a Play, instalado en la Lenovo ni publicado en la web. La ultima consulta de Play acredita interna 44 y produccion 40; no atribuir a 45 las pruebas fisicas de esas versiones.
+Actualizado: 5 de octubre de 2026. Version 45 publicada exclusivamente en la prueba interna del propietario e instalada en la Lenovo mediante Google Play, sin desinstalar ni borrar datos. Integra la correccion visual de Comunidad detectada con 44 y conserva los ajustes de recuperacion, respaldos y privacidad descritos en los informes anteriores. Las comprobaciones fisicas de esta entrega se registran abajo por separado. Produccion permanece en 40; la web no se ha publicado.
+
+Estado posterior: reemplazada en la prueba interna por [46 / 1.5.14](release-android-1.5.14-46.md), que corrige el enlace repetido detectado en la QA de 45. Los paquetes y resultados de 45 se conservan como historia; los outputs de compilacion ahora pertenecen a 46.
 
 ## Paquete exacto
 
@@ -38,7 +40,29 @@ Evidencia privada fuera de Git: `artifacts/android-1.5.13-45-release/`, con suit
 
 ## Publicacion y decisiones externas
 
-El candidato esta listo para solicitar la entrega interna del hash indicado arriba, exclusivamente al propietario. La nueva entrega requiere aprobacion concreta; no se sustituye el AAB 44 ya distribuido ni se acepta un contrato para completar el proceso. Una vez distribuido oficialmente, comprobar la cabecera de Comunidad sin desinstalar ni borrar datos y acreditar la actualizacion de 45 por separado.
+Tras la autorizacion del propietario se subio el AAB exacto indicado arriba, sin recompilar, y se publico 45 (1.5.13) exclusivamente en la prueba interna. Play confirma Disponible para verificadores internos, release 6 del canal 4701700649729684709. Se conservo seleccionada solo la lista de QA del propietario de un miembro; las listas de 14 y 29 personas permanecieron sin seleccionar. La revision presento cero errores bloqueantes y la advertencia existente de simbolos nativos, con ReTrace adjunto y cero dispositivos compatibles perdidos. No se aceptaron acuerdos nuevos ni se promovio a produccion.
+
+La Lenovo se actualizo desde su boton Actualizar de Google Play. ADB confirma versionCode 45, versionName 1.5.13, installerPackageName com.android.vending y lastUpdateTime 5 de octubre a las 18:11:57, hora del dispositivo. firstInstallTime conserva el 24 de septiembre. No se uso instalacion lateral ni se borro almacenamiento.
+
+### Pruebas fisicas de 45
+
+| Comprobacion | Resultado |
+| --- | --- |
+| /hoy en frio | Status ok, COLD, MainActivity; 5 DE OCTUBRE y 1 Samuel 20:12-29 visibles. |
+| /lectura?date=2026-10-01 en frio | Status ok, COLD, MainActivity; 1 DE OCTUBRE y 1 Samuel 17:50-18:5 visibles. |
+| Mismo enlace repetido tras navegar | FAIL: /hoy recibido de nuevo mientras la app esta en Calendario no cambia de ruta. Una prueba del handler real reproduce el fallo de deduplicacion permanente. Requiere candidato distinto; no modificar el AAB 45 congelado. |
+| Lectura offline | Lectura de hoy cargada previamente y visible tras cerrar/reabrir en frio con Wi-Fi apagado. Sin rutas de interfaces fisicas IPv4/IPv6; las rutas virtuales dummy0 de Android no se consideran conexion. Wi-Fi restablecido y habilitado al finalizar. |
+| Comunidad | Cabecera y sus cuatro controles separados, sin el solapamiento de 44; Moderacion disponible. |
+| Moderacion | Pendientes, Revisadas y Solicitudes de cuenta abren sin error y muestran listas vacias. Sin decisiones ni cambios de contenido. |
+| Cuenta | Correo verificado y acceso de moderador conservados tras actualizar y los arranques en frio. Sin introducir credenciales ni recuperar identidad de nuevo. |
+| Profundizar | Campo vacio enfocado con teclado Gboard real, visible sobre el teclado y sin hueco negro; posicion restaurada al cerrarlo. Sin escribir o guardar una meditacion. |
+| Respaldo | Selector nativo muestra un archivo; cancelado con Back, sin seleccionar destino ni enviar, leer o importar el respaldo. |
+| Biblia y calendario | Genesis 1 RV1909 carga; calendario de octubre con el dia 5 y su pasaje correctos. Preferencia diaria TLA conservada. |
+| Audio | Estado Escuchando lectura observado y prueba detenida; audibilidad de 45 pendiente de la confirmacion solicitada al propietario. |
+| Meditaciones previas | No se leyeron ni editaron. Conservacion visual pendiente de la confirmacion solicitada al propietario; la QA de 43 no la sustituye. |
+| Errores de la sesion | 132 lineas del proceso actual examinadas dentro del limite de 3000: cero FATAL EXCEPTION/Fatal signal y cero errores JS criticos coincidentes con el filtro. No es una garantia global ni datos de Vitals. |
+
+Los hashes finales de AAB y APK siguen coincidiendo con los congelados. Evidencia privada en `artifacts/android-1.5.13-45-release/delivery-play.json` y `lenovo-qa/`; el `handoff.json` anterior conserva el estado historico de preparacion, previo a esta subida. La prueba offline inicial se detuvo al contar rutas virtuales dummy0 como externas; se restablecio Wi-Fi antes de aclarar su origen y ejecutar la prueba corregida. No se cuenta ese primer intento como aprobado.
 
 El push a main publica automaticamente la web mediante GitHub Pages. No se ha realizado; requiere una entrega controlada y verificacion posterior de PWA 260, recursos obligatorios, recuperacion/Analytics y teclado iPhone. La subida de un AAB a Play no publica las fuentes ni actualiza la PWA.
 
@@ -50,7 +74,7 @@ Permanecen separados: condiciones de tratamiento Analytics que debe revisar el p
 
 ## Alcance conservado
 
-Sin cambios en Functions, reglas, IAM, datos productivos, privacy.html ni fuentes iOS. Sin deploy, envio de correos, nuevos acuerdos o promociones a produccion. marketing/ permanece fuera de la entrega. La suite local regenero el archivo ignorado `firestore-debug.log`; no se puede afirmar que su hash siga intacto. `functions/firestore-debug.log` conserva el hash previo. Ambos quedan fuera del commit y de los paquetes. No se corrigieron ni borraron manualmente esos logs.
+Sin cambios en Functions, reglas, IAM, documentos productivos, privacy.html ni fuentes iOS durante esta entrega; el uso normal de la app puede generar su telemetria habitual. Sin deploy web/Firebase, envio de correos, nuevos acuerdos o promociones a produccion. marketing/ permanece fuera de la entrega. La suite local anterior regenero el archivo ignorado `firestore-debug.log`; no se puede afirmar que su hash siga intacto. `functions/firestore-debug.log` conserva el hash previo. Ambos quedan fuera del commit y de los paquetes. No se corrigieron ni borraron manualmente esos logs.
 
 Las fuentes revisadas quedaron guardadas localmente en `d418587b4fcdcfd4e5123ab6ad92e5141cb479f4`, sin push. El control del diff completo senalo espacios finales existentes en los originales de las tres licencias OFL y la distribucion jsPDF. Se conservan sus bytes y hashes: `.gitattributes` permite solamente esos espacios en los ocho archivos exactos root/www, sin excluir los demas controles ni archivos propios. Este ajuste de metadata y el registro no cambian el AAB/APK congelados.
 

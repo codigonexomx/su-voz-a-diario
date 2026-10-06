@@ -5,10 +5,13 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => arg === '--candidate45'), 'Unsupported release audit option');
-const release = process.argv.includes('--candidate45')
-    ? { code: 45, name: '1.5.13', pwa: 260 }
-    : { code: 44, name: '1.5.12', pwa: 259 };
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
+const release = process.argv.includes('--candidate46')
+    ? { code: 46, name: '1.5.14', pwa: 261 }
+    : process.argv.includes('--candidate45')
+        ? { code: 45, name: '1.5.13', pwa: 260 }
+        : { code: 44, name: '1.5.12', pwa: 259 };
 const root = process.cwd();
 const out = path.join(root, `artifacts/android-${release.name}-${release.code}-release`);
 const source = path.join(root, 'android/app/build/outputs/bundle/release/app-release.aab');
@@ -23,9 +26,13 @@ const frozen = [
     ['artifacts/android-1.5.10-42/su-voz-1.5.10-42.aab', '91d395748fd208e2cae68ae8d7decea43b76f3bae9dd9caad65b34023d93cd92'],
     ['artifacts/android-1.5.12-44/su-voz-1.5.12-44.aab', '725eea6219fdf0e236847262b575173853820e1f1dd58706b3181cc1bcdbc4d3'],
     ['artifacts/android-1.5.12-44-final/su-voz-1.5.12-44.aab', '6a2704537f1314a1ba15e19474b95363d606edd25b021a085785e68e7c2c303d'],
-    ...(release.code === 45 ? [
+    ...(release.code >= 45 ? [
         ['artifacts/android-1.5.12-44-release/su-voz-1.5.12-44.aab', 'db7ebcc369fe3b84d3921ac5b6203d25e219d8639f35d5de318f2d654da3d617'],
         ['artifacts/android-1.5.12-44-release/app-release.apk', '4ccd55c8c66da6a34e64907e604535e43e014289111aa816fb64dbb7e3c4d8fe']
+    ] : []),
+    ...(release.code === 46 ? [
+        ['artifacts/android-1.5.13-45-release/su-voz-1.5.13-45.aab', 'e3d619b87eacd65dec99e0b2d1b756584daa02361ee19adaf06fe0283b3997b2'],
+        ['artifacts/android-1.5.13-45-release/app-release.apk', '9d33db92c3b6124673aa0799e997272fbbb56b6df532110d587d9f84b89c2e6d']
     ] : [])
 ];
 for (const [file, expected] of frozen) assert.equal(hash(readFileSync(file)), expected, file);

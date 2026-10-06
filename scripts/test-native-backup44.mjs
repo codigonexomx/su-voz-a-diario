@@ -3,10 +3,13 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 const adb = '/Users/ricardogarcia/Library/Android/sdk/platform-tools/adb';
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--navigation', '--landscape'].includes(arg)), 'Unsupported native QA option');
-const release = process.argv.includes('--candidate45')
-    ? { code: 45, name: '1.5.13' }
-    : { code: 44, name: '1.5.12' };
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--navigation', '--landscape'].includes(arg)), 'Unsupported native QA option');
+assert(process.argv.slice(2).filter(arg => arg.startsWith('--candidate')).length <= 1, 'Select only one native QA candidate');
+const release = process.argv.includes('--candidate46')
+    ? { code: 46, name: '1.5.14' }
+    : process.argv.includes('--candidate45')
+        ? { code: 45, name: '1.5.13' }
+        : { code: 44, name: '1.5.12' };
 const navigation = process.argv.includes('--navigation');
 const orientation = process.argv.includes('--landscape') ? 'landscape' : 'portrait';
 const phase = navigation ? `navigation${release.code}` : 'backup44';
