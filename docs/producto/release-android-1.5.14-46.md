@@ -1,6 +1,18 @@
 # Android 1.5.14: correccion de enlaces repetidos
 
-Fecha: 5 de octubre de 2026, America/Mexico_City. Candidato separado de 45; no reemplaza sus paquetes congelados ni convierte las pruebas anteriores en QA de 46. Publicado exclusivamente en la prueba interna del propietario e instalado desde Google Play en la Lenovo. Las pruebas fisicas nuevas de esta entrega se registran abajo. Produccion permanece en 40 / 1.5.8.
+Fecha: 5 de octubre de 2026, America/Mexico_City. Candidato separado de 45; no reemplaza sus paquetes congelados ni convierte las pruebas anteriores en QA de 46. Publicado en la prueba interna del propietario e instalado desde Google Play en la Lenovo. Tras completar esa QA y recibir la autorizacion expresa del propietario, el mismo paquete 46 se envio a revision para produccion. No se acredita todavia su disponibilidad publica; 40 / 1.5.8 es la ultima version productiva confirmada.
+
+## Entrega a Produccion
+
+Push no forzado correcto de los tres commits pendientes: d418587, 2be6e10 y 7d534fb. HEAD y origin/main coinciden en `7d534fb3d7449045dc6232f98f897a81d0e78a86`. GitHub notifico el traslado del repositorio a codigonexomx/su-voz-a-diario y acepto el push mediante la redireccion existente; no se cambio la configuracion local del remoto. marketing/ permanece fuera de la entrega.
+
+[Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/37397025573) y [Pages build and deployment](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/37397025135) terminaron correctamente para ese commit. CI ejecuto la suite completa con Java 21, ambos npm audit y la comprobacion de archivos sin cambios. Este resultado no borra los intentos locales fallidos documentados abajo ni demuestra su causa.
+
+La web publica https://suvoz.app sirve PWA 261. Comprobacion HTTP 200 y coincidencia byte a byte de index.html, sw.js, js/app.js, css/styles.css, css/fonts-local.css, BackupService.js, AnalyticsService.js, jsPDF local y privacy.html. measurementId G-X95Y1G3BE0 e import de Firebase Analytics presentes en index.html. Lectura de hoy, entrada/salida de Profundizar y calendario comprobados en navegador, sin escribir notas ni crear contenido. No se registraron errores en el log disponible de esa sesion; no equivale a certificacion de todos los dispositivos ni de recepcion en Analytics.
+
+Google Play acepto un unico cambio a revision: Produccion, 46 (1.5.14), Iniciar lanzamiento completo, 100% en los paises ya seleccionados. Se promovio el AAB existente desde la prueba interna, sin nueva subida ni recompilacion. Cero errores bloqueantes y cero dispositivos antes compatibles perdidos; sigue el aviso por simbolos de depuracion nativos. La consola muestra Cambios en la etapa de revision con verificaciones rapidas en curso. La publicacion administrada existente sigue desactivada: una aprobacion puede publicar la version sin otra accion, pero este envio NO demuestra aprobacion ni disponibilidad publica. No se aceptaron acuerdos nuevos ni se modificaron Data Safety, listas internas, Functions, reglas, IAM o iOS.
+
+La autorizacion de publicar no concede derechos sobre traducciones biblicas. Licencias escritas, decisiones de App Check, retencion, condiciones/avisos y fuente editorial 2027 siguen abiertas por separado. No se declara cerrada toda la auditoria.
 
 ## Paquete Exacto
 
@@ -52,10 +64,10 @@ Google Play completo la actualizacion el 5 de octubre a las 18:41:33, hora del d
 
 Wi-Fi permanece habilitado y conectado. La Lenovo queda en la lectura de hoy, audio detenido. Evidencia privada en `delivery-play.json` y `lenovo-qa/`, con version, capturas y hashes; sin incorporar respaldos personales a Git.
 
-## Puertas de Produccion
+## Registro Previo de Prueba Interna
 
 Play confirma 46 (1.5.14) Disponible para verificadores internos, release 7, canal 4701700649729684709, 5 de octubre a las 18:39. Se conserva seleccionada solo la lista Su Voz QA - propietario 2026-10-02, de un miembro; listas de 14 y 29 sin seleccionar. Se subio el AAB exacto sin recompilar, sin acuerdos nuevos y sin promocion a produccion. Cero errores bloqueantes y cero dispositivos antes compatibles perdidos; queda la advertencia existente por simbolos nativos no disponibles, con ReTrace adjunto.
 
-La subida a Play no publica la web. Un push a main activa GitHub Pages; no se ha realizado durante esta correccion. No se desplegaron Functions, reglas ni Firebase, ni se sincronizo iOS. App Check sigue OFF.
+Durante la entrega interna no se habia hecho push ni publicado la web. La entrega posterior autorizada y verificada se describe al principio de este informe. No se desplegaron Functions, reglas ni Firebase, ni se sincronizo iOS. App Check sigue OFF.
 
 No existe licencia escrita acreditada para el alcance real de RVR1960, NTV o TLA. Los borradores de canalizacion siguen sujetos a aprobacion concreta; no se enviaron ni se aceptaron costos, contratos o condiciones durante esta entrega. No promover dando por concedidos esos derechos. Condiciones de Analytics, declaracion de anuncios, retencion y fuente editorial 2027 permanecen como decisiones separadas, descritas en [el seguimiento de auditoria](cierre-auditoria-2026-10-03.md). No se declara cerrada toda la auditoria.
