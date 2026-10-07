@@ -127,6 +127,12 @@
             node = walker.nextNode();
         }
 
+        const range = document.createRange();
+        const selection = window.getSelection?.();
+        range.selectNodeContents(element);
+        range.collapse(false);
+        selection?.removeAllRanges();
+        selection?.addRange(range);
         element.focus({ preventScroll: true });
     }
 
@@ -185,6 +191,12 @@
         let isScrollCueVisible = false;
         let lastSavedNoteSignature = noteSignature(initialNote);
         let lastSavedUIStateSignature = '';
+        let stepPointerFocus = null;
+        let stepAnimation = null;
+        let isComposing = false;
+        let pendingComposingStep = null;
+        let compositionStepRafId = null;
+        const stepCaretOffsets = new Map();
 
         function renderDefaultContent() {
             return `
@@ -369,10 +381,10 @@
 
             const documentRect = root.getBoundingClientRect();
             const lineHeight = parseFloat(getComputedStyle(editor).lineHeight) || 24;
-            const bottomMargin = lineHeight * 2.4;
-            const topMargin = lineHeight;
+            const navigationBottom = root.querySelector('.deepening-step-list')?.getBoundingClientRect().bottom || documentRect.top;
+            const visibleTop = Math.max(documentRect.top + lineHeight, navigationBottom + 8);
+            const bottomMargin = Math.min(lineHeight * 2.4, Math.max(8, documentRect.bottom - visibleTop - lineHeight));
             const visibleBottom = documentRect.bottom - bottomMargin;
-            const visibleTop = documentRect.top + topMargin;
 
             if (caretRect.bottom > visibleBottom) {
                 root.scrollTop += caretRect.bottom - visibleBottom;
@@ -407,17 +419,51 @@
             currentNote[getStepField(activeStepId)] = editor.innerText || '';
         }
 
-        function setActiveStep(stepId) {
+        function animateStepChange(previousStepId) {
+            stepAnimation?.cancel();
+            stepAnimation = null;
+            if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+            const panel = root?.querySelector(`[data-step-panel="${activeStepId}"]`);
+            if (!panel?.animate) return;
+            const direction = STEPS.findIndex(step => step.id === activeStepId)
+                > STEPS.findIndex(step => step.id === previousStepId) ? 1 : -1;
+            // Only the prompts turn: transforming the live editor can pan the iOS keyboard viewport.
+            const animation = panel.animate([
+                { opacity: 0.55, transform: `perspective(700px) translateX(${direction * 14}px) rotateY(${direction * 9}deg)`,
+                    transformOrigin: direction > 0 ? 'left center' : 'right center' },
+                { opacity: 1, transform: 'perspective(700px) translateX(0) rotateY(0deg)',
+                    transformOrigin: direction > 0 ? 'left center' : 'right center' }
+            ], { duration: 240, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' });
+            stepAnimation = animation;
+            animation.onfinish = () => { if (stepAnimation === animation) stepAnimation = null; };
+        }
+
+        function setActiveStep(stepId, interaction = {}) {
             if (!STEPS.some(step => step.id === stepId)) return;
+            const editor = getEditor();
+            const wasEditorActive = document.activeElement === editor || interaction.preserveEditing;
+            if (!isComposing) {
+                pendingComposingStep = null;
+                if (compositionStepRafId !== null) cancelAnimationFrame(compositionStepRafId);
+                compositionStepRafId = null;
+            }
             if (stepId === activeStepId) {
+                if (wasEditorActive && document.activeElement !== editor) editor?.focus({ preventScroll: true });
                 scheduleAutoSave();
                 return;
             }
+            if (isComposing) {
+                pendingComposingStep = { stepId, interaction };
+                return;
+            }
 
-            const editor = getEditor();
-            const wasEditorActive = document.activeElement === editor;
+            const caretOffset = interaction.caretOffset ?? getCaretCharacterOffset(editor);
+            if (typeof caretOffset === 'number') stepCaretOffsets.set(activeStepId, caretOffset);
             commitActiveEditor();
+            const previousStepId = activeStepId;
             activeStepId = stepId;
+            pendingCaretRestore = null;
             root?.querySelectorAll('.deepening-step').forEach(step => {
                 const isActive = step.getAttribute('data-step') === activeStepId;
                 step.classList.toggle('is-active', isActive);
@@ -437,15 +483,13 @@
                 editor.setAttribute('aria-label', `Respuesta de meditación: ${activeStep.label}`);
                 editor.innerHTML = editorHtml(currentNote[getStepField(activeStepId)]);
                 if (wasEditorActive) {
-                    const selection = window.getSelection?.();
-                    const range = document.createRange();
-                    range.selectNodeContents(editor);
-                    range.collapse(false);
-                    selection?.removeAllRanges();
-                    selection?.addRange(range);
+                    // Keep this synchronous with the tap; iOS may reject delayed keyboard focus.
+                    setCaretCharacterOffset(editor, stepCaretOffsets.get(activeStepId) ?? editor.innerText.length);
                     scheduleCaretVisibilityCheck(editor);
                 }
             }
+            animateStepChange(previousStepId);
+            requestAnimationFrame(updateScrollCueAvailability);
             scheduleAutoSave();
         }
 
@@ -454,6 +498,8 @@
         }
 
         function onPointerDown(event) {
+            stepPointerFocus = null;
+            if (event.isPrimary === false || (typeof event.button === 'number' && event.button !== 0)) return;
             const editor = event.target.closest('[data-deepening-editor]');
             if (editor && root?.contains(editor) && document.activeElement !== editor) {
                 event.preventDefault();
@@ -470,11 +516,29 @@
             const stepId = step.getAttribute('data-step');
             if (!stepId) return;
 
+            stepPointerFocus = { stepId, caretOffset: getCaretCharacterOffset(getEditor()) };
+        }
+
+        function onStepMouseDown(event) {
+            if (event.button !== 0) return;
+            const step = event.target.closest('.deepening-step');
+            if (!step || !root?.contains(step)) return;
+            const stepId = step.getAttribute('data-step');
+            if (!isEditorActive() && stepPointerFocus?.stepId !== stepId) return;
+
+            // WebKit can still move focus after pointerdown; cancel its compatibility mousedown too.
             event.preventDefault();
-            setActiveStep(stepId);
+            stepPointerFocus = stepPointerFocus || { stepId, caretOffset: getCaretCharacterOffset(getEditor()) };
+            if (document.activeElement !== getEditor()) getEditor()?.focus({ preventScroll: true });
+        }
+
+        function clearStepPointerFocus() {
+            stepPointerFocus = null;
         }
 
         function onClick(event) {
+            const pointerFocus = stepPointerFocus;
+            stepPointerFocus = null;
             const closeButton = event.target.closest('[data-deepening-close]');
             if (closeButton && root?.contains(closeButton)) {
                 flushAutoSave(true);
@@ -487,7 +551,9 @@
 
             const stepId = step.getAttribute('data-step');
             if (stepId) {
-                setActiveStep(stepId);
+                const preserveEditing = isEditorActive()
+                    || (event.detail !== 0 && pointerFocus?.stepId === stepId);
+                setActiveStep(stepId, { preserveEditing, caretOffset: pointerFocus?.caretOffset });
             }
         }
 
@@ -506,6 +572,10 @@
             scheduleCaretVisibilityCheck(editor);
         }
 
+        function onCompositionStart(event) {
+            if (event.target.closest('[data-deepening-editor]')) isComposing = true;
+        }
+
         function onCompositionUpdate(event) {
             const editor = event.target.closest('[data-deepening-editor]');
             if (!editor) return;
@@ -515,6 +585,19 @@
         function onCompositionEnd(event) {
             const editor = event.target.closest('[data-deepening-editor]');
             if (!editor) return;
+            isComposing = false;
+            commitActiveEditor();
+            if (pendingComposingStep && compositionStepRafId === null) {
+                // Let the IME's final input event reach its original response before changing pages.
+                compositionStepRafId = requestAnimationFrame(() => {
+                    compositionStepRafId = null;
+                    const pendingStep = pendingComposingStep;
+                    pendingComposingStep = null;
+                    if (root && pendingStep) setActiveStep(pendingStep.stepId, {
+                        ...pendingStep.interaction, caretOffset: getCaretCharacterOffset(editor)
+                    });
+                });
+            }
             scheduleCaretVisibilityCheck(editor);
             scheduleAutoSave();
         }
@@ -551,9 +634,13 @@
             target.innerHTML = render();
             root = target.querySelector('[data-deepening-meditation-document]');
             root?.addEventListener('pointerdown', onPointerDown);
+            root?.addEventListener('mousedown', onStepMouseDown);
+            root?.addEventListener('pointercancel', clearStepPointerFocus);
+            root?.addEventListener('keydown', clearStepPointerFocus);
             root?.addEventListener('click', onClick);
             root?.addEventListener('beforeinput', onBeforeInput);
             root?.addEventListener('input', onInput);
+            root?.addEventListener('compositionstart', onCompositionStart);
             root?.addEventListener('compositionupdate', onCompositionUpdate);
             root?.addEventListener('compositionend', onCompositionEnd);
             root?.addEventListener('paste', onPaste);
@@ -573,15 +660,26 @@
             window.clearTimeout(autosaveTimer);
             autosaveTimer = null;
             hideScrollCue();
+            stepAnimation?.cancel();
+            stepAnimation = null;
+            stepPointerFocus = null;
+            pendingComposingStep = null;
+            isComposing = false;
+            if (compositionStepRafId !== null) cancelAnimationFrame(compositionStepRafId);
+            compositionStepRafId = null;
             if (caretScrollRafId !== null) {
                 cancelAnimationFrame(caretScrollRafId);
                 caretScrollRafId = null;
             }
             flushAutoSave(true);
             root?.removeEventListener('pointerdown', onPointerDown);
+            root?.removeEventListener('mousedown', onStepMouseDown);
+            root?.removeEventListener('pointercancel', clearStepPointerFocus);
+            root?.removeEventListener('keydown', clearStepPointerFocus);
             root?.removeEventListener('click', onClick);
             root?.removeEventListener('beforeinput', onBeforeInput);
             root?.removeEventListener('input', onInput);
+            root?.removeEventListener('compositionstart', onCompositionStart);
             root?.removeEventListener('compositionupdate', onCompositionUpdate);
             root?.removeEventListener('compositionend', onCompositionEnd);
             root?.removeEventListener('paste', onPaste);

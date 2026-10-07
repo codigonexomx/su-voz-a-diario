@@ -1,6 +1,6 @@
 /**
  * KeyboardManager
- * Administra visualViewport y visibilidad del cursor sin conocer Biblia ni pasos.
+ * Administra visualViewport y visibilidad del cursor en el documento activo.
  */
 (function() {
     const FIELD_MARGIN = 24;
@@ -196,8 +196,11 @@
                 const caretRect = getCaretRect() || active.getBoundingClientRect();
                 const documentRect = documentElement.getBoundingClientRect();
                 const viewportBottom = getViewportOffsetTop() + getViewportHeight();
-                const visibleBottom = Math.min(documentRect.bottom, viewportBottom) - FIELD_MARGIN;
-                const visibleTop = documentRect.top + FIELD_MARGIN;
+                const navigationBottom = documentElement.querySelector?.('.deepening-step-list')?.getBoundingClientRect().bottom || documentRect.top;
+                const visibleTop = Math.max(documentRect.top + FIELD_MARGIN, navigationBottom + 8);
+                const documentBottom = Math.min(documentRect.bottom, viewportBottom);
+                const bottomMargin = Math.min(FIELD_MARGIN, Math.max(8, documentBottom - visibleTop - caretRect.height));
+                const visibleBottom = documentBottom - bottomMargin;
 
                 if (caretRect.bottom > visibleBottom) {
                     documentElement.scrollTop += caretRect.bottom - visibleBottom;

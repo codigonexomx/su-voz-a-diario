@@ -436,7 +436,10 @@ body.deepening-shell-active > .bottom-nav {
 .deepening-step-list {
     display: flex;
     align-items: stretch;
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #fbf6e9;
     gap: 7px;
     margin: -1px -4px 16px;
     padding: 3px 4px 0;

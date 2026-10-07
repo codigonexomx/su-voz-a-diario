@@ -113,7 +113,7 @@ async function init() {
     analyticsService.init({
         platform,
         appVersion: '2.1',
-        pwaVersion: '261'
+        pwaVersion: '262'
     });
 
     track('acquisition_landing_view', {
