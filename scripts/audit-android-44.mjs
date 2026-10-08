@@ -5,13 +5,15 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate46')
-    ? { code: 46, name: '1.5.14', pwa: 261 }
-    : process.argv.includes('--candidate45')
-        ? { code: 45, name: '1.5.13', pwa: 260 }
-        : { code: 44, name: '1.5.12', pwa: 259 };
+const release = process.argv.includes('--candidate47')
+    ? { code: 47, name: '1.5.15', pwa: 262 }
+    : process.argv.includes('--candidate46')
+        ? { code: 46, name: '1.5.14', pwa: 261 }
+        : process.argv.includes('--candidate45')
+            ? { code: 45, name: '1.5.13', pwa: 260 }
+            : { code: 44, name: '1.5.12', pwa: 259 };
 const root = process.cwd();
 const out = path.join(root, `artifacts/android-${release.name}-${release.code}-release`);
 const source = path.join(root, 'android/app/build/outputs/bundle/release/app-release.aab');
@@ -30,14 +32,19 @@ const frozen = [
         ['artifacts/android-1.5.12-44-release/su-voz-1.5.12-44.aab', 'db7ebcc369fe3b84d3921ac5b6203d25e219d8639f35d5de318f2d654da3d617'],
         ['artifacts/android-1.5.12-44-release/app-release.apk', '4ccd55c8c66da6a34e64907e604535e43e014289111aa816fb64dbb7e3c4d8fe']
     ] : []),
-    ...(release.code === 46 ? [
+    ...(release.code >= 46 ? [
         ['artifacts/android-1.5.13-45-release/su-voz-1.5.13-45.aab', 'e3d619b87eacd65dec99e0b2d1b756584daa02361ee19adaf06fe0283b3997b2'],
         ['artifacts/android-1.5.13-45-release/app-release.apk', '9d33db92c3b6124673aa0799e997272fbbb56b6df532110d587d9f84b89c2e6d']
+    ] : []),
+    ...(release.code >= 47 ? [
+        ['artifacts/android-1.5.14-46-release/su-voz-1.5.14-46.aab', '21b76ddc793316dec2bce201dcc755a0e46f339d0bb8bf65dccadd1c3d28ebf6'],
+        ['artifacts/android-1.5.14-46-release/app-release.apk', 'cbde57c4451020f3abeaa081ca307b6806ce3a44b48d60ba48739aea697929a4']
     ] : [])
 ];
 for (const [file, expected] of frozen) assert.equal(hash(readFileSync(file)), expected, file);
 const checks = JSON.parse(readFileSync('artifacts/validation/tests.json', 'utf8'));
-assert.equal(checks.results.length, 52);
+const expectedChecks = release.code >= 47 ? 53 : 52;
+assert.equal(checks.results.length, expectedChecks);
 assert(checks.results.every(check => check.status === 0));
 mkdirSync(out, { recursive: true, mode: 0o700 });
 if (!existsSync(bundle)) copyFileSync(source, bundle, constants.COPYFILE_EXCL);
@@ -91,6 +98,16 @@ assert.equal(nativeConfig.appId, 'app.suvoz');
 assert(!nativeConfig.server?.url);
 const plugins = JSON.parse(extract('base/assets/capacitor.plugins.json'));
 assert(plugins.some(plugin => plugin.classpath?.endsWith('.FirebaseAppCheckPlugin')));
+let capacitorSecurityPatch = null;
+if (release.code >= 47) {
+    const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+    for (const platform of ['android', 'core', 'ios']) {
+        const name = `@capacitor/${platform}`;
+        assert.equal(lock.packages[`node_modules/${name}`].version, '8.5.1');
+        assert.equal(JSON.parse(readFileSync(`node_modules/${name}/package.json`, 'utf8')).version, '8.5.1');
+    }
+    capacitorSecurityPatch = { version: '8.5.1', advisory: 'GHSA-rvm3-566m-v7fv', lockMatchesInstalledPackages: true };
+}
 assert(!names.some(name => /(?:^|\/)(?:keystore\.properties|marketing|functions|node_modules|artifacts)(?:\/|$)|\.log$|\.keystore$|\.test\.js$/.test(name)));
 const libraries = [];
 for (const name of names.filter(name => /^base\/lib\/.*\.so$/.test(name))) {
@@ -126,7 +143,7 @@ const result = { auditedAt: new Date().toISOString(), bundle, sha256: hash(readF
     newPermissions: false, appCheckBridgeBundled: true, appCheckEnabled: false,
     nativeLibraries: libraries, zipAlignment: 'PAGE_ALIGNMENT_16K', pageSizeDeviceQa: false,
     lintErrors: 0, lintWarnings: issues.filter(issue => issue.severity === 'Warning').length,
-    emulatorChecksPassed: 52, nativeBackupQa, prior42And43Unchanged: true,
+    emulatorChecksPassed: expectedChecks, capacitorSecurityPatch, nativeBackupQa, prior42And43Unchanged: true,
     uploadedToPlay: false, physicalQa: false, productionPublished: false };
 write('audit-release.json', JSON.stringify(result, null, 2));
 console.log(JSON.stringify(result, null, 2));

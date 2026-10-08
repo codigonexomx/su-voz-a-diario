@@ -2,6 +2,12 @@
 
 Fecha inicial: 3 de octubre de 2026; actualizacion de entrega: 5 de octubre. Estado parcial acreditado, no auditoria cerrada. La autorizacion posterior del propietario permite la publicacion tecnica descrita abajo, no concede licencias editoriales. Este documento separa hechos comprobados, propuestas no aplicadas y decisiones externas. No contiene identidades privadas, contenido de usuarios, credenciales ni correspondencia legal.
 
+## Actualizacion del 8 de octubre
+
+Play confirma 46 / 1.5.14 activa en produccion; las referencias siguientes a produccion 40 o revision pendiente son historicas. El parche de seguridad 6244ae6 esta en origin/main, con Product Validation y Pages correctos. Se desplegaron las mismas 36 Functions con dependencias parcheadas; todas ACTIVE y sin cambios de configuracion, reglas o IAM. Auditorias npm sin vulnerabilidades reportadas.
+
+Candidato nuevo 47 / 1.5.15, PWA 262, preparado con el parche nativo de Capacitor y la mejora de foco de Profundizar. Suite final 53/53, intento intermitente fallido preservado; respaldo/navegacion/teclado nativos en emulador aprobados. Subida, QA fisica y produccion de 47 aun no acreditadas. Estado y limites en [Android 1.5.15](release-android-1.5.15-47.md). No se convierten las pruebas previas de 46 en QA de 47 ni se consideran otorgadas licencias editoriales.
+
 ## Actualizacion del 5 de octubre
 
 Entrega productiva autorizada: push correcto de los tres commits pendientes hasta `7d534fb3d7449045dc6232f98f897a81d0e78a86`, con Product Validation y GitHub Pages correctos. https://suvoz.app sirve PWA 261 y los archivos criticos comprobados coinciden con las fuentes; lectura, Profundizar y calendario funcionan en la sesion revisada. El mismo AAB 46 probado, sin recompilacion, se promovio a produccion y se envio como unico cambio a revision, lanzamiento completo al 100% de los paises actuales. Play confirma etapa de revision y verificaciones rapidas, NO aprobacion ni disponibilidad publica. Produccion 40 es la ultima distribucion publica confirmada. No se cambiaron Data Safety, listas internas, acuerdos, Functions, reglas, IAM ni iOS. Detalle en [la entrega Android 46](release-android-1.5.14-46.md). Las referencias siguientes a interna exclusiva, web no publicada y ausencia de autorizacion corresponden a etapas anteriores.
