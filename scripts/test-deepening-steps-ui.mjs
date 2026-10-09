@@ -169,11 +169,19 @@ if (checking) {
             }
             await page.evaluate(() => {
                 const editor = document.querySelector('[data-deepening-editor]');
+                // Real IME edits move the selection with their text; innerText alone does not in WebKit.
+                const replaceCompositionText = text => {
+                    editor.innerText = text;
+                    const range = document.createRange();
+                    range.selectNodeContents(editor); range.collapse(false);
+                    const selection = getSelection();
+                    selection.removeAllRanges(); selection.addRange(range);
+                };
                 editor.dispatchEvent(new CompositionEvent('compositionstart', {bubbles: true}));
-                editor.innerText = 'Composición provisional';
+                replaceCompositionText('Composición provisional');
                 document.querySelector('[data-step="teaching"]').click();
                 editor.dispatchEvent(new CompositionEvent('compositionend', {bubbles: true}));
-                editor.innerText = 'Composición final conservada';
+                replaceCompositionText('Composición final conservada');
                 editor.dispatchEvent(new InputEvent('input', {bubbles: true}));
             });
             await page.waitForFunction(() => qa.state().step === 'teaching');
