@@ -45,7 +45,7 @@ console.log('OK: encabezado corresponde al capítulo visible y distingue lectura
 const routeStart=source.indexOf('handleRoute: async function');const routeStop=source.indexOf('this.hideSelectionPanel();',routeStart);
 const routePrelude=vm.runInContext('({'+source.slice(routeStart,routeStop)+'}})',context).handleRoute;
 context.window={location:{hash:'#settings'}};let audioStops=0,overlayCloses=0;
-await routePrelude.call({currentView:'reading',closeTransientBibleUI:()=>overlayCloses++,stopDailyReadingVoice:()=>audioStops++});
+await routePrelude.call({currentView:'reading',stopDailyQuestionObservation:()=>{},closeTransientBibleUI:()=>overlayCloses++,stopDailyReadingVoice:()=>audioStops++});
 assert.equal(audioStops,1);assert.equal(overlayCloses,1);console.log('OK: salir de una lectura histórica detiene su audio y cierra los controles transitorios');
 const selectorStart=source.indexOf('renderDailyVersionSelector: function');const selectorEnd=source.indexOf('\n},',selectorStart)+2;
 const selector=vm.runInContext('({'+source.slice(selectorStart,selectorEnd)+'})',context).renderDailyVersionSelector;

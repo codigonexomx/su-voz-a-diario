@@ -33,11 +33,16 @@ const RESERVED_PARAM_NAMES = new Set([
     'token'
 ]);
 
+const ATTRIBUTION_PARAM_NAMES = new Set([
+    'medium', 'campaign', 'campaign_id', 'campaign_source', 'campaign_medium',
+    'campaign_name', 'campaign_content', 'campaign_term'
+]);
+
 const CONTROLLED_VALUES = {
     library_action: ['list', 'open', 'edit'],
     platform: ['web', 'pwa', 'android', 'ios', 'native', 'unknown'],
-    source: ['home', 'reading', 'calendar', 'community', 'direct', 'reading_share', 'community_share', 'verse_share', 'verse_image', 'church_qr', 'whatsapp', 'organic', 'play_campaign', 'unknown'],
-    entry_point: ['bottom_nav', 'daily_question', 'reading_ecos', 'notification', 'direct', 'home', 'unknown'],
+    interaction_source: ['home', 'reading', 'calendar', 'community', 'direct', 'reading_share', 'community_share', 'verse_share', 'verse_image', 'church_qr', 'whatsapp', 'organic', 'play_campaign', 'unknown'],
+    entry_point: ['bottom_nav', 'daily_question', 'reading_ecos', 'notification', 'direct', 'home', 'journey', 'unknown'],
     audio_context: ['daily_reading', 'bible'],
     content_type: ['daily_reading', 'verse', 'verse_image', 'community_post', 'app', 'app_link'],
     method: ['native_share', 'clipboard', 'other'],
@@ -64,6 +69,17 @@ function getDebugEnabled() {
     }
 }
 
+export function isAnalyticsCollectionAllowed() {
+    // Capacitor uses localhost too; native installations must keep measurement.
+    const { hostname = '', protocol = '', search = '' } = window.location || {};
+    if (new URLSearchParams(search).get('analytics_test') === '1') return false;
+    if (window.Capacitor?.isNativePlatform?.()) return true;
+    const host = hostname.toLowerCase();
+    return protocol !== 'file:' &&
+        !['localhost', '127.0.0.1', '::1', '[::1]'].includes(host) &&
+        !host.endsWith('.localhost');
+}
+
 export class AnalyticsService {
     constructor() {
         this.initialized = false;
@@ -74,6 +90,7 @@ export class AnalyticsService {
         this.logEventFn = null;
         this.provider = 'none';
         this.validationEventSent = false;
+        this.collectionEnabled = false;
     }
 
     init(options = {}) {
@@ -92,6 +109,13 @@ export class AnalyticsService {
     }
 
     attachProvider() {
+        this.collectionEnabled = isAnalyticsCollectionAllowed();
+        if (!this.collectionEnabled) {
+            this.logEventFn = null;
+            this.provider = this.debug ? 'debug_console' : 'none';
+            this.pendingEvents.length = 0;
+            return;
+        }
         const analyticsFns = window.firebaseAnalyticsFns;
 
         if (analyticsFns?.analytics && typeof analyticsFns.logEvent === 'function') {
@@ -138,6 +162,8 @@ export class AnalyticsService {
                 at: new Date().toISOString()
             });
         }
+
+        if (!this.collectionEnabled) return;
 
         if (!this.logEventFn) {
             if (this.pendingEvents.length < 50) {
@@ -186,7 +212,7 @@ export class AnalyticsService {
     }
 
     trackValidationEvent() {
-        if (!this.debug || this.validationEventSent || !this.logEventFn) return;
+        if (!this.collectionEnabled || !this.debug || this.validationEventSent || !this.logEventFn) return;
 
         this.validationEventSent = true;
         this.sendEvent('analytics_validation', this.sanitizeParams({
@@ -198,11 +224,14 @@ export class AnalyticsService {
 
     sanitizeParams(params) {
         return Object.entries(params || {}).reduce((safeParams, [rawKey, rawValue]) => {
-            const key = String(rawKey || '').trim();
+            const inputKey = String(rawKey || '').trim();
+            // Legacy callers describe UI context, never a campaign source.
+            const key = inputKey === 'source' ? 'interaction_source' : inputKey;
 
             if (
                 !PARAM_NAME_PATTERN.test(key) ||
                 RESERVED_PARAM_NAMES.has(key) ||
+                ATTRIBUTION_PARAM_NAMES.has(key) ||
                 RESERVED_PREFIXES.some(prefix => key.startsWith(prefix))
             ) {
                 return safeParams;

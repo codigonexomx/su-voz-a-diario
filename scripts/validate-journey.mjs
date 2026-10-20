@@ -40,8 +40,11 @@ app.loadCommunityDraftState=()=>({text:''});await handleJourney(app,{dataset:{jo
 
 set(isolated,'su-voz-meditation-a',session('a'));
 app.invalidateMeditationLibraryCache=()=>{};app.renderStats=()=>{};
+const completions=[];
+app.trackMeditationCompleted=(value,entryPoint)=>completions.push({date:value.readingId,entryPoint});
 await handleJourney(app,{dataset:{journey:'complete',id:'a'}});
 await handleJourney(app,{dataset:{journey:'complete',id:'a'}});
 assert.equal(getJourney(isolated).state.events.length,1);
 assert.equal(JSON.parse(isolated.getItem('su-voz-meditation-a')).status,'completed');
+assert.deepEqual(completions,[{date:'2026-09-23',entryPoint:'journey'}]);
 console.log(`OK Finalización repetida sin duplicados. ${cases} casos de servicio + 2 flujos de integración. TZ=${process.env.TZ||'sistema'}`);

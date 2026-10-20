@@ -84,6 +84,7 @@ export async function handleJourney(app, element) {
         if(!session || session.status!=='draft') return;
         session.status='completed';session.completedAt=Date.now();session.updatedAt=session.completedAt;
         MeditationSessionStorage.save(session);app.invalidateMeditationLibraryCache();
+        app.trackMeditationCompleted?.(session, 'journey');
         try {recordPractice(localStorage,'meditation',session.readingId,session.id);} catch(error) {app.showToast('Meditación guardada; no se pudo registrar la constancia.');}
         app.renderStats();return;
     }

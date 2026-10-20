@@ -4,6 +4,7 @@ import { getJourney, recordPractice, exportJourney } from './services/JourneySer
 import { prepareLocalBackup, restoreLocalBackup, MAX_BACKUP_BYTES } from './services/BackupService.js';
 import { renderJourney, handleJourney } from './JourneyView.js';
 import { renderAccountPanel } from './AccountPanel.js';
+import { readingIcon } from './utils/readingIcons.js';
 import {
     formatDateEs,
     formatDateForCompare,
@@ -69,7 +70,8 @@ import {
 
 import {
     DEFAULT_SETTINGS,
-    DEFAULT_STREAK
+    DEFAULT_STREAK,
+    READING_FONTS
 } from './core/defaults.js';
 
 import {
@@ -908,6 +910,7 @@ _authInitPromise: null,
     this.loadSettings();
     this.loadStreak();
     this.loadFontSize();
+    this.loadReadingFont();
     this.loadBibleReadingSettings();
     localStorage.removeItem('su-voz-last-reminder-date');
        
@@ -1007,7 +1010,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '262'
+            pwaVersion: '263'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1025,7 +1028,7 @@ console.log('[App] Inicialización completada');
             reading_date: reading?.date || '',
             reading_reference: reading?.reference || '',
             bible_version: this.currentVersion || 'rvr60',
-            source
+            interaction_source: source
         };
     },
 
@@ -1043,10 +1046,45 @@ console.log('[App] Inicialización completada');
     },
 
     trackDailyQuestionVisible: function(reading) {
+        this.stopDailyQuestionObservation();
         if (!reading?.date || !this.getReadingMetadataByDate(reading.date)?.dailyQuestion) return;
-        this.trackAnalyticsOnce(`daily_question_view:${reading.date}`, 'daily_question_view', {
-            reading_date: reading.date,
-            question_id: `daily_${reading.date}`
+        const card = this.$content.querySelector('.daily-question-card');
+        if (!card || typeof window.IntersectionObserver !== 'function') return;
+        const observer = new window.IntersectionObserver(entries => {
+            if (this._dailyQuestionObserver !== observer || !card.isConnected) return;
+            if (document.visibilityState === 'hidden') return;
+            if (!entries.some(entry => entry.target === card && entry.isIntersecting && entry.intersectionRatio >= 0.5)) return;
+            this.trackAnalyticsOnce(`daily_question_view:${reading.date}`, 'daily_question_view', {
+                reading_date: reading.date,
+                question_id: `daily_${reading.date}`
+            });
+            this.stopDailyQuestionObservation();
+        }, { threshold: 0.5, rootMargin: '-56px 0px -80px 0px' });
+        this._dailyQuestionObserver = observer;
+        this._dailyQuestionVisibilityHandler = () => {
+            if (document.visibilityState !== 'hidden') {
+                observer.unobserve(card);
+                observer.observe(card);
+            }
+        };
+        document.addEventListener('visibilitychange', this._dailyQuestionVisibilityHandler);
+        observer.observe(card);
+    },
+
+    stopDailyQuestionObservation: function() {
+        this._dailyQuestionObserver?.disconnect();
+        this._dailyQuestionObserver = null;
+        if (this._dailyQuestionVisibilityHandler) {
+            document.removeEventListener('visibilitychange', this._dailyQuestionVisibilityHandler);
+            this._dailyQuestionVisibilityHandler = null;
+        }
+    },
+
+    trackMeditationCompleted: function(session, entryPoint = 'direct') {
+        if (!session?.id || !session.readingId || session.status !== 'completed' || !session.completedAt) return;
+        this.trackAnalyticsOnce(`deepen_complete:${session.id}`, 'deepen_complete', {
+            reading_date: session.readingId,
+            entry_point: entryPoint
         });
     },
 
@@ -2126,6 +2164,46 @@ getPlatformLabel: function() {
             document.documentElement.style.setProperty('--reading-size', this.settings.fontSize + 'rem');
         }
     },
+
+renderReadingFontPicker: function(context = 'header') {
+    const selected = this.settings.readingFont || DEFAULT_SETTINGS.readingFont;
+    return `<fieldset class="reading-font-picker${context === 'daily' ? ' reading-font-picker-inline' : ''}"><legend>Fuente de lectura</legend>
+        ${READING_FONTS.map(font => `<label class="reading-font-option" data-font="${font.id}">
+            <input type="radio" name="reading-font-${context}" value="${font.id}" data-reading-font ${font.id === selected ? 'checked' : ''}>
+            <span>${font.label}</span>
+        </label>`).join('')}
+    </fieldset>`;
+},
+
+applyReadingFont: function() {
+    const font = READING_FONTS.find(item => item.id === this.settings.readingFont) || READING_FONTS[0];
+    this.settings.readingFont = font.id;
+    document.documentElement.style.setProperty('--font-reading-content', font.family);
+    document.documentElement.style.setProperty('--reading-font-scale', String(font.scale));
+    document.documentElement.style.setProperty('--reading-font-weight', String(font.weight));
+    document.querySelectorAll('[data-reading-font]').forEach(input => {
+        input.checked = input.value === font.id;
+    });
+},
+
+loadReadingFont: function() {
+    this.applyReadingFont();
+    const controls = document.getElementById('reading-font-controls');
+    if (controls) controls.innerHTML = this.renderReadingFontPicker('header');
+},
+
+setReadingFont: function(id) {
+    if (!READING_FONTS.some(font => font.id === id)) return false;
+    const settings = { ...this.settings, readingFont: id };
+    if (!this.storage.set('su-voz-settings', settings)) {
+        this.applyReadingFont();
+        this.showToast('No se pudo guardar la fuente. Tu preferencia anterior se conserva.');
+        return false;
+    }
+    this.settings = settings;
+    this.applyReadingFont();
+    return true;
+},
 
 loadBibleReadingSettings: function() {
     const saved = this.storage.get('su-voz-bible-reading-settings', {});
@@ -9941,6 +10019,7 @@ closeTransientBibleUI: function() {
     },
     
     handleRoute: async function() {
+    this.stopDailyQuestionObservation();
     const rawHash = window.location.hash.substring(1) || 'home';
     const [routePath, queryString] = rawHash.split('?');
     const parts = routePath.split('/');
@@ -10378,24 +10457,24 @@ renderDailyReadingVoiceControl: function(reading) {
     return `
         <div class="daily-reading-voice" data-voice-date="${reading.date}">
             <button
-                class="daily-reading-voice-main"
+                class="daily-reading-voice-main reading-command reading-command-audio"
                 type="button"
                 data-action="daily-reading-voice-toggle"
                 data-date="${reading.date}"
                 aria-label="${ariaLabel}"
             >
-                <span class="daily-reading-voice-icon daily-reading-voice-icon-${icon}" aria-hidden="true"></span>
+                <span class="daily-reading-voice-icon daily-reading-voice-icon-${icon}" aria-hidden="true">${readingIcon(icon)}</span>
                 <span class="daily-reading-voice-label">${label}</span>
             </button>
             ${isReading || isPaused ? `
                 <button
-                    class="daily-reading-voice-stop"
+                    class="daily-reading-voice-stop reading-command reading-command-stop"
                     type="button"
                     data-action="daily-reading-voice-stop"
                     aria-label="Detener lectura en voz alta"
                     title="Detener"
                 >
-                    <span aria-hidden="true"></span>
+                    ${readingIcon('stop')}
                 </button>
             ` : ''}
         </div>
@@ -10919,6 +10998,7 @@ updateDailyReadingVoiceUI: function() {
 
     if (icon) {
         icon.className = `daily-reading-voice-icon daily-reading-voice-icon-${isReading ? 'pause' : 'play'}`;
+        icon.innerHTML = readingIcon(isReading ? 'pause' : 'play');
     }
 
     if (label) {
@@ -10938,13 +11018,13 @@ updateDailyReadingVoiceUI: function() {
     if ((isReading || isPaused) && !currentStopBtn) {
         control.insertAdjacentHTML('beforeend', `
             <button
-                class="daily-reading-voice-stop"
+                class="daily-reading-voice-stop reading-command reading-command-stop"
                 type="button"
                 data-action="daily-reading-voice-stop"
                 aria-label="Detener lectura en voz alta"
                 title="Detener"
             >
-                <span aria-hidden="true"></span>
+                ${readingIcon('stop')}
             </button>
         `);
     } else if (!isReading && !isPaused && currentStopBtn) {
@@ -12411,6 +12491,44 @@ restoreCalendarPosition: function() {
     this.calendarScrollTop = Math.max(0, top);
 },
     
+renderDailyReadingEntry: function(reading) {
+    return `
+        <section class="daily-reading-entry" aria-label="Comenzar con este pasaje">
+            <h2 class="daily-reading-entry-reference">${this.escapeHtml(reading.reference)}</h2>
+            <div class="daily-reading-entry-actions">
+                <button type="button" class="reading-command reading-command-read" data-action="read-passage" data-date="${reading.date}">${readingIcon('read')}<span>Leer pasaje</span></button>
+                <button type="button" class="reading-command reading-command-meditation" data-action="toggle-note" data-date="${reading.date}">${readingIcon('meditation')}<span>Meditación</span></button>
+                ${this.renderDailyReadingVoiceControl(reading)}
+            </div>
+        </section>
+    `;
+},
+
+renderDailyReadingActions: function(reading) {
+    return `<div class="reading-command-group">
+        <button type="button" class="reading-command reading-command-complete" data-action="mark-read" data-date="${reading.date}" ${this.isRead(reading.date) ? 'disabled' : ''}>
+            ${readingIcon('complete')}<span>${this.isRead(reading.date) ? 'Leído hoy' : 'Marcar como leído'}</span>
+        </button>
+        <button type="button" class="reading-command reading-command-community" data-action="open-reading-community-ecos" data-date="${reading.date}" data-reference="${this.escapeHtml(reading.reference)}">
+            ${readingIcon('community')}<span>Ecos de esta lectura</span>
+        </button>
+        <button type="button" class="reading-command reading-command-share" data-action="share-reading" data-date="${reading.date}">
+            ${readingIcon('share')}<span>Compartir lectura</span>
+        </button>
+    </div>`;
+},
+
+startReadingPassage: function(date) {
+    const target = Array.from(this.$content.querySelectorAll('.reading-text-shell[data-reading-date]'))
+        .find(element => element.getAttribute('data-reading-date') === date);
+    if (!target) return;
+    target.focus({ preventScroll: true });
+    target.scrollIntoView({ block: 'start', behavior: 'auto' });
+    const reading = this.getReadingMetadataByDate(date) || { date };
+    this.trackAnalyticsOnce(`reading_start:${date}`, 'reading_start',
+        this.getReadingAnalyticsParams(reading, this.currentView === 'home' ? 'home' : 'reading'));
+},
+
    renderHome: async function() {
     this.stopDailyReadingVoice(true);
 
@@ -12452,6 +12570,8 @@ restoreCalendarPosition: function() {
                 )}
             </section>
 
+            ${this.renderDailyReadingEntry(reading)}
+
             <!-- 📜 PERGAMINO DE PROGRESO (SOLO HOY) -->
             ${pergaminoHtml}
 
@@ -12459,10 +12579,10 @@ restoreCalendarPosition: function() {
 
             <div class="reading-card">
                 ${this.renderDailyVersionSelector(reading)}
+                ${this.renderReadingFontPicker('daily')}
                 <div class="section-title">${readingLabel}</div>
                 <h2 class="reading-reference">${reading.reference}</h2>
-                ${this.renderDailyReadingVoiceControl(reading)}
-                <div class="reading-text-shell" data-reading-date="${reading.date}">
+                <div class="reading-text-shell" data-reading-date="${reading.date}" tabindex="-1" aria-label="Lectura de ${this.escapeHtml(reading.reference)}">
                     <div class="reading-text selection-surface verse-container" data-selection-surface="true">
                         ${this.renderVerseText(readingText, reading.date)}
                     </div>
@@ -12470,53 +12590,7 @@ restoreCalendarPosition: function() {
                 </div>
             </div>
 
-            <div class="main-action">
-                <button class="reading-action-card reading-action-primary ${this.hasNote(reading.date) ? 'has-note' : ''}" data-action="toggle-note" data-date="${reading.date}">
-                    <span class="reading-action-icon">🔎</span>
-                    <span class="reading-action-content">
-                        <span class="reading-action-title">
-                            ${this.openNoteDate === reading.date ? 'Ocultar sección' : 'Profundiza en Su Voz'}
-                            ${this.hasNote(reading.date) ? '<span class="reading-action-check">✓</span>' : ''}
-                            ${this.hasNote(reading.date) ? '<span class="reading-action-dot"></span>' : ''}
-                        </span>
-                        <span class="reading-action-subtitle">Explora más sobre este pasaje</span>
-                    </span>
-                    <span class="reading-action-chevron"></span>
-                </button>
-            </div>
-
-            <div class="action-group">
-                <button class="reading-action-card reading-action-read" data-action="mark-read" data-date="${reading.date}" ${this.isRead(reading.date) ? 'disabled' : ''}>
-                    <span class="reading-action-icon reading-action-icon-check">✓</span>
-                    <span class="reading-action-content">
-                        <span class="reading-action-title">${this.isRead(reading.date) ? 'Leído hoy' : 'Marcar como leído'}</span>
-                        <span class="reading-action-subtitle">${this.isRead(reading.date) ? '¡Buen trabajo! Sigue así' : 'Guarda tu avance de hoy'}</span>
-                    </span>
-                </button>
-                <button class="reading-action-card reading-action-community" type="button" data-action="open-reading-community-ecos" data-date="${reading.date}" data-reference="${this.escapeHtml(reading.reference)}">
-                    <span class="reading-action-icon" aria-hidden="true">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                            <line x1="8" y1="7" x2="16" y2="7"/>
-                            <line x1="8" y1="11" x2="14" y2="11"/>
-                        </svg>
-                    </span>
-                    <span class="reading-action-content">
-                        <span class="reading-action-title">Ecos de esta lectura</span>
-                        <span class="reading-action-subtitle">Ver reflexiones compartidas</span>
-                    </span>
-                    <span class="reading-action-chevron"></span>
-                </button>
-                <button class="reading-action-card reading-action-share" data-action="share-reading" data-date="${reading.date}">
-                    <span class="reading-action-icon">📤</span>
-                    <span class="reading-action-content">
-                        <span class="reading-action-title">Compartir lectura</span>
-                        <span class="reading-action-subtitle">Comparte inspiración con otros</span>
-                    </span>
-                    <span class="reading-action-chevron"></span>
-                </button>
-            </div>
+            ${this.renderDailyReadingActions(reading)}
 
             ${this.renderDailyQuestionCardHtml(reading.date)}
 
@@ -12576,8 +12650,8 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
                 </div>
                 <p class="daily-question-text">${this.escapeHtml(dailyQuestion)}</p>
                 <div class="daily-question-actions">
-                    <button type="button" class="daily-question-btn" data-action="respond-daily-question" data-date="${this.escapeHtml(metadata.date)}" data-reference="${this.escapeHtml(metadata.reference || '')}">
-                        <span class="daily-question-btn-icon" aria-hidden="true">✍️</span>
+                    <button type="button" class="reading-command reading-command-community" data-action="respond-daily-question" data-date="${this.escapeHtml(metadata.date)}" data-reference="${this.escapeHtml(metadata.reference || '')}">
+                        ${readingIcon('community')}
                         <span>Responder la pregunta</span>
                     </button>
                 </div>
@@ -12633,16 +12707,18 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
         <div class="reading-date-header">${dateFormatted.toUpperCase()}</div>
     `}
 
+    ${this.renderDailyReadingEntry(reading)}
+
     ${progressHtml}
 
     ${introVideoHtml}
     
                 <div class="reading-card">
                     ${isHome ? this.renderDailyVersionSelector(reading) : ''}
+                    ${this.renderReadingFontPicker('daily')}
                     <div class="section-title">${readingLabel}</div>
                     <h2 class="reading-reference">${reading.reference}</h2>
-                    ${isHome ? this.renderDailyReadingVoiceControl(reading) : ''}
-                    <div class="reading-text-shell" data-reading-date="${reading.date}">
+                    <div class="reading-text-shell" data-reading-date="${reading.date}" tabindex="-1" aria-label="Lectura de ${this.escapeHtml(reading.reference)}">
     <div class="reading-text selection-surface verse-container" data-selection-surface="true">
         ${this.renderVerseText(readingText, reading.date)}
     </div>
@@ -12650,68 +12726,7 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
 </div>
                </div>
 
-            <div class="main-action">
-    <button class="reading-action-card reading-action-primary ${this.hasNote(reading.date) ? 'has-note' : ''}" data-action="toggle-note" data-date="${reading.date}">
-        <span class="reading-action-icon">🔎</span>
-
-        <span class="reading-action-content">
-            <span class="reading-action-title">
-                ${this.openNoteDate === reading.date ? 'Ocultar sección' : 'Profundiza en Su Voz'}
-                ${this.hasNote(reading.date) ? '<span class="reading-action-check">✓</span>' : ''}
-                ${this.hasNote(reading.date) ? '<span class="reading-action-dot"></span>' : ''}
-            </span>
-
-            <span class="reading-action-subtitle">
-                Explora más sobre este pasaje
-            </span>
-        </span>
-
-        <span class="reading-action-chevron"></span>
-    </button>
-</div>
-
-         <div class="action-group">
-    <button class="reading-action-card reading-action-read" data-action="mark-read" data-date="${reading.date}" ${this.isRead(reading.date) ? 'disabled' : ''}>
-        <span class="reading-action-icon reading-action-icon-check">✓</span>
-
-        <span class="reading-action-content">
-            <span class="reading-action-title">
-                ${this.isRead(reading.date) ? 'Leído hoy' : 'Marcar como leído'}
-            </span>
-
-            <span class="reading-action-subtitle">
-                ${this.isRead(reading.date) ? '¡Buen trabajo! Sigue así' : 'Guarda tu avance de hoy'}
-            </span>
-        </span>
-    </button>
-
-    <button class="reading-action-card reading-action-community" type="button" data-action="open-reading-community-ecos" data-date="${reading.date}" data-reference="${this.escapeHtml(reading.reference)}">
-        <span class="reading-action-icon" aria-hidden="true">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                <line x1="8" y1="7" x2="16" y2="7"/>
-                <line x1="8" y1="11" x2="14" y2="11"/>
-            </svg>
-        </span>
-        <span class="reading-action-content">
-            <span class="reading-action-title">Ecos de esta lectura</span>
-            <span class="reading-action-subtitle">Ver lo que la comunidad compartió</span>
-        </span>
-        <span class="reading-action-chevron"></span>
-    </button>
-
-    <button class="reading-action-card reading-action-share" data-action="share-reading" data-date="${reading.date}">
-        <span class="reading-action-icon">📤</span>
-
-        <span class="reading-action-content">
-            <span class="reading-action-title">Compartir lectura</span>
-            <span class="reading-action-subtitle">Comparte inspiración con otros</span>
-        </span>
-
-        <span class="reading-action-chevron"></span>
-    </button>
-</div>
+            ${this.renderDailyReadingActions(reading)}
 
             ${this.renderDailyQuestionCardHtml(reading.date)}
             
@@ -14596,6 +14611,8 @@ renderBibleReadingSettingsPanel: function() {
                     ${renderOption('textSize', 'large', 'Grande', textSize)}
                 </div>
             </div>
+
+            ${this.renderReadingFontPicker('bible')}
 
             <div class="bible-reading-setting-group">
                 <span>Espaciado</span>
@@ -17226,6 +17243,7 @@ renderStats: function() {
                         <label>🌓 Tema oscuro</label>
                         <button id="theme-toggle-settings" class="btn-secondary">Cambiar tema</button>
                     </div>
+                    ${this.renderReadingFontPicker('settings')}
                 </div>
                 
                 <div class="setting-card">
@@ -17541,6 +17559,7 @@ if (notificationsToggle) {
                     this.settings = plan.settings;
                     this.initTheme();
                     this.loadFontSize();
+                    this.loadReadingFont();
                 }
                 this.invalidateMeditationLibraryCache();
                 this.showToast('✅ Datos y avatar restaurados correctamente', 'success');
@@ -18208,6 +18227,10 @@ document.addEventListener('input', (e) => {
 });
 
 document.addEventListener('change', (e) => {
+    if (e.target.matches('[data-reading-font]')) {
+        this.setReadingFont(e.target.value);
+        return;
+    }
     if (e.target.closest('.library-more-filters') && this.libraryState) this.libraryState.advancedOpen = true;
     if (e.target.id === 'library-filter-collection') {
         if (this.libraryState) {
@@ -18931,6 +18954,12 @@ const noteSection = e.target.closest('.note-section');
         return;
     }
             
+            const readPassageBtn = e.target.closest('[data-action="read-passage"]');
+            if (readPassageBtn) {
+                this.startReadingPassage(readPassageBtn.getAttribute('data-date'));
+                return;
+            }
+
             // Marcar como leído
             const markBtn = e.target.closest('[data-action="mark-read"]');
             if (markBtn) {
@@ -20114,17 +20143,14 @@ if (completeSessionBtn) {
         const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
         if (session && session.readingId === completeSessionBtn.getAttribute('data-date')) {
             const wasCompleted = session.status === 'completed' && session.completedAt;
-            session.status = 'completed';
-            session.completedAt = Date.now();
-            session.updatedAt = Date.now();
-            this.attachMeditationMetadataSync(session);
-            MeditationSessionStorage.save(session);
-            this.invalidateMeditationLibraryCache();
-            this.trackAnalyticsEvent('deepen_complete', {
-                reading_date: session.readingDate || session.date || '',
-                entry_point: 'direct'
-            });
             if (!wasCompleted) {
+                session.status = 'completed';
+                session.completedAt = Date.now();
+                session.updatedAt = session.completedAt;
+                this.attachMeditationMetadataSync(session);
+                MeditationSessionStorage.save(session);
+                this.invalidateMeditationLibraryCache();
+                this.trackMeditationCompleted(session);
                 try {
                     recordPractice(localStorage, 'meditation', session.readingId, session.id);
                     this.updateStreakUI();

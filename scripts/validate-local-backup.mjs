@@ -27,7 +27,7 @@ source.setItem('su-voz-read-dates', JSON.stringify(['2026-10-01']));
 const backup = { version: '2.1', journeyBackup: exportJourney(source),
     userProfile: { userId: 'not-an-account-to-import', avatarIcon: 'X', avatarColor: '#4A90D9', avatarCategory: 'QA' },
     communityPreferences: { isAnonymous: true, name: null },
-    settings: { fontSize: 1.2, reminderTime: '09:00', notificationsEnabled: true, autoSaveNotes: true } };
+    settings: { fontSize: 1.2, readingFont: 'cormorant', reminderTime: '09:00', notificationsEnabled: true, autoSaveNotes: true } };
 const target = new Storage();
 target.setItem('auth-fixture', 'untouched');
 target.setItem('su-voz-note-2026-09-30', JSON.stringify({ dios: 'Nota previa de QA' }));
@@ -37,6 +37,10 @@ assert.equal(JSON.parse(target.getItem('suvoz_avatar_profile_qa-device-two')).us
 assert.equal(target.getItem('suvoz_avatar_profile_not-an-account-to-import'), null);
 assert.equal(JSON.parse(target.getItem('su-voz-settings')).notificationsEnabled, false);
 assert.equal(target.getItem('reading-size'), '1.2');
+assert.equal(JSON.parse(target.getItem('su-voz-settings')).readingFont, 'cormorant');
+assert.equal(prepareLocalBackup({settings:{fontSize:1.2}}, {settings:{readingFont:'inter'}}).settings.readingFont,'inter');
+assert.throws(()=>prepareLocalBackup({settings:{readingFont:'url(https://invalid.test)'}}));
+assert.throws(()=>prepareLocalBackup({settings:{readingFont:['inter']}}));
 assert.equal(target.getItem('auth-fixture'), 'untouched');
 const enabled = prepareLocalBackup({ ...backup, settings: { ...backup.settings, notificationsEnabled: false, reminderDays: [1], reminderTime: '12:30' } }, {
     settings: { notificationsEnabled: true, reminderTime: '08:15', reminderDays: [2, 4] }
@@ -91,7 +95,7 @@ const context = vm.createContext({
 });
 const importData = vm.runInContext('({' + appSource.slice(start, end).trim().replace(/,$/, '') + '})', context).importData;
 const app = { currentUser: { uid: 'qa-import-ui' }, settings: { notificationsEnabled: false },
-    showToast: value => toasts.push(value), initTheme() {}, loadFontSize() {}, invalidateMeditationLibraryCache() {} };
+    showToast: value => toasts.push(value), initTheme() {}, loadFontSize() {}, loadReadingFont() {}, invalidateMeditationLibraryCache() {} };
 async function load(text) {
     importData.call(app, { size: Buffer.byteLength(text), text });
     await readers.at(-1).pending;

@@ -251,8 +251,9 @@ body.deepening-shell-active > .bottom-nav {
 .deepening-reading-text {
     max-width: 580px;
     margin: 0 auto;
-    font-family: "Merriweather", Georgia, serif;
-    font-size: clamp(1.08rem, 4vw, 1.24rem);
+    font-family: var(--font-reading-content, "Merriweather", Georgia, serif);
+    font-size: calc(var(--reading-size, 1.08rem) * var(--reading-font-scale, 1));
+    font-weight: var(--reading-font-weight, 400);
     line-height: 1.98;
     color: #2f261f;
     text-wrap: pretty;

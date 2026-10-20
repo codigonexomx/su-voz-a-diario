@@ -5,7 +5,8 @@ import {
 } from './core/appLinks.js';
 
 import {
-    analyticsService
+    analyticsService,
+    isAnalyticsCollectionAllowed
 } from './services/AnalyticsService.js';
 
 const FIREBASE_CONFIG = Object.freeze({
@@ -34,7 +35,7 @@ function getPlatform() {
 }
 
 async function attachFirebaseAnalytics() {
-    if (!FIREBASE_CONFIG.measurementId) return;
+    if (!FIREBASE_CONFIG.measurementId || !isAnalyticsCollectionAllowed()) return;
 
     try {
         const [appModule, analyticsModule] = await Promise.all([
@@ -113,7 +114,7 @@ async function init() {
     analyticsService.init({
         platform,
         appVersion: '2.1',
-        pwaVersion: '262'
+        pwaVersion: '263'
     });
 
     track('acquisition_landing_view', {

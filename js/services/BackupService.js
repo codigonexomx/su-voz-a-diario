@@ -1,4 +1,5 @@
 import { legacyJourneyBackup, validateJourneyBackup, restoreJourney } from './JourneyService.js';
+import { READING_FONTS } from '../core/defaults.js';
 
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const fail = () => { throw new Error('Archivo de respaldo no valido'); };
@@ -51,6 +52,10 @@ export function prepareLocalBackup(data, { uid = null, settings = {} } = {}) {
             if (!Number.isFinite(data.settings.fontSize) || data.settings.fontSize < 0.5 || data.settings.fontSize > 3) fail();
             incoming.fontSize = data.settings.fontSize;
             entries['reading-size'] = String(incoming.fontSize);
+        }
+        if (data.settings.readingFont !== undefined) {
+            if (!READING_FONTS.some(font => font.id === data.settings.readingFont)) fail();
+            incoming.readingFont = data.settings.readingFont;
         }
         if (data.settings.reminderDays !== undefined) {
             if (!Array.isArray(data.settings.reminderDays) || data.settings.reminderDays.some(day => !Number.isInteger(day) || day < 0 || day > 6)) fail();
