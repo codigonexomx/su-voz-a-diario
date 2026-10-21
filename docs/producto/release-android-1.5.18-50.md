@@ -43,3 +43,27 @@ La Lenovo conectada conserva 49 instalada desde Play y el permiso de notificacio
 La web se publica desde main en GitHub Pages, no mediante Firebase Hosting. El backend ya está disponible antes del push de la interfaz. La publicación y las verificaciones HTTP/CI posteriores se añadirán a este documento cuando hayan terminado.
 
 No se promete ausencia absoluta de fallos ni más descargas por el rediseño. Preparar lecturas de 2027, licencias editoriales y certificación VoiceOver/TalkBack siguen siendo asuntos separados, no se declaran cerrados por esta entrega.
+
+## Publicación web verificada
+
+Commit de interfaz y preparación Android: `1d2c7ab23b18675422039946355fdae9400ef171`. Push normal junto con el commit separado de backend; HEAD y origin/main coinciden. Solo `marketing/` permanece untracked; queda fuera de los commits.
+
+[GitHub Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39648036800) y [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39648038261) terminaron correctamente. La validación incluye ambos análisis de vulnerabilidades, la suite completa con emuladores y `git diff --exit-code` después de preparar los assets nativos. Los dos análisis locales finales también informan cero vulnerabilidades.
+
+Producción https://suvoz.app devuelve HTTP 200 y PWA 265. Doce recursos, incluidos módulos y estilos nuevos, app.js, bandeja, worker y privacy.html, coinciden por SHA-256 con las fuentes locales. G-X95Y1G3BE0 y el import de Firebase Analytics permanecen presentes; el módulo remoto devuelve 200. La función privada de listas responde 401 / UNAUTHENTICATED a una consulta sin sesión. Evidencia: `artifacts/community-2026-10-21-release/production-http.json`.
+
+En el navegador productivo con `analytics_test=1` se comprobaron Calendario Mes/Lista, Por leer sin fechas futuras, apertura exacta de 2026-10-01 y regreso a hoy. Inspección móvil de 390 px y escritorio sin desbordamiento horizontal. Comunidad abrió Reflexiones y Oración, las consultas Mis peticiones y Orando y la bandeja con sus controles, sin errores visibles ni errores de consola consultados. No se publicaron textos, reacciones o compromisos ni se marcaron avisos existentes como leídos. No se abrieron notas ni meditaciones privadas. Se conserva la distinción entre revisión responsive y prueba física de iPhone.
+
+El propietario aprobó expresamente cargar y distribuir únicamente el AAB 50 con el hash auditado en su prueba interna exclusiva. Se eligió un único archivo mediante el selector normal de macOS, sin ampliar permisos de la extensión. Play reconoce 50 (1.5.18), API 24+, target 36, con ReTrace adjunto; 49 no se incluye en la nueva release interna.
+
+## Distribución interna confirmada
+
+Play confirma release interna 11, 50 (1.5.18), disponible para verificadores internos, un código de versión, publicada el 21 de octubre a las 12:05 p.m. Se mantiene exclusivamente la lista del propietario de un miembro; las otras listas no se seleccionaron ni modificaron. No se promovió 50 a producción ni se aceptaron condiciones nuevas. Evidencia: `artifacts/android-1.5.18-50-release/play-internal-published.png`.
+
+Validación de Play sin errores bloqueantes ni dispositivos anteriormente compatibles perdidos. Persiste la advertencia de código nativo sin símbolos de depuración; no se ocultó ni se fabricaron símbolos. El paquete congelado conserva el hash aprobado después de la carga.
+
+La ficha oficial de la Lenovo todavía muestra la versión anterior y Abrir durante la propagación inicial; también se comprobó el enlace oficial de prueba con la cuenta ya inscrita. No se borraron cachés, datos ni la app, no se cambió de cuenta y no se instaló una APK local. La QA nativa 50 no se declara terminada mientras no esté instalada desde Play.
+
+Durante la espera se comprobó la web productiva en Chrome de la Lenovo: Calendario cargó sus 31 lecturas de octubre, cambió a Lista y abrió exactamente 2026-10-01 / 1 Samuel 17:50-18:5. Comunidad abrió sus controles de Reflexiones y Oración. Esa evidencia es web física, no nativa. La revisión automática bloqueó abrir Mis peticiones por posible exposición de oraciones personales; la apertura no se ejecutó ni se eludió. Se solicitó al propietario comprobarlo personalmente o autorizar exclusivamente una revisión de controles y errores sin leer ni capturar textos.
+
+La prueba push física del nuevo destino sigue pendiente de instalar 50. Se preparó una comprobación privada al único registro habilitado del propietario, con guardas para exigir versión 50 instalada por Play, no repetir automáticamente el envío y no escribir datos de Comunidad. Todavía no se ha enviado ese aviso. No se transfieren pruebas anteriores como evidencia de entrega actual.
