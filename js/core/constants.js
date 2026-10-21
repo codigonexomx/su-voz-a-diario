@@ -43,12 +43,23 @@ export const INTRO_VIDEO_CONFIG_1SAMUEL = {
     note: 'Antes de comenzar la lectura de 1 Samuel, te recomendamos ver esta breve introducción para comprender mejor su contexto, mensaje y propósito.'
 };
 
+export const INTRO_VIDEO_CONFIG_2PETER = {
+    startDate: '2026-10-24',
+    endDate: '2026-10-27',
+    url: 'https://www.youtube.com/embed/c3FzB5MiJ38',
+    inlinePlayer: true,
+    label: '🎬 Video introductorio',
+    title: 'Introducción al libro de 2 Pedro',
+    note: 'Antes de comenzar la lectura de 2 Pedro, te recomendamos ver esta breve introducción para comprender mejor su contexto, mensaje y propósito.'
+};
+
 export const INTRO_VIDEO_CONFIGS = [
     INTRO_VIDEO_CONFIG,
     INTRO_VIDEO_CONFIG_2TIMOTHY,
     INTRO_VIDEO_CONFIG_MICAH,
     INTRO_VIDEO_CONFIG_PSALMS,
-    INTRO_VIDEO_CONFIG_1SAMUEL
+    INTRO_VIDEO_CONFIG_1SAMUEL,
+    INTRO_VIDEO_CONFIG_2PETER
 ];
 
 export function getIntroVideoConfig(dateStr) {

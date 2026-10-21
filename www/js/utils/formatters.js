@@ -2,6 +2,7 @@ import {
     INTRO_VIDEO_CONFIG
 } from '../core/constants.js';
 import { escapeHtml } from './dom.js';
+import { readingIcon } from './readingIcons.js';
 
 export function getHighlightColorLabel(color) {
     const labels = {
@@ -158,25 +159,40 @@ export function getVerseImageTemplate(templateKey = 'midnight') {
     return getSafeVerseImageTemplate(templateKey);
 }
 
-export function renderIntroVideoHtml(config = INTRO_VIDEO_CONFIG) {
+export function getIntroVideoId(config) {
     let url;
-    try { url = new URL(config.url); } catch { return ''; }
+    try { url = new URL(config?.url); } catch { return ''; }
     const match = /^\/embed\/([A-Za-z0-9_-]{11})$/.exec(url.pathname);
-    if (url.origin !== 'https://www.youtube.com' || !match) return '';
-    const watchUrl = `https://www.youtube.com/watch?v=${match[1]}`;
+    if (url.origin !== 'https://www.youtube.com' || url.username || url.password || url.search || url.hash || !match) return '';
+    return match[1];
+}
+
+export function renderIntroVideoHtml(config = INTRO_VIDEO_CONFIG) {
+    const videoId = getIntroVideoId(config);
+    if (!videoId) return '';
+    const inline = config.inlinePlayer === true && /^\d{4}-\d{2}-\d{2}$/.test(config.startDate);
+    const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
     return `
-            <div class="intro-video-card">
+            <div class="intro-video-card"${inline ? ` data-intro-date="${config.startDate}"` : ''}>
                 <div class="intro-video-head">
                     <div class="intro-video-label">${escapeHtml(config.label)}</div>
                     <div class="intro-video-title">${escapeHtml(config.title)}</div>
                 </div>
-                <div class="intro-video-frame">
+                <div class="intro-video-frame${inline ? ' intro-video-frame-inline' : ''}">
+                    ${inline ? `
+                    <button type="button" class="intro-video-open intro-video-open-inline" data-action="load-intro-video">
+                        <img class="intro-video-poster" src="./assets/video-intros/${videoId}.jpg" width="480" height="360" alt="" loading="lazy">
+                        ${readingIcon('play')}
+                        <span>Ver introducción</span>
+                    </button>` : `
                     <a class="intro-video-open" href="${watchUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">
                         <span class="intro-video-play" aria-hidden="true">&#9654;</span>
                         <span>Abrir en YouTube</span>
-                    </a>
+                    </a>`}
                 </div>
                 <div class="intro-video-note">${escapeHtml(config.note)}</div>
+                ${inline ? `<div class="intro-video-privacy">Al reproducir, te conectas con YouTube.</div>
+                <a class="intro-video-fallback" href="${watchUrl}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Ver en YouTube</a>` : ''}
             </div>
         `;
 }

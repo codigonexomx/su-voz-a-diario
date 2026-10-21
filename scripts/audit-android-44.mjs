@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate50')
+const release = process.argv.includes('--candidate51')
+    ? { code: 51, name: '1.5.19', pwa: 266 }
+    : process.argv.includes('--candidate50')
     ? { code: 50, name: '1.5.18', pwa: 265 }
     : process.argv.includes('--candidate49')
     ? { code: 49, name: '1.5.17', pwa: 264 }
@@ -57,11 +59,14 @@ const frozen = [
     ...(release.code >= 50 ? [
         ['artifacts/android-1.5.17-49-release/su-voz-1.5.17-49.aab', '60abb349569a45fe50b41209e87ef9860d572cea5e8273b7caf507c1d2c093f4'],
         ['artifacts/android-1.5.17-49-release/app-release.apk', 'd28cf54213b272eabe8f785284867612c4afc250eb775b13a27b0e9d4c6ee7f7']
+    ] : []),
+    ...(release.code >= 51 ? [
+        ['artifacts/android-1.5.18-50-release/su-voz-1.5.18-50.aab', 'c3510d8f1afca864ac46b5423499283613dff44d1f477dc73e1a9574650de283']
     ] : [])
 ];
 for (const [file, expected] of frozen) assert.equal(hash(readFileSync(file)), expected, file);
 const checks = JSON.parse(readFileSync('artifacts/validation/tests.json', 'utf8'));
-const expectedChecks = release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
+const expectedChecks = release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
 assert.equal(checks.results.length, expectedChecks);
 assert(checks.results.every(check => check.status === 0));
 mkdirSync(out, { recursive: true, mode: 0o700 });

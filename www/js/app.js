@@ -39,7 +39,8 @@ import {
     getVerseImageFormat,
     getVerseImageTemplate,
     validateVerseImageState,
-    renderIntroVideoHtml
+    renderIntroVideoHtml,
+    getIntroVideoId
 } from './utils/formatters.js';
 
 import {
@@ -1010,7 +1011,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '265'
+            pwaVersion: '266'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -12648,6 +12649,30 @@ renderDailyReadingActions: function(reading) {
     </div>`;
 },
 
+loadIntroVideo: function(button) {
+    const card = button?.closest('.intro-video-card[data-intro-date]');
+    if (!card || !this.$content.contains(card)) return false;
+    const config = getIntroVideoConfig(card.dataset.introDate);
+    const videoId = getIntroVideoId(config);
+    const frame = card.querySelector('.intro-video-frame');
+    if (!config?.inlinePlayer || !videoId || !frame || frame.querySelector('iframe')) return false;
+    if (navigator.onLine === false) {
+        this.showToast('El video necesita conexión a internet. Puedes seguir leyendo sin conexión.');
+        return false;
+    }
+
+    this.stopDailyReadingVoice(true);
+    const player = document.createElement('iframe');
+    player.title = config.title;
+    player.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0`;
+    player.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    player.allowFullscreen = true;
+    player.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.replaceChildren(player);
+    player.focus({ preventScroll: true });
+    return true;
+},
+
 startReadingPassage: function(date) {
     const target = Array.from(this.$content.querySelectorAll('.reading-text-shell[data-reading-date]'))
         .find(element => element.getAttribute('data-reading-date') === date);
@@ -18971,6 +18996,13 @@ const noteSection = e.target.closest('.note-section');
         return;
     }
             
+            const introVideoBtn = e.target.closest('[data-action="load-intro-video"]');
+            if (introVideoBtn) {
+                e.preventDefault();
+                this.loadIntroVideo(introVideoBtn);
+                return;
+            }
+
             const readPassageBtn = e.target.closest('[data-action="read-passage"]');
             if (readPassageBtn) {
                 this.startReadingPassage(readPassageBtn.getAttribute('data-date'));

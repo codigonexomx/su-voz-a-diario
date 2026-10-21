@@ -4,7 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checks = [
-    'validate-reading-catalog', 'validate-readings-q4-2026', 'validate-tla-readings',
+    'validate-reading-catalog', 'validate-readings-q4-2026', 'validate-tla-readings', 'validate-intro-videos',
     'validate-analytics-service', 'validate-first-experience', 'validate-reading-presentation', 'validate-calendar', 'validate-journey', 'validate-app-connections',
     'validate-community-voice', 'validate-library-upgrade', 'validate-continuous-reader',
     'validate-bible-continuous-voice', 'validate-bible-study', 'validate-bible-without-strong', 'validate-bible-reader-presentation',
