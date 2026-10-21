@@ -92,6 +92,16 @@ Esta evidencia confirma transporte y apertura nativa del destino de Oración. La
 
 ## Pendientes y estado de distribución
 
-La web 265 y el backend están publicados; Android 50 está solo en la prueba interna exclusiva, no en producción. Sigue pendiente la respuesta del propietario sobre iPhone, sonido y conservación de meditaciones, la decisión sobre Mis peticiones y la autorización concreta para repetir una vez el offline de 50 apagando y restableciendo solo Wi-Fi. No se apagó Wi-Fi ni se transfirió la prueba offline de 49 como evidencia de 50.
+La web 265 y el backend están publicados; Android 50 está solo en la prueba interna exclusiva, no en producción. El propietario confirmó iPhone, sonido y conservación de meditaciones y autorizó una única prueba offline de 50. Eligió comprobar personalmente Mis peticiones: esa elección no se presenta como confirmación de que ya la haya comprobado y el agente no abrirá esa lista.
 
 El AAB 50 conserva SHA-256 `c3510d8f1afca864ac46b5423499283613dff44d1f477dc73e1a9574650de283` y el AAB 49 conserva su hash anterior. No hubo recompilación posterior al congelado. El commit de evidencias web/interna `e8d5fb2e18e727dc87af7533948a4d142b0bce72` también pasó [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39651106284) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39651108222).
+
+## Confirmaciones y offline de 50
+
+El 21 de octubre el propietario confirmó que Calendario, Oración y Actividad funcionan en el iPhone, abierto desde el icono de Su Voz. Confirmó también audio claro y conservación de sus meditaciones en la Lenovo 1.5.18 (50). El agente no abrió ni leyó esas meditaciones. Estas respuestas sustituyen los pendientes respectivos, no se extrapolan a otros dispositivos o versiones de iOS.
+
+Con autorización expresa se ejecutó una sola prueba offline el 21 de octubre, entre las 14:02:05 y las 14:02:19 de Ciudad de México. El preflight exigió 50 / 1.5.18 instalada por Play, lectura de hoy cargada y conexión activa. Se apagó únicamente Wi-Fi; Android confirmó wifi_on=0 y Active default network: none. Se cerró exclusivamente Su Voz con force-stop y se reabrió MainActivity: cargó la lectura 2026-10-21 / 1 Samuel 30:1-17 con texto real sin red. Desde esa lectura se abrió Calendario, que mostró las 31 lecturas de octubre y el pasaje seleccionado, sin error de historial.
+
+El bloque finally restableció inmediatamente Wi-Fi y esperó la conexión: wifi_on=1 y red predeterminada activa. Una comprobación independiente volvió a confirmar ambos estados. No se tocaron datos móviles, cuentas, permisos ni notas y no se abrieron listas personales. El resultado pertenece expresamente al binario 50, no a 49, Chrome o una PWA. No acredita disponibilidad offline de Biblias remotas ni operaciones de Comunidad que requieran red.
+
+Evidencia: `artifacts/android-1.5.18-50-release/lenovo-qa/offline-result.json`, `native-daily-reading-offline.png` y `native-calendar-offline.png`. El registro impide repetir automáticamente esta única prueba aprobada. Queda pendiente solamente la confirmación personal del propietario de que Mis peticiones abre, dentro del plan de QA descrito; no se declara terminada esa comprobación ni se promueve Android a producción por estas respuestas.
