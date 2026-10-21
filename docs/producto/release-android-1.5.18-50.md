@@ -90,9 +90,9 @@ FCM confirmó un destinatario, un envío aceptado y cero fallos. Android mostró
 
 Esta evidencia confirma transporte y apertura nativa del destino de Oración. La creación, deduplicación, destinatarios y entrega por cola de una petición real se probaron con emuladores y dobles de transporte, no provocando publicaciones de prueba en producción. No se afirma una prueba productiva completa del fanout a otros usuarios ni entrega FCM exactamente una vez.
 
-## Pendientes y estado de distribución
+## Estado de distribución
 
-La web 265 y el backend están publicados; Android 50 está solo en la prueba interna exclusiva, no en producción. El propietario confirmó iPhone, sonido y conservación de meditaciones y autorizó una única prueba offline de 50. Eligió comprobar personalmente Mis peticiones: esa elección no se presenta como confirmación de que ya la haya comprobado y el agente no abrirá esa lista.
+La web 265 y el backend están publicados; Android 50 está solo en la prueba interna exclusiva, no en producción. El propietario confirmó iPhone, sonido, conservación de meditaciones y apertura de Mis peticiones. La prueba offline de 50 también pasó, como se detalla abajo. El agente no abrió la lista personal de peticiones.
 
 El AAB 50 conserva SHA-256 `c3510d8f1afca864ac46b5423499283613dff44d1f477dc73e1a9574650de283` y el AAB 49 conserva su hash anterior. No hubo recompilación posterior al congelado. El commit de evidencias web/interna `e8d5fb2e18e727dc87af7533948a4d142b0bce72` también pasó [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39651106284) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39651108222).
 
@@ -104,4 +104,12 @@ Con autorización expresa se ejecutó una sola prueba offline el 21 de octubre, 
 
 El bloque finally restableció inmediatamente Wi-Fi y esperó la conexión: wifi_on=1 y red predeterminada activa. Una comprobación independiente volvió a confirmar ambos estados. No se tocaron datos móviles, cuentas, permisos ni notas y no se abrieron listas personales. El resultado pertenece expresamente al binario 50, no a 49, Chrome o una PWA. No acredita disponibilidad offline de Biblias remotas ni operaciones de Comunidad que requieran red.
 
-Evidencia: `artifacts/android-1.5.18-50-release/lenovo-qa/offline-result.json`, `native-daily-reading-offline.png` y `native-calendar-offline.png`. El registro impide repetir automáticamente esta única prueba aprobada. Queda pendiente solamente la confirmación personal del propietario de que Mis peticiones abre, dentro del plan de QA descrito; no se declara terminada esa comprobación ni se promueve Android a producción por estas respuestas.
+Evidencia: `artifacts/android-1.5.18-50-release/lenovo-qa/offline-result.json`, `native-daily-reading-offline.png` y `native-calendar-offline.png`. El registro impide repetir automáticamente esta única prueba aprobada. La última confirmación personal queda registrada en el cierre siguiente; estas respuestas no autorizan promover Android a producción.
+
+## Cierre de QA
+
+El 21 de octubre el propietario confirmó expresamente en la Lenovo 1.5.18 (50): «Sí, Mis peticiones abre sin error». Es una comprobación personal del propietario; el agente no abrió, leyó ni capturó los textos de esa lista. El resultado se registró también en `artifacts/android-1.5.18-50-release/lenovo-qa/owner-confirmations.json`.
+
+Con esta respuesta se completa el plan de QA descrito para esta release, sin incidencias bloqueantes detectadas en el alcance comprobado. Esto no equivale a garantizar ausencia de errores ni sustituye licencias de contenido, una prueba física en dispositivos de páginas de memoria de 16 KB, una auditoría completa de accesibilidad o la prueba productiva de distribución de avisos a otros usuarios.
+
+La web 265 y el backend permanecen publicados; Android 50 permanece exclusivamente en pruebas internas. Este cierre solo actualiza evidencias, sin cambios de aplicación, recompilación ni promoción a producción.
