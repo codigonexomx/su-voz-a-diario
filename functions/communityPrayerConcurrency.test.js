@@ -14,6 +14,7 @@ const {
 } = require("./communityPrayer");
 
 const host = process.env.FIRESTORE_EMULATOR_HOST || "127.0.0.1:8080";
+assert.match(host, /^127\.0\.0\.1:\d+$/, "Only a local Firestore emulator is permitted");
 process.env.FIRESTORE_EMULATOR_HOST = host;
 
 describe("communityPrayer Real Concurrency & Cleanup Tests (Firestore Emulator)", () => {
@@ -185,6 +186,35 @@ describe("communityPrayer Real Concurrency & Cleanup Tests (Firestore Emulator)"
       async () => togglePrayerCommitmentLogic(db, FieldValue, "user_stranger", reqId),
       (err) => err.code === "not-found"
     );
+  });
+
+  it("C7: repeated simultaneous same-user toggles preserve zero count and commitments", async () => {
+    for (let index = 0; index < 6; index++) {
+      const requestId = `req_c7_${index}`;
+      await createTestPrayerRequest(requestId);
+      const results = await Promise.all([
+        togglePrayerCommitmentLogic(db, FieldValue, "user_same", requestId),
+        togglePrayerCommitmentLogic(db, FieldValue, "user_same", requestId),
+      ]);
+      assert.deepEqual(results.map(result => result.active).sort(), [false, true]);
+      assert.equal(await getPrayingCountInDb(requestId), 0);
+      assert.equal(await countCommitmentsInDb(requestId), 0);
+    }
+  });
+
+  it("C8: a same-user double toggle and a different user leave exactly one commitment", async () => {
+    const requestId = "req_c8";
+    await createTestPrayerRequest(requestId);
+    const results = await Promise.all([
+      togglePrayerCommitmentLogic(db, FieldValue, "user_same", requestId),
+      togglePrayerCommitmentLogic(db, FieldValue, "user_same", requestId),
+      togglePrayerCommitmentLogic(db, FieldValue, "user_other", requestId),
+    ]);
+    assert(results.every(result => result.success));
+    assert.equal(await getPrayingCountInDb(requestId), 1);
+    assert.equal(await countCommitmentsInDb(requestId), 1);
+    assert.equal((await db.collection("communityPrayerCommitments").doc(`${requestId}_user_other`).get()).exists, true);
+    assert.equal((await db.collection("communityPrayerCommitments").doc(`${requestId}_user_same`).get()).exists, false);
   });
 
   // D1 - D5: Pruebas de Cleanup en Firestore Emulator

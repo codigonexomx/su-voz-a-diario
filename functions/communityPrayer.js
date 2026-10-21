@@ -198,7 +198,8 @@ async function togglePrayerCommitmentLogic(db, FieldValue, uid, requestId) {
   const commitmentRef = db.collection("communityPrayerCommitments").doc(`${cleanRequestId}_${uid}`);
 
   return db.runTransaction(async (transaction) => {
-    const requestSnap = await transaction.get(requestRef);
+    // Keep both transactional reads in one RPC before queuing writes.
+    const [requestSnap, commitmentSnap] = await transaction.getAll(requestRef, commitmentRef);
     if (!requestSnap.exists) {
       throw new HttpsError("not-found", "PRAYER_REQUEST_NOT_FOUND");
     }
@@ -207,7 +208,6 @@ async function togglePrayerCommitmentLogic(db, FieldValue, uid, requestId) {
       throw new HttpsError("failed-precondition", "PRAYER_REQUEST_ANSWERED");
     }
 
-    const commitmentSnap = await transaction.get(commitmentRef);
     const currentCount = Number.isInteger(requestSnap.get("prayingCount"))
       ? requestSnap.get("prayingCount")
       : 0;

@@ -434,6 +434,7 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
     let commitmentCreated = null;
     let requestUpdated = null;
     let currentCount = 0;
+    let readBatches = 0;
 
     const mockDb = {
       collection(col) {
@@ -445,17 +446,18 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
       },
       async runTransaction(updateFunction) {
         const transaction = {
-          async get(ref) {
-            if (ref.col === "communityPrayerRequests" && ref.id === "req_1") {
-              return { exists: true, get: (f) => (f === "status" ? "active" : f === "prayingCount" ? currentCount : null) };
-            }
-            if (ref.col === "communityPrayerCommitments") {
-              return { exists: false };
-            }
-            return { exists: false };
+          async getAll(...refs) {
+            readBatches++;
+            assert.deepEqual(refs, [
+              { id: "req_1", col: "communityPrayerRequests" },
+              { id: "req_1_user_123", col: "communityPrayerCommitments" },
+            ]);
+            return refs.map(ref => ref.col === "communityPrayerRequests"
+              ? { exists: true, get: (f) => (f === "status" ? "active" : f === "prayingCount" ? currentCount : null) }
+              : { exists: false });
           },
-          set(ref, data) { commitmentCreated = data; },
-          update(ref, data) { requestUpdated = data; },
+          set(ref, data) { assert.equal(readBatches, 1); commitmentCreated = data; },
+          update(ref, data) { assert.equal(readBatches, 1); requestUpdated = data; },
           delete() {},
         };
         return updateFunction(transaction);
@@ -470,6 +472,7 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
     assert.equal(commitmentCreated.requestId, "req_1");
     assert.equal(commitmentCreated.ownerUid, "user_123");
     assert.equal(requestUpdated.prayingCount, 1);
+    assert.equal(readBatches, 1);
   });
 
   // 27: usuario autenticado desactiva compromiso (ON -> OFF)
@@ -487,14 +490,10 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
       },
       async runTransaction(updateFunction) {
         const transaction = {
-          async get(ref) {
-            if (ref.col === "communityPrayerRequests" && ref.id === "req_1") {
-              return { exists: true, get: (f) => (f === "status" ? "active" : f === "prayingCount" ? 5 : null) };
-            }
-            if (ref.col === "communityPrayerCommitments") {
-              return { exists: true };
-            }
-            return { exists: false };
+          async getAll(...refs) {
+            return refs.map(ref => ref.col === "communityPrayerRequests"
+              ? { exists: true, get: (f) => (f === "status" ? "active" : f === "prayingCount" ? 5 : null) }
+              : { exists: true });
           },
           set() {},
           update(ref, data) { requestUpdated = data; },
@@ -519,8 +518,8 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
       collection() { return { doc() { return {}; } }; },
       async runTransaction(fn) {
         return fn({
-          async get(ref) {
-            return { exists: true, get: (f) => (f === "status" ? "active" : 0) };
+          async getAll() {
+            return [{ exists: true, get: (f) => (f === "status" ? "active" : 0) }, { exists: true }];
           },
           set() {}, update() {}, delete() {},
         });
@@ -536,7 +535,7 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
       collection() { return { doc() { return {}; } }; },
       async runTransaction(fn) {
         return fn({
-          async get() { return { exists: true, get: (f) => (f === "status" ? "active" : 2) }; },
+          async getAll() { return [{ exists: true, get: (f) => (f === "status" ? "active" : 2) }, { exists: true }]; },
           set() {}, update() {}, delete() {},
         });
       },
@@ -567,7 +566,7 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
       collection() { return { doc() { return {}; } }; },
       async runTransaction(fn) {
         return fn({
-          async get() { return { exists: false }; },
+          async getAll() { return [{ exists: false }, { exists: false }]; },
         });
       },
     };
@@ -583,7 +582,7 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
       collection() { return { doc() { return {}; } }; },
       async runTransaction(fn) {
         return fn({
-          async get() { return { exists: true, get: (f) => (f === "status" ? "answered" : 10) }; },
+          async getAll() { return [{ exists: true, get: (f) => (f === "status" ? "answered" : 10) }, { exists: false }]; },
         });
       },
     };
@@ -600,9 +599,9 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
       collection() { return { doc() { return {}; } }; },
       async runTransaction(fn) {
         return fn({
-          async get(ref) {
+          async getAll() {
             // Count is 0 but commitment exists accidentally
-            return { exists: true, get: (f) => (f === "status" ? "active" : 0) };
+            return [{ exists: true, get: (f) => (f === "status" ? "active" : 0) }, { exists: true }];
           },
           delete() {},
           update(ref, data) { updatedCount = data.prayingCount; },
@@ -620,7 +619,7 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
       collection() { return { doc() { return {}; } }; },
       async runTransaction(fn) {
         return fn({
-          async get() { return { exists: true, get: (f) => (f === "status" ? "active" : 3) }; },
+          async getAll() { return [{ exists: true, get: (f) => (f === "status" ? "active" : 3) }, { exists: true }]; },
           set() {}, update() {}, delete() {},
         });
       },
@@ -630,6 +629,27 @@ describe("communityPrayer 3B.1 Privacy & Core Unit Tests", () => {
     assert.equal(res.uid, undefined);
     assert.equal(res.userId, undefined);
     assert.deepEqual(Object.keys(res).sort(), ["active", "prayingCount", "success"]);
+  });
+
+  it("Joint read failures propagate without writes or an application-level toggle retry", async () => {
+    const failure = Object.assign(new Error("Transaction is invalid or closed."), { code: 3 });
+    let transactions = 0;
+    let reads = 0;
+    const mockDb = {
+      collection() { return { doc() { return {}; } }; },
+      async runTransaction(fn) {
+        transactions++;
+        return fn({
+          async getAll() { reads++; throw failure; },
+          set() { assert.fail("No write after a failed read"); },
+          update() { assert.fail("No write after a failed read"); },
+          delete() { assert.fail("No write after a failed read"); },
+        });
+      },
+    };
+    await assert.rejects(togglePrayerCommitmentLogic(mockDb, {}, "user_1", "req_1"), err => err === failure);
+    assert.equal(transactions, 1);
+    assert.equal(reads, 1);
   });
 
   // 36: getPrayerCommitmentStatusLogic batch status no contiene UIDs
