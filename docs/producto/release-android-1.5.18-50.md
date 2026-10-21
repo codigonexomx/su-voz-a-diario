@@ -32,7 +32,7 @@ No se crearon peticiones, acompañamientos o testimonios en producción para pro
 
 El paquete 49 conserva SHA-256 `60abb349569a45fe50b41209e87ef9860d572cea5e8273b7caf507c1d2c093f4`; no se sobrescribió. No se instaló una APK local encima de la aplicación de Play.
 
-## Verificación y límites actuales
+## Verificación previa a publicar
 
 Suite completa anterior al congelado: 59/59, repetida dos veces; ambos `npm audit --audit-level=moderate` sin vulnerabilidades. La nueva ejecución final también terminó 59/59, en puertos aislados porque Docker ocupa 8080; no se detuvo ni modificó Docker. Los emuladores de esta ejecución se cerraron correctamente al terminar.
 
@@ -40,7 +40,7 @@ Inspección de Play: interna 49 disponible y solo la lista Su Voz QA - propietar
 
 La Lenovo conectada conserva 49 instalada desde Play y el permiso de notificaciones ya concedido. Falta instalar 50 desde la prueba oficial y comprobar Calendario, Comunidad, listas personales, bandeja, recepción y apertura del aviso controlado. La QA de 49 y las pruebas responsive no se transfieren como QA nativa de 50. Tampoco se acredita todavía la prueba física de estos cambios en iPhone.
 
-La web se publica desde main en GitHub Pages, no mediante Firebase Hosting. El backend ya está disponible antes del push de la interfaz. La publicación y las verificaciones HTTP/CI posteriores se añadirán a este documento cuando hayan terminado.
+La web se publica desde main en GitHub Pages, no mediante Firebase Hosting. El backend quedó disponible antes del push de la interfaz. Los resultados de publicación y las verificaciones HTTP/CI figuran más abajo.
 
 No se promete ausencia absoluta de fallos ni más descargas por el rediseño. Preparar lecturas de 2027, licencias editoriales y certificación VoiceOver/TalkBack siguen siendo asuntos separados, no se declaran cerrados por esta entrega.
 
@@ -67,3 +67,31 @@ La ficha oficial de la Lenovo todavía muestra la versión anterior y Abrir dura
 Durante la espera se comprobó la web productiva en Chrome de la Lenovo: Calendario cargó sus 31 lecturas de octubre, cambió a Lista y abrió exactamente 2026-10-01 / 1 Samuel 17:50-18:5. Comunidad abrió sus controles de Reflexiones y Oración. Esa evidencia es web física, no nativa. La revisión automática bloqueó abrir Mis peticiones por posible exposición de oraciones personales; la apertura no se ejecutó ni se eludió. Se solicitó al propietario comprobarlo personalmente o autorizar exclusivamente una revisión de controles y errores sin leer ni capturar textos.
 
 La prueba push física del nuevo destino sigue pendiente de instalar 50. Se preparó una comprobación privada al único registro habilitado del propietario, con guardas para exigir versión 50 instalada por Play, no repetir automáticamente el envío y no escribir datos de Comunidad. Todavía no se ha enviado ese aviso. No se transfieren pruebas anteriores como evidencia de entrega actual.
+
+## Instalación y QA nativa posterior
+
+La propagación terminó y Play mostró Actualizar con las notas de esta release. Se actualizó exclusivamente Su Voz, sin desinstalar, borrar datos, cambiar cuentas ni instalar una APK local. A las 12:20:20, Android confirmó versionCode 50, versionName 1.5.18, instalador e iniciador com.android.vending y firstInstallTime original 2026-09-24 20:41:57. El permiso POST_NOTIFICATIONS sigue concedido; no se modificaron permisos ni volumen.
+
+En la Lenovo TB351FU, dentro del binario 50, se comprobaron el inicio con 1 Samuel 30:1-17, Calendario con 31 lecturas de octubre, vistas Mes y Lista y apertura exacta de 2026-10-01 / 1 Samuel 17:50-18:5. La captura del calendario confirma el tema oscuro, controles completos y detalle del día sin superposición en la pantalla observada. Comunidad conserva Reflexiones, Oración, los filtros y el acceso de Moderación del propietario. La preferencia de avisos ya estaba activada y no se cambió. Evidencias en `artifacts/android-1.5.18-50-release/lenovo-qa/`.
+
+No se abrieron meditaciones, notas, listas personales ni acciones destructivas. La apertura de Mis peticiones sigue sujeta a la comprobación personal o autorización específica solicitada tras el bloqueo de revisión automática. No se presenta la presencia de ese botón como prueba de su consulta nativa; las consultas ya cuentan con pruebas de emulador y de navegador descritas anteriormente.
+
+Se reprodujeron unos segundos de la lectura de hoy; Android mostró Pausar y Detener, y al detener se restableció Escuchar lectura. Eso prueba los controles y la respuesta del motor, no la audición humana: se solicitó al propietario confirmar el sonido de esta versión y la conservación de sus meditaciones, sin que el agente las lea.
+
+La inspección del proceso actual de app.suvoz no encontró FATAL EXCEPTION, AndroidRuntime fatal, Uncaught, Unhandled ni errores de recursos ERR_FILE_NOT_FOUND / FAILED / NAME_NOT_RESOLVED / CONNECTION_REFUSED. Se guardaron solo contadores, no registros crudos ni logs de otras apps: `lenovo-qa/process-errors.json`.
+
+## Aviso físico al propietario
+
+Se realizó una única prueba privada el 21 de octubre a las 18:24 UTC, exclusivamente al registro Android habilitado de la cuenta verificada del propietario y correspondiente a la Lenovo. Se exigió 50 instalada por Play antes del envío. Se utilizó el código real de `sendNotification` con transporte FCM real, consultando la guarda de eliminación mediante REST; no se suplantó una sesión de usuario ni se creó un endpoint de prueba.
+
+El mensaje dice explícitamente Su Voz: prueba privada y Prueba de avisos de oración del propietario. Toca para abrir Oración. Destino: `https://suvoz.app/#community?section=prayer`. No incluye una petición ficticia ni datos de otra persona. No se modificaron preferencias, contadores, notificaciones Firestore, peticiones, compromisos o testimonios, ni se borraron registros push.
+
+FCM confirmó un destinatario, un envío aceptado y cero fallos. Android mostró exactamente un aviso con el tag exclusivo `suvoz-owner-prayer-qa50`. Se abrió desde el sistema, después de volver a Inicio, enviar la app a segundo plano y cerrar solo su proceso con am kill, sin force-stop. Tras el arranque, app.suvoz mostró Oración, Peticiones y la preferencia de avisos activada; el aviso de prueba quedó consumido, cero avisos de ese tag. Solo se inspeccionaron el título y texto conocidos de la prueba, no notificaciones de otras apps. Evidencia sin tokens: `artifacts/community-2026-10-21-release/owner-push-attempt.json`.
+
+Esta evidencia confirma transporte y apertura nativa del destino de Oración. La creación, deduplicación, destinatarios y entrega por cola de una petición real se probaron con emuladores y dobles de transporte, no provocando publicaciones de prueba en producción. No se afirma una prueba productiva completa del fanout a otros usuarios ni entrega FCM exactamente una vez.
+
+## Pendientes y estado de distribución
+
+La web 265 y el backend están publicados; Android 50 está solo en la prueba interna exclusiva, no en producción. Sigue pendiente la respuesta del propietario sobre iPhone, sonido y conservación de meditaciones, la decisión sobre Mis peticiones y la autorización concreta para repetir una vez el offline de 50 apagando y restableciendo solo Wi-Fi. No se apagó Wi-Fi ni se transfirió la prueba offline de 49 como evidencia de 50.
+
+El AAB 50 conserva SHA-256 `c3510d8f1afca864ac46b5423499283613dff44d1f477dc73e1a9574650de283` y el AAB 49 conserva su hash anterior. No hubo recompilación posterior al congelado. El commit de evidencias web/interna `e8d5fb2e18e727dc87af7533948a4d142b0bce72` también pasó [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39651106284) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39651108222).
