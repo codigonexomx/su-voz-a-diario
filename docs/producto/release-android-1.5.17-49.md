@@ -1,6 +1,6 @@
 # Android 1.5.17 lector de Biblia y concurrencia
 
-Fecha: 21 de octubre de 2026, America/Mexico_City. Candidato publicado inicialmente solo en la prueba interna del propietario. Despues de completar la QA, el propietario autorizo commit, push, publicacion web y promocion del mismo AAB a produccion; el resultado de esa gestion se registra por separado al finalizar.
+Fecha: 21 de octubre de 2026, America/Mexico_City. Candidato publicado inicialmente solo en la prueba interna del propietario. Despues de completar la QA, el propietario autorizo commit, push, publicacion web y promocion del mismo AAB a produccion. Web 264 publicada y verificada; Android 49 enviado como unico cambio productivo a revision de Google, sin acreditar todavia aprobacion ni disponibilidad publica.
 
 ## Base y Alcance
 
@@ -71,3 +71,24 @@ Hasta el cierre de QA no se habia publicado el lector en la web productiva ni en
 Tras confirmar las dos comprobaciones finales, el propietario pidio completar commit, push y publicacion web y Android en produccion. La web usa GitHub Pages desde main y raiz, no Firebase Hosting. La revision previa confirma HEAD y origin/main en e34cefc, cero vulnerabilidades en ambos npm audit y 151 assets publicos identicos entre raiz, www y el AAB congelado 49. No se recompila ni se cambia el hash. Marketing queda fuera de los commits.
 
 Baseline de Play verificado: produccion 47 (1.5.15), lanzamiento 100%, sin cambios no publicados; interna 49 (1.5.17). La promocion mantendra los paises y configuracion actuales. La disponibilidad publica de 49 depende de la revision de Google; una solicitud enviada no se presentara como aprobada. No se aceptaran condiciones nuevas ni se modificaran Data Safety, permisos, reglas o licencias dentro de esta publicacion.
+
+## Resultado de Publicacion
+
+Commits creados y push normal a main, sin force push:
+
+- `3840a02a140c2c28bac8432fdeda05b65b0d9ccc`: fix(community): batch prayer commitment transaction reads. Incluye exclusivamente la correccion ya desplegada y sus pruebas.
+- `99f49d606e958b67b47ceebbffcd45dac292ceb2`: feat(bible): ship editorial reader and Android 1.5.17. Lector, copias publicas, validaciones, preparacion Android y documentacion de QA 48/49.
+
+HEAD y origin/main coincidieron en 99f49d6 tras el push. El remoto conserva su URL historica y GitHub informa la redireccion oficial a codigonexomx/su-voz-a-diario; no se cambio configuracion de Git ni credenciales. Marketing permanece untracked y fuera de los commits. No hubo nueva compilacion, subida de otro paquete, despliegue de Functions, reglas ni cambio de iOS en esta publicacion.
+
+[GitHub Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39610558711) termino correctamente para 99f49d6. [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39610559587) termino correctamente: el log confirma 56/56 checks passed, ambos npm audit sin vulnerabilidades y git diff --exit-code sin cambios despues de preparar las copias nativas.
+
+Web productiva: https://suvoz.app. HTTP 200 y PWA 264. Coincidencia SHA-256 con las fuentes de index.html, sw.js, js/app.js, css/bible-reader.css, ambos modulos nuevos del lector, readingIcons.js y privacy.html. La configuracion servida conserva G-X95Y1G3BE0 y el import de Firebase Analytics; el modulo oficial devuelve HTTP 200. Evidencia en artifacts/android-1.5.17-49-release/production-http-verification.json.
+
+Comprobacion de navegador productivo con analytics_test=1, sin analytics_debug ni modificacion de contenido: lectura de hoy 1 Samuel 30:1-17; lector en 2 Reyes 5, cambio de BL a NBLA y regreso a BL; Comunidad con 20 tarjetas cargadas, comprobando solo conteo y estado, sin leer/capturar sus textos; Calendario y vuelta a Biblia. Sin errores de carga, sin desbordamiento horizontal en el viewport observado y sin warnings/errors registrados en la consola consultada. No se abrieron meditaciones privadas ni se publicaron peticiones o compromisos de prueba. No se acredita recepcion de eventos en DebugView mediante esta sesion excluida de Analytics. Captura publica del lector: production-bible-reader.png en el directorio del candidato.
+
+Play: se promovio el paquete existente 49 desde su release interna 10, sin nueva carga ni recompilacion. Solo 49 incluido; 47 excluido del nuevo lanzamiento. Se conservaron 100% y todos los paises de destino actuales, 178 en el baseline. Cero errores bloqueantes y cero dispositivos previamente compatibles perdidos en la comparacion. ReTrace adjunto; persiste una advertencia por simbolos de depuracion nativos ausentes, no se fabricaron simbolos ni se oculto la advertencia.
+
+Se confirmo Enviar 1 cambio a revision exclusivamente para Produccion / 49 (1.5.17) / Iniciar lanzamiento completo. El [resumen de publicacion](https://play.google.com/console/u/0/developers/5466794951356714708/app/4974496459300724158/publishing) confirmo Cambios en la etapa de revision, con verificaciones rapidas en curso y envio a revision al completarlas correctamente. Publicacion administrada permanece desactivada, sin modificarla. Google aun debe completar sus verificaciones y aprobar la distribucion: no se afirma que 49 este disponible publicamente. Evidencia: artifacts/android-1.5.17-49-release/play-production-review.png. No se aceptaron acuerdos nuevos ni se modificaron otras declaraciones o canales.
+
+SHA-256 del AAB reconfirmado despues del envio: `60abb349569a45fe50b41209e87ef9860d572cea5e8273b7caf507c1d2c093f4`. El auditor local conserva sus campos de distribucion predeterminados como evidencia de prepublicacion; este resultado posterior, basado en Play, es la referencia para el estado de distribucion. Las licencias editoriales y otros expedientes operativos pendientes no se consideran concedidos ni cerrados por esta entrega tecnica.
