@@ -1,6 +1,8 @@
 import { sanitizeCommunityHtml, communityPlainText } from './utils/communityHtml.js';
 import { ContinuousReader } from './bible/ContinuousReader.js';
 import { renderBibleReadingDocument, positionBibleStudyPanel } from './bible/BibleReaderPresentation.js';
+import { calendarMethods } from './calendar/CalendarController.js';
+import { communityExperienceMethods } from './community/CommunityExperience.js';
 import { normalizeBibleVoiceText, getBibleVoicePoint, getBibleCaretPoint } from './bible/BibleReaderSelection.js';
 import { getJourney, recordPractice, exportJourney } from './services/JourneyService.js';
 import { prepareLocalBackup, restoreLocalBackup, MAX_BACKUP_BYTES } from './services/BackupService.js';
@@ -1008,7 +1010,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '264'
+            pwaVersion: '265'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1163,9 +1165,10 @@ console.log('[App] Inicialización completada');
     },
 
     getNotificationAnalyticsParams: function(hash) {
-        const destination = hash?.startsWith('#community/')
+        const route = String(hash || '').split('?')[0];
+        const destination = route.startsWith('#community/')
             ? 'community_thread'
-            : hash === '#community'
+            : route === '#community'
                 ? 'community'
                 : hash === '#home'
                     ? 'home'
@@ -3497,7 +3500,8 @@ toggleFavoritePost: async function(postId) {
     if (cardEl) {
         const favBtn = cardEl.querySelector('[data-action="favorite-post"]');
         if (favBtn) {
-            favBtn.textContent = !isFav ? '⭐ En favoritos' : '⭐ Marcar favorito';
+            favBtn.innerHTML = `${this.renderCommunityIcon('heart')}${!isFav ? 'En favoritos' : 'Marcar favorito'}`;
+            favBtn.setAttribute('aria-pressed', String(!isFav));
         }
         const authorRow = cardEl.querySelector('.community-author-row');
         let starEl = cardEl.querySelector('.post-favorite-star');
@@ -3734,7 +3738,7 @@ toggleSpeechPost: async function(postId) {
 updateSpeechMenuButton: function(postId, isSpeaking, label = 'Preparando lectura…') {
     const cardEl = Array.from(document.querySelectorAll('.community-card')).find(card => card.getAttribute('data-post-id') === String(postId));
     const speechBtn = cardEl?.querySelector('[data-action="speech-post"]');
-    if (speechBtn) speechBtn.textContent = isSpeaking ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta';
+    if (speechBtn) speechBtn.innerHTML = `${this.renderCommunityIcon?.(isSpeaking ? 'stop' : 'play') || ''}${isSpeaking ? 'Detener lectura' : 'Escuchar en voz alta'}`;
     if (!cardEl) return;
     let control = cardEl.querySelector('.community-voice-control');
     if (!isSpeaking) {
@@ -4749,11 +4753,11 @@ loadCommunityPrayerOwnership: async function(prayers = []) {
 
     try {
         const callable = await this.getCommunityIdentityCallable('getPrayerOwnership');
-        const res = await callable({ requestIds: missingIds });
-        if (this.currentUser?.uid !== uid) return this.prayerOwnershipMap;
-        const ownershipData = res?.data?.requests || {};
-
-        Object.assign(this.prayerOwnershipMap, ownershipData);
+        for (let index = 0; index < missingIds.length; index += 50) {
+            const res = await callable({ requestIds: missingIds.slice(index, index + 50) });
+            if (this.currentUser?.uid !== uid) return this.prayerOwnershipMap;
+            Object.assign(this.prayerOwnershipMap, res?.data?.requests || {});
+        }
         return this.prayerOwnershipMap;
     } catch (error) {
         console.error('[CommunityPrayer] Error resolviendo ownership:', error);
@@ -4777,11 +4781,11 @@ loadCommunityPrayerCommitments: async function(prayers = []) {
 
     try {
         const callable = await this.getCommunityIdentityCallable('getPrayerCommitmentStatus');
-        const res = await callable({ requestIds: missingIds });
-        if (this.currentUser?.uid !== uid) return this.prayerCommitmentMap;
-        const commitmentsData = res?.data?.commitments || {};
-
-        Object.assign(this.prayerCommitmentMap, commitmentsData);
+        for (let index = 0; index < missingIds.length; index += 50) {
+            const res = await callable({ requestIds: missingIds.slice(index, index + 50) });
+            if (this.currentUser?.uid !== uid) return this.prayerCommitmentMap;
+            Object.assign(this.prayerCommitmentMap, res?.data?.commitments || {});
+        }
         return this.prayerCommitmentMap;
     } catch (error) {
         console.error('[CommunityPrayer] Error cargando compromisos de oración:', error);
@@ -4819,22 +4823,26 @@ togglePrayerCommitment: async function(requestId) {
         return; // Prevent duplicate rapid taps
     }
 
-    this.prayerCommitmentPendingIds.add(requestId);
+    const pendingIds = this.prayerCommitmentPendingIds;
+    pendingIds.add(requestId);
     this.prayerCommitmentMap = this.prayerCommitmentMap || {};
     const isCurrentlyActive = this.prayerCommitmentMap[requestId] === true;
 
     // Optimistic local state update across all views
     const state = this.getCommunityPrayerState();
-    const prayer = (state.posts || []).find(p => p.id === requestId);
+    const uid = this.currentUser.uid;
+    const prayer = [...(state.posts || []), ...Object.values(this.communityPersonalPrayerStates || {}).flatMap(item => item.posts)].find(p => p.id === requestId);
     const prevCount = prayer ? (prayer.prayingCount || 0) : 0;
     const nextActive = !isCurrentlyActive;
     const nextCount = nextActive ? prevCount + 1 : Math.max(0, prevCount - 1);
 
     this.updatePrayerRequestLocalState(requestId, nextActive, nextCount);
+    this.updatePrayerCardPendingUi(requestId, true);
 
     try {
         const callable = await this.getCommunityIdentityCallable('togglePrayerCommitment');
         const res = await callable({ requestId });
+        if (this.currentUser?.uid !== uid) return;
 
         if (res?.data?.success) {
             const serverActive = res.data.active === true;
@@ -4845,13 +4853,14 @@ togglePrayerCommitment: async function(requestId) {
             throw new Error('Toggle returned unsuccessful');
         }
     } catch (error) {
+        if (this.currentUser?.uid !== uid) return;
         console.error('[CommunityPrayer] Error en toggle de compromiso:', error);
         // Rollback global state across all views
         this.updatePrayerRequestLocalState(requestId, isCurrentlyActive, prevCount);
         this.showToast('No se pudo actualizar. Inténtalo nuevamente.');
     } finally {
-        this.prayerCommitmentPendingIds.delete(requestId);
-        this.updatePrayerCardPendingUi(requestId, false);
+        pendingIds.delete(requestId);
+        if (this.currentUser?.uid === uid) this.updatePrayerCardPendingUi(requestId, false);
     }
 },
 
@@ -4861,9 +4870,9 @@ updatePrayerRequestLocalState: function(requestId, active, count) {
 
     // Update in prayer state posts array
     const state = this.getCommunityPrayerState();
-    if (Array.isArray(state.posts)) {
-        const p = state.posts.find(item => item.id === requestId);
-        if (p) p.prayingCount = count;
+    for (const cache of [state, ...Object.values(this.communityPersonalPrayerStates || {})]) {
+        const prayer = cache.posts?.find(item => item.id === requestId);
+        if (prayer) prayer.prayingCount = count;
     }
 
     this.updatePrayerCardCommitmentUi(requestId, active, count);
@@ -4888,6 +4897,7 @@ updatePrayerCardCommitmentUi: function(requestId, active, count) {
         const btnEl = cardEl.querySelector('[data-action="toggle-prayer-commitment"]');
         if (btnEl) {
             btnEl.setAttribute('aria-pressed', active ? 'true' : 'false');
+            btnEl.setAttribute('aria-label', active ? 'Estás orando por esta petición' : 'Indicar que estás orando por esta petición');
             btnEl.classList.toggle('is-active', active);
             const labelEl = btnEl.querySelector('.community-prayer-btn-label');
             if (labelEl) {
@@ -4948,6 +4958,7 @@ addCommunityPrayerPost: async function(prayerData) {
         if (created.success && created.id) {
             this.clearCommunityPrayerDraft();
             this.resetCommunityPrayerState();
+            this.communityPersonalPrayerStates = {};
             return { success: true, id: created.id };
         }
 
@@ -4986,6 +4997,7 @@ deleteCommunityPrayerPost: async function(requestId) {
 
         const callable = await this.getCommunityIdentityCallable('deletePrayerRequest');
         await callable({ requestId });
+        this.communityPersonalPrayerStates = {};
 
         if (this.communityPrayerState?.posts) {
             this.communityPrayerState.posts = this.communityPrayerState.posts.filter(p => p.id !== requestId);
@@ -5015,6 +5027,8 @@ markCommunityPrayerAnswered: async function(requestId, answeredText) {
             requestId,
             answeredText: answeredText ? Sanitizer.sanitizeText(answeredText, 400) : null
         });
+        this.communityPersonalPrayerStates = {};
+        this.resetCommunityPrayerTestimonyState();
 
         if (this.communityPrayerState?.posts) {
             this.communityPrayerState.posts = this.communityPrayerState.posts.filter(p => p.id !== requestId);
@@ -5087,10 +5101,7 @@ renderCommunityPrayerComposerCardHtml: function() {
                 <div class="community-composer-bottom-row">
                     <div class="community-composer-subtitle">Comparte tu petición para que la comunidad te acompañe en fe.</div>
                     <button class="community-composer-btn community-prayer-btn" type="button" data-action="open-community-prayer-form" aria-label="Pedir oración">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <circle cx="12" cy="12" r="9"/>
-                            <path d="M12 7v5l3 3"/>
-                        </svg>
+                        ${readingIcon('heart')}
                         <span>Pedir oración</span>
                     </button>
                 </div>
@@ -5180,13 +5191,7 @@ renderCommunityPrayerCardHtml: function(prayer) {
             : '';
     }
 
-    let createdDateStr = '';
-    try {
-        if (prayer.createdAt?.seconds) {
-            const d = new Date(prayer.createdAt.seconds * 1000);
-            createdDateStr = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
-        }
-    } catch(e) {}
+    const createdDateStr = this.formatCommunityPrayerTimestamp(prayer.createdAt);
 
     return `
         <article class="community-card prayer-card" data-request-id="${this.escapeHtml(prayer.id)}">
@@ -5196,7 +5201,6 @@ renderCommunityPrayerCardHtml: function(prayer) {
                     <div class="prayer-card-author-info">
                         <div class="prayer-card-author-name">
                             <span>${this.escapeHtml(authorName)}</span>
-                            ${isAnonymous ? '<span class="prayer-anonymous-badge">Anónimo</span>' : ''}
                         </div>
                         ${createdDateStr ? `<time class="prayer-card-date">${this.escapeHtml(createdDateStr)}</time>` : ''}
                     </div>
@@ -5206,7 +5210,7 @@ renderCommunityPrayerCardHtml: function(prayer) {
             <div class="prayer-card-body">
                 <p class="prayer-card-text">${this.escapeHtml(prayer.text || '')}</p>
 
-                <div class="prayer-commitment-bar">
+                ${prayer.status !== 'answered' ? `<div class="prayer-commitment-bar">
                     <button
                         type="button"
                         class="prayer-commitment-btn ${isCommitmentActive ? 'is-active' : ''}"
@@ -5215,13 +5219,13 @@ renderCommunityPrayerCardHtml: function(prayer) {
                         aria-pressed="${isCommitmentActive ? 'true' : 'false'}"
                         aria-label="${isCommitmentActive ? 'Estás orando por esta petición' : 'Indicar que estás orando por esta petición'}"
                     >
-                        <span class="prayer-commitment-icon" aria-hidden="true">🙏</span>
+                        <span class="prayer-commitment-icon" aria-hidden="true">${readingIcon('heart')}</span>
                         <span class="community-prayer-btn-label">${isCommitmentActive ? 'Orando' : 'Estoy orando'}</span>
                     </button>
                     ${prayingCount > 0 ? `
                         <span class="community-prayer-count">${this.escapeHtml(this.formatPrayerCountText(prayingCount))}</span>
                     ` : ''}
-                </div>
+                </div>` : ''}
             </div>
 
             ${prayer.status === 'answered' ? `
@@ -5237,11 +5241,11 @@ renderCommunityPrayerCardHtml: function(prayer) {
                 <footer class="prayer-card-footer">
                     <div class="prayer-owner-actions">
                         <button type="button" class="prayer-action-btn prayer-action-delete" data-action="delete-community-prayer" data-request-id="${this.escapeHtml(prayer.id)}">
-                            🗑️ Eliminar
+                            ${readingIcon('trash')} Eliminar
                         </button>
-                        <button type="button" class="prayer-action-btn prayer-action-answered" data-action="mark-community-prayer-answered" data-request-id="${this.escapeHtml(prayer.id)}">
-                            ✓ Marcar como respondida
-                        </button>
+                        ${prayer.status !== 'answered' ? `<button type="button" class="prayer-action-btn prayer-action-answered" data-action="mark-community-prayer-answered" data-request-id="${this.escapeHtml(prayer.id)}">
+                            ${readingIcon('complete')} Marcar como respondida
+                        </button>` : ''}
                     </div>
                 </footer>
             ` : ''}
@@ -5382,33 +5386,8 @@ renderCommunityPrayerTestimonyCardHtml: function(prayer) {
             : '';
     }
 
-    let createdDateStr = '';
-    try {
-        let d = null;
-        if (prayer.createdAt?.seconds) d = new Date(prayer.createdAt.seconds * 1000);
-        else if (prayer.createdAt instanceof Date) d = prayer.createdAt;
-        else if (typeof prayer.createdAt === 'string' || typeof prayer.createdAt === 'number') {
-            const parsed = new Date(prayer.createdAt);
-            if (!isNaN(parsed.getTime())) d = parsed;
-        }
-        if (d) {
-            createdDateStr = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
-        }
-    } catch(e) {}
-
-    let answeredDateStr = '';
-    try {
-        let d = null;
-        if (prayer.answeredAt?.seconds) d = new Date(prayer.answeredAt.seconds * 1000);
-        else if (prayer.answeredAt instanceof Date) d = prayer.answeredAt;
-        else if (typeof prayer.answeredAt === 'string' || typeof prayer.answeredAt === 'number') {
-            const parsed = new Date(prayer.answeredAt);
-            if (!isNaN(parsed.getTime())) d = parsed;
-        }
-        if (d) {
-            answeredDateStr = d.toLocaleDateString('es-MX', { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString('es-MX', { hour: 'numeric', minute: '2-digit' });
-        }
-    } catch(e) {}
+    const createdDateStr = this.formatCommunityPrayerTimestamp(prayer.createdAt);
+    const answeredDateStr = this.formatCommunityPrayerTimestamp(prayer.answeredAt);
 
     const hasTestimony = typeof prayer.answeredText === 'string' && prayer.answeredText.trim().length > 0;
 
@@ -5420,7 +5399,6 @@ renderCommunityPrayerTestimonyCardHtml: function(prayer) {
                     <div class="prayer-card-author-info">
                         <div class="prayer-card-author-name">
                             <span>${this.escapeHtml(authorName)}</span>
-                            ${isAnonymous ? '<span class="prayer-anonymous-badge">Anónimo</span>' : ''}
                         </div>
                         ${createdDateStr ? `<time class="prayer-card-date">Pedido el ${this.escapeHtml(createdDateStr)}</time>` : ''}
                     </div>
@@ -5530,7 +5508,7 @@ renderCommunityPrayerDeleteModalHtml: function() {
 
 async getRepliesByPostId(postId) {
     try {
-        const q = query(collection(db, "communityReplies"), orderBy("createdAt", "asc"));
+        const q = query(collection(db, "communityReplies"), where("postId", "==", postId), orderBy("createdAt", "asc"));
         const snapshot = await getDocs(q);
 
         return snapshot.docs
@@ -5541,7 +5519,7 @@ async getRepliesByPostId(postId) {
             .filter(reply => reply.postId === postId);
     } catch (error) {
         console.error("Error cargando respuestas:", error);
-        return [];
+        throw error;
     }
 },
 
@@ -5767,7 +5745,7 @@ initializeCommunityPremium: async function() {
         this.initializeCommunitySafety();
         if (typeof window.UserMetrics !== 'undefined') this.userMetrics = new window.UserMetrics();
         if (typeof window.NotificationCenter !== 'undefined') {
-            this.notificationCenter = new window.NotificationCenter();
+            this.notificationCenter ||= new window.NotificationCenter();
             this.notificationCenter.initialize();
         }
         if (typeof window.PerformanceOptimizer !== 'undefined') this.performanceOptimizer = new window.PerformanceOptimizer();
@@ -6094,6 +6072,7 @@ renderCommunityReactionBar: function(postId, reactionData = null) {
                     data-post-id="${postId}"
                     data-reaction="${item.key}"
                     aria-label="${item.label}"
+                    aria-pressed="${state.userReactions[item.key] === true}"
                     title="${item.label}"
                 >
                     <span class="community-reaction-icon">${this.getReactionIcon(item.key)}</span>
@@ -6121,7 +6100,7 @@ renderReplyBlock: function(post, replies = []) {
                     data-post-id="${post.id}"
                     aria-label="Abrir conversación de este eco"
                 >
-                    <span class="community-reply-icon">💬</span>
+                    <span class="community-reply-icon">${readingIcon('chat')}</span>
                     <span>${replyCountLabel}</span>
                 </button>
             </div>
@@ -6145,7 +6124,7 @@ renderCommunityThread: async function(postId) {
     this.updateNavUI();
 
     this.$content.innerHTML = `
-        <div class="community-container community-thread-container">
+        <div class="community-container community-premium community-thread-container">
             <div class="community-thread-header">
                 <button type="button" class="community-thread-back-btn" data-action="back-to-community">
                     ← Volver a Comunidad
@@ -6187,7 +6166,7 @@ renderCommunityThread: async function(postId) {
 
         if (!post) {
             this.$content.innerHTML = `
-                <div class="community-container community-thread-container">
+                <div class="community-container community-premium community-thread-container">
                     <div class="community-thread-header">
                         <button type="button" class="community-thread-back-btn" data-action="back-to-community">
                             ← Volver a Comunidad
@@ -6234,7 +6213,7 @@ renderCommunityThread: async function(postId) {
         catch (error) { console.warn('[Community] Seguridad no disponible:', error.code || error.message); }
         if (this.currentView !== 'community-thread' || window.location.hash !== `#community-thread/${postId}`) return;
         if (post.moderationStatus === 'hidden' || (this.moderation && !this.moderation.isVisible(post, 'post'))) {
-            this.$content.innerHTML = '<section class="community-container"><p>Esta reflexión no está disponible.</p><button type="button" data-action="back-to-community">Volver a Comunidad</button></section>';
+            this.$content.innerHTML = '<section class="community-container community-premium"><p>Esta reflexión no está disponible.</p><button type="button" data-action="back-to-community">Volver a Comunidad</button></section>';
             return;
         }
         replies = replies.filter(reply => reply.moderationStatus !== 'hidden' && (!this.moderation || this.moderation.isVisible(reply, 'reply')));
@@ -6278,7 +6257,7 @@ renderCommunityThread: async function(postId) {
         const replyCountLabel = replyCount === 1 ? '1 respuesta' : `${replyCount} respuestas`;
 
         const html = `
-            <div class="community-container community-thread-container">
+            <div class="community-container community-premium community-thread-container">
                 <div class="community-thread-header">
                     <button type="button" class="community-thread-back-btn" data-action="back-to-community">
                         ← Volver a Comunidad
@@ -6438,7 +6417,7 @@ renderCommunityThread: async function(postId) {
     } catch (error) {
         console.error('[CommunityThread] Error cargando conversación:', error);
         this.$content.innerHTML = `
-            <div class="community-container community-thread-container">
+            <div class="community-container community-premium community-thread-container">
                 <div class="community-thread-header">
                     <button type="button" class="community-thread-back-btn" data-action="back-to-community">
                         ← Volver a Comunidad
@@ -6638,6 +6617,7 @@ markCommunityAsSeen: async function() {
 },
 
 subscribeToCommunityActivity: async function() {
+    const generation = this._communityActivityGeneration = (this._communityActivityGeneration || 0) + 1;
     const user = this.currentUser || await this.initAuth();
 
     if (!user?.uid) {
@@ -6652,6 +6632,7 @@ subscribeToCommunityActivity: async function() {
 
     const activityRef = doc(db, 'userActivity', user.uid);
     const activitySnapshot = await getDoc(activityRef);
+    if (generation !== this._communityActivityGeneration || this.currentUser?.uid !== user.uid) return;
 
     if (!activitySnapshot.exists()) {
         await setDoc(activityRef, {
@@ -6659,10 +6640,12 @@ subscribeToCommunityActivity: async function() {
             lastCommunitySeenAt: serverTimestamp()
         });
     }
+    if (generation !== this._communityActivityGeneration || this.currentUser?.uid !== user.uid) return;
 
     this._communityActivityUnsubscribe = onSnapshot(
         activityRef,
         snapshot => {
+            if (generation !== this._communityActivityGeneration || this.currentUser?.uid !== user.uid) return;
             const rawCount = snapshot.exists()
                 ? snapshot.data()?.unreadCommunityCount
                 : 0;
@@ -6674,7 +6657,8 @@ subscribeToCommunityActivity: async function() {
             this.updateCommunityBadge();
 
             if (this.currentView === 'community' && count > 0) {
-                this.markCommunityAsSeen();
+                const updates = this.$content.querySelector('.community-live-update');
+                if (updates) updates.hidden = false;
             }
         },
         error => {
@@ -7244,6 +7228,7 @@ syncAppBadge: function(count) {
                 if (this.openNoteDate === reading.date) {
                     this.toggleNote(reading.date);
                 }
+                if (this.currentView === 'calendar') this.renderCalendar();
             }
         });
     },
@@ -10159,6 +10144,7 @@ if (view !== 'settings' && oldView !== 'settings') {
     }
 } else if (view === 'calendar') {
     this.renderCalendar();
+    if (oldView !== 'calendar') this.restoreCalendarPosition();
 } else if (view === 'community') {
     const communityEntryPoint = this._pendingCommunityEntryPoint || (param ? 'notification' : 'direct');
     this._pendingCommunityEntryPoint = null;
@@ -10172,6 +10158,9 @@ if (view !== 'settings' && oldView !== 'settings') {
     }
 
     const queryParams = new URLSearchParams(queryString || '');
+    this.communitySection = queryParams.get('section') === 'prayer' ? 'prayer' : 'reflections';
+    const prayerCandidate = queryParams.get('prayer');
+    const notificationPrayerId = this.communitySection === 'prayer' && /^[A-Za-z0-9_-]{1,128}$/.test(prayerCandidate || '') ? prayerCandidate : null;
     const filterParam = queryParams.get('filter');
     if (filterParam) {
         this.setCommunityDiscoveryFilter(filterParam);
@@ -10190,8 +10179,9 @@ if (view !== 'settings' && oldView !== 'settings') {
     if (notificationPostId) {
         this.communityTargetPostId = notificationPostId;
     }
-    await this.renderCommunity({
+    const communityRendered = await this.renderCommunity({
         targetPostId: notificationPostId,
+        prayerTargetId: notificationPrayerId,
         highlightTarget: Boolean(notificationPostId),
         resetScrollTop: oldView !== 'community' && !notificationPostId
     });
@@ -10201,7 +10191,7 @@ if (view !== 'settings' && oldView !== 'settings') {
     if (oldView === 'community' || oldView === 'community-thread') {
         this.restoreCommunityDiscoveryScrollPosition();
     }
-    await this.markCommunityAsSeen();
+    if (communityRendered) await this.markCommunityAsSeen();
 } else if (view === 'community-thread') {
     if (oldView === 'community') {
         this.saveCommunityScrollPosition();
@@ -12627,32 +12617,8 @@ resetReadingScrollPosition: function() {
 
 restoreCalendarPosition: function() {
     if (this.currentView !== 'calendar') return;
-
-    const calendarCards = Array.from(this.$content.querySelectorAll('.calendar-day[data-calendar-date]'));
-    if (!calendarCards.length) return;
-
-    const todayStr = this.getTodayDateStr();
-    const targetCard = this.$content.querySelector('.calendar-day[data-calendar-today="true"]')
-        || calendarCards.reduce((closest, card) => {
-            const closestDate = new Date(`${closest.dataset.calendarDate}T12:00:00`);
-            const cardDate = new Date(`${card.dataset.calendarDate}T12:00:00`);
-            const todayDate = new Date(`${todayStr}T12:00:00`);
-
-            return Math.abs(cardDate - todayDate) < Math.abs(closestDate - todayDate)
-                ? card
-                : closest;
-        }, calendarCards[0]);
-
-    if (this.calendarInitialized) {
-        this.scrollWindowInstantly(this.calendarScrollTop || 0);
-        return;
-    }
-
-    const top = targetCard.getBoundingClientRect().top + window.scrollY - 130;
-    this.scrollWindowInstantly(top);
-
+    this.scrollWindowInstantly(this.calendarInitialized ? this.calendarScrollTop || 0 : 0);
     this.calendarInitialized = true;
-    this.calendarScrollTop = Math.max(0, top);
 },
     
 renderDailyReadingEntry: function(reading) {
@@ -15845,240 +15811,8 @@ renderCalendarBookSection: function(group, readDateSet, todayStr) {
     `;
 },
 
-    getCalendarV2ActiveMonth: function() {
-        const todayStr = this.getTodayDateStr();
-        if (!this.calendarV2ActiveMonth) {
-            this.calendarV2ActiveMonth = todayStr.slice(0, 7);
-        }
-        return this.calendarV2ActiveMonth;
-    },
-
-    getCalendarV2SelectedDate: function() {
-        const todayStr = this.getTodayDateStr();
-        const activeMonth = this.getCalendarV2ActiveMonth();
-        
-        if (this.calendarV2SelectedDate && this.calendarV2SelectedDate.startsWith(`${activeMonth}-`)) {
-            return this.calendarV2SelectedDate;
-        }
-        
-        if (todayStr.startsWith(`${activeMonth}-`)) {
-            this.calendarV2SelectedDate = todayStr;
-        } else {
-            this.calendarV2SelectedDate = `${activeMonth}-01`;
-        }
-        return this.calendarV2SelectedDate;
-    },
-
-    getCalendarV2MonthGrid: function(monthStr) {
-        const [year, month] = monthStr.split('-').map(Number);
-        const daysInMonth = new Date(year, month, 0).getDate();
-        const firstDay = new Date(year, month - 1, 1).getDay();
-        
-        const todayStr = this.getTodayDateStr();
-        const readDates = new Set(this.getReadDates());
-        const planReadings = this.getCalendarReadings()
-            .filter(reading => reading.date.startsWith(`${monthStr}-`));
-        const planByDate = new Map(planReadings.map(reading => [reading.date, reading]));
-        
-        const cells = [];
-        for (let i = 0; i < firstDay; i++) {
-            cells.push({ empty: true });
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = `${monthStr}-${String(day).padStart(2, '0')}`;
-            const reading = planByDate.get(date) || null;
-            const note = this.getNote(date);
-            const hasReflection = Boolean(note.dios?.trim() || note.aprendizaje?.trim() || note.respuesta?.trim() || note.oracion?.trim());
-            const hasPrayer = Boolean(note.oracion?.trim());
-            const hasReading = Boolean(reading);
-            const isRead = readDates.has(date);
-            const isToday = date === todayStr;
-            const isPending = hasReading && !isRead && date <= todayStr;
-
-            cells.push({
-                date,
-                day,
-                hasReading,
-                reference: reading?.reference || '',
-                isRead,
-                hasReflection,
-                hasPrayer,
-                isToday,
-                isPending
-            });
-        }
-
-        const dateObj = new Date(year, month - 1, 1);
-        const monthLabel = dateObj.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
-
-        return { monthLabel, cells };
-    },
-
-    renderCalendarV2MonthBar: function(monthLabel) {
-        return `
-            <div class="calendar-v2-month-bar">
-                <button class="calendar-v2-month-nav-btn" type="button" data-action="calendar-v2-prev" aria-label="Mes anterior">◄</button>
-                <div class="calendar-v2-month-title">
-                    <h3>${this.escapeHtml(monthLabel)}</h3>
-                </div>
-                <button class="calendar-v2-today-btn" type="button" data-action="calendar-v2-today">Ir a Hoy</button>
-                <button class="calendar-v2-month-nav-btn" type="button" data-action="calendar-v2-next" aria-label="Mes siguiente">►</button>
-            </div>
-        `;
-    },
-
-    renderCalendarV2Filters: function() {
-        const activeFilter = this.calendarV2ActiveFilter || 'all';
-        const options = [
-            {
-                id: 'all',
-                label: 'Todo el mes',
-                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2.5" ry="2.5"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="9" x2="21" y2="9"></line><path d="M8.5 15l2.5 2.5 4.5-4.5"></path></svg>`
-            },
-            {
-                id: 'pending',
-                label: 'Pendientes',
-                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 1 9 9"></path><path d="M21 12a9 9 0 0 1-9 9" stroke-dasharray="3 3"></path><path d="M12 21a9 9 0 0 1-9-9" stroke-dasharray="3 3"></path><path d="M3 12a9 9 0 0 1 9-9" stroke-dasharray="3 3"></path><polyline points="12 7 12 12 15 14"></polyline></svg>`
-            },
-            {
-                id: 'read',
-                label: 'Completadas',
-                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3" ry="3"></rect><path d="M8.5 12.5l2.5 2.5 4.5-4.5"></path></svg>`
-            },
-            {
-                id: 'notes',
-                label: 'Con Reflexión',
-                icon: `<svg class="calendar-v2-filter-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L3 13.5V21h7.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="15"></line></svg>`
-            }
-        ];
-
-        return `
-            <nav class="calendar-v2-filter-bar" aria-label="Filtrar calendario">
-                ${options.map(opt => `
-                    <button class="calendar-v2-filter-chip ${opt.id === activeFilter ? 'is-active' : ''}" type="button" data-action="calendar-v2-filter" data-filter="${opt.id}">
-                        ${opt.icon}
-                        <span>${opt.label}</span>
-                    </button>
-                `).join('')}
-            </nav>
-        `;
-    },
-
-    renderCalendarV2SelectedCard: function(selectedDate) {
-        const reading = this.getReadingMetadataByDate(selectedDate);
-        const readDates = new Set(this.getReadDates());
-        const note = this.getNote(selectedDate);
-        const hasReflection = Boolean(note.dios?.trim() || note.aprendizaje?.trim() || note.respuesta?.trim() || note.oracion?.trim());
-        const hasPrayer = Boolean(note.oracion?.trim());
-        const highlights = this.getHighlights(selectedDate);
-        const hasReading = Boolean(reading);
-        const isRead = readDates.has(selectedDate);
-        
-        let dateFormatted = '';
-        try {
-            const [y, m, d] = selectedDate.split('-').map(Number);
-            const dateObj = new Date(y, m - 1, d);
-            dateFormatted = dateObj.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
-        } catch(err) {
-            dateFormatted = selectedDate;
-        }
-
-        const statusClass = hasReading ? (isRead ? 'is-complete' : 'is-pending') : 'is-empty';
-        const statusLabel = hasReading ? (isRead ? '✓ Lectura completada' : '⏳ Lectura pendiente') : 'Sin lectura asignada';
-
-        return `
-            <article class="calendar-v2-detail-card">
-                <div class="calendar-v2-detail-head">
-                    <span class="calendar-v2-detail-date">${this.escapeHtml(dateFormatted)}</span>
-                    <span class="calendar-v2-detail-status ${statusClass}">${this.escapeHtml(statusLabel)}</span>
-                </div>
-
-                <h3 class="calendar-v2-detail-ref">${this.escapeHtml(reading ? reading.reference : 'Meditación libre')}</h3>
-
-                <div class="calendar-v2-detail-pills">
-                    ${hasReflection ? '<span class="calendar-v2-pill active">🪶 Reflexión escrita</span>' : ''}
-                    ${hasPrayer ? '<span class="calendar-v2-pill active">🙏 Oración guardada</span>' : ''}
-                    ${highlights.length > 0 ? `<span class="calendar-v2-pill active">✨ ${highlights.length} pasajes resaltados</span>` : ''}
-                    ${!hasReflection && !hasPrayer && highlights.length === 0 ? '<span class="calendar-v2-pill">Sin reflexiones aún</span>' : ''}
-                </div>
-
-                ${hasReading ? `
-                    <button class="calendar-v2-btn-action" type="button" data-nav="reading" data-param="${this.escapeHtml(selectedDate)}">
-                        <span>📖</span> Leer pasaje de este día
-                    </button>
-                ` : `
-                    <button class="calendar-v2-btn-action" type="button" data-nav="reading" data-param="${this.escapeHtml(selectedDate)}">
-                        <span>✍️</span> Ver mi cuaderno de hoy
-                    </button>
-                `}
-            </article>
-        `;
-    },
-
-    renderCalendar: function() {
-        const activeMonth = this.getCalendarV2ActiveMonth();
-        const selectedDate = this.getCalendarV2SelectedDate();
-        const activeFilter = this.calendarV2ActiveFilter || 'all';
-        const { monthLabel, cells } = this.getCalendarV2MonthGrid(activeMonth);
-
-        const weekdayLabels = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
-
-        const filteredCells = cells.map(cell => {
-            if (cell.empty) return cell;
-            if (activeFilter === 'pending' && (!cell.hasReading || cell.isRead)) return { ...cell, hiddenByFilter: true };
-            if (activeFilter === 'read' && !cell.isRead) return { ...cell, hiddenByFilter: true };
-            if (activeFilter === 'notes' && !cell.hasReflection && !cell.hasPrayer) return { ...cell, hiddenByFilter: true };
-            return cell;
-        });
-
-        const html = `
-            <div class="calendar-v2-container">
-                <header class="calendar-v2-header">
-                    <div class="calendar-v2-header-content">
-                        <h2>Calendario</h2>
-                        <p>Tu guía diaria de lectura y meditación.</p>
-                    </div>
-                </header>
-
-                ${this.renderCalendarV2MonthBar(monthLabel)}
-                ${this.renderCalendarV2Filters()}
-
-                <div class="calendar-v2-card-wrapper">
-                    <div class="calendar-v2-weekdays">
-                        ${weekdayLabels.map(w => `<div>${w}</div>`).join('')}
-                    </div>
-                    <div class="calendar-v2-grid">
-                        ${filteredCells.map(cell => {
-                            if (cell.empty) return '<div class="calendar-v2-cell is-empty"></div>';
-                            
-                            const isSelected = cell.date === selectedDate;
-                            const isDimmed = cell.hiddenByFilter;
-                            
-                            return `
-                                <button class="calendar-v2-cell ${cell.isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}"
-                                        type="button"
-                                        style="${isDimmed ? 'opacity:0.25;' : ''}"
-                                        data-action="calendar-v2-select-day"
-                                        data-date="${this.escapeHtml(cell.date)}">
-                                    <span class="calendar-v2-cell-num">${cell.day}</span>
-                                    <span class="calendar-v2-markers">
-                                        ${cell.isRead ? '<i class="calendar-v2-dot dot-read" title="Leído"></i>' : ''}
-                                        ${cell.hasReflection || cell.hasPrayer ? '<i class="calendar-v2-dot dot-note" title="Reflexión"></i>' : ''}
-                                        ${cell.isPending ? '<i class="calendar-v2-dot dot-pending" title="Pendiente"></i>' : ''}
-                                    </span>
-                                </button>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-
-                ${this.renderCalendarV2SelectedCard(selectedDate)}
-            </div>
-        `;
-
-        this.$content.innerHTML = html;
-    },
+    ...calendarMethods,
+    ...communityExperienceMethods,
 
 renderCommunityLoadError: function(error) {
     if (this.currentView !== 'community') return;
@@ -16093,7 +15827,7 @@ renderCommunityLoadError: function(error) {
     const isPrayer = this.communitySection === 'prayer';
 
     this.$content.innerHTML = `
-        <div class="community-container">
+        <div class="community-container community-premium">
             <section class="community-hero community-hero-compact" aria-labelledby="communityTitle">
                 <div class="community-hero-copy">
                     <h2 id="communityTitle">${isPrayer ? 'Comunidad de Oración' : 'Comunidad'}</h2>
@@ -16101,36 +15835,8 @@ renderCommunityLoadError: function(error) {
                 </div>
             </section>
 
-            <div class="community-section-segmented" role="tablist" aria-label="Secciones de Comunidad">
-                <button
-                    type="button"
-                    class="community-section-btn ${!isPrayer ? 'is-active' : ''}"
-                    data-action="set-community-section"
-                    data-section="reflections"
-                    role="tab"
-                    aria-selected="${!isPrayer ? 'true' : 'false'}"
-                >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                    </svg>
-                    <span>Reflexiones</span>
-                </button>
-                <button
-                    type="button"
-                    class="community-section-btn ${isPrayer ? 'is-active' : ''}"
-                    data-action="set-community-section"
-                    data-section="prayer"
-                    role="tab"
-                    aria-selected="${isPrayer ? 'true' : 'false'}"
-                >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="9"/>
-                        <path d="M12 7v5l3 3"/>
-                    </svg>
-                    <span>Oración</span>
-                </button>
-            </div>
+            ${this.renderCommunitySectionControls()}
+            <button type="button" class="community-live-update" data-action="refresh-community" hidden>Hay nueva actividad. Ver novedades</button>
 
             <div class="community-empty-state" style="margin-top: 24px;">
                 <div class="community-empty-title">${isPrayer ? 'No se pudieron cargar las peticiones de oración' : 'No se pudo cargar Comunidad'}</div>
@@ -16189,7 +15895,7 @@ renderCommunityComposerCardHtml: function(reference = this.getCommunityTodayCont
                             <div class="daily-question-context-text">${this.escapeHtml(dailyQuestion)}</div>
                             <div class="community-composer-secondary-actions">
                                 <button class="community-composer-secondary-btn" type="button" data-action="respond-daily-question" data-date="${this.escapeHtml(todayContext.readingDate)}" data-reference="${this.escapeHtml(todayContext.reference)}" aria-label="Responder la pregunta">
-                                    <span aria-hidden="true">✍️</span>
+                                    ${this.renderCommunityIcon('meditation')}
                                     <span>Responder la pregunta</span>
                                 </button>
                             </div>
@@ -16369,6 +16075,13 @@ renderCommunityComposerLocally: function() {
 },
 
    renderCommunity: async function(options = {}) {
+    const renderId = this._communityRenderId = (this._communityRenderId || 0) + 1;
+    this.communitySection = options.section || this.communitySection || 'reflections';
+    const prayerTargetId = /^[A-Za-z0-9_-]{1,128}$/.test(options.prayerTargetId || '') ? options.prayerTargetId : null;
+    let prayerTarget = null;
+    let prayerTargetNotice = '';
+    const focusedControl = document.activeElement?.closest?.('.community-section-btn, .community-tab-btn, .community-discovery-chip');
+    const focusData = focusedControl ? { ...focusedControl.dataset } : null;
     const todayContext = this.getCommunityTodayContext();
     const todayStr = todayContext.readingDate;
     const todayReference = todayContext.reference;
@@ -16384,7 +16097,7 @@ renderCommunityComposerLocally: function() {
     // Mostrar skeleton loading mientras carga
     if (showSkeleton) {
         this.$content.innerHTML = `
-            <div class="community-container">
+            <div class="community-container community-premium">
                 <div class="skeleton-loading">
                     <div class="skeleton-header"></div>
                     <div class="skeleton-card"></div>
@@ -16415,13 +16128,13 @@ renderCommunityComposerLocally: function() {
 
         const communityTimeout = 25000;
 
-        await this.withTimeout(
+        if (this.communitySection !== 'prayer') await this.withTimeout(
             this.ensureCommunityCutoff(),
             communityTimeout,
             'No se pudo obtener la hora de referencia de Comunidad'
         );
 
-        if (targetPostId && options.skipTargetLookup !== true) {
+        if (this.communitySection !== 'prayer' && targetPostId && options.skipTargetLookup !== true) {
             targetPost = await this.withTimeout(
                 this.prepareCommunityTargetPost(targetPostId),
                 communityTimeout,
@@ -16429,6 +16142,7 @@ renderCommunityComposerLocally: function() {
             );
         }
 
+        if (this.communitySection !== 'prayer') {
         discoveryResult = await this.withTimeout(
             this.getCommunityDiscoveryPosts({
                 filter: activeFilter,
@@ -16479,21 +16193,32 @@ renderCommunityComposerLocally: function() {
                     .map(reply => reply.ownerUid)
             );
         await this.getUserProfilesBatch(authorUids);
-        await this.loadCurrentCommunityIdentityProfile();
         await this.loadCommunityOwnershipForItems(posts, repliesSummary);
+        }
+        await this.loadCurrentCommunityIdentityProfile();
+        if (this.currentView !== 'community' || renderId !== this._communityRenderId) return false;
 
-        this.communitySection = options.section || this.communitySection || 'reflections';
         if (this.communitySection === 'prayer') {
             try {
+                if (prayerTargetId) {
+                    prayerTarget = await this.loadCommunityPrayerTarget(prayerTargetId);
+                    if (prayerTarget) this.prayerTabFilter = prayerTarget.status === 'answered' ? 'testimonies' : 'all';
+                    else prayerTargetNotice = 'Esta petición ya no está disponible.';
+                }
                 if (this.prayerTabFilter === 'testimonies') {
                     testimonies = await this.getCommunityPrayerTestimoniesCached({ forceRefresh: options.forceRefresh === true });
+                    if (prayerTarget && !testimonies.some(item => item.id === prayerTarget.id)) testimonies = [prayerTarget, ...testimonies];
                     await this.loadCommunityPrayerOwnership(testimonies);
                 } else {
-                    prayers = await this.getCommunityPrayerPostsCached({ forceRefresh: options.forceRefresh === true });
+                    prayers = ['my-prayers', 'following'].includes(this.prayerTabFilter)
+                        ? await this.loadPersonalPrayerRequests(this.prayerTabFilter, { forceRefresh: options.forceRefresh === true })
+                        : await this.getCommunityPrayerPostsCached({ forceRefresh: options.forceRefresh === true });
+                    if (prayerTarget && !prayers.some(item => item.id === prayerTarget.id)) prayers = [prayerTarget, ...prayers];
                     await this.loadCommunityPrayerOwnership(prayers);
                     await this.loadCommunityPrayerCommitments(prayers);
                 }
             } catch(pErr) {
+                if (prayerTargetId) prayerTargetNotice = 'No se pudo cargar esta petición. Revisa tu conexión e inténtalo nuevamente.';
                 console.error('[CommunityPrayer] Error cargando peticiones/testimonios:', pErr);
             }
         }
@@ -16504,14 +16229,16 @@ renderCommunityComposerLocally: function() {
         posts = posts.filter(item => visible(item, 'post'));
         prayers = prayers.filter(item => visible(item, 'prayer'));
         testimonies = testimonies.filter(item => visible(item, 'prayer'));
+        if (prayerTarget && ![...prayers, ...testimonies].some(item => item.id === prayerTarget.id)) prayerTargetNotice = 'Esta petición no está disponible.';
         repliesSummary = Object.fromEntries(Object.entries(repliesSummary).map(([id, replies]) => [id, replies.filter(item => visible(item, 'reply'))]));
 
         loadingCompleted = true;
     } catch (error) {
+        if (renderId !== this._communityRenderId || this.currentView !== 'community') return false;
         if (options.preserveOnError) {
             console.warn('[Community] La actualización posterior se retrasó; se conserva la vista actual.', error);
             if (this.currentView === 'community') {
-                this.showToast('Se guardó correctamente. La actualización puede tardar un momento.');
+                this.showToast('No se pudo actualizar Comunidad. Revisa tu conexión e inténtalo nuevamente.');
             }
             return;
         }
@@ -16519,13 +16246,13 @@ renderCommunityComposerLocally: function() {
         this.renderCommunityLoadError(error);
         return;
     } finally {
-        if (!loadingCompleted && !options.preserveOnError) {
+        if (renderId === this._communityRenderId && !loadingCompleted && !options.preserveOnError) {
             this.getCommunityFeedState().loaded = false;
             this.syncCommunityLegacyState();
         }
     }
 
-if (this.currentView !== 'community') return;
+if (this.currentView !== 'community' || renderId !== this._communityRenderId) return false;
 
 try {
     const communityDraftState = this.ensureCommunityDraftContext(this.loadCommunityDraftState());
@@ -16553,11 +16280,11 @@ try {
 
     // Renderizar el contenido
     this.$content.innerHTML = `
-        <div class="community-container">
+        <div class="community-container community-premium">
             <section class="community-hero community-hero-compact" aria-labelledby="communityTitle">
                 <div class="community-hero-copy">
-                    <h2 id="communityTitle">${this.communitySection === 'prayer' ? 'Comunidad de Oración' : 'Comunidad'}</h2>
-                    <p>${this.communitySection === 'prayer' ? 'Unidos en fe intercediendo unos por otros.' : 'Compartimos lo que recibimos de la Palabra.'}</p>
+                    <h2 id="communityTitle">Comunidad</h2>
+                    <p>${this.communitySection === 'prayer' ? 'Peticiones que acompañamos en fe.' : 'Lo que la Palabra despierta en nosotros.'}</p>
                 </div>
                 <div class="community-hero-actions" aria-label="Acciones de Comunidad">
                     <button
@@ -16574,6 +16301,7 @@ try {
                         ></span>
                         <span class="community-identity-chip-label">${this.escapeHtml(userDisplayName)}</span>
                     </button>
+                    <div id="community-notification-slot">${this.notificationCenter?.renderBellHtml() || ''}</div>
                     <button
                         class="community-rules-btn"
                         type="button"
@@ -16581,43 +16309,15 @@ try {
                         aria-label="${communityGuidelinesOpen ? 'Cerrar normas de Comunidad' : 'Abrir normas de Comunidad'}"
                         aria-expanded="${communityGuidelinesOpen ? 'true' : 'false'}"
                     >
-                        Normas
+                        ${readingIcon('shield')}<span>Normas</span>
                     </button>
                     <button class="community-rules-btn" type="button" data-action="show-blocked-authors">Autores bloqueados</button>
                     ${this.moderation?.isModerator ? '<button class="community-rules-btn" type="button" data-action="show-moderation-queue">Moderación</button>' : ''}
                 </div>
             </section>
 
-            <div class="community-section-segmented" role="tablist" aria-label="Secciones de Comunidad">
-                <button
-                    type="button"
-                    class="community-section-btn ${this.communitySection !== 'prayer' ? 'is-active' : ''}"
-                    data-action="set-community-section"
-                    data-section="reflections"
-                    role="tab"
-                    aria-selected="${this.communitySection !== 'prayer' ? 'true' : 'false'}"
-                >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                    </svg>
-                    <span>Reflexiones</span>
-                </button>
-                <button
-                    type="button"
-                    class="community-section-btn ${this.communitySection === 'prayer' ? 'is-active' : ''}"
-                    data-action="set-community-section"
-                    data-section="prayer"
-                    role="tab"
-                    aria-selected="${this.communitySection === 'prayer' ? 'true' : 'false'}"
-                >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <circle cx="12" cy="12" r="9"/>
-                        <path d="M12 7v5l3 3"/>
-                    </svg>
-                    <span>Oración</span>
-                </button>
-            </div>
+            ${this.renderCommunitySectionControls()}
+            <button type="button" class="community-live-update" data-action="refresh-community" hidden>Hay nueva actividad. Ver novedades</button>
 
             ${communityGuidelinesOpen ? `
                 <section class="community-guidelines-popover" role="note" aria-label="Normas de la comunidad">
@@ -16632,19 +16332,19 @@ try {
             ` : ''}
 
             ${this.communitySection === 'prayer' ? `
+                ${prayerTargetNotice ? `<p class="community-target-notice" role="status">${this.escapeHtml(prayerTargetNotice)}</p>` : ''}
                 ${this.prayerFormOpen
                     ? this.renderCommunityPrayerFormCardHtml()
                     : this.renderCommunityPrayerComposerCardHtml()}
 
-                <div class="community-tab-bar" role="tablist">
-                    <button type="button" class="community-tab-btn ${(!this.prayerTabFilter || this.prayerTabFilter === 'all') ? 'is-active' : ''}" data-action="set-prayer-tab" data-tab="all">Peticiones</button>
-                    <button type="button" class="community-tab-btn ${(this.prayerTabFilter === 'my-prayers') ? 'is-active' : ''}" data-action="set-prayer-tab" data-tab="my-prayers">Mis peticiones</button>
-                    <button type="button" class="community-tab-btn ${(this.prayerTabFilter === 'testimonies') ? 'is-active' : ''}" data-action="set-prayer-tab" data-tab="testimonies">Testimonios</button>
+                <div class="community-prayer-notification-status">${readingIcon('bell')}<span>${this.settings.notificationsEnabled ? 'Preferencia de avisos activada' : 'Avisos de Comunidad desactivados'}</span><button type="button" data-nav="settings">Configurar</button></div>
+                <div class="community-tab-bar" role="group" aria-label="Filtrar oraciones">
+                    ${[{ id: 'all', label: 'Peticiones' }, { id: 'my-prayers', label: 'Mis peticiones' }, { id: 'following', label: 'Orando' }, { id: 'testimonies', label: 'Testimonios' }].map(tab => `<button type="button" class="community-tab-btn ${(this.prayerTabFilter || 'all') === tab.id ? 'is-active' : ''}" data-action="set-prayer-tab" data-tab="${tab.id}" aria-pressed="${(this.prayerTabFilter || 'all') === tab.id}">${tab.label}</button>`).join('')}
                 </div>
 
                 <div class="community-feed community-prayer-feed">
                     ${(() => {
-                        const prayerState = this.getCommunityPrayerState();
+                        const prayerState = ['my-prayers', 'following'].includes(this.prayerTabFilter) ? this.getPersonalPrayerState() : this.getCommunityPrayerState();
                         const testimonyState = this.getCommunityPrayerTestimonyState();
 
                         if (this.prayerTabFilter === 'testimonies') {
@@ -16702,12 +16402,12 @@ try {
                         }
 
                         if (!visiblePrayers.length) {
-                            if (this.prayerTabFilter === 'my-prayers') {
+                            if (['my-prayers', 'following'].includes(this.prayerTabFilter)) {
                                 return `
                                     <div class="community-empty-state" style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
                                         <div style="font-size: 2.2rem; margin-bottom: 8px;">🙏</div>
-                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">No tienes peticiones de oración registradas</p>
-                                        <p style="font-size: 0.85rem; margin-top: 4px;">Comparte tu petición para que la comunidad te acompañe en oración.</p>
+                                        <p style="margin: 0; font-weight: 600; color: var(--text-main);">${this.prayerTabFilter === 'following' ? 'Todavía no acompañas ninguna petición' : 'No tienes peticiones de oración registradas'}</p>
+                                        ${prayerState.hasMore ? '<button type="button" class="community-load-more-btn" data-action="load-more-community-prayers">Buscar más peticiones</button>' : ''}
                                     </div>
                                 `;
                             } else {
@@ -16727,8 +16427,8 @@ try {
                         }
 
                         const prayerCardsHtml = visiblePrayers.map(p => this.renderCommunityPrayerCardHtml(p)).join('');
-                        const state = this.getCommunityPrayerState();
-                        const showLoadMore = this.prayerTabFilter !== 'my-prayers' && state.hasMore === true;
+                        const state = prayerState;
+                        const showLoadMore = state.hasMore === true;
 
                         return prayerCardsHtml + (showLoadMore ? `
                             <div class="community-load-more-container" style="text-align: center; margin: 20px 0 10px 0;">
@@ -16757,14 +16457,13 @@ try {
                     ? this.renderCommunityFormCardHtml({ showRestoredNotice: showCommunityDraftRestored })
                     : this.renderCommunityComposerCardHtml(todayReference)}
 
-                <div class="community-discovery-bar" role="tablist" aria-label="Filtro temporal de reflexiones">
+                <div class="community-discovery-bar" role="group" aria-label="Filtro temporal de reflexiones">
                     <button
                         type="button"
                         class="community-discovery-chip ${activeFilter === 'today' ? 'is-active' : ''}"
                         data-action="set-discovery-filter"
                         data-filter="today"
-                        role="tab"
-                        aria-selected="${activeFilter === 'today' ? 'true' : 'false'}"
+                        aria-pressed="${activeFilter === 'today'}"
                     >
                         Hoy
                     </button>
@@ -16773,8 +16472,7 @@ try {
                         class="community-discovery-chip ${activeFilter === 'yesterday' ? 'is-active' : ''}"
                         data-action="set-discovery-filter"
                         data-filter="yesterday"
-                        role="tab"
-                        aria-selected="${activeFilter === 'yesterday' ? 'true' : 'false'}"
+                        aria-pressed="${activeFilter === 'yesterday'}"
                     >
                         Ayer
                     </button>
@@ -16783,8 +16481,7 @@ try {
                         class="community-discovery-chip ${activeFilter === 'week' ? 'is-active' : ''}"
                         data-action="set-discovery-filter"
                         data-filter="week"
-                        role="tab"
-                        aria-selected="${activeFilter === 'week' ? 'true' : 'false'}"
+                        aria-pressed="${activeFilter === 'week'}"
                     >
                         Esta semana
                     </button>
@@ -16793,8 +16490,7 @@ try {
                         class="community-discovery-chip ${activeFilter === 'all' ? 'is-active' : ''}"
                         data-action="set-discovery-filter"
                         data-filter="all"
-                        role="tab"
-                        aria-selected="${activeFilter === 'all' ? 'true' : 'false'}"
+                        aria-pressed="${activeFilter === 'all'}"
                     >
                         Todos
                     </button>
@@ -16825,10 +16521,10 @@ try {
                     </div>
                 ` : ''}
 
-                <div class="community-tab-bar" role="tablist">
-                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && (!this.communityTabFilter || this.communityTabFilter === 'all')) ? 'is-active' : ''}" data-action="set-community-tab" data-tab="all">Todas</button>
-                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'my-posts') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="my-posts">Mis reflexiones</button>
-                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'favorites') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="favorites">⭐ Favoritos</button>
+                <div class="community-tab-bar" role="group" aria-label="Reflexiones que quieres consultar">
+                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && (!this.communityTabFilter || this.communityTabFilter === 'all')) ? 'is-active' : ''}" data-action="set-community-tab" data-tab="all" aria-pressed="${!this.communityPassageFilter && (!this.communityTabFilter || this.communityTabFilter === 'all')}">Todas</button>
+                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'my-posts') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="my-posts" aria-pressed="${!this.communityPassageFilter && this.communityTabFilter === 'my-posts'}">Mis reflexiones</button>
+                    <button type="button" class="community-tab-btn ${(!this.communityPassageFilter && this.communityTabFilter === 'favorites') ? 'is-active' : ''}" data-action="set-community-tab" data-tab="favorites" aria-pressed="${!this.communityPassageFilter && this.communityTabFilter === 'favorites'}">Favoritos</button>
                 </div>
 
                 <div class="community-feed">
@@ -16970,15 +16666,15 @@ try {
 
                             return `
                                 <div class="community-card community-voice-card" data-post-id="${this.escapeHtml(post.id)}">
-                                    <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones" aria-expanded="false" aria-controls="post-menu-${post.id}">⋮</button>
+                                    <button class="post-menu-btn" type="button" data-action="toggle-post-menu" data-post-id="${post.id}" aria-label="Más opciones" title="Más opciones" aria-expanded="false" aria-controls="post-menu-${post.id}">${readingIcon('more')}</button>
                                     <div class="post-menu-dropdown" id="post-menu-${post.id}" style="display: none;">
-                                        <button type="button" data-action="copy-post-text" data-post-id="${post.id}">📋 Copiar texto</button>
-                                        <button type="button" data-action="share-post" data-post-id="${post.id}">🔗 Compartir</button>
-                                        <button type="button" data-action="speech-post" data-post-id="${post.id}">${this.currentlySpeakingPostId === post.id ? '⏹️ Detener lectura' : '🗣️ Escuchar en voz alta'}</button>
-                                        <button type="button" data-action="favorite-post" data-post-id="${post.id}">${this.isPostFavorite(post.id) ? '⭐ En favoritos' : '⭐ Marcar favorito'}</button>
+                                        <button type="button" data-action="copy-post-text" data-post-id="${post.id}">${readingIcon('copy')}Copiar texto</button>
+                                        <button type="button" data-action="share-post" data-post-id="${post.id}">${readingIcon('share')}Compartir</button>
+                                        <button type="button" data-action="speech-post" data-post-id="${post.id}">${readingIcon(this.currentlySpeakingPostId === post.id ? 'stop' : 'play')}${this.currentlySpeakingPostId === post.id ? 'Detener lectura' : 'Escuchar en voz alta'}</button>
+                                        <button type="button" data-action="favorite-post" data-post-id="${post.id}" aria-pressed="${this.isPostFavorite(post.id)}">${readingIcon('heart')}${this.isPostFavorite(post.id) ? 'En favoritos' : 'Marcar favorito'}</button>
                                         ${!this.isCommunityOwnPost(post) ? this.renderCommunitySafetyControls('post', post.id) : ''}
                                         ${this.isCommunityOwnPost(post) ? `
-                                            <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">🗑️ Eliminar</button>
+                                            <button type="button" class="community-delete-post" data-action="delete-community-post" data-post-id="${post.id}" style="color: #e53e3e;">${readingIcon('trash')}Eliminar</button>
                                         ` : ''}
                                     </div>
 
@@ -17062,12 +16758,24 @@ try {
             ${this.renderCommunityPrayerDeleteModalHtml()}
         </div>
     `;
+    this.notificationCenter?.bindEvents(document.getElementById('community-notification-slot'));
+    if (focusData) Array.from(this.$content.querySelectorAll('[data-action]')).find(button =>
+        Object.entries(focusData).every(([key, value]) => button.dataset[key] === value))?.focus({ preventScroll: true });
+    if (prayerTargetId && !prayerTargetNotice) {
+        const target = this.$content.querySelector(`[data-request-id="${prayerTargetId}"]`);
+        target?.setAttribute('tabindex', '-1');
+        target?.focus({ preventScroll: true });
+        target?.scrollIntoView({ block: 'center', behavior: 'instant' });
+        target?.classList.add('is-notification-highlight');
+    }
 
     if (showCommunityDraftRestored) {
         this.armCommunityDraftRestoredNoticeDismissal();
     }
     
-    if (targetPostId) {
+    if (prayerTargetId) {
+        // Prayer targets have already been positioned independently of reflection routes.
+    } else if (targetPostId) {
         this.focusCommunityTarget(
             targetPostId,
             targetReplyId,
@@ -17083,6 +16791,7 @@ try {
     } else if (options.restoreSavedScroll === true) {
         this.restoreCommunityScrollPosition();
     }
+    return true;
 } catch (renderError) {
     console.error('[Community] Error inesperado durante el renderizado visual de Comunidad:', renderError);
     this.renderCommunityLoadError(renderError);
@@ -18191,6 +17900,7 @@ setupNativePushActionListeners: function() {
 getPushHashFromEvent: function(event) {
     const notification = event?.notification || {};
     const notificationData = notification?.data;
+    const prayerId = typeof notificationData === 'object' ? notificationData?.prayerId : null;
     const notificationPostId = typeof notificationData === 'object'
         ? notificationData?.postId
         : null;
@@ -18202,6 +17912,7 @@ getPushHashFromEvent: function(event) {
             || notification?.link
             || '';
 
+    if (!rawUrl && /^[A-Za-z0-9_-]{1,128}$/.test(prayerId || '')) return `#community?section=prayer&prayer=${encodeURIComponent(prayerId)}`;
     if (!rawUrl && notificationPostId) {
         return `#community/${encodeURIComponent(notificationPostId)}`;
     }
@@ -18370,13 +18081,17 @@ initPushNotifications: async function() {
 
 setCurrentAuthUser: function(user, previousUid = this.currentUser?.uid) {
     this.currentUser = user;
+    this.notificationCenter?.initialize(user);
     if (!previousUid || previousUid === user?.uid) return;
+    this._communityRenderId = (this._communityRenderId || 0) + 1;
+    this.communityPersonalPrayerStates = {};
     this.communityIdentityProfile = null;
     this.communityIdentityProfileLoaded = false;
     this.communityOwnedPosts = {};
     this.communityOwnedReplies = {};
     this.prayerOwnershipMap = {};
     this.prayerCommitmentMap = {};
+    this.prayerCommitmentPendingIds = new Set();
     this.invalidateCommunityCache();
     this.resetCommunityPrayerState();
     this.resetCommunityPrayerTestimonyState();
@@ -20076,10 +19791,21 @@ if (toggleMenuBtn) {
 const setSectionBtn = e.target.closest('[data-action="set-community-section"]');
 if (setSectionBtn) {
     const section = setSectionBtn.getAttribute('data-section');
-    if (section) {
+    if (['reflections', 'prayer'].includes(section)) {
+        this.flushCommunityDraftFromDOM();
         this.communitySection = section;
-        this.renderCommunity();
+        await this.navigateToPushHash(section === 'prayer' ? '#community?section=prayer' : '#community');
     }
+    return;
+}
+
+const refreshCommunityBtn = e.target.closest('[data-action="refresh-community"]');
+if (refreshCommunityBtn) {
+    this.flushCommunityDraftFromDOM();
+    refreshCommunityBtn.disabled = true;
+    const rendered = await this.renderCommunity({ forceRefresh: true, showSkeleton: false, resetScrollTop: true });
+    if (rendered) await this.markCommunityAsSeen();
+    if (refreshCommunityBtn.isConnected) refreshCommunityBtn.disabled = false;
     return;
 }
 
@@ -20122,6 +19848,7 @@ const retryPrayerBtn = e.target.closest('[data-action="retry-community-prayer"]'
 if (retryPrayerBtn) {
     this.resetCommunityPrayerState();
     this.resetCommunityPrayerTestimonyState();
+    this.communityPersonalPrayerStates = {};
     this.renderCommunity({ forceRefresh: true }).catch(error => {
         console.error('[CommunityPrayer] Error en reintento de oración:', error);
     });
@@ -20131,7 +19858,7 @@ if (retryPrayerBtn) {
 const setPrayerTabBtn = e.target.closest('[data-action="set-prayer-tab"]');
 if (setPrayerTabBtn) {
     const tab = setPrayerTabBtn.getAttribute('data-tab');
-    if (tab) {
+    if (['all', 'my-prayers', 'following', 'testimonies'].includes(tab)) {
         this.prayerTabFilter = tab;
         this.renderCommunity({ preserveOnError: true });
     }
@@ -20142,7 +19869,9 @@ const loadMorePrayersBtn = e.target.closest('[data-action="load-more-community-p
 if (loadMorePrayersBtn) {
     loadMorePrayersBtn.disabled = true;
     loadMorePrayersBtn.textContent = 'Cargando más…';
-    this.loadMoreCommunityPrayerPosts().then(() => {
+    const loading = ['my-prayers', 'following'].includes(this.prayerTabFilter)
+        ? this.loadPersonalPrayerRequests(this.prayerTabFilter, { append: true }) : this.loadMoreCommunityPrayerPosts();
+    loading.then(() => {
         this.renderCommunity({ preserveOnError: true, showSkeleton: false });
     }).catch(() => {
         this.showToast('No se pudieron cargar más peticiones');
@@ -20639,56 +20368,9 @@ if (loadMoreBtn) {
     return;
 }
 
-const calendarV2PrevBtn = e.target.closest('[data-action="calendar-v2-prev"]');
-if (calendarV2PrevBtn) {
-    const activeMonth = this.getCalendarV2ActiveMonth();
-    const [year, month] = activeMonth.split('-').map(Number);
-    const dateObj = new Date(year, month - 2, 1);
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    this.calendarV2ActiveMonth = `${y}-${m}`;
-    this.renderCalendar();
-    return;
-}
-
-const calendarV2NextBtn = e.target.closest('[data-action="calendar-v2-next"]');
-if (calendarV2NextBtn) {
-    const activeMonth = this.getCalendarV2ActiveMonth();
-    const [year, month] = activeMonth.split('-').map(Number);
-    const dateObj = new Date(year, month, 1);
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    this.calendarV2ActiveMonth = `${y}-${m}`;
-    this.renderCalendar();
-    return;
-}
-
-const calendarV2TodayBtn = e.target.closest('[data-action="calendar-v2-today"]');
-if (calendarV2TodayBtn) {
-    const todayStr = this.getTodayDateStr();
-    this.calendarV2ActiveMonth = todayStr.slice(0, 7);
-    this.calendarV2SelectedDate = todayStr;
-    this.renderCalendar();
-    return;
-}
-
-const calendarV2FilterBtn = e.target.closest('[data-action="calendar-v2-filter"]');
-if (calendarV2FilterBtn) {
-    const filter = calendarV2FilterBtn.getAttribute('data-filter');
-    if (filter) {
-        this.calendarV2ActiveFilter = filter;
-        this.renderCalendar();
-    }
-    return;
-}
-
-const calendarV2SelectDayBtn = e.target.closest('[data-action="calendar-v2-select-day"]');
-if (calendarV2SelectDayBtn) {
-    const date = calendarV2SelectDayBtn.getAttribute('data-date');
-    if (date) {
-        this.calendarV2SelectedDate = date;
-        this.renderCalendar();
-    }
+const calendarCommand = e.target.closest('[data-calendar-action]');
+if (calendarCommand && this.currentView === 'calendar') {
+    await this.handleCalendarCommand(calendarCommand);
     return;
 }
 
@@ -20881,7 +20563,17 @@ if (e.target.id === 'bible-search-input') {
     this.scheduleBibleSearch(e.target.value);
 });
 
+        this.$content.addEventListener('keydown', (e) => this.handleCalendarKeydown(e));
+
         this.$content.addEventListener('change', (e) => {
+    if (this.currentView === 'calendar' && e.target.id === 'calendar-month-select') {
+        this.changeCalendarMonth(e.target.value);
+        return;
+    }
+    if (this.currentView === 'calendar' && e.target.id === 'calendar-filter') {
+        this.changeCalendarFilter(e.target.value);
+        return;
+    }
     if (e.target.id === 'bible-search-book') {
         this.bibleSearchBook = this.bibleBooks.some(book => book.id === e.target.value) ? e.target.value : '';
         this.bibleSearchFilter = 'all';

@@ -5,13 +5,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const checks = [
     'validate-reading-catalog', 'validate-readings-q4-2026', 'validate-tla-readings',
-    'validate-analytics-service', 'validate-first-experience', 'validate-reading-presentation', 'validate-journey', 'validate-app-connections',
+    'validate-analytics-service', 'validate-first-experience', 'validate-reading-presentation', 'validate-calendar', 'validate-journey', 'validate-app-connections',
     'validate-community-voice', 'validate-library-upgrade', 'validate-continuous-reader',
     'validate-bible-continuous-voice', 'validate-bible-study', 'validate-bible-without-strong', 'validate-bible-reader-presentation',
     'validate-bible-phase3', 'validate-bible-phase6', 'validate-bible-phase7',
     'validate-bottom-nav', 'validate-deepening-keyboard', 'validate-deepening-steps', 'validate-glass-nav', 'validate-deep-links',
     'test-community-hotfix-203', 'audit-bottom-nav', 'validate-stabilization', 'validate-account-recovery',
-    'validate-community-global', 'validate-local-backup', 'validate-app-check', 'validate-private-assets',
+    'validate-community-global', 'validate-community-experience', 'validate-local-backup', 'validate-app-check', 'validate-private-assets',
 ].map(name => [`scripts/${name}.mjs`]);
 checks.push(['scripts/validate-readings-q4-2026.mjs', '--require-complete']);
 checks.push(['scripts/check-reading-coverage.mjs']);
@@ -33,7 +33,7 @@ if (process.argv.includes('--emulator')) {
     checks.push(['scripts/test-account-deletion-rules.mjs']);
     for (const file of ['scripts/test-community-rules.mjs', 'functions/stabilization.test.js',
         'functions/communityIdentityConcurrency.test.js', 'functions/communityPrayerConcurrency.test.js',
-        'functions/communityReplyCountsConcurrency.test.js', 'functions/communityOrphanCleanupEmulator.test.js',
+        'functions/communityReplyCountsConcurrency.test.js', 'functions/communityOrphanCleanupEmulator.test.js', 'functions/communityPrayerActivityEmulator.test.js',
         'functions/accountDeletionInventoryEmulator.test.js', 'functions/accountDeletionExecutionEmulator.test.js']) checks.push([file]);
 }
 
