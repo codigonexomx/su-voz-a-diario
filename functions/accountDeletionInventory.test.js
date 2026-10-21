@@ -32,6 +32,8 @@ const fixtures = () => [
   record("communityPrayerCommitments/associated", { ownerUid: "other", requestId: "prayer" }),
   record("communityPrayerCommitments/own", { ownerUid: uid, requestId: "foreign-prayer" }),
   record("notifications/own", { userId: uid, postId: "foreign-post" }),
+  record("notifications/prayer-associated", { userId: "other", prayerId: "prayer" }),
+  record("notifications/prayer-unrelated", { userId: "other", prayerId: "foreign-prayer" }),
   record("notifications/foreign", { userId: "other", authorUid: uid, postId: "foreign-post" }),
   record("pushTokens/own", { uid, token: "PRIVATE TOKEN" }),
   record("communityReports/reported", { reportedBy: uid, contentText: "PRIVATE REPORT", comments: "PRIVATE COMMENT" }),
@@ -66,6 +68,8 @@ async function run() {
   for (const excluded of ["communityPosts/foreign-post", "communityReactions/unrelated", "notifications/foreign", "userProfiles/other",
     `communityRateLimits/${uid}_other_post`, "communityBlocks/other/authors/third", `accountDeletionRequests/${reference}`]) assert(!paths.has(excluded), excluded);
   assert.equal(before, JSON.stringify([...transport.docs]));
+  assert(paths.has("notifications/prayer-associated"));
+  assert(!paths.has("notifications/prayer-unrelated"));
   assert.equal(result.approvedForDeletion, false); assert.equal(result.transactionalSnapshot, false);
   assert.equal(result.storageCandidates.length, 1);
   assert(result.counterReviews.some(item => item.type === "replyCount" && item.parentId === "foreign-post"));

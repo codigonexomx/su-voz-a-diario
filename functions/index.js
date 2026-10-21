@@ -6,6 +6,7 @@ const { getMessaging } = require("firebase-admin/messaging");
 const { logger } = require("firebase-functions");
 const {
   onDocumentCreated,
+  onDocumentDeleted,
   onDocumentWritten,
 } = require("firebase-functions/v2/firestore");
 const { HttpsError } = require("firebase-functions/v2/https");
@@ -43,6 +44,7 @@ const {
   getPrayerCommitmentStatusLogic,
 } = require("./communityPrayer");
 const communitySafety = require("./communitySafety");
+const { prayerNoticeContext, queuePrayerActivity, getPrayerDeliveryUpdates, listMyPrayerRequests, cleanupDeletedPrayerActivity } = require("./communityPrayerActivity");
 for (const name of ["acceptCommunityTerms", "reportCommunityContent", "blockCommunityAuthor", "unblockCommunityAuthor", "getCommunitySafetyState", "listCommunityReports", "resolveCommunityReport", "requestAccountDeletion", "listAccountDeletionRequests", "detachAccountPushDevice"]) {
   exports[name] = communitySafety[name];
 }
@@ -199,6 +201,7 @@ async function sendCommunityBadgeUpdates(db, updates, context = {}) {
   };
 
   for (const [badgeCount, recipients] of updatesByBadgeCount.entries()) {
+    const prayerNotice = prayerNoticeContext(context.prayerId, context.notificationType);
     const result = await sendNotification(db, recipients, {
       type: "community-badge",
       badgeCount: String(badgeCount),
@@ -209,6 +212,7 @@ async function sendCommunityBadgeUpdates(db, updates, context = {}) {
         ? `https://suvoz.app/#community/${encodeURIComponent(context.postId)}`
         : "https://suvoz.app/#community",
       tag: "community-activity",
+      ...(prayerNotice || {}),
     });
 
     totals.successCount += result.successCount;
@@ -449,38 +453,46 @@ async function sendNotification(db, recipients, data) {
     const blocked = await blockedAccounts(db, recipientBatch.flatMap(item => item.documents.map(doc => doc.get("uid"))));
     const activeBatch = recipientBatch.filter(item => item.documents.some(doc => !blocked.has(doc.get("uid"))));
     if (!activeBatch.length) continue;
-    const response = await getMessaging().sendEachForMulticast({
-      tokens: activeBatch.map(({ token }) => token),
-      notification: {
-        title: data.title || "Su Voz a Diario",
-        body: data.body || "Tienes una nueva notificación.",
-      },
-      data,
-      android: {
-        priority: "high",
+    // Web notifications are displayed by our service worker, not twice by FCM.
+    const webRecipients = activeBatch.filter(item => item.documents.every(doc => doc.get("platform") === "web"));
+    const nativeRecipients = activeBatch.filter(item => !webRecipients.includes(item));
+    for (const [group, dataOnly] of [[webRecipients, true], [nativeRecipients, false]]) {
+      if (!group.length) continue;
+      const response = await getMessaging().sendEachForMulticast(dataOnly ? {
+        tokens: group.map(({ token }) => token),
+        data,
+        webpush: { headers: { Urgency: "normal" } },
+      } : {
+        tokens: group.map(({ token }) => token),
         notification: {
-          channelId: "default",
-          sound: "default",
-          tag: data.tag || "su-voz-notification",
+          title: data.title || "Su Voz a Diario",
+          body: data.body || "Tienes una nueva notificación.",
         },
-      },
-      webpush: {
-        fcmOptions: {
-          link: data.url,
+        data,
+        android: {
+          priority: "high",
+          notification: {
+            channelId: "default",
+            sound: "default",
+            tag: data.tag || "su-voz-notification",
+          },
         },
-      },
-    });
+        webpush: {
+          fcmOptions: { link: data.url },
+        },
+      });
 
-    successCount += response.successCount;
-    failureCount += response.failureCount;
+      successCount += response.successCount;
+      failureCount += response.failureCount;
 
-    response.responses.forEach((result, index) => {
-      const errorCode = result.error?.code;
+      response.responses.forEach((result, index) => {
+        const errorCode = result.error?.code;
 
-      if (!result.success && INVALID_TOKEN_CODES.has(errorCode)) {
-        invalidDocuments.push(...activeBatch[index].documents);
-      }
-    });
+        if (!result.success && INVALID_TOKEN_CODES.has(errorCode)) {
+          invalidDocuments.push(...group[index].documents);
+        }
+      });
+    }
   }
 
   if (invalidDocuments.length > 0) {
@@ -1242,13 +1254,52 @@ exports.deliverCommunityBadgeUpdates = onDocumentCreated(
     if (!delivery.exists || delivery.get("delivered") === true) return;
     const updates = delivery.get("updates") || [];
     const snapshots = updates.length ? await db.getAll(...updates.map(item => db.collection("userActivity").doc(item.uid))) : [];
-    const current = snapshots.filter(item => item.exists && item.get("unreadCommunityCount") > 0)
+    let current = snapshots.filter(item => item.exists && item.get("unreadCommunityCount") > 0)
       .map(item => ({ uid: item.id, badgeCount: item.get("unreadCommunityCount") }));
-    const result = await sendCommunityBadgeUpdates(db, current, { postId: delivery.get("postId") });
+    if (delivery.get("prayerId")) current = await getPrayerDeliveryUpdates(db, delivery.data(), current);
+    const result = await sendCommunityBadgeUpdates(db, current, { postId: delivery.get("postId"),
+      prayerId: delivery.get("prayerId"), notificationType: delivery.get("notificationType") });
     if (result.failureCount > result.invalidTokensDeleted) throw new Error("Community badge delivery failed; retry pending");
     await ref.update({ delivered: true, deliveredAt: FieldValue.serverTimestamp() });
   }
 );
+
+exports.cleanupDeletedPrayerActivity = onDocumentDeleted(
+  { document: "communityPrayerRequests/{prayerId}", region: "us-central1", retry: true, maxInstances: 5, timeoutSeconds: 300 },
+  event => cleanupDeletedPrayerActivity(getFirestore(), event.params.prayerId)
+);
+
+exports.notifyNewPrayerRequest = onDocumentCreated(
+  { document: "communityPrayerRequests/{requestId}", region: "us-central1", retry: true, maxInstances: 5, timeoutSeconds: 300 },
+  async event => {
+    const db = getFirestore();
+    const ownerUid = await getContentOwner(db, "communityPrayerRequests", "communityPrayerPrivate", event.params.requestId);
+    if (ownerUid) await queuePrayerActivity(db, event.params.requestId, "newPrayer", ownerUid);
+  }
+);
+
+exports.notifyPrayerSupport = onDocumentCreated(
+  { document: "communityPrayerCommitments/{commitmentId}", region: "us-central1", retry: true, maxInstances: 5 },
+  async event => {
+    const commitment = event.data?.data();
+    await queuePrayerActivity(getFirestore(), commitment?.requestId, "prayerSupport", commitment?.ownerUid);
+  }
+);
+
+exports.notifyPrayerAnswered = onDocumentWritten(
+  { document: "communityPrayerRequests/{requestId}", region: "us-central1", retry: true, maxInstances: 5, timeoutSeconds: 300 },
+  async event => {
+    if (event.data?.before?.get("status") === "answered" || event.data?.after?.get("status") !== "answered") return;
+    const db = getFirestore();
+    const ownerUid = await getContentOwner(db, "communityPrayerRequests", "communityPrayerPrivate", event.params.requestId);
+    if (ownerUid) await queuePrayerActivity(db, event.params.requestId, "prayerAnswered", ownerUid);
+  }
+);
+
+exports.listMyPrayerRequests = onCall({ region: "us-central1" }, async request => {
+  if (!request.auth?.uid) throw new HttpsError("unauthenticated", "AUTH_REQUIRED");
+  return listMyPrayerRequests(getFirestore(), request.auth.uid, request.data);
+});
 
 async function updateCommunityMetrics(event) {
   const db = getFirestore();

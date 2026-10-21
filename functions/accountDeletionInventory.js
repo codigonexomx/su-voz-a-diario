@@ -15,7 +15,7 @@ const OWNER_BY_COLLECTION = Object.freeze({ communityNames: "uid", pushTokens: "
   communityReactions: "userId", communityPrayerCommitments: "ownerUid", savedPosts: "userId", favoritePosts: "userId" });
 const RATE_ACTIONS = ["post", "reply", "prayer", "report", "block", "bible", "account"];
 const OWNER_FIELDS = ["ownerUid", "uid", "userId", "authorUid"];
-const MASK = [...OWNER_FIELDS, "reportedBy", "resolvedBy", "postId", "requestId", "type", "id", "cursor", "updates", "status", "moderatorUid"];
+const MASK = [...OWNER_FIELDS, "reportedBy", "resolvedBy", "postId", "requestId", "prayerId", "type", "id", "cursor", "updates", "status", "moderatorUid"];
 const validProject = value => typeof value === "string" && /^[a-z][a-z0-9-]{4,62}$/.test(value);
 const validUid = value => typeof value === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(value);
 const requestReference = uid => createHash("sha256").update(`account-deletion:${uid}`).digest("hex");
@@ -119,6 +119,7 @@ async function buildInventory({ project, reference, transport, getUser, now = ()
     if (collection === "communityBlocks") continue;
     const rateLimit = collection === "communityRateLimits" && RATE_ACTIONS.some(action => id === `${uid}_${action}`);
     const associated = ["communityReactions", "notifications", "savedPosts", "favoritePosts"].includes(collection) && postIds.has(data.postId)
+      || collection === "notifications" && prayerIds.has(data.prayerId)
       || collection === "communityPrayerCommitments" && prayerIds.has(data.requestId);
     if (owned || rateLimit || associated) add(record, associated && !owned ? "associated-with-owned-parent" : "owned-record");
     else if (OWNER_FIELDS.some(field => data[field] === uid)) flag(record.path, "personal-reference-in-other-account-record");

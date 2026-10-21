@@ -186,6 +186,7 @@ async function verifyRemainingData({ plan, db, auth, transport, authMustBeAbsent
   }
   for (const item of plan.candidates.filter(item => /^communityPrayer(Requests|Private)\//.test(item.path))) {
     if (!(await db.collection("communityPrayerCommitments").where("requestId", "==", item.path.split("/")[1]).limit(1).get()).empty) throw new Error("LATE_ASSOCIATED_RECORD_REQUIRES_NEW_APPROVAL");
+    if (!(await db.collection("notifications").where("prayerId", "==", item.path.split("/")[1]).limit(1).get()).empty) throw new Error("LATE_ASSOCIATED_RECORD_REQUIRES_NEW_APPROVAL");
   }
 }
 
