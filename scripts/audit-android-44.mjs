@@ -5,9 +5,13 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate47')
+const release = process.argv.includes('--candidate49')
+    ? { code: 49, name: '1.5.17', pwa: 264 }
+    : process.argv.includes('--candidate48')
+    ? { code: 48, name: '1.5.16', pwa: 263 }
+    : process.argv.includes('--candidate47')
     ? { code: 47, name: '1.5.15', pwa: 262 }
     : process.argv.includes('--candidate46')
         ? { code: 46, name: '1.5.14', pwa: 261 }
@@ -39,11 +43,19 @@ const frozen = [
     ...(release.code >= 47 ? [
         ['artifacts/android-1.5.14-46-release/su-voz-1.5.14-46.aab', '21b76ddc793316dec2bce201dcc755a0e46f339d0bb8bf65dccadd1c3d28ebf6'],
         ['artifacts/android-1.5.14-46-release/app-release.apk', 'cbde57c4451020f3abeaa081ca307b6806ce3a44b48d60ba48739aea697929a4']
+    ] : []),
+    ...(release.code >= 48 ? [
+        ['artifacts/android-1.5.15-47-release/su-voz-1.5.15-47.aab', '19289639a22578336cc5572dccbc334c5dea793fdb4e02de33e888a50320e286'],
+        ['artifacts/android-1.5.15-47-release/app-release.apk', '4ef44a9855839f73d88ee07209d836d5bb4fc4d36e8f869405757a3fac08f411']
+    ] : []),
+    ...(release.code >= 49 ? [
+        ['artifacts/android-1.5.16-48-release/su-voz-1.5.16-48.aab', 'bc273fcf5265da1e24b1e0a466771f5b195601a0330c647384f9836062905daf'],
+        ['artifacts/android-1.5.16-48-release/app-release.apk', 'b91710d6ccb51879aafbad9357efa87b676689511c1273187b1a58d1da34c361']
     ] : [])
 ];
 for (const [file, expected] of frozen) assert.equal(hash(readFileSync(file)), expected, file);
 const checks = JSON.parse(readFileSync('artifacts/validation/tests.json', 'utf8'));
-const expectedChecks = release.code >= 47 ? 53 : 52;
+const expectedChecks = release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
 assert.equal(checks.results.length, expectedChecks);
 assert(checks.results.every(check => check.status === 0));
 mkdirSync(out, { recursive: true, mode: 0o700 });

@@ -7,7 +7,7 @@ const checks = [
     'validate-reading-catalog', 'validate-readings-q4-2026', 'validate-tla-readings',
     'validate-analytics-service', 'validate-first-experience', 'validate-reading-presentation', 'validate-journey', 'validate-app-connections',
     'validate-community-voice', 'validate-library-upgrade', 'validate-continuous-reader',
-    'validate-bible-continuous-voice', 'validate-bible-study', 'validate-bible-without-strong',
+    'validate-bible-continuous-voice', 'validate-bible-study', 'validate-bible-without-strong', 'validate-bible-reader-presentation',
     'validate-bible-phase3', 'validate-bible-phase6', 'validate-bible-phase7',
     'validate-bottom-nav', 'validate-deepening-keyboard', 'validate-deepening-steps', 'validate-glass-nav', 'validate-deep-links',
     'test-community-hotfix-203', 'audit-bottom-nav', 'validate-stabilization', 'validate-account-recovery',

@@ -6,6 +6,8 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
+const { parse } = require('acorn');
 
 // Load index and monthly readings
 const indexData = JSON.parse(fs.readFileSync(path.join(__dirname, '../data/readings/index.json'), 'utf8'));
@@ -108,7 +110,28 @@ assert.ok(!appJsContent.includes('dailyQuestion: post.dailyQuestion'), 'C8: dail
 assert.ok(!appJsContent.includes('isEco: true'), 'C9: isEco is NOT added to publish payload');
 
 // C10: readingKey NOT added to publish payload
-assert.ok(!appJsContent.includes('readingKey:'), 'C10: readingKey is NOT added to publish payload');
+function findProperty(node, name) {
+    if (node.type === 'Property' && node.key.name === name) return node;
+    for (const value of Object.values(node)) {
+        for (const child of Array.isArray(value) ? value : [value]) {
+            if (child?.type) { const found = findProperty(child, name); if (found) return found; }
+        }
+    }
+}
+const publishNode = findProperty(parse(appJsContent, { ecmaVersion: 'latest', sourceType: 'module' }), 'addCommunityPost');
+assert.ok(publishNode, 'C10: actual publishing method exists');
+const publish = vm.runInNewContext(`({${appJsContent.slice(publishNode.start, publishNode.end)}})`, {
+    navigator: { onLine: true }, Sanitizer: { validateText: () => ({ valid: true }), sanitizeReference: value => value, sanitizeText: value => value }
+}).addCommunityPost;
+async function checkPublishPayload() {
+    let sent;
+    const service = { moderation: { ensureTerms: async () => true, termsVersion: 'test' },
+        getCommunityIdentityCallable: async () => payload => { sent = payload; return { data: { success: true, id: 'test-only' } }; } };
+    await publish.call(service, { reference: 'Juan 1:1', text: 'Contenido ficticio', date: '2026-09-04',
+        intent: 'dailyQuestionResponse', readingKey: 'must-stay-local', dailyQuestion: 'must-stay-local' });
+    assert.deepStrictEqual(Object.keys(sent).sort(), ['date', 'intent', 'isAnonymous', 'reference', 'termsVersion', 'text'],
+        'C10: only approved fields reach the callable; readingKey/dailyQuestion remain local');
+}
 
 // C11: Composer reused (renderCommunityFormCardHtml exists)
 assert.ok(appJsContent.includes('renderCommunityFormCardHtml'), 'C11: Existing composer reused');
@@ -198,4 +221,6 @@ assert.ok(appJsContent.includes('Comparte con la comunidad lo que Dios te habló
 assert.ok(appJsContent.includes('Comparte lo que Dios te habló'), '6K.H5: Form title for reflection present');
 assert.ok(appJsContent.includes('Tu respuesta a la Pregunta del día'), '6K.H6: Form title for question present');
 
-console.log('\nALL 35 COMMUNITY PREMIUM 6C & 6K UI INTEGRATION & INTENT TRANSITION TESTS PASSED SUCCESSFULLY!\n');
+checkPublishPayload().then(() => {
+    console.log('\nALL 35 COMMUNITY PREMIUM 6C & 6K UI INTEGRATION & INTENT TRANSITION TESTS PASSED SUCCESSFULLY!\n');
+}).catch(error => { console.error(error); process.exitCode = 1; });
