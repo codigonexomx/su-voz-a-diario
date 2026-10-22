@@ -23,7 +23,7 @@ export function renderJourney(app) {
         const review = application ? j.state.reviews[application.id] : null;
         const oldStreak = j.legacyStreak?.longest || 0;
         const oldCurrent = j.legacyStreak?.current || 0;
-        app.$content.innerHTML = `${app.renderViewHeader('Mi camino','Recuerda la Palabra, continúa tu meditación y lleva lo aprendido a tu vida.')}
+        app.$content.innerHTML = `${app.renderViewHeader('Historial personal','Recuerda la Palabra, continúa tu meditación y lleva lo aprendido a tu vida.')}
         <div class="journey-container">
           <section class="journey-hero"><span class="journey-kicker">HOY · ${esc(dateLabel(j.today))}</span><h3>${current ? 'Continúa tu meditación' : 'Un encuentro con la Palabra'}</h3>
             <p>${current ? esc(title(app,current)) : 'Empieza con la lectura de hoy. Tu camino puede continuar aquí.'}</p>
@@ -36,7 +36,7 @@ export function renderJourney(app) {
           ${!j.state.hideStreak ? `<p class="journey-streak">Racha actual: <strong>${j.current} ${j.current===1?'día':'días'}</strong> · Mejor racha registrada: ${j.longest}</p>`:''}
           ${action(j.state.hideStreak?'Mostrar racha':'Ocultar racha','toggle-streak')}
           ${oldStreak || oldCurrent ? '<p>Tu racha anterior se conserva en el historial explicado a continuación.</p>' : ''}
-          <details><summary>¿Qué cuenta y qué se conserva?</summary><p>Cuenta el día en que marcas una lectura como leída o completas una meditación. Varias acciones en un día cuentan una vez. Abrir la aplicación o guardar un borrador no aumenta la racha. Hoy pendiente conserva el tramo de ayer hasta terminar el día.</p><p>Este registro empieza con Mi camino. Las lecturas antiguas siguen en tu recorrido; su fecha asignada no demuestra cuándo las leíste.${oldStreak || oldCurrent ? ` Registro heredado de lectura: racha de ${oldCurrent} días y mejor racha de ${oldStreak} días, calculadas por el sistema anterior.` : ''} Una pausa no borra tus meditaciones.</p></details>
+          <details><summary>¿Qué cuenta y qué se conserva?</summary><p>Cuenta el día en que marcas una lectura como leída o completas una meditación. Varias acciones en un día cuentan una vez. Abrir la aplicación o guardar un borrador no aumenta la racha. Hoy pendiente conserva el tramo de ayer hasta terminar el día.</p><p>El registro de práctica no reconstruye fechas anteriores. Las lecturas antiguas siguen en tu recorrido; su fecha asignada no demuestra cuándo las leíste.${oldStreak || oldCurrent ? ` Registro heredado de lectura: racha de ${oldCurrent} días y mejor racha de ${oldStreak} días, calculadas por el sistema anterior.` : ''} Una pausa no borra tus meditaciones.</p></details>
           </section>
           <section class="journey-card" id="journey-application-section"><span class="journey-kicker">APLICACIÓN PERSONAL</span><h3>Lo que quiero vivir</h3>
           ${application ? `${applications.length>1 ? `<label for="journey-application">Paso que quiero revisar</label><select id="journey-application">${applications.map(s=>`<option value="${esc(s.id)}" ${s.id===application.id?'selected':''}>${esc(title(app,s))} · ${esc(s.readingId)}</option>`).join('')}</select>${action('Elegir paso','application')}` : ''}<p class="journey-passage">${esc(title(app,application))}</p><blockquote>${fragment(application.notes.respuesta)}</blockquote><p>¿Cómo lo has llevado a tu vida? Puedes reconocer avances, dificultades o algo que aún necesitas meditar.</p><label for="journey-review">Mi revisión personal</label><textarea id="journey-review" maxlength="4000" rows="4" placeholder="Escribe aquí, solo para ti…">${esc(app.journeyDrafts[application.id] ?? review?.text ?? '')}</textarea>${action('Guardar mi revisión','review',application.id)} ${action('Volver a esta meditación','open',application.id)}<p id="journey-save-status" role="status">${review?'Revisión guardada en este dispositivo.':'Esta revisión es privada y no se publica.'}</p>` : `<p>Cuando escribas en Aplicación dentro de Profundiza, podrás volver aquí para recordar ese paso y revisar cómo te fue.</p>${action('Abrir la lectura de hoy','today')}`}
@@ -53,7 +53,7 @@ export function renderJourney(app) {
           <p>${j.readDates.length} lecturas marcadas en tu historial. ${stats.plan.completed} pertenecen al catálogo disponible (${stats.plan.total} lecturas). El catálogo puede crecer sin borrar tu recorrido.</p>
           </details>
           <section class="journey-card"><h3>Comparte para edificar</h3><p>Elige una enseñanza y prepara solo el texto que deseas compartir. Tus oraciones y revisiones personales no se incluyen.</p>${j.sessions.length ? `<label for="journey-share-session">Meditación de origen</label><select id="journey-share-session">${j.sessions.map(s=>`<option value="${esc(s.id)}">${esc(title(app,s))} · ${esc(s.readingId)}</option>`).join('')}</select>${action('Preparar extracto','excerpt')}<div id="journey-share-editor"></div>` : action('Abrir la lectura de hoy','today')}</section>
-          <footer class="journey-footer"><p>Tu camino se guarda en este dispositivo. No se sincroniza automáticamente con otros navegadores o teléfonos.</p>${action('Guardar respaldo completo','backup')}<p>Sin puntuaciones de fe, oración u obediencia.</p></footer>
+          <footer class="journey-footer"><p>Tu historial se guarda en este dispositivo. No se sincroniza automáticamente con otros navegadores o teléfonos.</p>${action('Guardar respaldo completo','backup')}<p>Sin puntuaciones de fe, oración u obediencia.</p></footer>
         </div>`;
         if (app.journeyFocusApplication) {
             app.journeyFocusApplication = false;
@@ -65,7 +65,7 @@ export function renderJourney(app) {
         }
     } catch(error) {
         console.error('[Mi camino]',error);
-        app.$content.innerHTML=`${app.renderViewHeader('Mi camino','Tus datos se conservan.')}<section class="journey-card"><h3>No pudimos leer tu historial</h3><p>No se ha borrado ni reemplazado ningún registro. Guarda un respaldo antes de intentar recuperar tus datos.</p>${action('Exportar respaldo','backup')}${action('Volver a intentar','retry')}</section>`;
+        app.$content.innerHTML=`${app.renderViewHeader('Historial personal','Tus datos se conservan.')}<section class="journey-card"><h3>No pudimos leer tu historial</h3><p>No se ha borrado ni reemplazado ningún registro. Guarda un respaldo antes de intentar recuperar tus datos.</p>${action('Exportar respaldo','backup')}${action('Volver a intentar','retry')}</section>`;
     }
 }
 export async function handleJourney(app, element) {

@@ -10,6 +10,14 @@ const start = () => {
     return h;
 };
 
+for (const view of ['workshop', 'meditations-history', 'stats']) {
+    const h = harness();
+    h.app.currentView = view;
+    h.app.updateGlassNavIndicator({ animate: true });
+    settle(h);
+    assert.equal(h.x(), 334, `${view} keeps Aprender selected`);
+}
+
 for (const animate of [false, true]) {
     const h = start(), before = h.x();
     h.app.updateGlassNavIndicator({ animate });

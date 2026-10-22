@@ -7,6 +7,9 @@ import { normalizeBibleVoiceText, getBibleVoicePoint, getBibleCaretPoint } from 
 import { getJourney, recordPractice, exportJourney } from './services/JourneyService.js';
 import { prepareLocalBackup, restoreLocalBackup, MAX_BACKUP_BYTES } from './services/BackupService.js';
 import { renderJourney, handleJourney } from './JourneyView.js';
+import { mountWorkshop, getWorkshopReturnHref } from './workshop/WorkshopController.js';
+import { WorkshopScripture } from './workshop/WorkshopScripture.js';
+import { WORKSHOP_KEY, validateWorkshopState } from './services/WorkshopStorage.js';
 import { renderAccountPanel } from './AccountPanel.js';
 import { readingIcon } from './utils/readingIcons.js';
 import {
@@ -341,6 +344,10 @@ const bibleRepository = new BibleRepository([
     remoteBibleProvider
 ], {
     versionResolver: versionId => versionId
+});
+const workshopScripture = new WorkshopScripture({
+    getChapter: (version, book, chapter) => bibleRepository.getChapter(version, book, chapter),
+    resolveBookId: book => localRv1909Provider.getCanonicalBookId(book)
 });
 
 async function loadRV1909Bible() {
@@ -1011,7 +1018,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '266'
+            pwaVersion: '267'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1464,7 +1471,7 @@ scheduleKeyboardViewportUpdate: function() {
             { btn: this.$navBible, views: ['bible', 'bible-reading', 'bible-search', 'bible-memory'] },
             { btn: this.$navCalendar, views: ['calendar'] },
             { btn: this.$navCommunity, views: ['community', 'community-thread'] },
-            { btn: this.$navStats, views: ['stats', 'meditations-history'] }
+            { btn: this.$navStats, views: ['workshop', 'stats', 'meditations-history'] }
         ];
     },
 
@@ -1881,9 +1888,9 @@ scheduleKeyboardViewportUpdate: function() {
             const journey = getJourney(localStorage);
             this.$streakIndicator.style.display = journey.state.hideStreak ? 'none' : 'flex';
             this.$streakCount.textContent = `${journey.current} ${journey.current === 1 ? 'día' : 'días'}`;
-            this.$streakIndicator.setAttribute('aria-label', `Ver Mi camino. Racha de práctica registrada: ${journey.current} días`);
+            this.$streakIndicator.setAttribute('aria-label', `Ver historial personal. Racha de práctica registrada: ${journey.current} días`);
         } catch (error) {
-            this.$streakCount.textContent = 'Mi camino';
+            this.$streakCount.textContent = 'Historial personal';
         }
     },
 
@@ -10023,6 +10030,8 @@ closeTransientBibleUI: function() {
     },
     
     handleRoute: async function() {
+    this.workshopView?.destroy();
+    this.workshopView = null;
     this.stopDailyQuestionObservation();
     const rawHash = window.location.hash.substring(1) || 'home';
     const [routePath, queryString] = rawHash.split('?');
@@ -10087,6 +10096,7 @@ if (view !== 'settings' && oldView !== 'settings') {
 	document.body.classList.toggle('su-voz-hoy-background', usesSuVozHoyLayout);
 	this.$content.classList.toggle('community-view', view === 'community');
 	document.body.classList.toggle('community-background', view === 'community');
+	document.body.classList.toggle('workshop-background', view === 'workshop');
 	this.updateNavUI();
     
     document.querySelectorAll('.version-btn').forEach(btn => {
@@ -10199,6 +10209,8 @@ if (view !== 'settings' && oldView !== 'settings') {
         this.saveCommunityDiscoveryScrollPosition();
     }
     await this.renderCommunityThread(param);
+} else if (view === 'workshop') {
+    this.workshopView = mountWorkshop(this, param || '', workshopScripture);
 } else if (view === 'stats') {
     this.renderStats();
 } else if (view === 'settings') {
@@ -10219,6 +10231,13 @@ if (view !== 'settings' && oldView !== 'settings') {
     await this.renderHome();
 }
 
+if (view === 'reading' && new URLSearchParams(queryString || '').get('from') === 'workshop') {
+    const back = document.createElement('a');
+    back.className = 'wt-return';
+    back.href = getWorkshopReturnHref(localStorage);
+    back.textContent = 'Volver a Aprender';
+    (this.$content.querySelector('.home-hero-stage .view-hero') || this.$content).prepend(back);
+}
 this.scheduleBottomNavStateCheck();
 },
     
@@ -17246,6 +17265,9 @@ renderStatsMoments: function(stats) {
 
 renderStats: function() {
     renderJourney(this);
+    const back = document.createElement('a');
+    back.className = 'wt-return'; back.href = '#workshop'; back.textContent = 'Volver a Aprender';
+    this.$content.prepend(back);
 },
     
     renderSettings: function() {
@@ -17514,6 +17536,11 @@ if (notificationsToggle) {
         allData.notes[date] = note;
         allData.journeyBackup.entries[this.getNoteKey(date)] = JSON.stringify(note);
     }
+    if (this.workshopMemoryState && !this.workshopStorageBlocked) {
+        allData.journeyBackup.entries[WORKSHOP_KEY] = JSON.stringify(validateWorkshopState({
+            ...this.workshopMemoryState, updatedAt: Date.now()
+        }));
+    }
     for (const [id, raw] of MeditationSessionStorage.pendingSessions || []) {
         allData.journeyBackup.entries[MeditationSessionStorage.getSessionKey(id)] = raw;
     }
@@ -17545,7 +17572,7 @@ if (notificationsToggle) {
                 const plan = prepareLocalBackup(data, { uid: this.currentUser?.uid || null, settings: this.settings });
 
                 const summaryItems = [
-                    data.journeyBackup ? '• Mi camino, meditaciones completas, referencias y revisiones' : null,
+                    data.journeyBackup ? '• Historial personal, meditaciones completas, referencias, revisiones y avance en Aprender' : null,
                     data.userProfile ? '• Avatar y perfil personalizado' : null,
                     data.communityPreferences ? '• Preferencias de comunidad' : null,
                     data.readDates ? `• ${data.readDates.length || 0} lecturas marcadas` : null,
@@ -18329,7 +18356,7 @@ if (this.$navCalendar) {
 }
 
 if (this.$navStats) {
-    this.$navStats.addEventListener('click', () => this.navigate('stats'));
+    this.$navStats.addEventListener('click', () => this.navigate('workshop'));
 }
 
 if (this.$navCommunity) {
@@ -18429,16 +18456,6 @@ document.addEventListener('click', (e) => {
         this.toggleBibleCrossReferenceMore();
         return;
     }
-
-    const openStatsFromStreakBtn = e.target.closest('[data-action="open-stats-from-streak"]');
-
-    if (openStatsFromStreakBtn) {
-        e.preventDefault();
-        this.$headerControlsDropdown?.classList.remove('show');
-        this.navigate('stats');
-        return;
-    }
-
 
     if (e.target.closest('[data-action="font-increase"]')) {
         this.changeFontSize(0.05);
@@ -20254,7 +20271,6 @@ if (libraryAction) {
     const action = libraryAction.dataset.action;
     const id = libraryAction.dataset.sessionId;
     const session = id ? MeditationSessionStorage.get(id) : null;
-    if (action === 'library-journey') { this.navigate('stats'); return; }
     if (action === 'library-backup') { this.exportAllData(); return; }
     if (action === 'library-today') { this.navigate('reading', this.getTodayDateStr()); return; }
     if (action === 'library-quick-filter') {
@@ -20836,7 +20852,7 @@ document.addEventListener('keydown', (e) => {
                     <p class="meditation-library-kicker">Tus meditaciones</p>
                     <h2 id="meditation-library-title">Mis meditaciones</h2>
                     <p>Vuelve a lo que has escrito, recuerda la Palabra y continúa poniéndola en práctica.</p>
-                    <button class="meditation-detail-back" type="button" data-action="library-journey">← Mi camino</button>
+                    <a class="wt-return" href="#workshop">${readingIcon('back')}Volver a Aprender</a>
                 </header>
 
                 <div class="meditation-library-toolbar" id="meditation-library-toolbar" hidden>

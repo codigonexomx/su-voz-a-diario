@@ -1,4 +1,5 @@
 import { getDateString, getPreviousDateString, calculateLongestStreak } from '../utils/progress.js';
+import { WORKSHOP_KEY, validateWorkshopState, mergeWorkshopStates } from './WorkshopStorage.js';
 
 export const JOURNEY_KEY = 'su-voz-journey-v1';
 const fields = ['dios', 'aprendizaje', 'respuesta', 'oracion'];
@@ -17,7 +18,7 @@ const validState = state => object(state) && state.version === 1 && Array.isArra
     && object(state.reviews) && Object.values(state.reviews).every(r => object(r) && typeof r.text === 'string' && Number.isFinite(Date.parse(r.updatedAt)));
 export function loadJourney(storage) {
     const state = read(storage, JOURNEY_KEY, { version: 1, events: [], reviews: {}, hideStreak: false });
-    if (!validState(state)) throw new Error('No se pudo leer el historial de Mi camino');
+    if (!validState(state)) throw new Error('No se pudo leer el historial personal');
     return state;
 }
 export function recordPractice(storage, type, readingDate, sessionId = '', now = new Date()) {
@@ -74,17 +75,18 @@ export function getJourney(storage, now = new Date(), month = getDateString(now)
 }
 
 // Narrow whitelist: no account credentials, community drafts or analytics identifiers.
-const backupKey = key => key === JOURNEY_KEY || key === 'su-voz-read-dates' || key === 'su-voz-streak' || key === 'su-voz-legacy-migrated' || sessionKey(key) || key === 'su-voz-meditation-index' || /^(su-voz-meditation-uistate-|su-voz-note-|su-voz-devotional-refs-|su-voz-devotional-uistate-|su-voz-highlights-|su-voz-selection-notes-|su-voz-deepening-ui-)/.test(key);
+const backupKey = key => key === WORKSHOP_KEY || key === JOURNEY_KEY || key === 'su-voz-read-dates' || key === 'su-voz-streak' || key === 'su-voz-legacy-migrated' || sessionKey(key) || key === 'su-voz-meditation-index' || /^(su-voz-meditation-uistate-|su-voz-note-|su-voz-devotional-refs-|su-voz-devotional-uistate-|su-voz-highlights-|su-voz-selection-notes-|su-voz-deepening-ui-)/.test(key);
 export function exportJourney(storage) {
     const entries = {};
     for (let i=0; i<storage.length; i++) { const key = storage.key(i); if (backupKey(key)) entries[key] = storage.getItem(key); }
     return { version: 1, entries };
 }
 export function validateJourneyBackup(backup) {
-    if (backup?.version !== 1 || !backup.entries || Array.isArray(backup.entries) || typeof backup.entries !== 'object') throw new Error('Respaldo de Mi camino inválido');
+    if (backup?.version !== 1 || !backup.entries || Array.isArray(backup.entries) || typeof backup.entries !== 'object') throw new Error('Respaldo del historial personal inválido');
     for (const [key, raw] of Object.entries(backup.entries)) {
         if (!backupKey(key) || typeof raw !== 'string') throw new Error('El respaldo contiene una clave no permitida');
         const value = JSON.parse(raw);
+        if (key === WORKSHOP_KEY) validateWorkshopState(value);
         if (sessionKey(key) && (!value || typeof value.id !== 'string' || key !== `su-voz-meditation-${value.id}` || !validNotes(value.notes))) throw new Error('Sesión inválida');
         if (key.startsWith('su-voz-note-') && !validNotes(value)) throw new Error('Nota inválida');
         if (key === JOURNEY_KEY && !validState(value)) throw new Error('Actividad inválida');
@@ -102,6 +104,8 @@ export function restoreJourney(storage, backup) {
             if (key === 'su-voz-meditation-index') continue;
             if (key === 'su-voz-read-dates') {
                 storage.setItem(key, JSON.stringify([...new Set([...read(storage,key,[]), ...JSON.parse(raw)])]));
+            } else if (key === WORKSHOP_KEY && storage.getItem(key)) {
+                storage.setItem(key, JSON.stringify(mergeWorkshopStates(JSON.parse(storage.getItem(key)), JSON.parse(raw))));
             } else if (key === JOURNEY_KEY && storage.getItem(key)) {
                 const local = loadJourney(storage), incoming = JSON.parse(raw);
                 const events = new Map([...local.events, ...incoming.events].map(e=>[e.id,e]));

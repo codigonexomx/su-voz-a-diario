@@ -44,3 +44,13 @@ La validación de cobertura avisa si quedan menos de 120 días de catálogo y fa
 Las nuevas funciones de moderación necesitan publicarse antes de la interfaz que las utiliza. El acceso de moderador no se concede automáticamente. App Check y la exigencia estricta de términos permanecen desactivados hasta completar la configuración y una transición compatible con clientes nativos existentes.
 
 Procedimiento, límites de recuperación y comprobaciones de release: [Estabilización y Operación](docs/producto/estabilizacion-2026-10-01.md).
+
+## Aprender a meditar
+
+El quinto botón se llama `Aprender` y abre `Aprender a meditar` en `#workshop`, con `Vivir la Palabra` como frase de acompañamiento. Las lecciones conservan rutas estables y `Retomar` recupera la última. Se retiran los accesos generales a Mi camino; `#stats` conserva el historial personal y sus revisiones por compatibilidad, sin borrar registros. `#meditations-history` conserva la biblioteca personal y vuelve a Aprender. La lectura diaria abierta desde una lección permite regresar a ella, sin crear otro cuaderno de meditación.
+
+El avance y los ejercicios se guardan localmente en `su-voz-workshop-v1`, entran en el respaldo completo y no se envían a Analytics ni a Firebase. Contactar a un asesor prepara un correo para `appsuvoz@gmail.com`; nunca incorpora los ejercicios ni envía el mensaje automáticamente.
+
+Los pasajes de Aprender se consultan en NBLA mediante el repositorio bíblico existente, solo al abrirlos. Se conservan en memoria durante la sesión, sin guardarlos en el respaldo ni crear una copia persistente de NBLA. Sin conexión, un pasaje no cargado muestra un reintento y conserva los ejercicios; nunca se sustituye silenciosamente por otra traducción. No se amplían los permisos ni el alcance del servicio bíblico existente.
+
+El propietario confirmó el 22 de octubre de 2026 que cuenta con autorización para adaptar el material de Meditación Bíblica México en web y Android. Se conserva su reconocimiento y el de Lee Jeong Book; esta confirmación no equivale a nuevas licencias de traducciones bíblicas. Validación: `node scripts/validate-workshop.mjs`, `npm test` y la suite con emuladores. La QA física de cada paquete se registra por separado antes de promoverlo a producción. No se ha añadido ninguna suscripción ni cobro.
