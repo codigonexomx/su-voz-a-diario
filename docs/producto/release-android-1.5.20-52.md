@@ -49,12 +49,28 @@ El propietario autorizo expresamente redesplegar solo getRemoteBibleChapter con 
 
 Despues, una peticion sin autenticar recibio HTTP 401 / AUTH_REQUIRED, como corresponde. Las ocho lecciones cargaron su pasaje NBLA real, con 1, 7, 5, 5, 13, 3, 6 y 7 versiculos respectivamente. No se leyeron ni capturaron ejercicios. Evidencia de resultados, sin textos biblicos o personales: live-lessons.json.
 
-## Prueba interna y pendiente fisico
+## Prueba interna y Lenovo
 
 Play acepto un unico AAB 52, API 24+, target 36 y ReTrace adjunto, sin errores bloqueantes ni perdida de dispositivos compatibles. Persiste una advertencia sobre simbolos nativos de dependencias no suministrados. No se aceptaron nuevas condiciones ni se ampliaron permisos de extension para cargarlo.
 
 La release interna 13, 52 (1.5.20), figura disponible para verificadores el 22 de octubre a las 16:31. Solo esta seleccionada la lista Su Voz QA - propietario 2026-10-02, un miembro; las listas de 14 y 29 personas siguen sin seleccionar. Evidencia: play-internal-52.png. No se promovio 52 a produccion.
 
-La Lenovo conectada sigue en 51 / 1.5.19 de com.android.vending; firstInstallTime permanece 2026-09-24 20:41:57. Play muestra la ficha Beta interna y el enlace confirma que la cuenta es verificadora, pero aun ofrece Abrir, no Actualizar. Se refresco la ficha y se cerro/reabrio Play Store, sin borrar cache ni datos; no se instalo APK local, desinstalo Su Voz, cambio de cuenta, permisos o conectividad. Wi-Fi activo y modo avion desactivado.
+Inicialmente Play todavia ofrecia 51 / 1.5.19, pese a que 52 figuraba disponible en la prueba interna. Se refresco la ficha y se cerro/reabrio Play Store, sin borrar cache ni datos. Posteriormente el propietario confirmo la actualizacion y ADB verifico 52 / 1.5.20 de com.android.vending, instalada el 22 de octubre a las 16:45:29; firstInstallTime permanece 2026-09-24 20:41:57. No se instalo APK local ni se desinstalo Su Voz.
 
-La QA nativa de 52 y su promocion productiva siguen pendientes de la actualizacion desde Play. Las pruebas de versiones anteriores no sustituyen esta comprobacion. El propietario fue informado y se solicito confirmar cuando aparezca la actualizacion. Los archivos y el AAB congelado permanecen intactos.
+Comprobaciones visuales en la Lenovo con el binario de Play, sin recompilar:
+
+- Lectura de hoy 1 Samuel 30:18-30, sus tres fuentes y el boton Meditacion presentes. Se reprodujo y detuvo audio; el propietario confirmo que se escucho claramente.
+- Portada Aprender, ocho lecciones, navegacion activa y estilos oscuros correctamente distribuidos. No se marcaron lecciones completadas ni se seleccionaron respuestas de prueba.
+- Carga real de 1 Juan 1:3 y Josue 1:8 en NBLA, mediante los desplegables de la primera leccion.
+- Campo nuevo vacio: foco, teclado, transiciones Observar / Comprender / Aplicar conservando teclado y foco, sin huecos ni escritura de texto. Atras cerro el teclado sin salir de la leccion.
+- Meditar hoy abrio la lectura publica; Volver a Aprender regreso a Un encuentro con Dios.
+- Cierre de solo Su Voz y apertura en frio por /hoy. Al terminar el arranque, Aprender mostro Continuar aprendiendo y Retomar recordo Un encuentro con Dios, con cero lecciones marcadas.
+- El proceso actual dio cero FATAL EXCEPTION, Uncaught y Unhandled. Se guardaron solo contadores, no logs crudos: lenovo-process-errors-52.json.
+
+Las capturas lenovo-*-52.png registran controles publicos y campos nuevos vacios, no meditaciones u oraciones personales. No se abrieron esas listas para inspeccionarlas; se solicito al propietario comprobar su conservacion y la apertura de Oracion. La prueba fisica sin conexion queda pendiente de su autorizacion especifica. El AAB conserva el SHA-256 congelado.
+
+## Preparacion de produccion
+
+Preflight de Play: produccion 51 / 1.5.19, 178 paises de destino y ningun cambio ajeno sin publicar. Se preparo un borrador solo con 52 desde la biblioteca existente y las mismas notas de la prueba interna. No hubo nueva carga ni compilacion. Vista previa sin errores bloqueantes ni perdida de dispositivos compatibles; una advertencia sobre simbolos nativos no suministrados. Porcentaje predeterminado 100%, todos los paises de destino existentes, sin ampliarlos.
+
+El panel de 51 muestra dos recomendaciones heredadas sobre borde a borde y APIs obsoletas de esa pantalla; no son fallos nuevos de Aprender ni errores bloqueantes de esta version. Su presencia no permite afirmar que todos los dispositivos esten certificados. El borrador 52 todavia no se envio a revision: faltan la comprobacion privada del propietario y resolver la prueba offline solicitada.
