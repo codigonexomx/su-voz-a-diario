@@ -11,7 +11,7 @@ Ocho lecciones, Retomar, biblioteca de referencias, ejercicios privados y enlace
 
 Los pasajes NBLA usan el servicio biblico existente y memoria de sesion: no se incorpora una Biblia nueva al paquete ni una descarga persistente. Las consultas fallidas ofrecen reintento, sin sustituir traduccion ni borrar ejercicios. Los ejercicios y el avance son locales y forman parte del respaldo completo; no se envian a Analytics ni a Firebase.
 
-No cambia backend, reglas, permisos, dependencias, contenido de Comunidad, politica de privacidad, iOS ni configuracion de Google Play. Quedan fuera marketing/ y los dos documentos previos de investigacion/propuesta.
+No cambia el codigo backend, reglas, permisos, dependencias, contenido de Comunidad, politica de privacidad, iOS ni declaraciones de Google Play. El redespliegue operativo autorizado de una funcion se detalla mas abajo. Quedan fuera marketing/ y los dos documentos previos de investigacion/propuesta.
 
 ## Validacion previa
 
@@ -32,3 +32,29 @@ Auditoria: `node scripts/audit-android-44.mjs --candidate52`, seleccionando Comm
 Web mediante GitHub Pages desde main, raiz. No corresponde desplegar Firebase Hosting ni Functions. La prueba interna conserva exclusivamente Su Voz QA - propietario 2026-10-02, un miembro; las listas de 14 y 29 personas no se seleccionan.
 
 La entrega, CI, HTTP, consultas NBLA reales y QA del nuevo binario se registraran al verificarse. No se declara el nuevo paquete validado fisicamente por las pruebas de versiones anteriores ni se promueve a produccion antes de esa validacion. No se abren ni capturan meditaciones, oraciones o ejercicios personales.
+
+## Web publicada
+
+Commit de codigo: `7a42cfcd2b855aede865b474e0e84986357772be`. Push normal a main correcto, sin force; HEAD y origin/main coinciden. El remoto antiguo redirige al repositorio codigonexomx/su-voz-a-diario; no se cambio su configuracion local.
+
+[Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39866442470) y [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/39866443762) finalizaron correctamente. Trece recursos publicos devuelven HTTP 200 y coinciden por SHA-256 con la entrega. Evidencia: artifacts/android-1.5.20-52-release/production-http.json.
+
+En https://suvoz.app/?analytics_test=1#workshop se verificaron la nueva navegacion, una consulta NBLA real, el destino appsuvoz@gmail.com y el circuito Meditar hoy / Volver a Aprender, que regreso a la leccion exacta. Sin envio de correo, marcas de lectura, publicaciones ni lectura de ejercicios privados. Captura de la portada publica: production-aprender.png. La URL ordinaria de uso no necesita analytics_test.
+
+## Servicio biblico restablecido
+
+Antes del push se reprodujo HTTP 500 en getRemoteBibleChapter tanto en la vista local como en la web 266 ya publicada. Tambien devolvia HTML 500 a una peticion sin autenticar, antes de los registros de ejecucion. Cloud Functions y Cloud Run figuraban activos; facturacion habilitada e identidades habilitadas. No se atribuye el fallo a una causa raiz no demostrada.
+
+El propietario autorizo expresamente redesplegar solo getRemoteBibleChapter con el codigo actual. Comando: firebase deploy --only functions:getRemoteBibleChapter --project su-voz-a-diario-v2-f3a87 --non-interactive. Finalizo correctamente, sin desplegar otras funciones, reglas o Hosting ni modificar IAM.
+
+Despues, una peticion sin autenticar recibio HTTP 401 / AUTH_REQUIRED, como corresponde. Las ocho lecciones cargaron su pasaje NBLA real, con 1, 7, 5, 5, 13, 3, 6 y 7 versiculos respectivamente. No se leyeron ni capturaron ejercicios. Evidencia de resultados, sin textos biblicos o personales: live-lessons.json.
+
+## Prueba interna y pendiente fisico
+
+Play acepto un unico AAB 52, API 24+, target 36 y ReTrace adjunto, sin errores bloqueantes ni perdida de dispositivos compatibles. Persiste una advertencia sobre simbolos nativos de dependencias no suministrados. No se aceptaron nuevas condiciones ni se ampliaron permisos de extension para cargarlo.
+
+La release interna 13, 52 (1.5.20), figura disponible para verificadores el 22 de octubre a las 16:31. Solo esta seleccionada la lista Su Voz QA - propietario 2026-10-02, un miembro; las listas de 14 y 29 personas siguen sin seleccionar. Evidencia: play-internal-52.png. No se promovio 52 a produccion.
+
+La Lenovo conectada sigue en 51 / 1.5.19 de com.android.vending; firstInstallTime permanece 2026-09-24 20:41:57. Play muestra la ficha Beta interna y el enlace confirma que la cuenta es verificadora, pero aun ofrece Abrir, no Actualizar. Se refresco la ficha y se cerro/reabrio Play Store, sin borrar cache ni datos; no se instalo APK local, desinstalo Su Voz, cambio de cuenta, permisos o conectividad. Wi-Fi activo y modo avion desactivado.
+
+La QA nativa de 52 y su promocion productiva siguen pendientes de la actualizacion desde Play. Las pruebas de versiones anteriores no sustituyen esta comprobacion. El propietario fue informado y se solicito confirmar cuando aparezca la actualizacion. Los archivos y el AAB congelado permanecen intactos.
