@@ -36,7 +36,15 @@ Auditoria: `node scripts/audit-android-44.mjs --candidate53`, con Command Line T
 
 La web se publica mediante GitHub Pages desde main, raiz. El canal interno de Play conserva exclusivamente Su Voz QA - propietario 2026-10-02, un miembro; las listas de 14 y 29 personas siguen sin seleccionar.
 
-Antes de esta entrega, Play mostraba produccion 52 / 1.5.20 al 100% y ningun cambio ajeno sin publicar. La subida, CI, comprobacion HTTP y validacion del nuevo binario se registraran al completarse. No se declara la 53 publicada ni validada fisicamente por las pruebas de versiones anteriores.
+Antes de esta entrega, Play mostraba produccion 52 / 1.5.20 al 100% y ningun cambio ajeno sin publicar. La 53 se cargo una sola vez y se publico unicamente en la prueba interna: release 14, disponible para verificadores el 23 de octubre a las 16:25. La lista sigue limitada al propietario; no se cambiaron paises, declaraciones, permisos ni condiciones.
+
+Play acepto 53 / 1.5.21, API 24+, target 36 y ReTrace adjunto. La vista previa no muestra errores bloqueantes ni perdida de dispositivos compatibles. Persiste una advertencia sobre simbolos nativos de dependencias no suministrados.
+
+Se actualizo la Lenovo directamente con Actualizar en Google Play, sin instalar APK local ni desinstalar o borrar datos. ADB confirmo versionCode 53, versionName 1.5.21 e instalador com.android.vending, lastUpdateTime 2026-10-23 16:28:01 y firstInstallTime 2026-09-24 20:41:57. El enlace oficial /hoy abrio Su Voz y cargo 1 Samuel 31:1-13, versiones y fuentes; evidencia lenovo-public-reading-53.png.
+
+La comprobacion personal del teclado, ayuda, Aprender, revision, audio, meditaciones anteriores y Oracion en este binario queda pendiente de respuesta del propietario. No se abrieron ni capturaron sus meditaciones u oraciones. La lectura de logs del proceso no se ejecuto porque requiere autorizacion especifica; no se declara cero errores nativos a partir de una lectura que no se hizo.
+
+Se preparo la vista previa de produccion con el mismo paquete de la biblioteca, sin otra carga ni compilacion. Conserva el porcentaje predeterminado de 100% y todos los paises de destino existentes. No se confirmo Guardar ni se envio a revision: produccion continua en 52 hasta cerrar QA y los pendientes operativos.
 
 ## Parche de seguridad detectado en CI
 
@@ -46,4 +54,12 @@ Se actualizo exclusivamente el arbol transitivo de body-parser dentro del rango 
 
 La bateria completa se repitio con la dependencia corregida: 62/62. Una prueba adicional de bucle local uso cargas sinteticas pequenas gzip, deflate y Brotli con bytes sobrantes; el proceso siguio atendiendo solicitudes posteriores. No se enviaron cargas de prueba al servidor real.
 
-El AAB 53 no contiene las dependencias de Functions y conserva su hash. El redespliegue se limita al inventario de las 41 funciones existentes; sus resultados se registraran cuando termine.
+El AAB 53 no contiene las dependencias de Functions y conserva su hash. El intento de redespliegue de las 41 funciones existentes fue detenido antes de ejecutarse por requerir autorizacion especifica para ese alcance productivo. La autorizacion se solicito al propietario y sigue pendiente. El parche esta en el repositorio, pero todavia no se ha aplicado al servidor; no se modificaron funciones, reglas ni IAM en produccion.
+
+## Git, CI y web
+
+El parche quedo en `922ce4df5ddb129a9feba40e5d3fea9274602d8d`, subido normalmente a origin/main. [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40033669198) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40033668893) finalizaron correctamente.
+
+En https://suvoz.app se comprobaron HTTP 200 y coincidencia SHA-256 para sw.js, MeditationDocument.js, DeepeningShell.js, deepening-shell.css y WorkshopController.js. La web sirve PWA 268. Aprender abrio su portada y los registros de consola de esa comprobacion no mostraron errores; no se leyeron ejercicios privados. Evidencia: production-web-268.png.
+
+Los AAB 52 y 53 se cotejaron nuevamente sin cambios. Fuera de esta entrega permanecen marketing/ y los dos documentos previos de investigacion/propuesta sin seguimiento.
