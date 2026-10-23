@@ -31,7 +31,7 @@ Auditoria: `node scripts/audit-android-44.mjs --candidate52`, seleccionando Comm
 
 Web mediante GitHub Pages desde main, raiz. No corresponde desplegar Firebase Hosting ni Functions. La prueba interna conserva exclusivamente Su Voz QA - propietario 2026-10-02, un miembro; las listas de 14 y 29 personas no se seleccionan.
 
-La entrega, CI, HTTP, consultas NBLA reales y QA del nuevo binario se registraran al verificarse. No se declara el nuevo paquete validado fisicamente por las pruebas de versiones anteriores ni se promueve a produccion antes de esa validacion. No se abren ni capturan meditaciones, oraciones o ejercicios personales.
+La entrega, CI, HTTP, consultas NBLA reales y QA del nuevo binario se detallan abajo. No se declara el nuevo paquete validado fisicamente por las pruebas de versiones anteriores ni se promueve a produccion antes de esa validacion. No se abren ni capturan meditaciones, oraciones o ejercicios personales.
 
 ## Web publicada
 
@@ -53,7 +53,7 @@ Despues, una peticion sin autenticar recibio HTTP 401 / AUTH_REQUIRED, como corr
 
 Play acepto un unico AAB 52, API 24+, target 36 y ReTrace adjunto, sin errores bloqueantes ni perdida de dispositivos compatibles. Persiste una advertencia sobre simbolos nativos de dependencias no suministrados. No se aceptaron nuevas condiciones ni se ampliaron permisos de extension para cargarlo.
 
-La release interna 13, 52 (1.5.20), figura disponible para verificadores el 22 de octubre a las 16:31. Solo esta seleccionada la lista Su Voz QA - propietario 2026-10-02, un miembro; las listas de 14 y 29 personas siguen sin seleccionar. Evidencia: play-internal-52.png. No se promovio 52 a produccion.
+La release interna 13, 52 (1.5.20), figura disponible para verificadores el 22 de octubre a las 16:31. Solo esta seleccionada la lista Su Voz QA - propietario 2026-10-02, un miembro; las listas de 14 y 29 personas siguen sin seleccionar. Evidencia: play-internal-52.png. La promocion posterior, tras QA de este binario, se detalla al final.
 
 Inicialmente Play todavia ofrecia 51 / 1.5.19, pese a que 52 figuraba disponible en la prueba interna. Se refresco la ficha y se cerro/reabrio Play Store, sin borrar cache ni datos. Posteriormente el propietario confirmo la actualizacion y ADB verifico 52 / 1.5.20 de com.android.vending, instalada el 22 de octubre a las 16:45:29; firstInstallTime permanece 2026-09-24 20:41:57. No se instalo APK local ni se desinstalo Su Voz.
 
@@ -67,10 +67,26 @@ Comprobaciones visuales en la Lenovo con el binario de Play, sin recompilar:
 - Cierre de solo Su Voz y apertura en frio por /hoy. Al terminar el arranque, Aprender mostro Continuar aprendiendo y Retomar recordo Un encuentro con Dios, con cero lecciones marcadas.
 - El proceso actual dio cero FATAL EXCEPTION, Uncaught y Unhandled. Se guardaron solo contadores, no logs crudos: lenovo-process-errors-52.json.
 
-Las capturas lenovo-*-52.png registran controles publicos y campos nuevos vacios, no meditaciones u oraciones personales. No se abrieron esas listas para inspeccionarlas; se solicito al propietario comprobar su conservacion y la apertura de Oracion. La prueba fisica sin conexion queda pendiente de su autorizacion especifica. El AAB conserva el SHA-256 congelado.
+Las capturas lenovo-*-52.png registran controles publicos y campos nuevos vacios, no meditaciones u oraciones personales. El propietario confirmo personalmente que sus meditaciones anteriores se conservan y Comunidad / Oracion abre sin error. No se abrieron esas listas para inspeccionarlas. El AAB conserva el SHA-256 congelado.
+
+## Comprobacion fisica sin conexion
+
+El propietario autorizo apagar temporalmente solo el Wi-Fi de la Lenovo y restablecerlo enseguida. Un primer control de prueba se cerro durante la pantalla de arranque y restauro automaticamente el Wi-Fi; esa captura no se cuenta como validacion offline. Se completo la misma comprobacion con control interactivo, restauracion al salir y limite de seguridad de 90 segundos.
+
+Con wifi_on=0, la lectura ya cargada 1 Samuel 30:18-30 se mostro, Aprender abrio sus ocho lecciones y Un encuentro con Dios mantuvo su contenido. Al abrir Salmos 1:1-2, no cargado en esa sesion, aparecio el aviso de conexion con Reintentar pasaje, sin sustituir NBLA ni alterar ejercicios. Evidencias: lenovo-offline-daily-verified-52.png, lenovo-offline-aprender-52.png, lenovo-offline-lesson-52.png y lenovo-offline-nbla-retry-52.png.
+
+Se restablecio inmediatamente el Wi-Fi: wifi_on=1 y airplane_mode_on=0, sin tocar datos moviles, cuentas, permisos ni notas. Reintentar pasaje cargo Salmos 1:1-2 NBLA correctamente; evidencia lenovo-online-nbla-recovered-52.png. Esta prueba no implica disponibilidad offline de pasajes NBLA no consultados ni valida un arranque en frio completamente offline: el primer intento se interrumpio antes de comprobarlo. No se escribieron ejercicios ni se marcaron lecciones completadas.
 
 ## Preparacion de produccion
 
 Preflight de Play: produccion 51 / 1.5.19, 178 paises de destino y ningun cambio ajeno sin publicar. Se preparo un borrador solo con 52 desde la biblioteca existente y las mismas notas de la prueba interna. No hubo nueva carga ni compilacion. Vista previa sin errores bloqueantes ni perdida de dispositivos compatibles; una advertencia sobre simbolos nativos no suministrados. Porcentaje predeterminado 100%, todos los paises de destino existentes, sin ampliarlos.
 
-El panel de 51 muestra dos recomendaciones heredadas sobre borde a borde y APIs obsoletas de esa pantalla; no son fallos nuevos de Aprender ni errores bloqueantes de esta version. Su presencia no permite afirmar que todos los dispositivos esten certificados. El borrador 52 todavia no se envio a revision: faltan la comprobacion privada del propietario y resolver la prueba offline solicitada.
+El panel de 51 muestra dos recomendaciones heredadas sobre borde a borde y APIs obsoletas de esa pantalla; no son fallos nuevos de Aprender ni errores bloqueantes de esta version. Su presencia no permite afirmar que todos los dispositivos esten certificados.
+
+## Envio de produccion
+
+El 22 de octubre, despues de la QA nativa, la confirmacion privada del propietario y la comprobacion offline descrita arriba, se guardo el lanzamiento completo de 52 y se envio un unico cambio a revision. Se reutilizo el AAB de la biblioteca: no hubo nueva carga, compilacion, instalacion local, cambio de paises, declaraciones, permisos ni aceptacion de condiciones nuevas.
+
+Play Console confirmo Cambios en la etapa de revision / Produccion / 52 (1.5.20) / Iniciar lanzamiento completo. Al cierre seguian ejecutandose las verificaciones rapidas previas; el envio ya no figura entre los cambios sin enviar. La publicacion administrada permanece desactivada. La disponibilidad publica de 52 depende de las verificaciones y la aprobacion de Google; no se declara aprobada ni disponible para todos. La version publica anterior es 51 (1.5.19).
+
+Panel: https://play.google.com/console/u/0/developers/5466794951356714708/app/4974496459300724158/publishing. Evidencia: artifacts/android-1.5.20-52-release/play-production-52-submitted.png. Informe de QA local: lenovo-qa-summary.json. SHA-256 del AAB comprobado nuevamente sin cambios: 69c1bf98eccb516fb2212382b623847c73520feeda75ef5d24aa4f685f7be347.
