@@ -9,7 +9,7 @@ El propietario autorizo el cierre completo de la entrega, commit, push, web y ac
 
 Se incorporan estado real de guardado, reintento y respaldo ante fallos, cierre protegido, revision y Terminar por hoy. El teclado conserva el espacio del pasaje y de la respuesta; permite seleccionar versiculos consecutivos, consultar preguntas, cambiar de etapa y volver de Revisar o Aprender sin tener que tocar de nuevo el editor si se estaba escribiendo. La ayuda de la barra usa un icono de interrogacion de Lucide, diferenciado de Aprender y Revisar.
 
-No cambia backend, reglas, IAM, dependencias, politica de privacidad, contenido de Comunidad, traducciones ni iOS nativo. Las respuestas no se incorporan a Analytics ni se envian a Firebase. Quedan fuera marketing/ y los documentos previos de investigacion y propuesta.
+No cambia la logica del backend, reglas, IAM, politica de privacidad, contenido de Comunidad, traducciones ni iOS nativo. El parche de una dependencia del servidor detectado durante CI se detalla abajo. Las respuestas no se incorporan a Analytics ni se envian a Firebase. Quedan fuera marketing/ y los documentos previos de investigacion y propuesta.
 
 ## Validacion previa
 
@@ -37,3 +37,13 @@ Auditoria: `node scripts/audit-android-44.mjs --candidate53`, con Command Line T
 La web se publica mediante GitHub Pages desde main, raiz. El canal interno de Play conserva exclusivamente Su Voz QA - propietario 2026-10-02, un miembro; las listas de 14 y 29 personas siguen sin seleccionar.
 
 Antes de esta entrega, Play mostraba produccion 52 / 1.5.20 al 100% y ningun cambio ajeno sin publicar. La subida, CI, comprobacion HTTP y validacion del nuevo binario se registraran al completarse. No se declara la 53 publicada ni validada fisicamente por las pruebas de versiones anteriores.
+
+## Parche de seguridad detectado en CI
+
+El commit de la entrega es `9cb2f4a421b31f690ce92d3a59b8809632cc3d48`; el push normal a main fue correcto. Pages finalizo correctamente, pero Product Validation detecto el aviso [GHSA-27r3-jxmh-p828](https://github.com/advisories/GHSA-27r3-jxmh-p828), incorporado a la base de avisos el 23 de octubre, despues de las primeras auditorias locales sin vulnerabilidades.
+
+Se actualizo exclusivamente el arbol transitivo de body-parser dentro del rango ya permitido: body-parser 2.3.0 a 2.4.0, su content-type 2.0.0 a 2.1.0 y qs 6.16.0 a 6.16.1. Solo cambia functions/package-lock.json; firebase-functions, firebase-admin y la logica de negocio no se modifican. npm audit vuelve a reportar cero vulnerabilidades.
+
+La bateria completa se repitio con la dependencia corregida: 62/62. Una prueba adicional de bucle local uso cargas sinteticas pequenas gzip, deflate y Brotli con bytes sobrantes; el proceso siguio atendiendo solicitudes posteriores. No se enviaron cargas de prueba al servidor real.
+
+El AAB 53 no contiene las dependencias de Functions y conserva su hash. El redespliegue se limita al inventario de las 41 funciones existentes; sus resultados se registraran cuando termine.
