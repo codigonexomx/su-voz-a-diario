@@ -7,20 +7,20 @@
     const STATE_EXPANDED = 'expanded';
     const DRAG_THRESHOLD = 18;
 
-    function renderPanel() {
+    function renderPanel(icon = () => '') {
         return `
             <section class="meditation-actions-panel" data-meditation-actions-panel data-state="collapsed" aria-label="Acciones de meditación">
                 <button class="meditation-actions-panel-tab" type="button" data-meditation-actions-tab aria-expanded="false" aria-label="Mostrar acciones de meditación">
-                    <span class="meditation-actions-panel-tab-icon" aria-hidden="true">◀</span>
+                    <span class="meditation-actions-panel-tab-icon" aria-hidden="true">${icon('more') || '◀'}</span>
                 </button>
                 <div class="meditation-actions-panel-content" data-meditation-actions-content>
                     <button class="meditation-actions-panel-action" type="button" data-meditation-action="view">
-                        <span aria-hidden="true">👁</span>
+                        <span aria-hidden="true">${icon('read') || '👁'}</span>
                         <span>Ver mi meditación</span>
                     </button>
                     <button class="meditation-actions-panel-action" type="button" data-meditation-action="share">
-                        <span aria-hidden="true">↗</span>
-                        <span>Compartir mi meditación</span>
+                        <span aria-hidden="true">${icon('share') || '↗'}</span>
+                        <span>Compartir PDF</span>
                     </button>
                 </div>
             </section>
@@ -54,7 +54,7 @@
             );
             const tabIcon = tabElement.querySelector('.meditation-actions-panel-tab-icon');
             if (tabIcon) {
-                tabIcon.textContent = isExpanded ? '▶' : '◀';
+                if (!callbacks.renderIcon) tabIcon.textContent = isExpanded ? '▶' : '◀';
             }
             if (contentElement) {
                 contentElement.inert = !isExpanded;
@@ -159,7 +159,7 @@
             pointerId = null;
         }
 
-        root.insertAdjacentHTML('beforeend', renderPanel());
+        root.insertAdjacentHTML('beforeend', renderPanel(callbacks.renderIcon));
         panelElement = root.querySelector('[data-meditation-actions-panel]');
         tabElement = panelElement?.querySelector('[data-meditation-actions-tab]');
         contentElement = panelElement?.querySelector('[data-meditation-actions-content]');

@@ -6,7 +6,8 @@
     const STEPS = [
         {
             id: 'god',
-            label: 'Cómo es Dios',
+            lesson: 'dios',
+            label: '¿Cómo es Dios?',
             intro: 'Mira primero a Dios antes de mirarte a ti.',
             questions: [
                 '¿Qué revela este pasaje acerca de Dios?',
@@ -16,6 +17,7 @@
         },
         {
             id: 'teaching',
+            lesson: 'ensenanza',
             label: 'Enseñanza',
             intro: 'Escucha con calma la verdad central del pasaje.',
             questions: [
@@ -26,6 +28,7 @@
         },
         {
             id: 'application',
+            lesson: 'aplicacion',
             label: 'Aplicación',
             intro: 'Deja que la Palabra ilumine tu vida de hoy.',
             questions: [
@@ -36,6 +39,7 @@
         },
         {
             id: 'prayer',
+            lesson: 'oracion',
             label: 'Oración',
             intro: 'Responde a Dios desde lo que has visto en su Palabra.',
             questions: [
@@ -189,7 +193,7 @@
         let caretScrollRafId = null;
         let scrollCueTimer = null;
         let isScrollCueVisible = false;
-        let lastSavedNoteSignature = noteSignature(initialNote);
+        let lastSavedNoteSignature = options.initialSaveError ? '' : noteSignature(initialNote);
         let lastSavedUIStateSignature = '';
         let stepPointerFocus = null;
         let stepAnimation = null;
@@ -197,6 +201,10 @@
         let pendingComposingStep = null;
         let compositionStepRafId = null;
         const stepCaretOffsets = new Map();
+        if (typeof initialUIState.caret?.offset === 'number') stepCaretOffsets.set(activeStepId, initialUIState.caret.offset);
+        let saveState = options.initialSaveError ? 'error' : 'saved';
+        let selectedVerse = null;
+        const icon = name => options.renderIcon?.(name) || '';
 
         function renderDefaultContent() {
             return `
@@ -221,9 +229,16 @@
                         data-step-panel="${step.id}"
                         ${step.id === activeStepId ? '' : 'hidden'}
                     >
-                        <h2>${escapeHtml(step.label)}</h2>
-                        <p>${escapeHtml(step.intro)}</p>
-                        ${step.questions.map(question => `<p>${escapeHtml(question)}</p>`).join('')}
+                        <div class="deepening-prompt-heading">
+                            <h2>${escapeHtml(step.label)}</h2>
+                            ${options.onLearn ? `<button type="button" class="deepening-learn-link" data-deepening-learn="${step.lesson}" aria-label="Aprender: ${escapeHtml(step.label)}">${icon('read')}<span>¿Cómo hacerlo?</span></button>` : ''}
+                        </div>
+                        <p class="deepening-main-question">${escapeHtml(step.questions[0])}</p>
+                        <details class="deepening-extra-help">
+                            <summary>Más ayuda</summary>
+                            <p>${escapeHtml(step.intro)}</p>
+                            ${step.questions.slice(1).map(question => `<p>${escapeHtml(question)}</p>`).join('')}
+                        </details>
                     </section>
                 `).join('')}
 
@@ -234,8 +249,16 @@
                     aria-multiline="true"
                     data-deepening-editor
                     data-placeholder="Escribe aquí"
+                    data-keyboard-placeholder="${escapeHtml(STEPS.find(step => step.id === activeStepId)?.questions[0] || '')}"
+                    aria-description="${escapeHtml(STEPS.find(step => step.id === activeStepId)?.questions[0] || '')}"
                     aria-label="Respuesta de meditación: ${escapeHtml(STEPS.find(step => step.id === activeStepId)?.label || STEPS[0].label)}"
                 >${editorHtml(currentNote[getStepField(activeStepId)])}</div>
+                <button type="button" class="deepening-cite-verse" data-deepening-cite hidden></button>
+                <footer class="deepening-step-navigation" aria-label="Recorrer la meditación">
+                    <button type="button" data-deepening-previous ${activeStepId === STEPS[0].id ? 'disabled' : ''}>${icon('previous')}<span>Anterior</span></button>
+                    <span data-deepening-step-position>${STEPS.findIndex(step => step.id === activeStepId) + 1} de 4</span>
+                    <button type="button" data-deepening-next><span>${activeStepId === 'prayer' ? 'Revisar' : 'Siguiente'}</span>${icon('next')}</button>
+                </footer>
             `;
         }
 
@@ -245,8 +268,22 @@
                     <header class="deepening-meditation-header">
                         <div class="deepening-meditation-grabber" aria-hidden="true"></div>
                         <div class="deepening-meditation-title">Medita la Palabra</div>
-                        <button class="deepening-meditation-close" type="button" aria-label="Salir de Profundizar" data-deepening-close>&times;</button>
+                        <button class="deepening-meditation-close" type="button" aria-label="Cerrar meditación" title="Cerrar meditación" data-deepening-close>${icon('close') || '&times;'}</button>
                     </header>
+                    <div class="deepening-save-bar">
+                        <span role="status" aria-live="polite" aria-atomic="true" data-deepening-save-status><span class="deepening-save-full">Guardado en este dispositivo</span><span class="deepening-save-compact" aria-hidden="true">Guardado</span></span>
+                        <div class="deepening-save-actions">
+                            ${options.onLearn ? `<button type="button" class="deepening-keyboard-learn" data-deepening-learn="${STEPS.find(step => step.id === activeStepId).lesson}" aria-label="Aprender: ${escapeHtml(STEPS.find(step => step.id === activeStepId).label)}">Aprender</button>` : ''}
+                            <button type="button" class="deepening-keyboard-help" data-deepening-help aria-label="Más ayuda" title="Más ayuda" aria-expanded="false" aria-controls="deepening-help">${icon('help') || '?'}</button>
+                            ${options.onReview ? `<button type="button" data-deepening-review aria-label="Revisar mi meditación">Revisar</button>` : ''}
+                            <button type="button" class="deepening-keyboard-close" data-deepening-close aria-label="Cerrar meditación">${icon('close') || '&times;'}</button>
+                        </div>
+                    </div>
+                    <aside class="deepening-save-error" data-deepening-save-error ${saveState === 'error' ? '' : 'hidden'}>
+                        <p>No pudimos guardar. Tu texto sigue aquí; no cierres la aplicación antes de guardarlo o respaldarlo.</p>
+                        <button type="button" data-deepening-retry>Reintentar</button>
+                        ${options.onBackup ? '<button type="button" data-deepening-backup>Guardar respaldo</button>' : ''}
+                    </aside>
                     <div class="deepening-meditation-frame">
                         ${options.meditationHtml || renderDefaultContent()}
                     </div>
@@ -277,6 +314,16 @@
             });
         }
 
+        function focusEditor() {
+            const editor = getEditor();
+            if (!editor) return false;
+            const offset = pendingCaretRestore?.offset ?? stepCaretOffsets.get(activeStepId) ?? editor.innerText.length;
+            pendingCaretRestore = null;
+            setCaretCharacterOffset(editor, offset);
+            scheduleCaretVisibilityCheck(editor);
+            return true;
+        }
+
         function getUIState() {
             const editor = getEditor(activeStepId);
             return {
@@ -284,7 +331,7 @@
                 scrollTop: root?.scrollTop || 0,
                 caret: {
                     stepId: activeStepId,
-                    offset: getCaretCharacterOffset(editor)
+                    offset: getCaretCharacterOffset(editor) ?? stepCaretOffsets.get(activeStepId) ?? null
                 }
             };
         }
@@ -314,21 +361,46 @@
                     throw new Error('Meditation save failed');
                 }
             } catch (error) {
+                const alreadyFailed = saveState === 'error';
+                setSaveState('error');
                 console.error('[Meditation] No se pudo guardar:', error);
-                options.onSaveError?.(error);
+                if (!alreadyFailed) options.onSaveError?.(error);
                 return false;
             }
             lastSavedNoteSignature = nextNoteSignature;
             lastSavedUIStateSignature = nextUIStateSignature;
+            setSaveState('saved');
             return true;
         }
 
+        function setSaveState(state) {
+            saveState = state;
+            const status = root?.querySelector('[data-deepening-save-status]');
+            const message = state === 'error' ? 'No se pudo guardar' : state === 'saving' ? 'Guardando…' : 'Guardado en este dispositivo';
+            const fullStatus = status?.querySelector('.deepening-save-full');
+            const compactStatus = status?.querySelector('.deepening-save-compact');
+            if (fullStatus && fullStatus.textContent !== message) fullStatus.textContent = message;
+            if (compactStatus) compactStatus.textContent = state === 'error' ? 'No guardado' : state === 'saving' ? 'Guardando…' : 'Guardado';
+            const error = root?.querySelector('[data-deepening-save-error]');
+            if (error) error.hidden = state !== 'error';
+            if (root?.dataset) root.dataset.saveState = state;
+        }
+
         function scheduleAutoSave() {
+            if (noteSignature(currentNote) !== lastSavedNoteSignature && saveState !== 'error') setSaveState('saving');
             window.clearTimeout(autosaveTimer);
             autosaveTimer = window.setTimeout(() => {
                 autosaveTimer = null;
                 flushAutoSave();
             }, AUTOSAVE_DELAY);
+        }
+
+        function onPageHide() {
+            flushAutoSave(true);
+        }
+
+        function onVisibilityChange() {
+            if (document.visibilityState === 'hidden') flushAutoSave(true);
         }
 
         function updateScrollCueAvailability() {
@@ -477,10 +549,24 @@
             root?.querySelectorAll('[data-step-panel]').forEach(panel => {
                 panel.hidden = panel.getAttribute('data-step-panel') !== activeStepId;
             });
+            const index = STEPS.findIndex(step => step.id === activeStepId);
+            const previous = root?.querySelector('[data-deepening-previous]');
+            if (previous) previous.disabled = index === 0;
+            const position = root?.querySelector('[data-deepening-step-position]');
+            if (position) position.textContent = `${index + 1} de 4`;
+            const nextLabel = root?.querySelector('[data-deepening-next] span');
+            if (nextLabel) nextLabel.textContent = index === 3 ? 'Revisar' : 'Siguiente';
+            const learn = root?.querySelector('.deepening-keyboard-learn');
+            const activeStep = STEPS.find(step => step.id === activeStepId) || STEPS[0];
+            if (learn) {
+                learn.setAttribute('data-deepening-learn', activeStep.lesson);
+                learn.setAttribute('aria-label', `Aprender: ${activeStep.label}`);
+            }
 
             if (editor) {
-                const activeStep = STEPS.find(step => step.id === activeStepId) || STEPS[0];
                 editor.setAttribute('aria-label', `Respuesta de meditación: ${activeStep.label}`);
+                editor.setAttribute('aria-description', activeStep.questions[0]);
+                editor.setAttribute('data-keyboard-placeholder', activeStep.questions[0]);
                 editor.innerHTML = editorHtml(currentNote[getStepField(activeStepId)]);
                 if (wasEditorActive) {
                     // Keep this synchronous with the tap; iOS may reject delayed keyboard focus.
@@ -488,7 +574,16 @@
                     scheduleCaretVisibilityCheck(editor);
                 }
             }
+            options.onStepChange?.();
             animateStepChange(previousStepId);
+            const activeButton = root?.querySelector(`[data-step="${activeStepId}"]`);
+            const navigation = root?.querySelector('.deepening-step-list');
+            if (activeButton && navigation) {
+                const buttonRect = activeButton.getBoundingClientRect();
+                const navRect = navigation.getBoundingClientRect();
+                if (buttonRect.left < navRect.left) navigation.scrollLeft -= navRect.left - buttonRect.left;
+                if (buttonRect.right > navRect.right) navigation.scrollLeft += buttonRect.right - navRect.right;
+            }
             requestAnimationFrame(updateScrollCueAvailability);
             scheduleAutoSave();
         }
@@ -500,6 +595,13 @@
         function onPointerDown(event) {
             stepPointerFocus = null;
             if (event.isPrimary === false || (typeof event.button === 'number' && event.button !== 0)) return;
+            const currentCaret = getCaretCharacterOffset(getEditor());
+            if (typeof currentCaret === 'number') stepCaretOffsets.set(activeStepId, currentCaret);
+            if (event.target.closest('[data-deepening-review]') && isEditorActive()) {
+                stepPointerFocus = { stepId: 'review', caretOffset: currentCaret };
+                event.preventDefault();
+                return;
+            }
             const editor = event.target.closest('[data-deepening-editor]');
             if (editor && root?.contains(editor) && document.activeElement !== editor) {
                 event.preventDefault();
@@ -510,10 +612,11 @@
                 return;
             }
 
-            const step = event.target.closest('.deepening-step');
+            const step = event.target.closest('.deepening-step') || event.target.closest('[data-deepening-previous], [data-deepening-next]');
             if (!step || !root?.contains(step) || !isEditorActive()) return;
 
-            const stepId = step.getAttribute('data-step');
+            const index = STEPS.findIndex(item => item.id === activeStepId);
+            const stepId = step.getAttribute('data-step') || STEPS[index + (step.hasAttribute('data-deepening-previous') ? -1 : 1)]?.id;
             if (!stepId) return;
 
             stepPointerFocus = { stepId, caretOffset: getCaretCharacterOffset(getEditor()) };
@@ -521,9 +624,19 @@
 
         function onStepMouseDown(event) {
             if (event.button !== 0) return;
-            const step = event.target.closest('.deepening-step');
+            if (event.target.closest('[data-deepening-review]') && (isEditorActive() || stepPointerFocus?.stepId === 'review')) {
+                event.preventDefault();
+                if (!isEditorActive()) getEditor()?.focus({ preventScroll: true });
+                return;
+            }
+            if (event.target.closest('[data-deepening-help]') && isEditorActive()) {
+                event.preventDefault();
+                return;
+            }
+            const step = event.target.closest('.deepening-step') || event.target.closest('[data-deepening-previous], [data-deepening-next]');
             if (!step || !root?.contains(step)) return;
-            const stepId = step.getAttribute('data-step');
+            const index = STEPS.findIndex(item => item.id === activeStepId);
+            const stepId = step.getAttribute('data-step') || STEPS[index + (step.hasAttribute('data-deepening-previous') ? -1 : 1)]?.id;
             if (!isEditorActive() && stepPointerFocus?.stepId !== stepId) return;
 
             // WebKit can still move focus after pointerdown; cancel its compatibility mousedown too.
@@ -541,8 +654,51 @@
             stepPointerFocus = null;
             const closeButton = event.target.closest('[data-deepening-close]');
             if (closeButton && root?.contains(closeButton)) {
-                flushAutoSave(true);
+                if (flushAutoSave(true) === false) return;
                 options.onClose?.();
+                return;
+            }
+
+            if (event.target.closest('[data-deepening-retry]')) { flushAutoSave(true); return; }
+            if (event.target.closest('[data-deepening-help]')) { options.onHelp?.(); return; }
+            if (event.target.closest('[data-deepening-backup]')) {
+                flushAutoSave(true);
+                options.onBackup?.();
+                return;
+            }
+            const learn = event.target.closest('[data-deepening-learn]');
+            if (learn) {
+                if (flushAutoSave(true) !== false) options.onLearn?.(learn.dataset.deepeningLearn);
+                return;
+            }
+            if (event.target.closest('[data-deepening-review]')) {
+                if (flushAutoSave(true) !== false) options.onReview?.({
+                    resumeEditing: isEditorActive() || (event.detail !== 0 && pointerFocus?.stepId === 'review')
+                });
+                return;
+            }
+            if (event.target.closest('[data-deepening-cite]') && selectedVerse) {
+                const editor = getEditor();
+                commitActiveEditor();
+                const field = getStepField(activeStepId);
+                const citation = `${documentMetadata.reference}, v. ${selectedVerse.verseNumber}${documentMetadata.version ? ` (${documentMetadata.version.toUpperCase()})` : ''}`;
+                currentNote[field] = `${currentNote[field]}${currentNote[field] ? '\n' : ''}${citation}`;
+                editor.innerHTML = editorHtml(currentNote[field]);
+                setCaretCharacterOffset(editor, editor.innerText.length);
+                scheduleCaretVisibilityCheck(editor);
+                scheduleAutoSave();
+                return;
+            }
+            const previous = event.target.closest('[data-deepening-previous]');
+            const next = event.target.closest('[data-deepening-next]');
+            if (previous || next) {
+                const index = STEPS.findIndex(step => step.id === activeStepId);
+                if (next && index === 3) {
+                    if (flushAutoSave(true) !== false) options.onReview?.({ resumeEditing: isEditorActive() || Boolean(pointerFocus) });
+                } else {
+                    const step = STEPS[index + (next ? 1 : -1)];
+                    if (step) setActiveStep(step.id, { preserveEditing: isEditorActive() || Boolean(pointerFocus) });
+                }
                 return;
             }
 
@@ -633,6 +789,7 @@
         function mount(target) {
             target.innerHTML = render();
             root = target.querySelector('[data-deepening-meditation-document]');
+            setSaveState(saveState);
             root?.addEventListener('pointerdown', onPointerDown);
             root?.addEventListener('mousedown', onStepMouseDown);
             root?.addEventListener('pointercancel', clearStepPointerFocus);
@@ -649,6 +806,8 @@
             root?.addEventListener('wheel', onScrollIntent, { passive: true });
             root?.addEventListener('touchmove', onScrollIntent, { passive: true });
             document.addEventListener('selectionchange', onSelectionChange);
+            document.addEventListener('visibilitychange', onVisibilityChange);
+            window.addEventListener?.('pagehide', onPageHide);
             requestAnimationFrame(() => {
                 restoreUIState();
                 updateScrollCueAvailability();
@@ -657,6 +816,7 @@
         }
 
         function destroy() {
+            if (flushAutoSave(true) === false) return false;
             window.clearTimeout(autosaveTimer);
             autosaveTimer = null;
             hideScrollCue();
@@ -671,7 +831,6 @@
                 cancelAnimationFrame(caretScrollRafId);
                 caretScrollRafId = null;
             }
-            flushAutoSave(true);
             root?.removeEventListener('pointerdown', onPointerDown);
             root?.removeEventListener('mousedown', onStepMouseDown);
             root?.removeEventListener('pointercancel', clearStepPointerFocus);
@@ -688,7 +847,10 @@
             root?.removeEventListener('wheel', onScrollIntent);
             root?.removeEventListener('touchmove', onScrollIntent);
             document.removeEventListener('selectionchange', onSelectionChange);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+            window.removeEventListener?.('pagehide', onPageHide);
             root = null;
+            return true;
         }
 
         return {
@@ -696,7 +858,21 @@
             destroy,
             getScrollElement: () => root,
             getCurrentDocument,
-            setDocumentMetadata
+            getUIState,
+            focusEditor,
+            ensureCaretVisible: scheduleCaretVisibilityCheck,
+            getHelp: () => STEPS.find(step => step.id === activeStepId),
+            setHelpExpanded: expanded => root?.querySelector('[data-deepening-help]')?.setAttribute('aria-expanded', String(expanded)),
+            flushAutoSave,
+            setDocumentMetadata,
+            setSelectedVerse(verse) {
+                selectedVerse = verse;
+                const button = root?.querySelector('[data-deepening-cite]');
+                if (button) {
+                    button.hidden = !verse;
+                    button.textContent = verse ? `Añadir referencia del versículo ${verse.verseNumber}` : '';
+                }
+            }
         };
     }
 

@@ -95,3 +95,16 @@ body.dark-mode .workshop-page {
 @media (prefers-reduced-motion: no-preference) {
     .workshop-page .wt-button, .wt-tabs a { transition: background-color .15s, border-color .15s; }
 }
+/* Contextual return never includes a private exercise or meditation excerpt. */
+.wt-meditation-return {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 12px 20px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+.wt-meditation-return button { min-height: 44px; border: 0; background: transparent; cursor: pointer; }

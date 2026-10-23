@@ -12,6 +12,7 @@
     let documentViewerOverlay = null;
     let documentViewer = null;
     let documentViewerFocusReturnElement = null;
+    let documentViewerResumeEditing = false;
     let documentViewerBackgroundState = [];
     let documentViewerPdfResult = null;
     let documentViewerPdfDocument = null;
@@ -21,6 +22,10 @@
     let releaseInstantScrollFrame = null;
     let releaseInstantScrollSecondFrame = null;
     let instantScrollRestoreHadClass = false;
+    let mountedOptions = null;
+    let closing = false;
+    let helpOverlay = null;
+    let helpWasEditing = false;
 
     function getRoot() {
         root = root || document.getElementById('deepening-root');
@@ -29,11 +34,71 @@
 
     function renderShell() {
         return `
-            <div class="deepening-shell" role="dialog" aria-modal="true" aria-label="Modo Profundizar" tabindex="-1">
+            <div class="deepening-shell" role="dialog" aria-modal="true" aria-label="Meditación" tabindex="-1">
                 <div class="deepening-reading-host" data-deepening-reading-host></div>
                 <div class="deepening-meditation-host" data-deepening-meditation-host></div>
             </div>
         `;
+    }
+
+    function preserveHelpEditing(event) {
+        if (event.button > 0) return;
+        const editing = Boolean(document.activeElement?.closest?.('[data-deepening-editor]'));
+        if (event.type === 'pointerdown') helpWasEditing = editing;
+        if (editing || helpWasEditing) {
+            event.preventDefault();
+            if (!editing) meditationDocument?.focusEditor();
+        }
+    }
+
+    function closeHelp() {
+        helpOverlay?.removeEventListener('pointerdown', preserveHelpEditing);
+        helpOverlay?.removeEventListener('mousedown', preserveHelpEditing);
+        helpOverlay?.removeEventListener('click', handleHelpClick);
+        helpOverlay?.remove();
+        helpOverlay = null;
+        helpWasEditing = false;
+        meditationDocument?.setHelpExpanded(false);
+        meditationDocument?.ensureCaretVisible?.();
+    }
+
+    function handleHelpClick(event) {
+        if (event.target.closest('[data-deepening-help-close]')) {
+            closeHelp();
+        } else if (event.target.closest('[data-deepening-help-learn]')) {
+            const lesson = meditationDocument?.getHelp()?.lesson;
+            if (lesson && meditationDocument.flushAutoSave(true) !== false) mountedOptions?.onLearn?.(lesson);
+        }
+    }
+
+    function refreshHelp() {
+        const step = meditationDocument?.getHelp();
+        if (!helpOverlay || !step) return;
+        helpOverlay.setAttribute('aria-label', `Más ayuda: ${step.label}`);
+        helpOverlay.innerHTML = `
+            <header><h3>${escapePreviewHtml(step.label)}</h3><button type="button" data-deepening-help-close aria-label="Ocultar ayuda">${mountedOptions?.renderIcon?.('close') || '&times;'}</button></header>
+            <p>${escapePreviewHtml(step.intro)}</p>
+            <ul>${step.questions.map(question => `<li>${escapePreviewHtml(question)}</li>`).join('')}</ul>
+            ${mountedOptions?.onLearn ? `<button type="button" data-deepening-help-learn>Aprender cómo hacerlo</button>` : ''}
+        `;
+        helpOverlay.scrollTop = 0;
+    }
+
+    function toggleHelp() {
+        if (helpOverlay) { closeHelp(); return; }
+        const shell = getRoot()?.querySelector('.deepening-shell');
+        if (!shell) return;
+        helpOverlay = document.createElement('aside');
+        helpOverlay.id = 'deepening-help';
+        helpOverlay.className = 'deepening-help';
+        helpOverlay.setAttribute('role', 'region');
+        helpOverlay.addEventListener('pointerdown', preserveHelpEditing);
+        helpOverlay.addEventListener('mousedown', preserveHelpEditing);
+        helpOverlay.addEventListener('click', handleHelpClick);
+        shell.append(helpOverlay);
+        meditationDocument?.setHelpExpanded(true);
+        refreshHelp();
+        meditationDocument?.ensureCaretVisible?.();
     }
 
     function renderDocumentViewerOverlay(options = {}) {
@@ -57,7 +122,7 @@
                             <span>Compartir PDF</span>
                         </button>
                     </div>
-                ` : ''}
+                ` : '<div class="deepening-document-viewer-actions"><button type="button" data-deepening-document-finish>Terminar por hoy</button></div>'}
             </div>
         `;
     }
@@ -566,13 +631,43 @@
         }
     }
 
+    function handleDocumentViewerFinish() {
+        void unmount({ restore: true });
+    }
+
+    function handleShellKeydown(event) {
+        if (event.defaultPrevented || event.isComposing || documentViewerOverlay) return;
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            if (helpOverlay) closeHelp();
+            else void unmount({ restore: true });
+            return;
+        }
+        if (event.key !== 'Tab') return;
+        const targetRoot = getRoot();
+        const elements = Array.from(targetRoot.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), select:not([disabled]), summary, [contenteditable="true"], [tabindex]:not([tabindex="-1"])'))
+            .filter(element => element.getClientRects().length && !element.closest('[hidden], [inert]'));
+        const first = elements[0];
+        const last = elements[elements.length - 1];
+        if (!first) return;
+        if (event.shiftKey && (document.activeElement === first || !elements.includes(document.activeElement))) {
+            event.preventDefault();
+            last.focus({ preventScroll: true });
+        } else if (!event.shiftKey && (document.activeElement === last || !elements.includes(document.activeElement))) {
+            event.preventDefault();
+            first.focus({ preventScroll: true });
+        }
+    }
+
     function closeDocumentViewer(options = {}) {
         if (!documentViewerOverlay) return;
         const shouldRestoreFocus = options.restoreFocus !== false;
         const focusReturnElement = documentViewerFocusReturnElement;
+        const resumeEditing = documentViewerResumeEditing;
         documentViewerOverlay
             .querySelector('[data-deepening-document-viewer-close]')
             ?.removeEventListener('click', handleDocumentViewerCloseClick);
+        documentViewerOverlay.querySelector('[data-deepening-document-finish]')?.removeEventListener('click', handleDocumentViewerFinish);
         clearDocumentViewerPdfState();
         documentViewerOverlay.removeEventListener('keydown', handleDocumentViewerKeydown);
         documentViewerOverlay.remove();
@@ -580,20 +675,25 @@
         documentViewer = null;
         restoreDocumentViewerBackground();
         documentViewerFocusReturnElement = null;
+        documentViewerResumeEditing = false;
 
-        if (shouldRestoreFocus && focusReturnElement?.isConnected) {
+        if (shouldRestoreFocus && resumeEditing) {
+            meditationDocument?.focusEditor();
+        } else if (shouldRestoreFocus && focusReturnElement?.isConnected) {
             focusReturnElement.focus({ preventScroll: true });
         }
     }
 
-    function openDocumentViewer() {
+    function openDocumentViewer(options = {}) {
         const targetRoot = getRoot();
         const documentModel = meditationDocument?.getCurrentDocument?.();
         if (!targetRoot || !documentModel || !window.MeditationDocumentViewer) return null;
+        closeHelp();
 
         const focusReturnElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         closeDocumentViewer({ restoreFocus: false });
         documentViewerFocusReturnElement = focusReturnElement;
+        documentViewerResumeEditing = options.resumeEditing === true || Boolean(focusReturnElement?.closest('[data-deepening-editor]'));
         targetRoot.insertAdjacentHTML('beforeend', renderDocumentViewerOverlay());
         documentViewerOverlay = targetRoot.querySelector('[data-deepening-document-viewer-overlay]');
         const scrollRoot = documentViewerOverlay?.querySelector('[data-deepening-document-viewer-scroll]');
@@ -604,6 +704,7 @@
             ?.querySelector('[data-deepening-document-viewer-close]')
             ?.addEventListener('click', handleDocumentViewerCloseClick);
         documentViewerOverlay?.addEventListener('keydown', handleDocumentViewerKeydown);
+        documentViewerOverlay.querySelector('[data-deepening-document-finish]')?.addEventListener('click', handleDocumentViewerFinish);
         documentViewerOverlay?.focus?.({ preventScroll: true });
         return documentViewerOverlay;
     }
@@ -611,6 +712,7 @@
     function openPdfDocumentViewer(pdfResult, documentModel) {
         const targetRoot = getRoot();
         if (!targetRoot || !pdfResult?.blob || !pdfResult?.fileName) return null;
+        closeHelp();
 
         const focusReturnElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
         closeDocumentViewer({ restoreFocus: false });
@@ -693,50 +795,69 @@
 
     async function unmount(options = {}) {
         const targetRoot = getRoot();
-        if (!targetRoot) return;
+        if (!targetRoot || targetRoot.hidden) return true;
+        if (closing) return false;
+        if (meditationDocument?.flushAutoSave(true) === false) return false;
+        const callbacks = { ...mountedOptions, ...options };
+        closing = true;
 
         try {
-            await options.onAutoSave?.();
-        } finally {
+            if (await callbacks.onAutoSave?.() === false) return false;
+            closeHelp();
+            if (meditationDocument?.destroy() === false) return false;
+            meditationDocument = null;
             blurActiveShellElement(targetRoot);
             await nextFrame();
             keyboardManager?.destroy();
             keyboardManager = null;
             meditationActionsPanel?.destroy();
             meditationActionsPanel = null;
-            closeDocumentViewer();
-            meditationDocument?.destroy();
-            meditationDocument = null;
+            closeDocumentViewer({ restoreFocus: false });
             readingDocument?.destroy();
             readingDocument = null;
+            targetRoot.removeEventListener('keydown', handleShellKeydown);
 
             targetRoot.innerHTML = '';
             targetRoot.hidden = true;
             targetRoot.style.removeProperty('--deepening-shell-height');
 
             if (options.restore !== false) {
-                await options.onRestore?.(restorePositionRecord);
+                await callbacks.onRestore?.(restorePositionRecord);
             }
 
-            unlockBackground({ restoreFocus: options.restore !== false });
-            restorePositionRecord = null;
+            return true;
+        } catch (error) {
+            callbacks.onSaveError?.(error);
+            return false;
+        } finally {
+            if (!meditationDocument && targetRoot.hidden) {
+                unlockBackground({ restoreFocus: options.restore !== false });
+                mountedOptions = null;
+                restorePositionRecord = null;
+            }
+            closing = false;
         }
     }
 
     function mount(options = {}) {
         const targetRoot = getRoot();
         if (!targetRoot) return null;
+        if (meditationDocument?.flushAutoSave(true) === false) return null;
+        closeHelp();
 
         keyboardManager?.destroy();
         meditationActionsPanel?.destroy();
         meditationDocument?.destroy();
         readingDocument?.destroy();
+        mountedOptions = options;
 
         restorePositionRecord = window.ReadingPositionManager?.createPositionRecord(options) || null;
         targetRoot.hidden = false;
         window.KeyboardViewportManager?.init?.();
         targetRoot.style.setProperty('--deepening-shell-height', `${getStableViewportHeight()}px`);
         targetRoot.innerHTML = renderShell();
+        targetRoot.removeEventListener('keydown', handleShellKeydown);
+        targetRoot.addEventListener('keydown', handleShellKeydown);
         lockBackground({ root: targetRoot });
 
         const readingHost = targetRoot.querySelector('[data-deepening-reading-host]');
@@ -744,6 +865,7 @@
 
         readingDocument = window.ReadingDocument?.create({
             reading: options.reading,
+            initialUIState: options.initialReadingState,
             readingHtml: options.readingHtml,
             versions: options.versions,
             currentVersion: options.currentVersion,
@@ -755,13 +877,16 @@
             },
             onVoiceToggle: options.onVoiceToggle,
             onVoiceStop: options.onVoiceStop,
-            getVoiceState: options.getVoiceState
+            getVoiceState: options.getVoiceState,
+            onActiveVerseChange: verse => meditationDocument?.setSelectedVerse(verse)
         });
 
         meditationDocument = window.MeditationDocument?.create({
             meditationHtml: options.meditationHtml,
             initialNote: options.initialNote,
             initialUIState: options.initialUIState,
+            initialSaveError: options.initialSaveError,
+            renderIcon: options.renderIcon,
             documentMetadata: {
                 date: options.reading?.date || '',
                 reference: options.reading?.reference || '',
@@ -769,6 +894,11 @@
             },
             onAutoSave: options.onAutoSave,
             onSaveError: options.onSaveError,
+            onLearn: options.onLearn,
+            onHelp: toggleHelp,
+            onStepChange: refreshHelp,
+            onBackup: options.onBackup,
+            onReview: openDocumentViewer,
             onClose: () => {
                 unmount({
                     restore: true,
@@ -785,6 +915,7 @@
         keyboardManager?.init(meditationRoot);
 
         meditationActionsPanel = window.MeditationActionsPanel?.create(targetRoot, {
+            renderIcon: options.renderIcon,
             onView: () => {
                 openDocumentViewer();
             },
@@ -793,7 +924,8 @@
             }
         });
 
-        targetRoot.querySelector('.deepening-shell')?.focus({ preventScroll: true });
+        if (options.focusEditor) meditationDocument?.focusEditor();
+        else targetRoot.querySelector('.deepening-shell')?.focus({ preventScroll: true });
 
         return {
             root: targetRoot,
@@ -817,7 +949,8 @@
         closeDocumentViewer,
         isMounted: () => Boolean(readingDocument || meditationDocument),
         getReadingDocument: () => readingDocument,
-        getMeditationDocument: () => meditationDocument
+        getMeditationDocument: () => meditationDocument,
+        getState: () => ({ meditation: meditationDocument?.getUIState(), reading: readingDocument?.getUIState() })
     };
 
     window.suVozOpenNewDeepeningMode = function() {

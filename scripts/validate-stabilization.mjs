@@ -86,7 +86,7 @@ console.log('OK: continuous reader does not cascade and respects automatic chapt
 
 const saveContext = vm.createContext({ root: {}, options: { onAutoSave: () => { throw new Error('quota'); }, onSaveError: () => {} },
     getCurrentNote: () => ({ dios: 'draft' }), getUIState: () => ({}), noteSignature: JSON.stringify,
-    uiStateSignature: JSON.stringify, lastSavedNoteSignature: 'old', lastSavedUIStateSignature: 'old', console: { error: () => {} } });
+    uiStateSignature: JSON.stringify, saveState: 'saved', setSaveState: () => {}, lastSavedNoteSignature: 'old', lastSavedUIStateSignature: 'old', console: { error: () => {} } });
 const flush = vm.runInContext(`${functionSource('js/MeditationDocument.js', 'flushAutoSave')}; flushAutoSave`, saveContext);
 assert.equal(flush(), false);
 assert.equal(saveContext.lastSavedNoteSignature, 'old', 'Failed save cannot advance saved signature');

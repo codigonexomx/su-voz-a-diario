@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate52')
+const release = process.argv.includes('--candidate53')
+    ? { code: 53, name: '1.5.21', pwa: 268 }
+    : process.argv.includes('--candidate52')
     ? { code: 52, name: '1.5.20', pwa: 267 }
     : process.argv.includes('--candidate51')
     ? { code: 51, name: '1.5.19', pwa: 266 }
@@ -34,6 +36,9 @@ const run = (program, args) => execFileSync(program, args, { maxBuffer: 10000000
 const tool = args => run(java + 'java', ['-jar', '/private/tmp/bundletool-all-1.18.3.jar', ...args]).toString();
 const baseline = 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
 const frozen = [
+    ...(release.code >= 53 ? [
+        ['artifacts/android-1.5.20-52-release/su-voz-1.5.20-52.aab', '69c1bf98eccb516fb2212382b623847c73520feeda75ef5d24aa4f685f7be347']
+    ] : []),
     [baseline, '1e8d3ed45de42b34948c106ac0a8642929f00be6a4f755b58fecd5d11da99ae7'],
     ['artifacts/android-1.5.10-42/su-voz-1.5.10-42.aab', '91d395748fd208e2cae68ae8d7decea43b76f3bae9dd9caad65b34023d93cd92'],
     ['artifacts/android-1.5.12-44/su-voz-1.5.12-44.aab', '725eea6219fdf0e236847262b575173853820e1f1dd58706b3181cc1bcdbc4d3'],
@@ -71,7 +76,7 @@ const frozen = [
 ];
 for (const [file, expected] of frozen) assert.equal(hash(readFileSync(file)), expected, file);
 const checks = JSON.parse(readFileSync('artifacts/validation/tests.json', 'utf8'));
-const expectedChecks = release.code >= 52 ? 61 : release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
+const expectedChecks = release.code >= 53 ? 62 : release.code >= 52 ? 61 : release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
 assert.equal(checks.results.length, expectedChecks);
 assert(checks.results.every(check => check.status === 0));
 mkdirSync(out, { recursive: true, mode: 0o700 });

@@ -29,7 +29,10 @@ export function mountWorkshop(app, page = '', bible) {
     function render(focus = '') {
         const y = window.scrollY;
         const opened = new Set([...host.querySelectorAll('details[open]')].map(d => d.querySelector('summary')?.textContent));
-        host.innerHTML = renderWorkshop(state, ui, bible);
+        const returnLink = app.getMeditationLearningReturn?.()
+            ? '<div class="wt-meditation-return"><button type="button" class="wt-return" data-action="return-to-meditation">Volver a mi meditación</button><span>Tu reflexión permanece privada en este dispositivo.</span></div>'
+            : '';
+        host.innerHTML = returnLink + renderWorkshop(state, ui, bible);
         host.querySelectorAll('details').forEach(d => { if (opened.has(d.querySelector('summary')?.textContent)) d.open = true; });
         if (focus) {
             host.querySelector(focus)?.focus({ preventScroll: true });

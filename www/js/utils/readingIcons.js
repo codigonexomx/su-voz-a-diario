@@ -15,6 +15,8 @@ const icons = Object.freeze({
     highlight: '<path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>',
     search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     close: '<path d="m18 6-12 12"/><path d="m6 6 12 12"/>',
+    // circle-question-mark, retrieved from lucide-icons/lucide/icons on 2026-10-23.
+    help: '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
     previous: '<path d="m15 18-6-6 6-6"/>',
     next: '<path d="m9 18 6-6-6-6"/>',
     back: '<path d="m12 19-7-7 7-7"/><path d="M5 12h14"/>',

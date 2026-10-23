@@ -1018,7 +1018,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '267'
+            pwaVersion: '268'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -7174,7 +7174,65 @@ syncAppBadge: function(count) {
         }
     },
 
-    openDeepeningShell: function(reading) {
+    getMeditationLearningReturn: function() {
+        if (this.meditationLearningReturn) return this.meditationLearningReturn;
+        try {
+            const context = JSON.parse(window.sessionStorage?.getItem('su-voz-meditation-learning-return') || 'null');
+            if (context && /^\d{4}-\d{2}-\d{2}$/.test(context.date)
+                && typeof context.sessionId === 'string' && context.sessionId.length <= 128
+                && ['dios', 'ensenanza', 'aplicacion', 'oracion'].includes(context.lesson)) {
+                return this.meditationLearningReturn = context;
+            }
+        } catch { /* The meditation is independent of this optional return shortcut. */ }
+        return null;
+    },
+
+    openMeditationLearning: async function(lesson, date) {
+        if (!['dios', 'ensenanza', 'aplicacion', 'oracion'].includes(lesson) || this.openNoteDate !== date) return false;
+        const context = { date, lesson, sessionId: this.currentMeditationSessionId, state: window.DeepeningShell.getState() };
+        if (!context.sessionId || await window.DeepeningShell.unmount() === false) return false;
+        this.meditationLearningReturn = context;
+        try { window.sessionStorage?.setItem('su-voz-meditation-learning-return', JSON.stringify(context)); }
+        catch { /* Keep the return in memory; no meditation text is copied here. */ }
+        this.navigate('workshop', lesson);
+        return true;
+    },
+
+    returnToMeditationFromLearning: async function() {
+        const context = this.getMeditationLearningReturn();
+        if (!context || this.meditationLearningReturning) return false;
+        this.meditationLearningReturning = true;
+        try {
+            const cached = this.monthlyReadingsCache?.[context.date.slice(0, 7)]?.find(item => item.date === context.date)
+                || this.data?.find(item => item.date === context.date);
+            const reading = cached || await this.getReadingByDate(context.date);
+            const session = MeditationSessionStorage.get(context.sessionId);
+            if (!reading || !session || session.readingId !== context.date || session.status === 'archived') {
+                this.showToast('No se pudo abrir esa meditación. Puedes encontrarla en Mis meditaciones.');
+                return false;
+            }
+            const hash = `#reading/${context.date}`;
+            history.pushState(null, '', hash);
+            const navigation = this.handleRoute();
+            navigation.catch(() => {});
+            if (window.location.hash !== hash) { await navigation; return false; }
+            this.openMeditationSession(context.sessionId);
+            // Focus inside the return tap; awaiting the route first loses iOS keyboard activation.
+            const shell = this.openDeepeningShell(reading, { ...context.state, focusEditor: true });
+            await navigation;
+            if (!shell || window.location.hash !== hash) return false;
+            this.meditationLearningReturn = null;
+            try { window.sessionStorage?.removeItem('su-voz-meditation-learning-return'); } catch { /* Optional shortcut only. */ }
+            return true;
+        } catch (error) {
+            this.showToast('No se pudo volver a la meditación. Reintenta cuando tengas conexión; tu reflexión se conserva.');
+            return false;
+        } finally {
+            this.meditationLearningReturning = false;
+        }
+    },
+
+    openDeepeningShell: function(reading, returnState = null) {
         if (!reading || !window.DeepeningShell) {
             this.openSlidingNotebook(reading);
             return;
@@ -7188,13 +7246,20 @@ syncAppBadge: function(count) {
             { id: 'tla', label: 'TLA' }
         ].filter(version => reading.versions?.[version.id]);
 
-        window.DeepeningShell.mount({
+        this.meditationOriginHash = window.location.hash || '#home';
+        return window.DeepeningShell.mount({
             reading,
             readingHtml,
             versions,
-            currentVersion: this.currentVersion,
+            currentVersion: reading.versions?.[returnState?.reading?.version] ? returnState.reading.version : this.currentVersion,
             initialNote: this.getNote(reading.date),
-            initialUIState: this.getDeepeningPanelUIState(reading.date),
+            initialUIState: returnState?.meditation || this.getDeepeningPanelUIState(reading.date),
+            initialReadingState: returnState?.reading,
+            initialSaveError: Boolean(this.pendingMeditationNotes?.[reading.date]),
+            focusEditor: returnState?.focusEditor === true,
+            renderIcon: readingIcon,
+            onLearn: lesson => this.openMeditationLearning(lesson, reading.date),
+            onBackup: () => this.exportAllData(),
             getReadingHtml: versionId => this.renderVerseText(
                 this.getDailyReadingText(reading, versionId),
                 reading.date
@@ -7231,7 +7296,7 @@ syncAppBadge: function(count) {
                     this.saveDeepeningPanelUIState(reading.date, uiState);
                 }
             },
-            onSaveError: () => this.showToast('No se pudo guardar. Conserva el texto y libera espacio antes de cerrar.', 7000),
+            onSaveError: () => this.showToast('No se pudo guardar. Tu texto sigue abierto; reintenta o guarda un respaldo.', 7000),
             onRestore: () => {
                 if (this.openNoteDate === reading.date) {
                     this.toggleNote(reading.date);
@@ -10039,6 +10104,12 @@ closeTransientBibleUI: function() {
     const view = parts[0];
     const param = parts[1] || null;
     const oldView = this.currentView;
+    if (window.DeepeningShell?.isMounted?.() && (window.location.hash || '#home') !== (this.meditationOriginHash || '#home')) {
+        if (await window.DeepeningShell.unmount() === false) {
+            history.replaceState(null, '', this.meditationOriginHash || '#home');
+            return;
+        }
+    }
     this._bibleReaderEpoch = (this._bibleReaderEpoch || 0) + 1;
     this.closeTransientBibleUI();
     if (this.currentlySpeakingPostId != null && view !== oldView) this.stopCommunitySpeech();
@@ -12622,6 +12693,7 @@ scrollWindowInstantly: function(top = 0) {
 },
 
 resetReadingScrollPosition: function() {
+    if (window.DeepeningShell?.isMounted?.()) return;
     if (this.$content) {
         this.$content.scrollTop = 0;
     }
@@ -20190,17 +20262,23 @@ if (pdfBtn) {
     return;
 }
 
+const meditationLearningReturnBtn = e.target.closest('[data-action="return-to-meditation"]');
+if (meditationLearningReturnBtn) {
+    await this.returnToMeditationFromLearning();
+    return;
+}
+
 // Notas
 	const noteBtn = e.target.closest('[data-action="toggle-note"]');
 	if (noteBtn) {
 	    const date = noteBtn.getAttribute('data-date');
 	    const isClosing = this.openNoteDate === date;
-	    this.toggleNote(date);
 
 	    if (isClosing) {
-	        window.DeepeningShell?.unmount();
+	        await window.DeepeningShell?.unmount();
 	        return;
 	    }
+	    this.toggleNote(date);
 
 	    const reading = await this.getReadingByDate(date);
         this.trackAnalyticsOnce(`reading_start:${date}`, 'reading_start', this.getReadingAnalyticsParams(reading, this.currentView === 'home' ? 'home' : 'reading'));

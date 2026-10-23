@@ -4,16 +4,22 @@ import vm from 'node:vm';
 
 const source = await readFile(new URL('../js/MeditationDocument.js', import.meta.url), 'utf8');
 
-function fixture({ reducedMotion = false } = {}) {
+function fixture({ reducedMotion = false, initialSaveError = false } = {}) {
     const timers = new Map();
     const frames = new Map();
     const handlers = new Map();
+    const documentHandlers = new Map();
+    const windowHandlers = new Map();
     const saved = [];
     const animations = [];
+    const reviews = [];
+    const lessons = [];
     let id = 0;
     let caret = 2;
     const body = {};
-    const document = { activeElement: body, addEventListener() {}, removeEventListener() {} };
+    const document = { activeElement: body, visibilityState: 'visible',
+        addEventListener: (name, callback) => documentHandlers.set(name, callback),
+        removeEventListener: name => documentHandlers.delete(name) };
     const selection = {
         rangeCount: 1,
         getRangeAt: () => ({ startContainer: editor, startOffset: caret,
@@ -56,11 +62,13 @@ function fixture({ reducedMotion = false } = {}) {
             return animation;
         }
     }));
+    const learn = { attributes: {}, setAttribute(name, value) { this.attributes[name] = value; } };
     const root = {
         scrollTop: 0, scrollHeight: 200, clientHeight: 300, classList: classes(),
         contains: element => element === editor || steps.includes(element),
         querySelector(selector) {
             if (selector === '[data-deepening-editor]') return editor;
+            if (selector === '.deepening-keyboard-learn') return learn;
             if (selector.includes('data-step-panel')) return panels.find(panel => !panel.hidden);
             return null;
         },
@@ -70,6 +78,8 @@ function fixture({ reducedMotion = false } = {}) {
         removeEventListener(name, callback) { if (handlers.get(name) === callback) handlers.delete(name); }
     };
     const window = {
+        addEventListener: (name, callback) => windowHandlers.set(name, callback),
+        removeEventListener: name => windowHandlers.delete(name),
         getSelection: () => selection, matchMedia: () => ({ matches: reducedMotion }),
         clearTimeout: key => timers.delete(key),
         setTimeout(callback) { const key = ++id; timers.set(key, callback); return key; },
@@ -82,10 +92,14 @@ function fixture({ reducedMotion = false } = {}) {
     });
     vm.runInContext(source, context);
     const notebook = window.MeditationDocument.create({
+        initialSaveError,
         initialNote: { dios: editor.innerText, aprendizaje: 'Teaching response', oracion: 'Prayer response' },
-        onAutoSave(note, ui) { saved.push(JSON.parse(JSON.stringify({ note, ui }))); }
+        onReview: options => reviews.push(options),
+        onLearn: lesson => lessons.push(lesson),
+        onAutoSave(note, ui, metadata) { saved.push(JSON.parse(JSON.stringify({ note, ui, metadata }))); }
     });
-    notebook.mount({ innerHTML: '', querySelector: () => root });
+    const host = { innerHTML: '', querySelector: () => root };
+    notebook.mount(host);
     function emit(type, target = editor, extra = {}) {
         const event = { type, target, button: 0, pointerType: 'touch', detail: 1,
             defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...extra };
@@ -100,7 +114,7 @@ function fixture({ reducedMotion = false } = {}) {
         const pending = [...timers.values()]; timers.clear(); pending.forEach(callback => callback());
     }
     flush();
-    return { notebook, editor, document, body, steps, panels, animations, handlers, saved, emit, flush,
+    return { notebook, editor, document, body, steps, panels, animations, handlers, documentHandlers, windowHandlers, saved, emit, flush, selection, reviews, lessons, learn, host,
         getCaret: () => caret, setCaret: value => { caret = value; } };
 }
 
@@ -121,6 +135,13 @@ touch.setCaret(4);
 touch.emit('pointerdown', touch.steps[0]); touch.emit('mousedown', touch.steps[0]); touch.emit('click', touch.steps[0]);
 assert.equal(touch.editor.innerText, 'Unsaved God response');
 assert.equal(touch.getCaret(), 5, 'Returning restores that step cursor');
+touch.document.activeElement = touch.body;
+assert.equal(touch.notebook.focusEditor(), true);
+assert.equal(touch.document.activeElement, touch.editor);
+assert.equal(touch.getCaret(), 5, 'An explicit return resumes writing synchronously at the saved cursor');
+assert.equal(touch.notebook.getHelp().lesson, 'dios');
+assert.equal(touch.notebook.getHelp().label, '¿Cómo es Dios?');
+assert.equal(touch.notebook.getHelp().questions.length, 3);
 touch.flush();
 assert.equal(touch.saved.at(-1).note.dios, 'Unsaved God response');
 assert.equal(touch.saved.at(-1).note.aprendizaje, 'Updated teaching');
@@ -150,6 +171,67 @@ keyboard.emit('keydown', keyboard.steps[1], { key: 'Enter' }); keyboard.document
 keyboard.emit('click', keyboard.steps[1], { detail: 0 });
 assert.equal(keyboard.document.activeElement, keyboard.steps[1], 'Keyboard activation keeps navigation focus');
 
+const helpCaret = fixture();
+helpCaret.editor.focus(); helpCaret.setCaret(5);
+helpCaret.emit('pointerdown', { closest: () => null });
+helpCaret.selection.rangeCount = 0;
+assert.equal(helpCaret.notebook.getUIState().caret.offset, 5, 'Opening help retains the last cursor when mobile selection disappears on blur');
+
+const reviewButton = { closest: selector => selector === '[data-deepening-review]' ? reviewButton : null };
+const reviewing = fixture();
+reviewing.editor.focus(); reviewing.setCaret(6);
+assert(reviewing.emit('pointerdown', reviewButton).defaultPrevented);
+reviewing.document.activeElement = reviewing.body;
+assert(reviewing.emit('mousedown', reviewButton).defaultPrevented);
+reviewing.emit('click', reviewButton);
+assert.equal(reviewing.reviews.at(-1).resumeEditing, true, 'Review remembers editing across compatibility focus changes');
+assert.equal(reviewing.notebook.getUIState().caret.offset, 6);
+reviewing.document.activeElement = reviewing.body;
+reviewing.emit('pointerdown', reviewButton); reviewing.emit('mousedown', reviewButton);
+reviewing.document.activeElement = reviewButton; reviewing.emit('click', reviewButton);
+assert.equal(reviewing.reviews.at(-1).resumeEditing, false, 'Browsing the review does not request a keyboard');
+reviewing.editor.focus(); reviewing.emit('pointerdown', reviewButton);
+reviewing.emit('pointercancel', reviewButton); reviewing.document.activeElement = reviewButton;
+reviewing.emit('click', reviewButton, { detail: 0 });
+assert.equal(reviewing.reviews.at(-1).resumeEditing, false, 'Cancelled pointer intent never resumes editing');
+assert(reviewing.host.innerHTML.includes('class="deepening-keyboard-learn"'));
+assert(reviewing.host.innerHTML.includes('aria-label="Más ayuda" title="Más ayuda"'));
+assert(!reviewing.host.innerHTML.includes('deepening-help-label'), 'Help has one accessible icon, not a duplicate book label');
+for (const [index, lesson] of ['dios', 'ensenanza', 'aplicacion', 'oracion'].entries()) {
+    reviewing.emit('click', reviewing.steps[index]);
+    if (index > 0) assert.equal(reviewing.learn.attributes['data-deepening-learn'], lesson);
+    const learnButton = { dataset: { deepeningLearn: lesson }, closest: selector => selector === '[data-deepening-learn]' ? learnButton : null };
+    reviewing.emit('click', learnButton);
+    assert.equal(reviewing.lessons.at(-1), lesson, 'The direct Aprender command follows the current stage');
+}
+reviewing.notebook.destroy();
+
+const extended = fixture();
+const longNotes = {};
+for (const [index, field] of ['dios', 'aprendizaje', 'respuesta', 'oracion'].entries()) {
+    extended.emit('click', extended.steps[index]);
+    const text = Array.from({ length: 120 }, (_, paragraph) =>
+        `Prueba extensa ${field}, parrafo ${paragraph + 1}. Texto ficticio para verificar que las respuestas largas se conservan completas al guardar, revisar y cambiar de etapa.`
+    ).join('\n\n');
+    extended.editor.innerText = text;
+    extended.setCaret(text.length - 20);
+    extended.emit('input'); extended.flush();
+    longNotes[field] = text;
+    assert.equal(extended.saved.at(-1).note[field], text, 'Long responses save without truncation');
+}
+extended.emit('click', extended.steps[0]);
+assert.equal(extended.editor.innerText, longNotes.dios);
+const completeDocument = extended.notebook.getCurrentDocument();
+for (const [field, text] of Object.entries(longNotes)) assert.equal(completeDocument.sections[field], text);
+extended.editor.focus(); extended.setCaret(longNotes.dios.length - 20);
+extended.emit('pointerdown', reviewButton); extended.emit('mousedown', reviewButton); extended.emit('click', reviewButton);
+extended.document.activeElement = extended.body; extended.selection.rangeCount = 0;
+extended.notebook.focusEditor();
+assert.equal(extended.getCaret(), longNotes.dios.length - 20, 'Review returns to the saved position in a long response');
+assert.equal(extended.editor.innerText, longNotes.dios);
+extended.notebook.destroy();
+console.log('OK: four long responses persist and review intact, with cursor recovery near the end');
+
 const composing = fixture();
 composing.editor.focus(); composing.emit('compositionstart'); composing.editor.innerText = 'Composing text';
 composing.emit('pointerdown', composing.steps[1]); composing.emit('mousedown', composing.steps[1]); composing.emit('click', composing.steps[1]);
@@ -176,6 +258,21 @@ assert.equal(closing.animations.length, 0);
 const reduced = fixture({ reducedMotion: true });
 reduced.emit('click', reduced.steps[1], { detail: 0 });
 assert.equal(reduced.animations.length, 0, 'Reduced motion disables the page effect');
+const background = fixture();
+background.editor.innerText = 'Last keystroke before background'; background.emit('input');
+background.document.visibilityState = 'hidden';
+background.documentHandlers.get('visibilitychange')();
+assert.equal(background.saved.at(-1).note.dios, 'Last keystroke before background', 'Backgrounding flushes without waiting for the debounce timer');
+background.editor.innerText = 'Last keystroke before pagehide'; background.emit('input');
+background.windowHandlers.get('pagehide')();
+assert.equal(background.saved.at(-1).note.dios, 'Last keystroke before pagehide');
+background.notebook.destroy();
+assert.equal(background.windowHandlers.size, 0);
+assert.equal(background.documentHandlers.size, 0, 'Closing removes lifecycle and selection listeners');
+const pending = fixture({ initialSaveError: true });
+assert.equal(pending.notebook.flushAutoSave(true), true);
+assert.equal(pending.saved.at(-1).metadata.noteChanged, true, 'Retrying an initial pending draft must write it, not merely clear the error');
+pending.notebook.destroy();
 touch.notebook.destroy();
 assert.equal(touch.handlers.size, 0, 'Closing removes every notebook listener');
 assert(touch.animations.at(-1).cancelled, 'Closing cancels the page animation');

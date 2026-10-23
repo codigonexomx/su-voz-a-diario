@@ -95,7 +95,7 @@
             const reference = escapeHtml(reading.reference || '');
 
             return `
-                <section class="deepening-bible-panel deepening-reading-document" aria-label="Lectura bíblica en modo Profundizar" data-deepening-reading-document>
+                <section class="deepening-bible-panel deepening-reading-document" aria-label="Lectura bíblica de la meditación" data-deepening-reading-document>
                     <div class="deepening-reading-toolbar">
                         <div class="deepening-reading-toolbar-main">
                             ${reference ? `<div class="deepening-reading-reference">${reference}</div>` : ''}
@@ -248,6 +248,20 @@
             }
         }
 
+        function clearWritingFocus() {
+            preservedEditable = null;
+            preservedSelection = null;
+        }
+
+        function onReadingMouseDown(event) {
+            if (event.button !== 0 || !preservedEditable?.isConnected) return;
+            const target = getVerseItemFromEvent(event) || event.target.closest('[data-deepening-version], [data-deepening-voice-toggle], [data-deepening-voice-stop]');
+            if (!target || !root?.contains(target)) return;
+            // Cancel WebKit's compatibility mousedown before it can dismiss the editor keyboard.
+            event.preventDefault();
+            restoreWritingFocus();
+        }
+
         function rememberReadingPosition() {
             if (!scrollElement) return;
 
@@ -317,6 +331,7 @@
         function onPointerDown(event) {
             const verseItem = getVerseItemFromEvent(event);
             if (verseItem) {
+                preserveWritingFocus();
                 event.preventDefault();
                 event.stopPropagation();
                 clearNonEditableSelection();
@@ -324,11 +339,11 @@
                 return;
             }
 
-            const versionButton = event.target.closest('[data-deepening-version]');
-            if (!versionButton || !root?.contains(versionButton)) return;
+            const control = event.target.closest('[data-deepening-version], [data-deepening-voice-toggle], [data-deepening-voice-stop]');
+            if (!control || !root?.contains(control)) return;
 
             preserveWritingFocus();
-            preserveReadingPosition();
+            if (control.hasAttribute('data-deepening-version')) preserveReadingPosition();
             if (preservedEditable) {
                 event.preventDefault();
             }
@@ -341,23 +356,30 @@
                 event.stopPropagation();
                 clearNonEditableSelection();
                 setActiveVerse(verseItem);
+                restoreWritingFocus();
+                clearWritingFocus();
                 return;
             }
 
             const versionButton = event.target.closest('[data-deepening-version]');
             if (versionButton && root?.contains(versionButton)) {
                 setVersion(versionButton.getAttribute('data-deepening-version'));
+                clearWritingFocus();
                 return;
             }
 
             if (event.target.closest('[data-deepening-voice-toggle]')) {
                 options.onVoiceToggle?.(activeVersion);
+                restoreWritingFocus();
+                clearWritingFocus();
                 requestAnimationFrame(syncVoiceControl);
                 return;
             }
 
             if (event.target.closest('[data-deepening-voice-stop]')) {
                 options.onVoiceStop?.();
+                restoreWritingFocus();
+                clearWritingFocus();
                 requestAnimationFrame(syncVoiceControl);
             }
         }
@@ -374,8 +396,17 @@
             rememberReadingPosition();
             root?.addEventListener('scroll', rememberReadingPosition, { passive: true });
             root?.addEventListener('pointerdown', onPointerDown);
+            root?.addEventListener('mousedown', onReadingMouseDown);
+            root?.addEventListener('pointercancel', clearWritingFocus);
             root?.addEventListener('click', onClick);
             document.addEventListener('suvoz:daily-reading-voice-change', onVoiceStateChange);
+            if (options.initialUIState) {
+                activeVerseNumber = options.initialUIState.activeVerseNumber || null;
+                syncActiveVerse();
+                requestAnimationFrame(() => {
+                    if (scrollElement) scrollElement.scrollTop = Math.max(0, Number(options.initialUIState.scrollTop) || 0);
+                });
+            }
             return root;
         }
 
@@ -383,6 +414,8 @@
             document.removeEventListener('suvoz:daily-reading-voice-change', onVoiceStateChange);
             root?.removeEventListener('scroll', rememberReadingPosition);
             root?.removeEventListener('pointerdown', onPointerDown);
+            root?.removeEventListener('mousedown', onReadingMouseDown);
+            root?.removeEventListener('pointercancel', clearWritingFocus);
             root?.removeEventListener('click', onClick);
             root = null;
             scrollElement = null;
@@ -399,6 +432,7 @@
             mount,
             destroy,
             getScrollElement: () => scrollElement,
+            getUIState: () => ({ version: activeVersion, scrollTop: scrollElement?.scrollTop || 0, activeVerseNumber }),
             setVersion
         };
     }

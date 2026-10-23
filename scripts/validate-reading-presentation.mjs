@@ -82,7 +82,7 @@ for(const status of ['speaking','paused','idle']) {
 }
 const completed=method('renderDailyReadingActions').call({...rendering,isRead:()=>true},reading);
 assert(completed.includes('disabled'));assert(completed.includes('Leído hoy'));
-for(const name of ['read','meditation','community','share','complete','play','pause','stop']) {
+for(const name of ['read','help','meditation','community','share','complete','play','pause','stop']) {
     const svg=readingIcon(name);assert(svg.includes('aria-hidden="true"'));assert(!svg.includes('<script'));
 }
 assert.equal(readingIcon('unknown'), '');
