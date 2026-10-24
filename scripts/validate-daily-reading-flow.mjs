@@ -144,7 +144,16 @@ Object.assign(bibleContext, { currentView: 'home', homeViewingDate: scripture.da
     scrollWindowInstantly: value => { restoredScroll = value; }, handleRoute: async () => {}, showToast: () => {} });
 assert.equal(method('openDailyBibleChapter').call(bibleContext, '2026-10-23'), false);
 assert.equal(method('openDailyBibleChapter').call(bibleContext, scripture.date), true);
-assert.deepEqual(openedChapter, ['2pe', 1, 1]); assert.equal(introStops, 1);
+assert.deepEqual(openedChapter, ['2pe', 1, null]); assert.equal(introStops, 1);
+const chapterNavigation = { bibleBooks: bibleContext.bibleBooks, bibleApiIdMap: {}, currentView: 'home',
+    targetVerse: 9, targetVerseStart: 9, targetVerseEnd: 10,
+    saveBibleLastLocation: () => {}, navigate: view => { assert.equal(view, 'bible-reading'); } };
+method('navigateToVerse').apply(chapterNavigation, openedChapter);
+assert.equal(chapterNavigation.selectedBibleBook, '2pe');
+assert.equal(chapterNavigation.selectedBibleChapter, 1);
+assert.equal(chapterNavigation.targetVerse, null, 'A whole chapter opens at its heading, not a centered verse that can activate the previous chapter');
+assert.equal(chapterNavigation.targetVerseStart, null);
+assert.equal(chapterNavigation.targetVerseEnd, null);
 const destination = bibleContext.bibleStudyReturn;
 assert.equal(destination.date, scripture.date); assert.equal(destination.scrollY, 420);
 assert.equal(await method('returnToDailyReadingContext').call(bibleContext, destination), true);

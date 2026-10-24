@@ -41,6 +41,14 @@ Play confirma produccion 53 (1.5.21) al 100%, publicada el 23 de octubre, y ning
 
 ADB confirma Lenovo TB351FU con 53 (1.5.21) instalada por com.android.vending, firstInstallTime 2026-09-24 20:41:57 y lastUpdateTime 2026-10-23 16:28:01. Aun falta actualizar desde Play y validar fisicamente 54; no se considera validado el nuevo binario por las pruebas de la web.
 
-El mecanismo web existente es GitHub Pages desde main, raiz. El remoto configurado y comprobado en esta entrega es su-voz-a-diario/su-voz-a-diario; no se cambia su configuracion.
+El mecanismo web existente es GitHub Pages desde main, raiz. El remoto configurado es su-voz-a-diario/su-voz-a-diario; GitHub lo redirige a codigonexomx/su-voz-a-diario. No se cambia la configuracion local.
 
-Commit, push, CI, verificacion publica, carga interna, QA nativa y envio a produccion: en curso, pendientes de registrar sus resultados reales.
+## Resultado del candidato 54
+
+Commit `d486f02c7550ed488ca7cd06a6f44a674fbb82f7` subido a main. Product Validation y Pages correctos: ejecuciones 40130319965 y 40130319969. HTTP 200 y hashes identicos para index, sw, app, CSS y narrador publicados; PWA 269.
+
+Play publico 54 solo en la prueba interna exclusiva el 24 de octubre a las 14:40. Cero errores, cero dispositivos perdidos, una advertencia por simbolos nativos no disponibles. El permiso temporal de archivos de ChatGPT se activo con autorizacion concreta y se desactivo tras la transferencia.
+
+La Lenovo actualizo desde Play a 1.5.22, sin desinstalar ni borrar datos; firstInstallTime intacto. Arranque, texto diario y controles de audio observados: Pausar, Continuar y Detener, con marca avanzando del versiculo 1 al 3. La audibilidad requiere confirmacion del propietario.
+
+La prueba fisica detecto que centrar el primer versiculo al abrir el capitulo completo podia activar el encabezado del capitulo anterior. No se promovio 54 a produccion. Se prepara 55 para abrir el capitulo en su titulo, sin alterar la navegacion a versiculos concretos ni los datos. No se ejecuto la prueba offline autorizada para 54.

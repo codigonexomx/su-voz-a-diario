@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate54')
+const release = process.argv.includes('--candidate55')
+    ? { code: 55, name: '1.5.23', pwa: 270 }
+    : process.argv.includes('--candidate54')
     ? { code: 54, name: '1.5.22', pwa: 269 }
     : process.argv.includes('--candidate53')
     ? { code: 53, name: '1.5.21', pwa: 268 }
@@ -38,6 +40,9 @@ const run = (program, args) => execFileSync(program, args, { maxBuffer: 10000000
 const tool = args => run(java + 'java', ['-jar', '/private/tmp/bundletool-all-1.18.3.jar', ...args]).toString();
 const baseline = 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
 const frozen = [
+    ...(release.code >= 55 ? [
+        ['artifacts/android-1.5.22-54-release/su-voz-1.5.22-54.aab', '77b1f988b4918881c8fbae953c6a7e9c6b7a9439484dc48313fc3f5c8a0481df']
+    ] : []),
     ...(release.code >= 54 ? [
         ['artifacts/android-1.5.21-53-release/su-voz-1.5.21-53.aab', '99f37e3f5ef854722d4f8ee493ac26eeca88060a964539326ef345d6ceb30f1c']
     ] : []),

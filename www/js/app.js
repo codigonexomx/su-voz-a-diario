@@ -1019,7 +1019,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '269'
+            pwaVersion: '270'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -12742,7 +12742,7 @@ openDailyBibleChapter: function(date) {
     this.stopIntroVideo();
     this.bibleRestoreScrollPending = false;
     this.bibleStudyRestoreAnchor = null;
-    this.navigateToVerse(context.book.id, context.chapter, 1);
+    this.navigateToVerse(context.book.id, context.chapter, null);
     return true;
 },
 
