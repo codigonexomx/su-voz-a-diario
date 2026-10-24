@@ -42,9 +42,11 @@ Play acepto 53 / 1.5.21, API 24+, target 36 y ReTrace adjunto. La vista previa n
 
 Se actualizo la Lenovo directamente con Actualizar en Google Play, sin instalar APK local ni desinstalar o borrar datos. ADB confirmo versionCode 53, versionName 1.5.21 e instalador com.android.vending, lastUpdateTime 2026-10-23 16:28:01 y firstInstallTime 2026-09-24 20:41:57. El enlace oficial /hoy abrio Su Voz y cargo 1 Samuel 31:1-13, versiones y fuentes; evidencia lenovo-public-reading-53.png.
 
-La comprobacion personal del teclado, ayuda, Aprender, revision, audio, meditaciones anteriores y Oracion en este binario queda pendiente de respuesta del propietario. No se abrieron ni capturaron sus meditaciones u oraciones. La lectura de logs del proceso no se ejecuto porque requiere autorizacion especifica; no se declara cero errores nativos a partir de una lectura que no se hizo.
+El propietario confirmo en la Lenovo 53 el teclado y cambio de etapas, icono de ayuda, Aprender y retorno, Revisar y cierre con X. Tambien confirmo audio audible, meditaciones anteriores conservadas y Comunidad -> Oracion sin errores. No se abrieron ni capturaron sus meditaciones u oraciones. No se repitio una prueba fisica offline en 53; las comprobaciones offline automatizadas si se ejecutaron.
 
-Se preparo la vista previa de produccion con el mismo paquete de la biblioteca, sin otra carga ni compilacion. Conserva el porcentaje predeterminado de 100% y todos los paises de destino existentes. No se confirmo Guardar ni se envio a revision: produccion continua en 52 hasta cerrar QA y los pendientes operativos.
+Con autorizacion especifica del propietario se proceso en memoria solamente el log del proceso 19230 de Su Voz 53. Resultado: cero excepciones fatales, cero errores uncaught y cero unhandled. No se mostro ni guardo el texto del log; solo se conservaron contadores en lenovo-process-errors-53.json. Es una comprobacion acotada al proceso y momento observados, no una garantia de ausencia de errores futuros.
+
+Se preparo la vista previa de produccion con el mismo paquete de la biblioteca, sin otra carga ni compilacion. Conserva el porcentaje predeterminado de 100% y todos los paises de destino existentes. No se confirmo Guardar ni se envio a revision: produccion continua en 52. Tras cerrar la QA, una nueva revision automatica bloqueo el acceso a play.google.com por el alcance del origen completo; se solicito autorizacion concreta al propietario y no se intento eludir el bloqueo.
 
 ## Parche de seguridad detectado en CI
 
@@ -54,11 +56,19 @@ Se actualizo exclusivamente el arbol transitivo de body-parser dentro del rango 
 
 La bateria completa se repitio con la dependencia corregida: 62/62. Una prueba adicional de bucle local uso cargas sinteticas pequenas gzip, deflate y Brotli con bytes sobrantes; el proceso siguio atendiendo solicitudes posteriores. No se enviaron cargas de prueba al servidor real.
 
-El AAB 53 no contiene las dependencias de Functions y conserva su hash. El intento de redespliegue de las 41 funciones existentes fue detenido antes de ejecutarse por requerir autorizacion especifica para ese alcance productivo. La autorizacion se solicito al propietario y sigue pendiente. El parche esta en el repositorio, pero todavia no se ha aplicado al servidor; no se modificaron funciones, reglas ni IAM en produccion.
+El AAB 53 no contiene las dependencias de Functions y conserva su hash. El primer intento de redespliegue fue detenido antes de ejecutarse por requerir autorizacion especifica para ese alcance productivo. El propietario la concedio expresamente y el despliegue posterior termino correctamente: 41/41 funciones existentes actualizadas, todas en us-central1 / gcfv2. Se uso una seleccion explicita functions:<nombre> de las 41 funciones, sin --force ni creacion o eliminacion de funciones. El inventario posterior conserva los mismos nombres, cantidad, region y plataforma; no se cambiaron reglas ni IAM. getRemoteBibleChapter respondio con 401 UNAUTHENTICATED al sobre callable sin credenciales, no con HTTP 500. Una primera comprobacion sin el sobre data fue rechazada correctamente con HTTP 400.
+
+### Parche adicional undici
+
+Una nueva auditoria al cierre detecto tres avisos de undici incorporados a la base de GitHub el mismo 23 de octubre: [EventSource](https://github.com/advisories/GHSA-4qv8-2p9j-2685), [integridad de recursos](https://github.com/advisories/GHSA-f72v-6w45-q472) y [codificaciones excesivas](https://github.com/advisories/GHSA-xjj6-f33q-929c). La dependencia llega exclusivamente mediante cheerio; no forma parte del AAB.
+
+Se actualizo unicamente undici 7.30.0 a 7.30.1 dentro del rango transitivo existente. functions/package.json y la logica permanecen intactos. npm audit de Functions volvio a cero vulnerabilidades. Se repitieron las 62 comprobaciones con los tres emuladores locales: 62/62, cerrados al terminar. Una prueba adicional pequena y exclusivamente en 127.0.0.1 verifico integridad con SHA256 en mayusculas, rechazo de hash incorrecto y de codificaciones excesivas, continuidad de solicitudes y parsing HTML de cheerio; no se enviaron cargas sinteticas a produccion. Evidencia: undici-security.cjs.
+
+El despliegue correcto de body-parser ya descrito precede a este segundo parche; no se presenta como si incluyera undici 7.30.1. Se solicito autorizacion especifica para volver a actualizar las mismas 41 funciones con este cambio; queda pendiente de respuesta y ejecucion.
 
 ## Git, CI y web
 
-El parche quedo en `922ce4df5ddb129a9feba40e5d3fea9274602d8d`, subido normalmente a origin/main. [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40033669198) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40033668893) finalizaron correctamente.
+El parche body-parser quedo en `922ce4df5ddb129a9feba40e5d3fea9274602d8d`, subido normalmente a origin/main. [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40033669198) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40033668893) finalizaron correctamente. Tambien finalizaron correctamente [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40034762289) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40034762051) para el informe posterior 231c8f6.
 
 En https://suvoz.app se comprobaron HTTP 200 y coincidencia SHA-256 para sw.js, MeditationDocument.js, DeepeningShell.js, deepening-shell.css y WorkshopController.js. La web sirve PWA 268. Aprender abrio su portada y los registros de consola de esa comprobacion no mostraron errores; no se leyeron ejercicios privados. Evidencia: production-web-268.png.
 
