@@ -12,6 +12,7 @@ import { WorkshopScripture } from './workshop/WorkshopScripture.js';
 import { WORKSHOP_KEY, validateWorkshopState } from './services/WorkshopStorage.js';
 import { renderAccountPanel } from './AccountPanel.js';
 import { readingIcon } from './utils/readingIcons.js';
+import { DailyReadingNarrator, chunkDailyVoiceText } from './reading/DailyReadingNarrator.js';
 import {
     formatDateEs,
     formatDateForCompare,
@@ -1018,7 +1019,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '268'
+            pwaVersion: '269'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -2178,8 +2179,8 @@ renderReadingFontPicker: function(context = 'header') {
     const selected = this.settings.readingFont || DEFAULT_SETTINGS.readingFont;
     return `<fieldset class="reading-font-picker${context === 'daily' ? ' reading-font-picker-inline' : ''}"><legend>Fuente de lectura</legend>
         ${READING_FONTS.map(font => `<label class="reading-font-option" data-font="${font.id}">
-            <input type="radio" name="reading-font-${context}" value="${font.id}" data-reading-font ${font.id === selected ? 'checked' : ''}>
-            <span>${font.label}</span>
+            <input type="radio" name="reading-font-${context}" value="${font.id}" aria-label="${font.label}" data-reading-font ${font.id === selected ? 'checked' : ''}>
+            <span${context === 'daily' ? ` title="${font.label}"` : ''}>${context === 'daily' && font.id === 'cormorant' ? 'Cormorant' : font.label}</span>
         </label>`).join('')}
     </fieldset>`;
 },
@@ -7265,14 +7266,14 @@ syncAppBadge: function(count) {
                 reading.date
             ) + this.renderDailyReadingCopyright(reading, versionId),
             onVersionChange: () => {
-                if (this.dailyReadingVoice.date === reading.date && this.dailyReadingVoice.status !== 'idle') {
+                if (this.dailyReadingVoiceRequest || (this.dailyReadingVoice.date === reading.date && this.dailyReadingVoice.status !== 'idle')) {
                     this.stopDailyReadingVoice(true);
                 }
             },
             onVoiceToggle: versionId => {
                 const rawText = this.getDailyReadingText(reading, versionId);
                 const cleanText = this.getCleanDailyReadingText(reading, rawText);
-                this.pauseOrResumeDailyReadingVoice(reading.date, cleanText);
+                this.pauseOrResumeDailyReadingVoice(reading.date, cleanText, versionId);
             },
             onVoiceStop: () => this.stopDailyReadingVoice(),
             getVoiceState: () => {
@@ -10538,7 +10539,7 @@ selectSpanishVoice: function(voices = []) {
         || null;
 },
 
-renderDailyReadingVoiceControl: function(reading) {
+renderDailyReadingVoiceControl: function(reading, compact = false) {
     if (!this.isNativeTextToSpeechAvailable() && (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined')) {
         return `
             <div class="daily-reading-voice daily-reading-voice-unsupported" role="note">
@@ -10551,7 +10552,7 @@ renderDailyReadingVoiceControl: function(reading) {
     const status = isSameReading ? this.dailyReadingVoice.status : 'idle';
     const isReading = status === 'speaking';
     const isPaused = status === 'paused';
-    const label = isReading
+    const label = compact ? (isReading ? 'Pausar' : (isPaused ? 'Continuar' : 'Escuchar')) : isReading
         ? 'Escuchando lectura'
         : (isPaused ? 'Continuar lectura' : 'Escuchar lectura');
     const icon = isReading ? 'pause' : 'play';
@@ -10560,7 +10561,7 @@ renderDailyReadingVoiceControl: function(reading) {
         : (isPaused ? 'Continuar lectura en voz alta' : 'Escuchar lectura en voz alta');
 
     return `
-        <div class="daily-reading-voice" data-voice-date="${reading.date}">
+        <div class="daily-reading-voice" data-voice-date="${reading.date}"${compact ? ' data-voice-compact="true"' : ''}>
             <button
                 class="daily-reading-voice-main reading-command reading-command-audio"
                 type="button"
@@ -10571,13 +10572,14 @@ renderDailyReadingVoiceControl: function(reading) {
                 <span class="daily-reading-voice-icon daily-reading-voice-icon-${icon}" aria-hidden="true">${readingIcon(icon)}</span>
                 <span class="daily-reading-voice-label">${label}</span>
             </button>
-            ${isReading || isPaused ? `
+            ${compact || isReading || isPaused ? `
                 <button
                     class="daily-reading-voice-stop reading-command reading-command-stop"
                     type="button"
                     data-action="daily-reading-voice-stop"
                     aria-label="Detener lectura en voz alta"
                     title="Detener"
+                    ${!isReading && !isPaused ? 'disabled' : ''}
                 >
                     ${readingIcon('stop')}
                 </button>
@@ -10989,116 +10991,75 @@ updateBibleChapterVoiceUI: function() {
     this.updateBibleReaderContextBarUI();
 },
 
-startDailyReadingVoice: async function(date, text) {
-    const cleanText = (text || '').replace(/\s+/g, ' ').trim();
-    if (!cleanText) return;
+getDailyReadingVoiceQueue: function(reading, version, fallbackText) {
+    const host = document.createElement('div');
+    const raw = this.getDailyReadingText(reading, version);
+    host.innerHTML = raw ? this.renderVerseText(raw, reading.date) : '';
+    const verses = Array.from(host.querySelectorAll('.verse-item')).map((element, verseIndex) => ({
+        verseIndex, text: element.getAttribute('data-verse-text') || element.textContent
+    })).filter(verse => verse.text?.trim());
+    if (!verses.length) return [{ text: fallbackText, verseIndex: -1 }];
+    return verses.flatMap((verse, index) => chunkDailyVoiceText(
+        [index === 0 ? reading.reference : '', normalizeBibleVoiceText(verse.text)].filter(Boolean).join('. ')
+    ).map(text => ({ text, verseIndex: verse.verseIndex })));
+},
 
-    this.stopBibleChapterVoice(true);
-    this.stopDailyReadingVoice(true);
-    const reading = await this.getReadingByDate(date);
-    this.trackAnalyticsOnce(`reading_start:${date}`, 'reading_start', this.getReadingAnalyticsParams(reading, 'home'));
-    this.trackAnalyticsEvent('audio_start', {
-        audio_context: 'daily_reading',
-        reading_date: date,
-        bible_version: this.currentVersion || 'rvr60'
+getDailyReadingNarrator: function() {
+    if (!this.dailyReadingNarrator) this.dailyReadingNarrator = new DailyReadingNarrator({
+        synthesis: window.speechSynthesis,
+        Utterance: typeof SpeechSynthesisUtterance === 'undefined' ? null : SpeechSynthesisUtterance,
+        native: this.isNativeTextToSpeechAvailable() ? window.Capacitor.Plugins.TextToSpeech : null,
+        selectVoice: voices => this.selectSpanishVoice(voices),
+        onState: state => { this.dailyReadingVoice = state; this.updateDailyReadingVoiceUI(); },
+        onComplete: ({ date, version }) => this.trackAnalyticsEvent('audio_complete', {
+            audio_context: 'daily_reading', reading_date: date, bible_version: version
+        }),
+        onError: () => this.showToast('No se pudo continuar la lectura en voz alta. Puedes volver a intentarlo.')
     });
+    return this.dailyReadingNarrator;
+},
 
-    if (this.isNativeTextToSpeechAvailable()) {
-        this.dailyReadingVoice = { utterance: null, status: 'speaking', date };
-        this.updateDailyReadingVoiceUI();
-
-        try {
-            await this.speakWithNativeTextToSpeech(cleanText);
-            this.trackAnalyticsEvent('audio_complete', {
-                audio_context: 'daily_reading',
-                reading_date: date,
-                bible_version: this.currentVersion || 'rvr60'
-            });
-        } catch (error) {
-            console.warn('[Voice] Error iniciando lectura nativa:', error);
-        }
-
-        this.dailyReadingVoice = { utterance: null, status: 'idle', date: null };
-        this.updateDailyReadingVoiceUI();
-        return;
-    }
-
-    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+startDailyReadingVoice: async function(date, text, version = this.currentVersion || 'rvr60') {
+    if (!text?.trim()) return;
+    if (!this.isNativeTextToSpeechAvailable() && (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined')) {
         this.showToast('La lectura en voz alta no está disponible en este navegador');
         return;
     }
-
+    this.stopBibleChapterVoice(true);
+    this.stopDailyReadingVoice(true);
+    const request = this.dailyReadingVoiceRequest = Symbol('daily-reading');
     try {
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        const voices = window.speechSynthesis.getVoices();
-        const spanishVoice = this.selectSpanishVoice(voices);
-
-        if (spanishVoice) utterance.voice = spanishVoice;
-        utterance.lang = spanishVoice?.lang || 'es-MX';
-        utterance.rate = 0.92;
-        utterance.pitch = 1;
-
-        utterance.onend = () => {
-            if (this.dailyReadingVoice.utterance !== utterance) return;
-
-            this.dailyReadingVoice = { utterance: null, status: 'idle', date: null };
-            this.updateDailyReadingVoiceUI();
-            this.trackAnalyticsEvent('audio_complete', {
-                audio_context: 'daily_reading',
-                reading_date: date,
-                bible_version: this.currentVersion || 'rvr60'
-            });
-        };
-
-        utterance.onerror = (error) => {
-            if (this.dailyReadingVoice.utterance !== utterance) return;
-
-            console.warn('[Voice] No se pudo leer la lectura:', error);
-            this.dailyReadingVoice = { utterance: null, status: 'idle', date: null };
-            this.updateDailyReadingVoiceUI();
-        };
-
-        this.dailyReadingVoice = { utterance, status: 'speaking', date };
-        window.speechSynthesis.speak(utterance);
-        this.updateDailyReadingVoiceUI();
-    } catch (error) {
-        console.warn('[Voice] Error iniciando lectura:', error);
-        this.dailyReadingVoice = { utterance: null, status: 'idle', date: null };
-        this.updateDailyReadingVoiceUI();
+        const reading = await this.getReadingByDate(date);
+        if (this.dailyReadingVoiceRequest !== request || !reading) return;
+        const queue = this.getDailyReadingVoiceQueue(reading, version, text);
+        this.dailyReadingFollow = true;
+        this.bindDailyReadingFollow();
+        this.trackAnalyticsOnce(`reading_start:${date}`, 'reading_start', this.getReadingAnalyticsParams(reading, 'home'));
+        this.trackAnalyticsEvent('audio_start', {
+            audio_context: 'daily_reading', reading_date: date, bible_version: version
+        });
+        this.getDailyReadingNarrator().start(date, queue, version);
+    } catch {
+        if (this.dailyReadingVoiceRequest !== request) return;
+        this.stopDailyReadingVoice(true);
+        this.showToast('No se pudo iniciar la lectura en voz alta. Puedes volver a intentarlo.');
     }
 },
 
-pauseOrResumeDailyReadingVoice: function(date, text) {
-    if (this.isNativeTextToSpeechAvailable()) {
-        if (this.dailyReadingVoice.status === 'speaking' && this.dailyReadingVoice.date === date) {
-            this.stopDailyReadingVoice();
-            return;
-        }
-
-        this.startDailyReadingVoice(date, text);
-        return;
+pauseOrResumeDailyReadingVoice: function(date, text, version = this.currentVersion || 'rvr60') {
+    if (this.dailyReadingVoice.date === date && this.dailyReadingVoice.version === version && this.dailyReadingNarrator) {
+        if (this.dailyReadingVoice.status === 'speaking') return this.dailyReadingNarrator.pause();
+        if (this.dailyReadingVoice.status === 'paused') return this.dailyReadingNarrator.resume();
     }
-
-    if (!('speechSynthesis' in window)) return;
-
-    if (this.dailyReadingVoice.status === 'speaking' && this.dailyReadingVoice.date === date) {
-        window.speechSynthesis.pause();
-        this.dailyReadingVoice.status = 'paused';
-        this.updateDailyReadingVoiceUI();
-        return;
-    }
-
-    if (this.dailyReadingVoice.status === 'paused' && this.dailyReadingVoice.date === date) {
-        window.speechSynthesis.resume();
-        this.dailyReadingVoice.status = 'speaking';
-        this.updateDailyReadingVoiceUI();
-        return;
-    }
-
-    this.startDailyReadingVoice(date, text);
+    return this.startDailyReadingVoice(date, text, version);
 },
 
 stopDailyReadingVoice: function(silent = false, skipEngine = false) {
+    this.dailyReadingVoiceRequest = null;
+    if (this.dailyReadingNarrator) {
+        this.dailyReadingNarrator.stop(!skipEngine);
+        return;
+    }
     if (!skipEngine) {
         if (this.isNativeTextToSpeechAvailable()) {
             this.stopNativeTextToSpeech();
@@ -11117,9 +11078,45 @@ stopDailyReadingVoice: function(silent = false, skipEngine = false) {
     this.updateDailyReadingVoiceUI();
 },
 
+bindDailyReadingFollow: function() {
+    if (this.dailyReadingFollowBound) return;
+    this.dailyReadingFollowBound = true;
+    const suspend = () => { this.dailyReadingFollow = false; };
+    window.addEventListener('wheel', suspend, { passive: true });
+    window.addEventListener('touchmove', suspend, { passive: true });
+    window.addEventListener('pointerdown', event => {
+        if (event.target?.closest('.daily-reading-flow .reading-text-shell')) suspend();
+    }, { passive: true });
+    window.addEventListener('keydown', event => {
+        if (!event.target?.closest('input, textarea, select, [contenteditable="true"]')
+            && ['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) suspend();
+    });
+},
+
+updateDailyReadingVoicePosition: function() {
+    const state = this.dailyReadingVoice;
+    const shell = Array.from(document.querySelectorAll('.daily-reading-flow .reading-text-shell[data-reading-date]'))
+        .find(element => element.getAttribute('data-reading-date') === state.date);
+    const verse = state.status !== 'idle' && state.verseIndex >= 0
+        ? shell?.querySelectorAll('.verse-item')[state.verseIndex] : null;
+    if (verse === this.dailyReadingVoiceElement) return;
+    this.dailyReadingVoiceElement?.classList.remove('daily-voice-current');
+    this.dailyReadingVoiceElement = verse || null;
+    if (!verse) return;
+    verse.classList.add('daily-voice-current');
+    if (state.status !== 'speaking' || !this.dailyReadingFollow || document.visibilityState === 'hidden'
+        || document.body.classList.contains('deepening-shell-active') || window.getSelection()?.isCollapsed === false) return;
+    const rect = verse.getBoundingClientRect();
+    const toolbarBottom = document.querySelector('.daily-reading-entry')?.getBoundingClientRect().bottom || 128;
+    if (rect.top < toolbarBottom + 12 || rect.top > window.innerHeight - 180) {
+        verse.scrollIntoView({ block: 'start', behavior: 'auto' });
+    }
+},
+
 updateDailyReadingVoiceUI: function() {
+    this.updateDailyReadingVoicePosition();
     document.dispatchEvent(new CustomEvent('suvoz:daily-reading-voice-change', {
-        detail: { ...this.dailyReadingVoice }
+        detail: { status: this.dailyReadingVoice.status, date: this.dailyReadingVoice.date }
     }));
 
     const control = document.querySelector('.daily-reading-voice[data-voice-date]');
@@ -11132,6 +11129,7 @@ updateDailyReadingVoiceUI: function() {
     const status = isSameReading ? this.dailyReadingVoice.status : 'idle';
     const isReading = status === 'speaking';
     const isPaused = status === 'paused';
+    const compact = control.getAttribute('data-voice-compact') === 'true';
     const icon = mainBtn.querySelector('.daily-reading-voice-icon');
     const label = mainBtn.querySelector('.daily-reading-voice-label');
 
@@ -11141,7 +11139,7 @@ updateDailyReadingVoiceUI: function() {
     }
 
     if (label) {
-        label.textContent = isReading
+        label.textContent = compact ? (isReading ? 'Pausar' : (isPaused ? 'Continuar' : 'Escuchar')) : isReading
             ? 'Escuchando lectura'
             : (isPaused ? 'Continuar lectura' : 'Escuchar lectura');
     }
@@ -11166,9 +11164,10 @@ updateDailyReadingVoiceUI: function() {
                 ${readingIcon('stop')}
             </button>
         `);
-    } else if (!isReading && !isPaused && currentStopBtn) {
+    } else if (!compact && !isReading && !isPaused && currentStopBtn) {
         currentStopBtn.remove();
     }
+    if (compact && currentStopBtn) currentStopBtn.disabled = !isReading && !isPaused;
 },
 
     formatCommunityDateLabel: function(dateStr) {
@@ -12369,6 +12368,7 @@ navigateToBibleCrossReference: function(button) {
 returnToBibleStudy: function() {
     const destination = this.bibleStudyReturn;
     if (!destination) return;
+    if (destination.view === 'daily-reading') return this.returnToDailyReadingContext(destination);
     if (destination.view === 'bible-reading') {
         this.selectedBibleBook = destination.bookId;
         this.selectedBibleChapter = destination.chapter;
@@ -12713,16 +12713,72 @@ restoreCalendarPosition: function() {
     this.calendarInitialized = true;
 },
     
+getDailyReadingBibleContext: function(reading) {
+    if (!reading) return null;
+    const parsed = this.parseBibleReferenceQuery(reading.reference);
+    const bookId = parsed?.bookId || reading.bookId || this.getLibroActual(reading.date, reading)?.id;
+    const book = this.bibleBooks.find(item => item.id === bookId);
+    const chapter = parsed?.chapter || Number(String(reading.reference || '').match(/(\d+)\s*:\s*\d+/)?.[1]);
+    return book && Number.isInteger(chapter) && chapter >= 1 && chapter <= book.chapters ? { book, chapter } : null;
+},
+
+renderDailyReadingBibleContext: function(reading) {
+    const context = this.getDailyReadingBibleContext(reading);
+    if (!context) return '';
+    return `<button class="daily-reading-bible-context" type="button" data-action="open-daily-bible" data-date="${this.escapeHtml(reading.date)}"
+        aria-label="Leer ${this.escapeHtml(context.book.name)} ${context.chapter} completo en Biblia">
+        ${readingIcon('read')}
+        <span class="daily-reading-bible-position">Capítulo ${context.chapter} de ${context.book.chapters}</span>
+        <span class="daily-reading-bible-link">Ver en Biblia</span>${readingIcon('next')}
+    </button>`;
+},
+
+openDailyBibleChapter: function(date) {
+    if (!['home', 'reading'].includes(this.currentView) || this.getHomeViewingDate() !== date) return false;
+    const context = this.getDailyReadingBibleContext(this.getReadingMetadataByDate(date));
+    if (!context) return false;
+    this.bibleStudyReturn = { view: 'daily-reading', label: 'Volver a la lectura diaria', date,
+        originView: this.currentView, scrollY: Math.max(0, window.scrollY || 0), previous: this.bibleStudyReturn };
+    this.stopIntroVideo();
+    this.bibleRestoreScrollPending = false;
+    this.bibleStudyRestoreAnchor = null;
+    this.navigateToVerse(context.book.id, context.chapter, 1);
+    return true;
+},
+
+returnToDailyReadingContext: async function(destination) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(destination?.date || '')) return false;
+    const hash = destination.originView === 'reading' ? `#reading/${destination.date}` : '#home';
+    this.homeViewingDate = destination.date;
+    history.pushState(null, '', hash);
+    try {
+        await this.handleRoute();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        if (window.location.hash !== hash || this.getHomeViewingDate() !== destination.date) return false;
+        this.bibleStudyReturn = destination.previous || null;
+        this.scrollWindowInstantly(destination.scrollY || 0);
+        const link = Array.from(this.$content.querySelectorAll('[data-action="open-daily-bible"]'))
+            .find(element => element.getAttribute('data-date') === destination.date);
+        link?.focus({ preventScroll: true });
+        return true;
+    } catch {
+        this.showToast('No se pudo volver al pasaje. Puedes abrirlo desde Su Voz Hoy o Calendario.');
+        return false;
+    }
+},
+
 renderDailyReadingEntry: function(reading) {
     return `
-        <section class="daily-reading-entry" aria-label="Comenzar con este pasaje">
+        <header class="daily-reading-heading">
             <h2 class="daily-reading-entry-reference">${this.escapeHtml(reading.reference)}</h2>
+            ${this.renderDailyReadingBibleContext(reading)}
+        </header>
+        <div class="daily-reading-entry" role="group" aria-label="Controles del pasaje">
             <div class="daily-reading-entry-actions">
-                <button type="button" class="reading-command reading-command-read" data-action="read-passage" data-date="${reading.date}">${readingIcon('read')}<span>Leer pasaje</span></button>
                 <button type="button" class="reading-command reading-command-meditation" data-action="toggle-note" data-date="${reading.date}">${readingIcon('meditation')}<span>Meditación</span></button>
-                ${this.renderDailyReadingVoiceControl(reading)}
+                ${this.renderDailyReadingVoiceControl(reading, true)}
             </div>
-        </section>
+        </div>
     `;
 },
 
@@ -12764,10 +12820,18 @@ loadIntroVideo: function(button) {
     return true;
 },
 
+stopIntroVideo: function() {
+    const card = this.$content.querySelector?.('.intro-video-card[data-intro-date]');
+    if (!card?.querySelector('iframe')) return;
+    const config = getIntroVideoConfig(card.dataset.introDate);
+    if (config) card.outerHTML = renderIntroVideoHtml(config);
+},
+
 startReadingPassage: function(date) {
     const target = Array.from(this.$content.querySelectorAll('.reading-text-shell[data-reading-date]'))
         .find(element => element.getAttribute('data-reading-date') === date);
     if (!target) return;
+    this.stopIntroVideo();
     target.focus({ preventScroll: true });
     target.scrollIntoView({ block: 'start', behavior: 'auto' });
     const reading = this.getReadingMetadataByDate(date) || { date };
@@ -12784,11 +12848,8 @@ startReadingPassage: function(date) {
     // Verificar si está viendo el día de hoy
     const isToday = viewingDate === this.getTodayDateStr();
     
-    // Si es hoy Y hay lectura, mostrar el pergamino de progreso
+    // La lectura de hoy y las fechas anteriores comparten los mismos controles.
     if (isToday && reading) {
-        const pergaminoHtml = this.getProgresoLibroVisual(viewingDate, reading);
-        
-        // Construir la vista con el pergamino incluido
         const dateFormatted = this.formatDateEs(reading.date);
         const readingText = this.getDailyReadingText(reading);
 
@@ -12800,8 +12861,6 @@ startReadingPassage: function(date) {
         const currentIndex = reading ? this.getReadingIndexByDate(reading.date) : -1;
         const hasPrev = currentIndex > 0;
         const hasNext = currentIndex >= 0 && currentIndex < this.data.length - 1;
-        const isRealToday = reading && reading.date === this.getTodayDateStr();
-        const readingLabel = isRealToday ? 'Su voz hoy' : 'Su voz este día';
 
         this.$content.innerHTML = `
             <section class="home-hero-stage">
@@ -12816,18 +12875,13 @@ startReadingPassage: function(date) {
                 )}
             </section>
 
-            ${this.renderDailyReadingEntry(reading)}
-
-            <!-- 📜 PERGAMINO DE PROGRESO (SOLO HOY) -->
-            ${pergaminoHtml}
-
             ${introVideoHtml}
+            <section class="daily-reading-flow" aria-label="Pasaje del día">
+            ${this.renderDailyReadingEntry(reading)}
 
             <div class="reading-card">
                 ${this.renderDailyVersionSelector(reading)}
                 ${this.renderReadingFontPicker('daily')}
-                <div class="section-title">${readingLabel}</div>
-                <h2 class="reading-reference">${reading.reference}</h2>
                 <div class="reading-text-shell" data-reading-date="${reading.date}" tabindex="-1" aria-label="Lectura de ${this.escapeHtml(reading.reference)}">
                     <div class="reading-text selection-surface verse-container" data-selection-surface="true">
                         ${this.renderVerseText(readingText, reading.date)}
@@ -12837,6 +12891,7 @@ startReadingPassage: function(date) {
             </div>
 
             ${this.renderDailyReadingActions(reading)}
+            </section>
 
             ${this.renderDailyQuestionCardHtml(reading.date)}
 
@@ -12930,17 +12985,10 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
        const showIntroVideo = shouldShowIntroVideo(reading.date);
        const introVideoConfig = showIntroVideo ? getIntroVideoConfig(reading.date) : null;
        const introVideoHtml = introVideoConfig ? renderIntroVideoHtml(introVideoConfig) : '';
-        const progressHtml = isHome
-            ? this.getProgresoLibroVisual(reading.date, reading)
-            : '';
         
         const currentIndex = reading ? this.getReadingIndexByDate(reading.date) : -1;
         const hasPrev = currentIndex > 0;
         const hasNext = currentIndex >= 0 && currentIndex < this.data.length - 1;
-        const isRealToday = reading && reading.date === this.getTodayDateStr();
-        const readingLabel = isHome
-            ? (isRealToday ? 'Su voz hoy' : 'Su voz este día')
-            : '📖 Su voz este día';
         
         this.$content.innerHTML = `
     ${isHome ? `
@@ -12959,17 +13007,13 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
         <div class="reading-date-header">${dateFormatted.toUpperCase()}</div>
     `}
 
-    ${this.renderDailyReadingEntry(reading)}
-
-    ${progressHtml}
-
     ${introVideoHtml}
+    <section class="daily-reading-flow" aria-label="Pasaje del día">
+    ${this.renderDailyReadingEntry(reading)}
     
                 <div class="reading-card">
                     ${isHome ? this.renderDailyVersionSelector(reading) : ''}
                     ${this.renderReadingFontPicker('daily')}
-                    <div class="section-title">${readingLabel}</div>
-                    <h2 class="reading-reference">${reading.reference}</h2>
                     <div class="reading-text-shell" data-reading-date="${reading.date}" tabindex="-1" aria-label="Lectura de ${this.escapeHtml(reading.reference)}">
     <div class="reading-text selection-surface verse-container" data-selection-surface="true">
         ${this.renderVerseText(readingText, reading.date)}
@@ -12979,6 +13023,7 @@ rerenderCurrentReadingView: async function(dateStr = null, force = false) {
                </div>
 
             ${this.renderDailyReadingActions(reading)}
+            </section>
 
             ${this.renderDailyQuestionCardHtml(reading.date)}
             
@@ -19085,16 +19130,16 @@ const noteSection = e.target.closest('.note-section');
         return;
     }
             
+            const dailyBibleBtn = e.target.closest('[data-action="open-daily-bible"]');
+            if (dailyBibleBtn) {
+                this.openDailyBibleChapter(dailyBibleBtn.getAttribute('data-date'));
+                return;
+            }
+
             const introVideoBtn = e.target.closest('[data-action="load-intro-video"]');
             if (introVideoBtn) {
                 e.preventDefault();
                 this.loadIntroVideo(introVideoBtn);
-                return;
-            }
-
-            const readPassageBtn = e.target.closest('[data-action="read-passage"]');
-            if (readPassageBtn) {
-                this.startReadingPassage(readPassageBtn.getAttribute('data-date'));
                 return;
             }
 
@@ -19172,10 +19217,14 @@ const noteSection = e.target.closest('.note-section');
 const dailyReadingVoiceToggleBtn = e.target.closest('[data-action="daily-reading-voice-toggle"]');
 if (dailyReadingVoiceToggleBtn) {
     const date = dailyReadingVoiceToggleBtn.getAttribute('data-date');
+    const version = this.currentVersion;
     const reading = await this.getReadingByDate(date);
-    const text = this.getCleanDailyReadingText(reading);
+    if (dailyReadingVoiceToggleBtn.isConnected === false || this.currentVersion !== version) return;
+    const text = this.getCleanDailyReadingText(reading, this.getDailyReadingText(reading, version));
 
-    this.pauseOrResumeDailyReadingVoice(date, text);
+    const isStarting = this.dailyReadingVoice.date !== date || this.dailyReadingVoice.status === 'idle';
+    if (isStarting && dailyReadingVoiceToggleBtn.closest('.daily-reading-entry')) this.startReadingPassage(date);
+    this.pauseOrResumeDailyReadingVoice(date, text, version);
     return;
 }
 
@@ -20278,6 +20327,7 @@ if (meditationLearningReturnBtn) {
 	        await window.DeepeningShell?.unmount();
 	        return;
 	    }
+	    if (noteBtn.closest('.daily-reading-entry')) this.stopIntroVideo();
 	    this.toggleNote(date);
 
 	    const reading = await this.getReadingByDate(date);

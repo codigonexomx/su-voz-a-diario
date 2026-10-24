@@ -105,6 +105,7 @@ for (const name of ['renderHome', 'renderViewContent']) {
     const method = find(tree, name);
     const body = source.slice(method.start, method.end);
     assert(body.includes('renderIntroVideoHtml(introVideoConfig)'));
+    assert(body.indexOf('${introVideoHtml}') < body.indexOf('this.renderDailyReadingEntry(reading)'));
     assert(body.indexOf('${introVideoHtml}') < body.indexOf('<div class="reading-card">'));
 }
 assert(source.includes('this.loadIntroVideo(introVideoBtn)'));

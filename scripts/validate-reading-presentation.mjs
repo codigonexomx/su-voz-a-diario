@@ -57,7 +57,8 @@ assert(inlinePicker.includes('reading-font-picker-inline'));
 assert(inlinePicker.includes('name="reading-font-daily"'));
 assert.equal((inlinePicker.match(/type="radio"/g)||[]).length,3);
 assert.equal((inlinePicker.match(/ checked/g)||[]).length,1);
-for(const font of READING_FONTS) assert(inlinePicker.includes(`<span>${font.label}</span>`));
+for(const font of READING_FONTS) assert(inlinePicker.includes(`aria-label="${font.label}"`));
+assert(inlinePicker.includes('>Cormorant</span>'));
 const bibleSettings=method('renderBibleReadingSettingsPanel').call({
     bibleReadingSettingsOpen:true,renderReadingFontPicker:app.renderReadingFontPicker.bind(app),renderBibleStudyGuide:()=>''
 });
@@ -66,12 +67,14 @@ console.log('OK: three bundled fonts, persistence, safe fallback, synchronized c
 
 const reading={date:'2026-10-20',reference:'Pasaje de prueba'};
 const rendering={escapeHtml:value=>value,isRead:()=>false,isNativeTextToSpeechAvailable:()=>false,
+    renderDailyReadingBibleContext:()=>'',
     dailyReadingVoice:{status:'idle',date:null},renderDailyReadingVoiceControl:method('renderDailyReadingVoiceControl')};
 const entry=method('renderDailyReadingEntry').call(rendering,reading);
 assert(entry.includes('Meditación'));assert(!entry.includes('Profundizar'));
 const actions=method('renderDailyReadingActions').call(rendering,reading);
+assert(!actions.includes('Meditación'));
 assert.equal((actions.match(/class="reading-command /g)||[]).length,3);
-assert.equal((entry.match(/class="reading-command /g)||[]).length,2);
+assert.equal((entry.match(/class="reading-command /g)||[]).length,1);
 assert(entry.includes('daily-reading-voice-main reading-command'));
 for(const status of ['speaking','paused','idle']) {
     rendering.dailyReadingVoice={status,date:reading.date};

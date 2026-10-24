@@ -325,26 +325,30 @@ body.dark-mode .header-settings-btn:hover {
 
 .reading-font-picker-inline {
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.2fr) minmax(0, 0.65fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
     max-width: 390px;
-    margin: -8px auto 20px;
-    padding: 8px 0 0;
+    margin: 0 auto 20px;
+    padding: 0;
     border-top: 0;
 }
 
 .reading-font-picker-inline legend {
-    width: 100%;
-    padding: 0;
-    text-align: center;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
 }
 
 .reading-font-picker-inline .reading-font-option {
     position: relative;
     justify-content: center;
     gap: 0;
-    min-height: 64px;
-    padding: 8px 4px;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 6px 3px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--surface-color);
@@ -13678,6 +13682,90 @@ body .daily-reading-entry .daily-reading-voice {
 
 body .daily-reading-entry .daily-reading-voice-main { flex: 1; }
 body .daily-reading-entry .reading-command-stop { flex: 0 0 52px; width: 52px; justify-content: center; padding: 12px; }
+
+/* Keep the page as the scroll container so the reading toolbar can stick. */
+body.su-voz-hoy-background:not(.deepening-shell-active):not(.selection-panel-open):not(.verse-image-open) {
+    overflow-y: visible !important;
+}
+.daily-reading-flow { --daily-reading-scroll-offset: 140px; margin-bottom: 24px; }
+.daily-reading-heading { padding: 4px 0 8px; }
+.daily-reading-heading .daily-reading-entry-reference { margin: 0; font-size: 1.3rem; }
+.daily-reading-bible-context {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-main);
+    font: 500 0.8rem/1.4 var(--font-ui);
+    letter-spacing: 0;
+    text-align: start;
+    cursor: pointer;
+}
+.daily-reading-bible-context .reading-command-icon { width: 16px; height: 16px; flex-basis: 16px; color: var(--text-muted); }
+.daily-reading-bible-position { flex: 1; min-width: 0; color: var(--text-muted); }
+.daily-reading-bible-link { color: var(--accent); font-weight: 600; }
+.daily-reading-bible-context:hover .daily-reading-bible-link { text-decoration: underline; }
+.daily-reading-bible-context:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.daily-reading-flow .daily-reading-entry {
+    position: sticky;
+    top: calc(56px + var(--safe-area-top));
+    z-index: 8;
+    margin: 0 0 16px;
+    padding: 8px 0;
+    background: var(--surface-color);
+    border-bottom: 1px solid var(--border-color);
+}
+.daily-reading-flow .daily-reading-entry-actions {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+    gap: 8px;
+}
+.daily-reading-flow .daily-reading-entry-actions .daily-reading-voice[data-voice-date] { display: contents; }
+.daily-reading-flow .daily-reading-voice-unsupported { grid-column: 2 / -1; }
+body .daily-reading-flow .daily-reading-entry .reading-command {
+    padding: 8px;
+    gap: 6px;
+    font-size: 0.85rem;
+    min-height: 52px;
+    box-shadow: none;
+    justify-content: center;
+}
+body .daily-reading-flow .daily-reading-entry .reading-command-stop { flex-basis: 44px; width: 44px; justify-content: center; }
+body .daily-reading-flow .daily-reading-entry .reading-command-stop:disabled { opacity: 0.4; }
+.daily-reading-flow .reading-text-shell { scroll-margin-top: calc(var(--daily-reading-scroll-offset) + var(--safe-area-top)); }
+.daily-reading-flow .reading-text { text-align: start; }
+.daily-reading-flow .reading-version-selector { margin-bottom: 8px; gap: 6px; }
+.daily-reading-flow .reading-version-pill { min-height: 44px; border-radius: 8px; box-shadow: none; letter-spacing: 0; }
+body .daily-reading-flow .reading-version-pill:not(.active) {
+    background: var(--surface-color);
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+body .daily-reading-flow .reading-version-pill.active { color: #fff; }
+.daily-reading-flow .verse-item { scroll-margin-top: calc(var(--daily-reading-scroll-offset) + var(--safe-area-top)); }
+.daily-reading-flow .verse-item.daily-voice-current {
+    border-inline-start-color: var(--accent);
+    box-shadow: inset 3px 0 var(--accent);
+    outline: 1px solid var(--border-color);
+}
+body #app-content .daily-reading-flow .reading-card {
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+.daily-reading-flow .reading-command-group { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.daily-reading-flow .reading-command-share { grid-column: 1 / -1; }
+@media (max-width: 360px) {
+    .daily-reading-flow { --daily-reading-scroll-offset: 152px; }
+    body .daily-reading-flow .daily-reading-entry .reading-command { flex-direction: column; gap: 4px; min-height: 64px; }
+}
 .reading-command .daily-reading-voice-icon { display: flex; flex: 0 0 20px; width: 20px; height: 20px; }
 .reading-command .daily-reading-voice-icon::before,
 .reading-command .daily-reading-voice-icon::after { content: none; }

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { parse } from 'acorn';
 import { readingIcon } from '../js/utils/readingIcons.js';
+import { DailyReadingNarrator } from '../js/reading/DailyReadingNarrator.js';
 
 const source = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
 const tree = parse(source, { ecmaVersion: 'latest', sourceType: 'module' });
@@ -14,7 +15,7 @@ function find(node, predicate) {
         }
     }
 }
-const context = vm.createContext({ window: {}, document: {}, console, readingIcon });
+const context = vm.createContext({ window: {}, document: {}, console, readingIcon, DailyReadingNarrator });
 function method(name) {
     const node = find(tree, item => item.type === 'Property' && item.key.name === name);
     assert(node, name);
@@ -70,6 +71,7 @@ let focused=0,scrolled=0;
 const target = {getAttribute:()=> '2026-10-20',focus:()=>focused++,scrollIntoView:()=>scrolled++};
 app.$content={querySelectorAll:()=>[target]};
 app.getReadingMetadataByDate=date=>({date,reference:'Pasaje de prueba',dailyQuestion:'Pregunta de prueba'});
+app.stopIntroVideo=()=>{};
 app.startReadingPassage=method('startReadingPassage');
 app.startReadingPassage('2026-10-19');
 assert.equal(focused,0);
@@ -82,15 +84,17 @@ console.log('OK: reading shortcut focuses the matching passage without marking i
 
 const voiceEvents=[];
 const voiceApp={
-    stopBibleChapterVoice:()=>{},stopDailyReadingVoice:()=>{},updateDailyReadingVoiceUI:()=>{},
+    stopBibleChapterVoice:()=>{},stopNativeTextToSpeech:()=>{},updateDailyReadingVoiceUI:()=>{},
     getReadingByDate:async date=>({date}),trackAnalyticsOnce:()=>{},
     getReadingAnalyticsParams:method('getReadingAnalyticsParams'),
     trackAnalyticsEvent:(name,params)=>voiceEvents.push({name,params}),currentVersion:'rvr60',
-    isNativeTextToSpeechAvailable:()=>false,selectSpanishVoice:()=>null,showToast:()=>{}
+    isNativeTextToSpeechAvailable:()=>false,selectSpanishVoice:()=>null,showToast:()=>{},
+    getDailyReadingVoiceQueue:(_,version,text)=>[{text,verseIndex:0}],bindDailyReadingFollow:()=>{}
 };
 context.SpeechSynthesisUtterance=class {constructor(text){this.text=text;}};
 let spoken;
-context.window.speechSynthesis={getVoices:()=>[],speak:value=>{spoken=value;},pause:()=>{},resume:()=>{}};
+context.window.speechSynthesis={getVoices:()=>[],speak:value=>{spoken=value;},pause:()=>{},resume:()=>{},cancel:()=>{}};
+for(const name of ['stopDailyReadingVoice','getDailyReadingNarrator']) voiceApp[name]=method(name);
 voiceApp.startDailyReadingVoice=method('startDailyReadingVoice');
 await voiceApp.startDailyReadingVoice('2026-10-20','Texto de prueba');
 assert.equal(voiceApp.dailyReadingVoice.status,'speaking');assert.equal(spoken.text,'Texto de prueba');
@@ -99,11 +103,14 @@ assert.equal(voiceApp.dailyReadingVoice.status,'paused');
 method('pauseOrResumeDailyReadingVoice').call(voiceApp,'2026-10-20','Texto de prueba');
 assert.equal(voiceApp.dailyReadingVoice.status,'speaking');
 spoken.onend();
+await new Promise(resolve=>setImmediate(resolve));
 assert.equal(voiceApp.dailyReadingVoice.status,'idle');
 assert.deepEqual(voiceEvents.map(event=>event.name),['audio_start','audio_complete']);
 voiceApp.isNativeTextToSpeechAvailable=()=>true;
-voiceApp.speakWithNativeTextToSpeech=async()=>{};
+voiceApp.dailyReadingNarrator=null;
+context.window.Capacitor={Plugins:{TextToSpeech:{stop:async()=>{},speak:async()=>{}}}};
 await voiceApp.startDailyReadingVoice('2026-10-20','Texto nativo de prueba');
+await new Promise(resolve=>setImmediate(resolve));
 assert.equal(voiceEvents.at(-1).name,'audio_complete');
 console.log('OK: existing web/native audio lifecycle, pause, resume and completion with isolated engines');
 
@@ -140,11 +147,13 @@ assert.equal(listeners.size,0);
 console.log('OK: actual visibility observer ignores below-fold, hidden and stale views and cleans up');
 
 const entry = method('renderDailyReadingEntry').call({escapeHtml:value=>value,
+    renderDailyReadingBibleContext:()=>'<button data-action="open-daily-bible">Ver en Biblia</button>',
     renderDailyReadingVoiceControl:()=>'<div class="daily-reading-voice">audio</div>'},
     {date:'2026-10-20',reference:'Pasaje de prueba'});
-assert(entry.includes('data-action="read-passage"'));
-assert(entry.includes('data-action="toggle-note"'));
-assert(entry.includes('Meditación'));
+assert(!entry.includes('data-action="read-passage"'));
+assert(entry.includes('data-action="toggle-note"'), 'Meditation replaces the redundant reading shortcut');
+assert(!method('renderDailyReadingActions').call({isRead:()=>false,escapeHtml:value=>value},
+    {date:'2026-10-20',reference:'Pasaje de prueba'}).includes('Meditación'));
 assert(!entry.includes('Profundizar'));
 assert.equal((entry.match(/daily-reading-voice/g)||[]).length,1);
 assert.equal((source.match(/this\.renderDailyReadingEntry\(reading\)/g)||[]).length,2,
@@ -152,7 +161,7 @@ assert.equal((source.match(/this\.renderDailyReadingEntry\(reading\)/g)||[]).len
 const homeStart = source.indexOf('renderHome: async function');
 const homeEnd = source.indexOf('renderReading: async function',homeStart);
 const home = source.slice(homeStart,homeEnd);
-assert(home.indexOf('this.renderDailyReadingEntry(reading)') < home.indexOf('${pergaminoHtml}'));
+assert(!home.includes('${pergaminoHtml}'), 'The passive chapter block no longer occupies the bottom of the reading');
 assert(!home.includes('this.renderDailyReadingVoiceControl(reading)'),'Only one live audio control per view');
 console.log('OK: shared entry actions precede progress and preserve historical navigation');
 
@@ -171,6 +180,7 @@ const renderApp={
     renderReadingFontPicker:context=>`<fieldset data-font-picker="${context}">Fuentes</fieldset>`,
     renderDailyReadingVoiceControl:()=>'<button data-action="daily-reading-voice-toggle">Escuchar</button>',
     renderDailyReadingEntry:method('renderDailyReadingEntry'),
+    renderDailyReadingBibleContext:()=>'<button data-action="open-daily-bible">Ver en Biblia</button>',
     renderDailyReadingActions:method('renderDailyReadingActions'),
     renderViewContent:method('renderViewContent'),
     escapeHtml:value=>value,renderVerseText:value=>value,renderDailyReadingCopyright:()=>'',
@@ -187,9 +197,10 @@ for(const date of ['2026-10-20','2026-10-19']) {
     assert.equal((html.match(/data-font-picker="daily"/g)||[]).length,1);
     assert(html.indexOf('Versiones') < html.indexOf('data-font-picker="daily"'));
     assert(html.indexOf('data-font-picker="daily"') < html.indexOf('class="reading-text-shell"'));
-    for(const action of ['read-passage','daily-reading-voice-toggle','mark-read','share-reading','open-reading-community-ecos']) {
+    for(const action of ['toggle-note','daily-reading-voice-toggle','mark-read','share-reading','open-reading-community-ecos']) {
         assert(renderApp.$content.innerHTML.includes(`data-action="${action}"`),`${date}: ${action} preserved`);
     }
-    assert(renderApp.$content.innerHTML.includes('Progreso conservado'));
+    assert(!renderApp.$content.innerHTML.includes('Progreso conservado'));
+    assert(renderApp.$content.innerHTML.includes('data-action="open-daily-bible"'));
 }
 console.log('OK: today/historical renderers have one Meditation button, visible fonts below versions and preserved reading actions');
