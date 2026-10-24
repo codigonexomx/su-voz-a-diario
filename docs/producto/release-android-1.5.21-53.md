@@ -64,11 +64,13 @@ Una nueva auditoria al cierre detecto tres avisos de undici incorporados a la ba
 
 Se actualizo unicamente undici 7.30.0 a 7.30.1 dentro del rango transitivo existente. functions/package.json y la logica permanecen intactos. npm audit de Functions volvio a cero vulnerabilidades. Se repitieron las 62 comprobaciones con los tres emuladores locales: 62/62, cerrados al terminar. Una prueba adicional pequena y exclusivamente en 127.0.0.1 verifico integridad con SHA256 en mayusculas, rechazo de hash incorrecto y de codificaciones excesivas, continuidad de solicitudes y parsing HTML de cheerio; no se enviaron cargas sinteticas a produccion. Evidencia: undici-security.cjs.
 
-El despliegue correcto de body-parser ya descrito precede a este segundo parche; no se presenta como si incluyera undici 7.30.1. Se solicito autorizacion especifica para volver a actualizar las mismas 41 funciones con este cambio; queda pendiente de respuesta y ejecucion.
+El despliegue correcto de body-parser ya descrito precede a este segundo parche; no se presenta como si incluyera undici 7.30.1. Se solicito autorizacion especifica para volver a actualizar las mismas 41 funciones con este cambio; queda pendiente de respuesta y ejecucion. La consulta publica NBLA en la web se comprobo despues del primer despliegue: Genesis 1 cargo correctamente y la consola no registro errores en esa comprobacion; evidencia production-nbla-after-functions.png. No se ejecutaron pruebas de carga ni se publico contenido para probar.
 
 ## Git, CI y web
 
 El parche body-parser quedo en `922ce4df5ddb129a9feba40e5d3fea9274602d8d`, subido normalmente a origin/main. [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40033669198) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40033668893) finalizaron correctamente. Tambien finalizaron correctamente [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40034762289) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40034762051) para el informe posterior 231c8f6.
+
+El parche undici se registro en `465ecb69489886968bb7ecc7ba89a2088f56dc7f`, con push normal y HEAD igual a origin/main. [Product Validation](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40054213658) y [Pages](https://github.com/codigonexomx/su-voz-a-diario/actions/runs/40054213324) terminaron correctamente. npm audit de raiz y Functions reportaron cero vulnerabilidades tras ese parche.
 
 En https://suvoz.app se comprobaron HTTP 200 y coincidencia SHA-256 para sw.js, MeditationDocument.js, DeepeningShell.js, deepening-shell.css y WorkshopController.js. La web sirve PWA 268. Aprender abrio su portada y los registros de consola de esa comprobacion no mostraron errores; no se leyeron ejercicios privados. Evidencia: production-web-268.png.
 
