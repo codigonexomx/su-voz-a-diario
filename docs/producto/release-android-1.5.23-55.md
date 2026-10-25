@@ -29,12 +29,27 @@ SHA-256: `817266d64ab1284ba4dc98e15d63b51313cee13262c62077dd74dd11eb177395`.
 - Solo la lista Su Voz QA - propietario 2026-10-02 (un miembro) esta seleccionada; las listas de 14 y 29 siguen sin seleccionar.
 - El permiso temporal de archivos se activo con aprobacion concreta para 55 y se desactivo despues de transferir el paquete. No se cambiaron otros permisos de la extension.
 
-## Punto pendiente de QA nativa
+## Propagacion y QA nativa completada
 
-Hasta las 14:58, Play de la Lenovo sigue ofreciendo Abrir para 54; ADB confirma 1.5.22 (54), origen com.android.vending. Se refresco la ficha y se cerro/reabrio unicamente Play, sin borrar datos, cache ni cuentas. No se instalo APK local ni se desinstalo Su Voz. La 55 esta disponible en Console pero todavia no se ofrece a este dispositivo.
+Hasta las 14:58, Play de la Lenovo todavia ofrecia Abrir para 54. Se refresco la ficha y se cerro/reabrio unicamente Play, sin borrar datos, cache ni cuentas. Se espero su propagacion: el propietario completo la actualizacion oficial y ADB confirmo versionCode 55 / versionName 1.5.23, com.android.vending, lastUpdateTime 2026-10-24 18:46:07 y firstInstallTime 2026-09-24 20:41:57, sin cambios. No se instalo APK local ni se desinstalo Su Voz.
 
-No se considera validada fisicamente 55. Falta actualizar desde Play, comprobar el encabezado del capitulo y el retorno, regresion de lectura/audio/fuentes/Meditacion/navegacion, y conservacion de datos confirmada personalmente por el propietario. La prueba offline no se ha ejecutado; se solicito trasladar la unica prueba Wi-Fi autorizada de 54 a 55, pendiente de respuesta.
+- Lectura de hoy: texto y video visibles; controles compactos y disposicion aprobada.
+- Ver en Biblia: 2 Pedro 1 abre bajo la barra fija con encabezado correcto en NBLA. Selector de capitulo 2 correcto; Volver regresa a la misma fecha y posicion del pasaje diario.
+- Tres traducciones diarias y tres fuentes comprobadas. Se restauraron RVR60 e Inter, las preferencias previas; Inter se conserva tras arranque en frio.
+- Audio: Pausar, Continuar y Detener observados con seguimiento de versiculos. El propietario confirmo voz clara y continuacion correcta en 55.
+- El propietario confirmo Meditacion: teclado, etapas, ayuda ?, Aprender / Volver y Revisar / X. Tambien confirmo meditaciones anteriores conservadas y Comunidad / Oracion sin error. No se abrieron ni capturaron esos contenidos personales.
+- Una sola prueba offline de 55, expresamente autorizada: Wi-Fi 1 -> 0, cierre exclusivo de Su Voz y arranque COLD de /hoy correcto, lectura visible sin conexion. Wi-Fi restaurado en finally; estado 1 y conexion confirmados sin registrar identificadores de red. No se tocaron datos moviles, cuentas, permisos ni notas. El auxiliar UIAutomator no expuso los rotulos solicitados; la comprobacion visual directa y la captura offline si confirmaron la carga.
 
-La revision automatica rechazo iniciar un borrador de promocion antes de terminar esa QA. Se respeto el bloqueo: no hay borrador nuevo de produccion, no se envio a revision y produccion permanece en 53 (1.5.21). Siguiente paso: instalar y validar 55; despues promover ese mismo paquete y enviar solo ese cambio a revision de Google. Un envio no equivale a aprobacion ni a disponibilidad publica.
+Evidencias locales: physical-qa.json, native-chapter-aligned.png, native-offline.png y capturas de Play en la carpeta congelada de 55. No se leyeron logs privados de la aplicacion. No equivale a QA en todos los modelos Android ni en paginas de memoria de 16 KB.
+
+## Envio de produccion
+
+La revision automatica rechazo iniciar un borrador antes de terminar la QA. Se respeto el bloqueo y se reanudo unicamente despues de confirmar instalacion 55, pruebas fisicas y las comprobaciones personales del propietario.
+
+Se promovio el mismo paquete 55 desde la prueba interna, sin recompilar ni volver a subir archivos. Produccion: track 4698001730505189813, release 30. Vista previa con un solo AAB, cero errores, cero dispositivos perdidos y una advertencia por simbolos nativos no disponibles. Lanzamiento completo 100%, mismos paises de destino, sin modificar declaraciones, permisos, listas, ficha o condiciones legales.
+
+En Descripcion general de la publicacion se verifico exactamente un cambio: Produccion / 55 (1.5.23) / Iniciar lanzamiento completo. Se confirmo Enviar 1 cambio a revision. Play cambio a Cambios en la etapa de revision y ofrecio Quitar los cambios, con verificaciones rapidas en curso (hasta 14 minutos al enviar). No se duplico el envio. Publicacion administrada ya desactivada, sin modificar esa opcion: tras aprobarlo, Google podra publicarlo automaticamente.
+
+Estado comprobado al enviar: solicitud aceptada por Play, pendiente de verificaciones y aprobacion de Google. No se afirma que 55 este aprobada o disponible publicamente; hasta completar ese proceso, la produccion publicada sigue siendo 53 (1.5.21). Evidencia: play-production-submitted.png. El AAB mantiene SHA-256 `817266d64ab1284ba4dc98e15d63b51313cee13262c62077dd74dd11eb177395`.
 
 Sin cambios en Functions, reglas, IAM, privacidad, iOS, contenido de Comunidad o datos personales; documentos previos de investigacion, marketing y logs conservados sin incluir. Emuladores y compilaciones terminados, sin procesos de validacion pendientes.
