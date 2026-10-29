@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate55')
+const release = process.argv.includes('--candidate56')
+    ? { code: 56, name: '1.5.24', pwa: 271 }
+    : process.argv.includes('--candidate55')
     ? { code: 55, name: '1.5.23', pwa: 270 }
     : process.argv.includes('--candidate54')
     ? { code: 54, name: '1.5.22', pwa: 269 }
@@ -37,9 +39,12 @@ const bundle = path.join(out, `su-voz-${release.name}-${release.code}.aab`);
 const java = '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin/';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const run = (program, args) => execFileSync(program, args, { maxBuffer: 100000000 });
-const tool = args => run(java + 'java', ['-jar', '/private/tmp/bundletool-all-1.18.3.jar', ...args]).toString();
+const tool = args => run(java + 'java', ['-jar', path.join(root, 'artifacts/tools/bundletool-all-1.18.3.jar'), ...args]).toString();
 const baseline = 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
 const frozen = [
+    ...(release.code >= 56 ? [
+        ['artifacts/android-1.5.23-55-release/su-voz-1.5.23-55.aab', '817266d64ab1284ba4dc98e15d63b51313cee13262c62077dd74dd11eb177395']
+    ] : []),
     ...(release.code >= 55 ? [
         ['artifacts/android-1.5.22-54-release/su-voz-1.5.22-54.aab', '77b1f988b4918881c8fbae953c6a7e9c6b7a9439484dc48313fc3f5c8a0481df']
     ] : []),

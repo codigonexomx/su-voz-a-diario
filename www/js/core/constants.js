@@ -53,13 +53,24 @@ export const INTRO_VIDEO_CONFIG_2PETER = {
     note: 'Antes de comenzar la lectura de 2 Pedro, te recomendamos ver esta breve introducción para comprender mejor su contexto, mensaje y propósito.'
 };
 
+export const INTRO_VIDEO_CONFIG_HOSEA = {
+    startDate: '2026-11-01',
+    endDate: '2026-11-04',
+    url: 'https://www.youtube.com/embed/f2h5FYVawSU',
+    inlinePlayer: true,
+    label: '🎬 Video introductorio',
+    title: 'Introducción al libro de Oseas',
+    note: 'Antes de comenzar la lectura de Oseas, te recomendamos ver esta introducción para comprender mejor su contexto, mensaje y propósito.'
+};
+
 export const INTRO_VIDEO_CONFIGS = [
     INTRO_VIDEO_CONFIG,
     INTRO_VIDEO_CONFIG_2TIMOTHY,
     INTRO_VIDEO_CONFIG_MICAH,
     INTRO_VIDEO_CONFIG_PSALMS,
     INTRO_VIDEO_CONFIG_1SAMUEL,
-    INTRO_VIDEO_CONFIG_2PETER
+    INTRO_VIDEO_CONFIG_2PETER,
+    INTRO_VIDEO_CONFIG_HOSEA
 ];
 
 export function getIntroVideoConfig(dateStr) {

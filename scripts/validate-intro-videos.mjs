@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 import { parse } from 'acorn';
-import { INTRO_VIDEO_CONFIGS, INTRO_VIDEO_CONFIG_2PETER, getIntroVideoConfig, shouldShowIntroVideo } from '../js/core/constants.js';
+import { INTRO_VIDEO_CONFIGS, INTRO_VIDEO_CONFIG_2PETER, INTRO_VIDEO_CONFIG_HOSEA, getIntroVideoConfig, shouldShowIntroVideo } from '../js/core/constants.js';
 import { getIntroVideoId, renderIntroVideoHtml } from '../js/utils/formatters.js';
 
 const readings = JSON.parse(readFileSync('data/readings/2026-10.json', 'utf8'));
@@ -16,6 +16,17 @@ for (const date of ['2026-10-23', '2026-10-28', '2026-10-31', '2027-10-24']) {
     assert.equal(shouldShowIntroVideo(date), false);
     assert.equal(getIntroVideoConfig(date), null);
 }
+const novemberReadings = JSON.parse(readFileSync('data/readings/2026-11.json', 'utf8'));
+for (const date of ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04']) {
+    assert(novemberReadings.find(reading => reading.date === date)?.reference.startsWith('Oseas '));
+    assert.equal(shouldShowIntroVideo(date), true);
+    assert.equal(getIntroVideoConfig(date), INTRO_VIDEO_CONFIG_HOSEA);
+}
+for (const date of ['2026-11-05', '2026-11-17', '2026-11-18', '2027-11-01']) {
+    assert.equal(shouldShowIntroVideo(date), false);
+    assert.equal(getIntroVideoConfig(date), null);
+}
+assert.equal(getIntroVideoId(INTRO_VIDEO_CONFIG_HOSEA), 'f2h5FYVawSU');
 for (const config of INTRO_VIDEO_CONFIGS) {
     assert.equal(getIntroVideoConfig(config.startDate), config);
     assert.equal(getIntroVideoConfig(config.endDate), config);
@@ -51,9 +62,18 @@ assert(markup.includes('src="./assets/video-intros/c3FzB5MiJ38.jpg"'));
 assert(!/src="https?:/.test(markup), 'Only a local poster can load before activation');
 assert(existsSync('assets/video-intros/c3FzB5MiJ38.jpg'));
 assert(readFileSync('sw.js', 'utf8').includes("'./assets/video-intros/c3FzB5MiJ38.jpg'"));
+const hoseaMarkup = renderIntroVideoHtml(INTRO_VIDEO_CONFIG_HOSEA);
+assert(hoseaMarkup.includes('Introducción al libro de Oseas'));
+assert(hoseaMarkup.includes('data-intro-date="2026-11-01"'));
+assert(hoseaMarkup.includes('data-action="load-intro-video"'));
+assert(hoseaMarkup.includes('src="./assets/video-intros/f2h5FYVawSU.jpg"'));
+assert(!/<iframe|<script|<link/.test(hoseaMarkup));
+assert(!/src="https?:/.test(hoseaMarkup), 'Hosea must not contact YouTube before activation');
+assert(existsSync('assets/video-intros/f2h5FYVawSU.jpg'));
+assert(readFileSync('sw.js', 'utf8').includes("'./assets/video-intros/f2h5FYVawSU.jpg'"));
 const escaped = renderIntroVideoHtml({ ...INTRO_VIDEO_CONFIG_2PETER, title: '<script>bad</script>', note: '<img src=x>' });
 assert(!/<script|<img src=x/.test(escaped));
-for (const config of INTRO_VIDEO_CONFIGS.filter(config => config !== INTRO_VIDEO_CONFIG_2PETER)) {
+for (const config of INTRO_VIDEO_CONFIGS.filter(config => config.inlinePlayer !== true)) {
     const previous = renderIntroVideoHtml(config);
     assert(previous.includes('Abrir en YouTube'));
     assert(!previous.includes('data-action="load-intro-video"'));
@@ -100,6 +120,20 @@ card.dataset.introDate = '2026-10-28';
 assert.equal(load.call(app, button), false);
 card.dataset.introDate = '2026-09-01';
 assert.equal(load.call(app, button), false, 'Historical links keep their previous behavior');
+card.dataset.introDate = '2026-11-01';
+assert.equal(load.call(app, button), true);
+assert.equal(created.length, 2);
+assert.equal(frame.player.src, 'https://www.youtube-nocookie.com/embed/f2h5FYVawSU?autoplay=1&playsinline=1&rel=0');
+assert.equal(frame.player.title, INTRO_VIDEO_CONFIG_HOSEA.title);
+assert.equal(frame.player.referrerPolicy, 'strict-origin-when-cross-origin');
+assert.equal(load.call(app, button), false, 'Hosea must not create duplicate players');
+frame.player = null;
+context.navigator.onLine = false;
+assert.equal(load.call(app, button), false);
+assert.equal(created.length, 2);
+context.navigator.onLine = true;
+card.dataset.introDate = '2026-11-05';
+assert.equal(load.call(app, button), false);
 assert.equal(load.call(app, { closest: () => null }), false);
 for (const name of ['renderHome', 'renderViewContent']) {
     const method = find(tree, name);
@@ -112,4 +146,4 @@ assert(source.includes('this.loadIntroVideo(introVideoBtn)'));
 const css = readFileSync('css/styles.css', 'utf8');
 assert.match(css, /\.intro-video-title\s*\{[^}]*color:\s*var\(--text-main\)/);
 assert.match(css, /\.intro-video-frame-inline\s*\{[^}]*min-height:\s*200px/);
-console.log('OK: 2 Peter introduction October 24-27 only; historical dates preserved; opt-in inline player, safe URLs, offline guard, no duplicate player and unchanged reading position');
+console.log('OK: 2 Peter October 24-27 and Hosea November 1-4 only; historical dates preserved; opt-in inline player, safe URLs, offline guard, no duplicate player and unchanged reading position');
