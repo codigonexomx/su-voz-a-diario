@@ -26,7 +26,7 @@ for (const date of ['2026-11-05', '2026-11-17', '2026-11-18', '2027-11-01']) {
     assert.equal(shouldShowIntroVideo(date), false);
     assert.equal(getIntroVideoConfig(date), null);
 }
-assert.equal(getIntroVideoId(INTRO_VIDEO_CONFIG_HOSEA), 'f2h5FYVawSU');
+assert.equal(getIntroVideoId(INTRO_VIDEO_CONFIG_HOSEA), 'wyEJ9jynm0M');
 for (const config of INTRO_VIDEO_CONFIGS) {
     assert.equal(getIntroVideoConfig(config.startDate), config);
     assert.equal(getIntroVideoConfig(config.endDate), config);
@@ -66,11 +66,11 @@ const hoseaMarkup = renderIntroVideoHtml(INTRO_VIDEO_CONFIG_HOSEA);
 assert(hoseaMarkup.includes('Introducción al libro de Oseas'));
 assert(hoseaMarkup.includes('data-intro-date="2026-11-01"'));
 assert(hoseaMarkup.includes('data-action="load-intro-video"'));
-assert(hoseaMarkup.includes('src="./assets/video-intros/f2h5FYVawSU.jpg"'));
+assert(hoseaMarkup.includes('src="./assets/video-intros/wyEJ9jynm0M.jpg"'));
 assert(!/<iframe|<script|<link/.test(hoseaMarkup));
 assert(!/src="https?:/.test(hoseaMarkup), 'Hosea must not contact YouTube before activation');
-assert(existsSync('assets/video-intros/f2h5FYVawSU.jpg'));
-assert(readFileSync('sw.js', 'utf8').includes("'./assets/video-intros/f2h5FYVawSU.jpg'"));
+assert(existsSync('assets/video-intros/wyEJ9jynm0M.jpg'));
+assert(readFileSync('sw.js', 'utf8').includes("'./assets/video-intros/wyEJ9jynm0M.jpg'"));
 const escaped = renderIntroVideoHtml({ ...INTRO_VIDEO_CONFIG_2PETER, title: '<script>bad</script>', note: '<img src=x>' });
 assert(!/<script|<img src=x/.test(escaped));
 for (const config of INTRO_VIDEO_CONFIGS.filter(config => config.inlinePlayer !== true)) {
@@ -123,7 +123,7 @@ assert.equal(load.call(app, button), false, 'Historical links keep their previou
 card.dataset.introDate = '2026-11-01';
 assert.equal(load.call(app, button), true);
 assert.equal(created.length, 2);
-assert.equal(frame.player.src, 'https://www.youtube-nocookie.com/embed/f2h5FYVawSU?autoplay=1&playsinline=1&rel=0');
+assert.equal(frame.player.src, 'https://www.youtube-nocookie.com/embed/wyEJ9jynm0M?autoplay=1&playsinline=1&rel=0');
 assert.equal(frame.player.title, INTRO_VIDEO_CONFIG_HOSEA.title);
 assert.equal(frame.player.referrerPolicy, 'strict-origin-when-cross-origin');
 assert.equal(load.call(app, button), false, 'Hosea must not create duplicate players');

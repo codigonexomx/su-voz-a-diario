@@ -56,7 +56,7 @@ export const INTRO_VIDEO_CONFIG_2PETER = {
 export const INTRO_VIDEO_CONFIG_HOSEA = {
     startDate: '2026-11-01',
     endDate: '2026-11-04',
-    url: 'https://www.youtube.com/embed/f2h5FYVawSU',
+    url: 'https://www.youtube.com/embed/wyEJ9jynm0M',
     inlinePlayer: true,
     label: '🎬 Video introductorio',
     title: 'Introducción al libro de Oseas',
