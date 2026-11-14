@@ -63,6 +63,16 @@ export const INTRO_VIDEO_CONFIG_HOSEA = {
     note: 'Antes de comenzar la lectura de Oseas, te recomendamos ver esta introducción para comprender mejor su contexto, mensaje y propósito.'
 };
 
+export const INTRO_VIDEO_CONFIG_REVELATION = {
+    startDate: '2026-11-18',
+    endDate: '2026-11-22',
+    url: 'https://www.youtube.com/embed/DOIFL7tllR4',
+    inlinePlayer: true,
+    label: '🎬 Video introductorio',
+    title: 'Introducción al libro de Apocalipsis',
+    note: 'Antes de comenzar la lectura de Apocalipsis, te recomendamos ver esta introducción para comprender mejor su contexto, mensaje y propósito.'
+};
+
 export const INTRO_VIDEO_CONFIGS = [
     INTRO_VIDEO_CONFIG,
     INTRO_VIDEO_CONFIG_2TIMOTHY,
@@ -70,7 +80,8 @@ export const INTRO_VIDEO_CONFIGS = [
     INTRO_VIDEO_CONFIG_PSALMS,
     INTRO_VIDEO_CONFIG_1SAMUEL,
     INTRO_VIDEO_CONFIG_2PETER,
-    INTRO_VIDEO_CONFIG_HOSEA
+    INTRO_VIDEO_CONFIG_HOSEA,
+    INTRO_VIDEO_CONFIG_REVELATION
 ];
 
 export function getIntroVideoConfig(dateStr) {

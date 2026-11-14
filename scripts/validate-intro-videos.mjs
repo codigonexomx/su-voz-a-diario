@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import vm from 'node:vm';
 import { parse } from 'acorn';
-import { INTRO_VIDEO_CONFIGS, INTRO_VIDEO_CONFIG_2PETER, INTRO_VIDEO_CONFIG_HOSEA, getIntroVideoConfig, shouldShowIntroVideo } from '../js/core/constants.js';
+import { INTRO_VIDEO_CONFIGS, INTRO_VIDEO_CONFIG_2PETER, INTRO_VIDEO_CONFIG_HOSEA, INTRO_VIDEO_CONFIG_REVELATION, getIntroVideoConfig, shouldShowIntroVideo } from '../js/core/constants.js';
 import { getIntroVideoId, renderIntroVideoHtml } from '../js/utils/formatters.js';
 
 const readings = JSON.parse(readFileSync('data/readings/2026-10.json', 'utf8'));
@@ -22,11 +22,19 @@ for (const date of ['2026-11-01', '2026-11-02', '2026-11-03', '2026-11-04']) {
     assert.equal(shouldShowIntroVideo(date), true);
     assert.equal(getIntroVideoConfig(date), INTRO_VIDEO_CONFIG_HOSEA);
 }
-for (const date of ['2026-11-05', '2026-11-17', '2026-11-18', '2027-11-01']) {
+const revelationDates = ['2026-11-18', '2026-11-19', '2026-11-20', '2026-11-21', '2026-11-22'];
+for (const date of revelationDates) {
+    assert(novemberReadings.find(reading => reading.date === date)?.reference.startsWith('Apocalipsis '));
+    assert.equal(shouldShowIntroVideo(date), true);
+    assert.equal(getIntroVideoConfig(date), INTRO_VIDEO_CONFIG_REVELATION);
+}
+assert.deepEqual(novemberReadings.filter(reading => getIntroVideoConfig(reading.date) === INTRO_VIDEO_CONFIG_REVELATION).map(reading => reading.date), revelationDates, 'Revelation must appear on exactly its first five reading dates');
+for (const date of ['2026-11-05', '2026-11-17', '2026-11-23', '2027-11-01', '2027-11-18']) {
     assert.equal(shouldShowIntroVideo(date), false);
     assert.equal(getIntroVideoConfig(date), null);
 }
 assert.equal(getIntroVideoId(INTRO_VIDEO_CONFIG_HOSEA), 'wyEJ9jynm0M');
+assert.equal(getIntroVideoId(INTRO_VIDEO_CONFIG_REVELATION), 'DOIFL7tllR4');
 for (const config of INTRO_VIDEO_CONFIGS) {
     assert.equal(getIntroVideoConfig(config.startDate), config);
     assert.equal(getIntroVideoConfig(config.endDate), config);
@@ -71,6 +79,18 @@ assert(!/<iframe|<script|<link/.test(hoseaMarkup));
 assert(!/src="https?:/.test(hoseaMarkup), 'Hosea must not contact YouTube before activation');
 assert(existsSync('assets/video-intros/wyEJ9jynm0M.jpg'));
 assert(readFileSync('sw.js', 'utf8').includes("'./assets/video-intros/wyEJ9jynm0M.jpg'"));
+const revelationMarkup = renderIntroVideoHtml(INTRO_VIDEO_CONFIG_REVELATION);
+assert(revelationMarkup.includes('Introducción al libro de Apocalipsis'));
+assert(revelationMarkup.includes('data-intro-date="2026-11-18"'));
+assert(revelationMarkup.includes('data-action="load-intro-video"'));
+assert(revelationMarkup.includes('Ver introducción'));
+assert(revelationMarkup.includes('Al reproducir, te conectas con YouTube.'));
+assert(revelationMarkup.includes('src="./assets/video-intros/DOIFL7tllR4.jpg"'));
+assert(revelationMarkup.includes('href="https://www.youtube.com/watch?v=DOIFL7tllR4"'));
+assert(!/<iframe|<script|<link/.test(revelationMarkup));
+assert(!/src="https?:/.test(revelationMarkup), 'Revelation must not contact YouTube before activation');
+assert(existsSync('assets/video-intros/DOIFL7tllR4.jpg'));
+assert(readFileSync('sw.js', 'utf8').includes("'./assets/video-intros/DOIFL7tllR4.jpg'"));
 const escaped = renderIntroVideoHtml({ ...INTRO_VIDEO_CONFIG_2PETER, title: '<script>bad</script>', note: '<img src=x>' });
 assert(!/<script|<img src=x/.test(escaped));
 for (const config of INTRO_VIDEO_CONFIGS.filter(config => config.inlinePlayer !== true)) {
@@ -134,6 +154,30 @@ assert.equal(created.length, 2);
 context.navigator.onLine = true;
 card.dataset.introDate = '2026-11-05';
 assert.equal(load.call(app, button), false);
+card.dataset.introDate = '2026-11-18';
+assert.equal(load.call(app, button), true);
+assert.equal(created.length, 3);
+assert.equal(stopped, 3);
+assert.equal(frame.player.src, 'https://www.youtube-nocookie.com/embed/DOIFL7tllR4?autoplay=1&playsinline=1&rel=0');
+assert.equal(frame.player.title, INTRO_VIDEO_CONFIG_REVELATION.title);
+assert.equal(frame.player.referrerPolicy, 'strict-origin-when-cross-origin');
+assert(frame.player.allowFullscreen);
+assert(frame.player.allow.includes('picture-in-picture'));
+assert.equal(frame.player.focusOptions.preventScroll, true);
+assert.equal(load.call(app, button), false, 'Revelation must not create duplicate players');
+assert.equal(created.length, 3);
+frame.player = null;
+context.navigator.onLine = false;
+assert.equal(load.call(app, button), false);
+assert.equal(created.length, 3);
+assert.equal(stopped, 3);
+assert.equal(notices.length, 3);
+context.navigator.onLine = true;
+for (const date of ['2026-11-17', '2026-11-23']) {
+    card.dataset.introDate = date;
+    assert.equal(load.call(app, button), false);
+}
+assert.equal(created.length, 3);
 assert.equal(load.call(app, { closest: () => null }), false);
 for (const name of ['renderHome', 'renderViewContent']) {
     const method = find(tree, name);
@@ -146,4 +190,4 @@ assert(source.includes('this.loadIntroVideo(introVideoBtn)'));
 const css = readFileSync('css/styles.css', 'utf8');
 assert.match(css, /\.intro-video-title\s*\{[^}]*color:\s*var\(--text-main\)/);
 assert.match(css, /\.intro-video-frame-inline\s*\{[^}]*min-height:\s*200px/);
-console.log('OK: 2 Peter October 24-27 and Hosea November 1-4 only; historical dates preserved; opt-in inline player, safe URLs, offline guard, no duplicate player and unchanged reading position');
+console.log('OK: 2 Peter October 24-27, Hosea November 1-4 and Revelation November 18-22 only; historical dates preserved; opt-in inline player, safe URLs, offline guard, no duplicate player and unchanged reading position');
