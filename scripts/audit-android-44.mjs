@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate58')
+const release = process.argv.includes('--candidate59')
+    ? { code: 59, name: '1.5.27', pwa: 278 }
+    : process.argv.includes('--candidate58')
     ? { code: 58, name: '1.5.26', pwa: 273 }
     : process.argv.includes('--candidate57')
     ? { code: 57, name: '1.5.25', pwa: 272 }
@@ -44,8 +46,13 @@ const java = '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const run = (program, args) => execFileSync(program, args, { maxBuffer: 100000000 });
 const tool = args => run(java + 'java', ['-jar', path.join(root, 'artifacts/tools/bundletool-all-1.18.3.jar'), ...args]).toString();
-const baseline = 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
+const baseline = release.code >= 59
+    ? 'artifacts/android-1.5.26-58-release/su-voz-1.5.26-58.aab'
+    : 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
 const frozen = [
+    ...(release.code >= 59 ? [
+        ['artifacts/android-1.5.26-58-release/su-voz-1.5.26-58.aab', '56b5dd148929533aba12639fb2b2f152d7feb523f045cb75c93287c969cf5f1e']
+    ] : []),
     ...(release.code >= 58 ? [
         ['artifacts/android-1.5.25-57-release/su-voz-1.5.25-57.aab', 'b59bb3d79c9de0868c69b045ed08ef48dee26a3dfd8d790f772c8b786018dded']
     ] : []),
@@ -64,7 +71,7 @@ const frozen = [
     ...(release.code >= 53 ? [
         ['artifacts/android-1.5.20-52-release/su-voz-1.5.20-52.aab', '69c1bf98eccb516fb2212382b623847c73520feeda75ef5d24aa4f685f7be347']
     ] : []),
-    [baseline, '1e8d3ed45de42b34948c106ac0a8642929f00be6a4f755b58fecd5d11da99ae7'],
+    ['artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab', '1e8d3ed45de42b34948c106ac0a8642929f00be6a4f755b58fecd5d11da99ae7'],
     ['artifacts/android-1.5.10-42/su-voz-1.5.10-42.aab', '91d395748fd208e2cae68ae8d7decea43b76f3bae9dd9caad65b34023d93cd92'],
     ['artifacts/android-1.5.12-44/su-voz-1.5.12-44.aab', '725eea6219fdf0e236847262b575173853820e1f1dd58706b3181cc1bcdbc4d3'],
     ['artifacts/android-1.5.12-44-final/su-voz-1.5.12-44.aab', '6a2704537f1314a1ba15e19474b95363d606edd25b021a085785e68e7c2c303d'],
@@ -101,9 +108,16 @@ const frozen = [
 ];
 for (const [file, expected] of frozen) assert.equal(hash(readFileSync(file)), expected, file);
 const checks = JSON.parse(readFileSync('artifacts/validation/tests.json', 'utf8'));
-const expectedChecks = release.code >= 54 ? 64 : release.code >= 53 ? 62 : release.code >= 52 ? 61 : release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
+const expectedChecks = release.code >= 59 ? 67 : release.code >= 54 ? 64 : release.code >= 53 ? 62 : release.code >= 52 ? 61 : release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
 assert.equal(checks.results.length, expectedChecks);
 assert(checks.results.every(check => check.status === 0));
+if (release.code >= 59) {
+    for (const script of ['scripts/validate-rvr1960.mjs', 'scripts/validate-rvr1960-references.mjs',
+        'scripts/validate-rvr1960-strong.mjs', 'scripts/test-account-auth-emulator.mjs',
+        'functions/accountDeletionExecutionEmulator.test.js']) {
+        assert(checks.results.some(check => check.command[0] === script), `Required release check: ${script}`);
+    }
+}
 mkdirSync(out, { recursive: true, mode: 0o700 });
 if (!existsSync(bundle)) copyFileSync(source, bundle, constants.COPYFILE_EXCL);
 assert.equal(hash(readFileSync(source)), hash(readFileSync(bundle)), 'Do not overwrite a frozen candidate');
@@ -151,6 +165,45 @@ compare(path.join(root, 'www'));
 const extras = [...entries.keys()].filter(name => !compared.has(name));
 assert(extras.every(name => ['capacitor.js', 'capacitor_plugins.js', 'cordova.js', 'cordova_plugins.js'].includes(name)));
 assert(extract('base/assets/public/sw.js').toString().includes(`const APP_VERSION = '${release.pwa}'`));
+
+let strongBundle = null;
+if (release.code >= 59) {
+    const packaged = relative => {
+        assert(entries.has(relative), `Packaged Strong dependency: ${relative}`);
+        const bytes = extract(entries.get(relative));
+        assert.equal(hash(bytes), hash(readFileSync(path.join(root, relative))), `Current source: ${relative}`);
+        return bytes;
+    };
+    for (const relative of ['data/rvr1960.json', 'data/strong/NOTICE.txt',
+        'js/bible/LocalRvr1960Provider.js', 'js/bible/LocalRvr1960StrongProvider.js',
+        'js/bible/StrongRepository.js', 'js/bible/StrongStudyPanel.js']) packaged(relative);
+    const strongManifest = JSON.parse(packaged('data/strong/rvr1960-map-manifest.json'));
+    const lexiconManifest = JSON.parse(packaged('data/strong/lexicon-source.json'));
+    assert.equal(strongManifest.versionId, 'rvr60-strong');
+    assert.equal(strongManifest.referenceMode, 'literal-source-position');
+    assert.equal(strongManifest.files.length, 66);
+    assert.equal(new Set(strongManifest.files.map(file => file.bookId)).size, 66);
+    assert.equal([...entries.keys()].filter(name => /^data\/strong\/books\/[^/]+\.json$/.test(name)).length, 66);
+    for (const file of strongManifest.files) {
+        const bytes = packaged(file.path);
+        assert.equal(hash(bytes), file.sha256, file.path);
+        assert.equal(bytes.length, file.bytes, file.path);
+    }
+    const dictionaryEntries = {};
+    for (const language of ['hebrew', 'greek']) {
+        const file = lexiconManifest.files[language];
+        const bytes = packaged(`data/strong/${file.file}`);
+        assert.equal(hash(bytes), file.sha256, file.file);
+        assert.equal(bytes.length, file.bytes, file.file);
+        dictionaryEntries[language] = Object.keys(JSON.parse(bytes)).length;
+        assert.equal(dictionaryEntries[language], file.entries);
+    }
+    assert.equal(dictionaryEntries.hebrew, 8674);
+    assert.equal(dictionaryEntries.greek, 5523);
+    strongBundle = { versionId: strongManifest.versionId, books: strongManifest.files.length,
+        dictionaryEntries, sourceAndManifestHashesMatch: true };
+}
+
 const nativeConfig = JSON.parse(extract('base/assets/capacitor.config.json'));
 assert.equal(nativeConfig.appId, 'app.suvoz');
 assert(!nativeConfig.server?.url);
@@ -196,8 +249,8 @@ if (existsSync(nativeResultPath)) {
 const result = { auditedAt: new Date().toISOString(), bundle, sha256: hash(readFileSync(bundle)),
     sourceBaseCommit: run('git', ['rev-parse', 'HEAD']).toString().trim(),
     versionCode: release.code, versionName: release.name, pwa: release.pwa, minSdk: 24, targetSdk: 36,
-    bundletoolValidated: true, sameUploadCertificate: true, signatureVerified: true,
-    runtimeAssetsCompared: compared.size, runtimeAssetsMatch: true, privateFilesExcluded: true,
+    bundletoolValidated: true, sameUploadCertificate: true, signatureVerified: true, comparisonBaseline: baseline,
+    runtimeAssetsCompared: compared.size, runtimeAssetsMatch: true, privateFilesExcluded: true, strongBundle,
     newPermissions: false, appCheckBridgeBundled: true, appCheckEnabled: false,
     nativeLibraries: libraries, zipAlignment: 'PAGE_ALIGNMENT_16K', pageSizeDeviceQa: false,
     lintErrors: 0, lintWarnings: issues.filter(issue => issue.severity === 'Warning').length,
