@@ -6,6 +6,9 @@ const INTERNAL_REMOTE_VERSION_IDS = Object.freeze([
     'biblia-libre'
 ]);
 
+// Reading keys also include bundled editions; internal overrides remain remote-only.
+const READING_VERSION_IDS = Object.freeze(['rvr60-strong', 'rvr60', ...INTERNAL_REMOTE_VERSION_IDS]);
+
 let bibleAdminState = false;
 
 export function setBibleAdminState(state) {
@@ -67,7 +70,7 @@ export function parseBibleReadingKey(value) {
     let bookId = match[1];
     let versionId = 'rv1909';
 
-    for (const remoteVersionId of INTERNAL_REMOTE_VERSION_IDS) {
+    for (const remoteVersionId of READING_VERSION_IDS) {
         const prefix = `${remoteVersionId}-`;
 
         if (bookId.startsWith(prefix)) {

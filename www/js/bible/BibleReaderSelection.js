@@ -7,7 +7,7 @@ export function normalizeBibleVoiceText(value) {
 }
 
 function studyFreeText(fragment) {
-    fragment.querySelectorAll('button, .verse-number, .bible-crossref-markers, .verse-note-icon').forEach(node => node.remove());
+    fragment.querySelectorAll('button, .verse-number, .bible-crossref-markers, .verse-note-icon, .bible-strong-number').forEach(node => node.remove());
     return normalizeBibleVoiceText(fragment.textContent);
 }
 
@@ -16,7 +16,7 @@ export function getBibleVoicePoint(range, verse) {
     const node = range?.startContainer;
     if (!text || !node || !text.contains(node)) return null;
     const element = node.nodeType === 1 ? node : node.parentElement;
-    if (element?.closest('button, .bible-crossref-markers')) return null;
+    if (element?.closest('button, .bible-crossref-markers, .bible-strong-number')) return null;
     let remaining;
     try {
         const tail = text.ownerDocument.createRange();

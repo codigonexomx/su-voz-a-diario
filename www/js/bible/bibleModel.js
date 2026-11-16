@@ -26,7 +26,12 @@ export function createBibleVerse({
     reference = '', 
     subtitle = '', 
     footnotes = [], 
-    crossReferences = [] 
+    crossReferences = [],
+    sourceNotes = [],
+    headingNotes = [],
+    strongSpans = [],
+    strongUnalignedIds = [],
+    strongHeadingIds = []
 } = {}) {
     return Object.freeze({
         number: normalizePositiveInteger(number, 'número de versículo'),
@@ -34,7 +39,14 @@ export function createBibleVerse({
         reference: String(reference || '').trim(),
         subtitle: String(subtitle || '').trim(),
         footnotes: Object.freeze(Array.isArray(footnotes) ? [...footnotes] : []),
-        crossReferences: Object.freeze(Array.isArray(crossReferences) ? [...crossReferences] : [])
+        crossReferences: Object.freeze(Array.isArray(crossReferences) ? [...crossReferences] : []),
+        sourceNotes: Object.freeze(Array.isArray(sourceNotes) ? [...sourceNotes] : []),
+        headingNotes: Object.freeze(Array.isArray(headingNotes) ? [...headingNotes] : []),
+        strongSpans: Object.freeze(Array.isArray(strongSpans) ? strongSpans.map(span => Object.freeze({
+            ...span, ids: Object.freeze(Array.isArray(span.ids) ? [...span.ids] : [])
+        })) : []),
+        strongUnalignedIds: Object.freeze(Array.isArray(strongUnalignedIds) ? [...strongUnalignedIds] : []),
+        strongHeadingIds: Object.freeze(Array.isArray(strongHeadingIds) ? [...strongHeadingIds] : [])
     });
 }
 

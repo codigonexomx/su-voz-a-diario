@@ -9,7 +9,7 @@ function attach(name, extras={}) {
  const end=source.indexOf('\n},',start);
  app[name]=vm.runInNewContext('({'+source.slice(start,end+2)+'})', {console,parseBibleReadingKey, canAccessRemoteBibleVersions,...extras})[name];
 }
-for(const name of ['normalizeBibleWord','tokenizeBibleText','buildLocalBibleSearchIndex','matchesBibleFilter','searchLocalBible','applyBibleSearchPagination','getBibleReaderVersions']) attach(name);
+for(const name of ['normalizeBibleWord','tokenizeBibleText','buildLocalBibleSearchIndex','matchesBibleFilter','searchLocalBible','applyBibleSearchPagination','getBibleReaderVersions','getLocalBibleSearchVersionId']) attach(name);
 app.bibleSearchData = [
  {id:'a',bookId:'gen',testament:'old',bookOrder:1,chapter:1,verse:1,text:'No temas, confía en Dios.'},
  {id:'b',bookId:'jhn',testament:'new',bookOrder:43,chapter:1,verse:1,text:'No estás solo; no temas.'},
@@ -27,7 +27,7 @@ app.applyBibleSearchPagination(app.searchLocalBible('no temas'));assert.equal(ap
 assert.equal(canAccessRemoteBibleVersions({}),true);
 assert.equal(getInternalBibleTestVersion({__bibleTestVersion:'nbla'}),null);
 assert.equal(getInternalBibleTestVersion({__bibleInternalPreview:true,__bibleTestVersion:'nbla'}),'nbla');
-assert.deepEqual(Array.from(app.getBibleReaderVersions(),v=>v.id),['rv1909','nbla','nvi','biblia-libre']);
+assert.deepEqual(Array.from(app.getBibleReaderVersions(),v=>v.id),['rv1909','rvr60','rvr60-strong','nbla','nvi','biblia-libre']);
 const records={
  'su-voz-selection-notes-bible-jhn-3':[{text:'Dios amó al mundo',note:'Reflexión local'}],
  'su-voz-selection-notes-bible-nvi-jhn-3':[{text:'Dios amó al mundo',note:'Otra edición'}]
@@ -67,7 +67,7 @@ assert.equal(bible.length,66);
 assert(!JSON.stringify(bible).includes('fakporque'));
 console.log('OK: passage → daily draft, double tap deduplication, preservation of notes/prayer/completed sessions, missing reading without writes, verified Isaiah correction.');
 import { escapeBibleHtml } from '../js/utils/text.js';
-app.escapeHtml=escapeBibleHtml; app.currentBibleVersion='rv1909';app.bibleSearchQuery='"no temas"';app.renderBibleSearchResults=()=>'';
+app.escapeHtml=escapeBibleHtml; app.currentBibleVersion='rv1909';app.bibleSearchQuery='"no temas"';app.bibleSearchResults=[];app.renderBibleSearchResults=()=>'';
 attach('renderBibleSearch',{escapeBibleHtml});
 assert(app.renderBibleSearch().includes('value="&quot;no temas&quot;"'));
 app.getHighlightColorLabel=()=>'';attach('renderBibleMemoryCard',{escapeBibleHtml});

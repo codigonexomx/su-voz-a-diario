@@ -6,6 +6,7 @@ import { renderBibleReadingDocument, positionBibleStudyPanel } from '../js/bible
 import { escapeBibleHtml } from '../js/utils/text.js';
 import { readingIcon } from '../js/utils/readingIcons.js';
 import { LocalRv1909Provider } from '../js/bible/LocalRv1909Provider.js';
+import { LocalRvr1960Provider, RVR1960_VERSION_ID } from '../js/bible/LocalRvr1960Provider.js';
 import { normalizeBibleVoiceText, getBibleVoicePoint, getBibleCaretPoint } from '../js/bible/BibleReaderSelection.js';
 import { createBibleReadingKey } from '../js/bible/bibleInternalTest.js';
 
@@ -25,7 +26,7 @@ const bible = JSON.parse(readFileSync(new URL('../data/rv1909.json', import.meta
 const local = new LocalRv1909Provider({ fetchImpl: async () => ({ ok: true, json: async () => bible }) });
 let chapter;
 const context = vm.createContext({ escapeBibleHtml, readingIcon, renderBibleReadingDocument, console,
-    RV1909_VERSION_ID: 'rv1909',
+    RV1909_VERSION_ID: 'rv1909', RVR1960_VERSION_ID,
     normalizeBibleVoiceText, getBibleCaretPoint, getBibleVoicePoint, createBibleReadingKey,
     bibleRepository: { getChapter: async () => chapter },
     BIBLE_FOOTNOTE_SUPERSCRIPTS: Object.fromEntries([...'0123456789'].map((d, i) => [d, [...'⁰¹²³⁴⁵⁶⁷⁸⁹'][i]])) });
@@ -51,6 +52,20 @@ for (const book of books) {
     }
 }
 assert(totalVerses > 30000);
+const rvrBible = JSON.parse(readFileSync(new URL('../data/rvr1960.json', import.meta.url), 'utf8'));
+const localRvr = new LocalRvr1960Provider({ fetchImpl: async () => ({ ok: true, json: async () => rvrBible }) });
+for (const [bookId, number] of [['gen', 1], ['jhn', 3], ['rev', 22]]) {
+    chapter = await localRvr.getChapter(bookId, number);
+    const rendered = await renderChapter(bookId, number, RVR1960_VERSION_ID);
+    assert.equal((rendered.content.match(/class="verse-item verse-selectable"/g) || []).length, chapter.verses.length);
+    for (const verse of chapter.verses) {
+        assert(rendered.content.includes(escapeBibleHtml(verse.text)), 'RVR1960 verse text remains unchanged');
+        if (verse.subtitle) assert(rendered.content.includes(escapeBibleHtml(verse.subtitle)), 'Source heading remains visible');
+    }
+    assert(rendered.copyrightHtml.includes('data-translation="rvr60"'));
+    assert(!rendered.content.includes('reading-copyright'), 'Attribution remains outside the selectable Bible text');
+}
+console.log('OK: RVR1960 sample chapters preserve text, headings and attribution separately from selection');
 chapter = { bookId: 'jhn', verses: [{ number: 1, text: '<unsafe> Texto', footnotes: ['Una nota <img src=x>'] }, { number: 2, text: 'Otro texto', crossReferences: ['Juan 1:1'] }] };
 let rendered = await renderChapter('jhn', 1, 'nvi', { sectionHeadingsByVerse: { 2: [{ title: '<Seccion>', marker: 's1' }] } });
 assert.equal((rendered.content.match(/<p class="bible-reading-paragraph">/g) || []).length, 2);
@@ -108,7 +123,7 @@ let locationState = null, legacyState = null, locationQuota = false;
 context.sessionStorage = { getItem: () => legacyState, removeItem: () => { legacyState = null; } };
 const continuity = { currentView: 'bible-reading', selectedBibleBook: 'gen', selectedBibleChapter: 1,
     currentBibleVersion: 'rv1909', bibleBooks: books,
-    getBibleReaderVersions: () => ['rv1909', 'nbla', 'nvi', 'biblia-libre'].map(id => ({ id })),
+    getBibleReaderVersions: () => ['rv1909', 'rvr60', 'nbla', 'nvi', 'biblia-libre'].map(id => ({ id })),
     storage: { get: () => locationState, set: (key, value) => {
         if (locationQuota) return false; locationState = structuredClone(value); return true;
     } },
@@ -224,7 +239,7 @@ let selections = 0;
 const surface = { closest: () => ({ getAttribute: () => 'bible-gen-1' }) };
 const verse = { classList: { add() {} }, closest: () => surface, getAttribute: () => 'Exact verse text' };
 const select = method('handleVerseClick');
-const selectionApp = { currentView: 'bible-reading', closeBibleCrossReferencePopover() {}, clearVerseSelection() {}, showSelectionPanelForVerse: () => selections++ };
+const selectionApp = { currentView: 'bible-reading', handleStrongStudyAction: () => false, closeBibleCrossReferencePopover() {}, clearVerseSelection() {}, showSelectionPanelForVerse: () => selections++ };
 selectionApp.handleVerseClick = select;
 const click = number => ({ type: 'click', target: { closest: selector => selector === '.verse-selectable' ? verse : selector === '.verse-number, .verse-note-icon' && number ? {} : null } });
 select.call(selectionApp, click(false)); assert.equal(selections, 1);

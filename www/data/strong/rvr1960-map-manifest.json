@@ -1,0 +1,1720 @@
+{
+  "schemaVersion": 1,
+  "referenceMode": "literal-source-position",
+  "versionId": "rvr60-strong",
+  "baseVersionId": "rvr60",
+  "baseCoreContentSha256": "fbe1285cdf3611ad670c76c5fcf2fc051a150429d2bf55be1b133565b387cd11",
+  "source": {
+    "name": "RVR1960+ Reina Valera Revision 1960 con Strong y Morfología",
+    "abbreviation": "RVR1960+",
+    "version": "2.5",
+    "versionDate": "",
+    "publishDate": "31/01/2020 9:13:00",
+    "sha256": "4fcc8382769712618007c77cdf90a81220646ba26fac848106f5eba1273d5fe7",
+    "file": "RVR1960+.bbl.mybible",
+    "downloadPage": "https://drive.google.com/file/d/176PZnPR_wo_b9NQY_nBWQZZSrc3vVO2f/view",
+    "archiveSha256": "ad6ef9c82a54760462f57da77c9f75a2ec0bd2a0930aae264c578eca5ae75049",
+    "sourcePage": "https://bibliotecahispana.net/index.php/2019/06/22/rvr1960-reina-valera-1960-strong-morfologias/",
+    "attribution": "Equipo Biblioteca Hispana Internacional. Página de edición: revisión junio 2019; módulo interno versión 2.5, fecha de publicación declarada 31/01/2020.",
+    "usageNotice": "El módulo declara uso personal, prohíbe venta o utilización comercial y no declara vinculación con los propietarios del copyright. No se afirma licencia abierta de redistribución."
+  },
+  "policy": {
+    "alignment": "Referencias Strong colocadas en la posición literal de la fuente RVR1960+. No es una alineación léxica certificada. El código puede aparecer dentro de una expresión: había [H6213] hecho. Los campos start/end/text registran contexto y posición; no afirman que el fragmento sea una traducción del lema. La interfaz debe enlazar los números, no etiquetar el fragmento como palabra equivalente.",
+    "transfer": "Se trasladan posiciones sólo cuando la secuencia completa de palabras del versículo coincide, admitiendo caso, acentos y puntuación. Nunca se deduce equivalencia desde otra versión ni se corrigen códigos por inferencia.",
+    "unaligned": "Códigos sin ancla y de versículos textualmente diferentes se preservan como otras entradas del versículo, sin asociación con palabras españolas.",
+    "headings": "116 encabezados de Salmos propios de la fuente no se insertan en el texto RVR. Sus códigos se conservan por separado en chapter.headings[verso] y se presentan como referencias del título, nunca como referencias del versículo.",
+    "invalid": "Cinco códigos concatenados fuera del rango Strong se preservan literalmente en invalidSourceCodes; no se dividen ni se inventan enlaces.",
+    "offsets": "Índices UTF-16 sobre el texto RVR1960 intacto; end es la posición del número en el texto normalizado."
+  },
+  "counts": {
+    "sourceBooks": 66,
+    "sourceChapters": 1189,
+    "sourceVerses": 31104,
+    "baseVerses": 31104,
+    "alignedVerses": 30863,
+    "differingVerses": 241,
+    "missingVerses": 0,
+    "spans": 446333,
+    "sourceStrongOccurrences": 491610,
+    "validSourceStrongOccurrences": 491605,
+    "invalidSourceStrongOccurrences": 5,
+    "alignedStrongOccurrences": 468781,
+    "unalignedStrongOccurrences": 22327,
+    "sourceHeadings": 116,
+    "headingStrongOccurrences": 497,
+    "uniqueStrongIds": 14143,
+    "alignedStrongIdsAfterDedup": 468121,
+    "unalignedStrongIdsAfterDedup": 19598,
+    "versesWithUnaligned": 11912,
+    "headingStrongIdsAfterDedup": 471,
+    "distinctAlignedIds": 14082,
+    "distinctUnalignedIds": 1647,
+    "distinctHeadingIds": 111
+  },
+  "missingVerses": [],
+  "invalidSourceCodes": [
+    {
+      "reference": "exo.16.29",
+      "rawCode": "H59213651",
+      "scope": "verse",
+      "reason": "Código fuera del rango Strong; se conserva sin dividir números concatenados por inferencia."
+    },
+    {
+      "reference": "exo.16.33",
+      "rawCode": "H3240853",
+      "scope": "verse",
+      "reason": "Código fuera del rango Strong; se conserva sin dividir números concatenados por inferencia."
+    },
+    {
+      "reference": "exo.17.7",
+      "rawCode": "H52541992",
+      "scope": "verse",
+      "reason": "Código fuera del rango Strong; se conserva sin dividir números concatenados por inferencia."
+    },
+    {
+      "reference": "psa.69.12",
+      "rawCode": "H83547941",
+      "scope": "verse",
+      "reason": "Código fuera del rango Strong; se conserva sin dividir números concatenados por inferencia."
+    },
+    {
+      "reference": "psa.69.13",
+      "rawCode": "H8605589",
+      "scope": "verse",
+      "reason": "Código fuera del rango Strong; se conserva sin dividir números concatenados por inferencia."
+    }
+  ],
+  "headingReferences": [
+    {
+      "reference": "psa.3.1",
+      "text": "Salmo de David , cuando huía • de delante de Absalón su hijo .",
+      "ids": [
+        "H4210",
+        "H1732",
+        "H1272",
+        "H1931",
+        "H6440",
+        "H4481",
+        "H53",
+        "H1121"
+      ]
+    },
+    {
+      "reference": "psa.4.1",
+      "text": "Al músico principal; sobre Neginot . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H5058",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.5.1",
+      "text": "Al músico principal ; sobre • Nehilot . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H413",
+        "H5155",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.6.1",
+      "text": "Al músico principal ; en Neginot , sobre • Seminit . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H5058",
+        "H5921",
+        "H8067",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.7.1",
+      "text": "Sigaión de David , que cantó a Jehová acerca de las palabras de Cus hijo de Benjamín .",
+      "ids": [
+        "H7692",
+        "H1732",
+        "H834",
+        "H7891",
+        "H3068",
+        "H5921",
+        "H1697",
+        "H3568",
+        "H1121",
+        "H1145"
+      ]
+    },
+    {
+      "reference": "psa.8.1",
+      "text": "Al músico principal ; sobre • Gitit . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H1665",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.9.1",
+      "text": "Al músico principal ; sobre Mut-labén . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4192",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.11.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.12.1",
+      "text": "Al músico principal ; sobre • Seminit . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H8067",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.13.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.14.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.15.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.16.1",
+      "text": "Mictam de David .",
+      "ids": [
+        "H4387",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.17.1",
+      "text": "Oración de David .",
+      "ids": [
+        "H8605",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.18.1",
+      "text": "Al músico principal . Salmo de David , • siervo de Jehová , el cual dirigió a Jehová • las palabras de este • cántico • el día que le libró Jehová de mano de todos sus enemigos , y de mano de Saúl . Entonces dijo :",
+      "ids": [
+        "H5329",
+        "H1732",
+        "H5650",
+        "H3068",
+        "H834",
+        "H1696",
+        "H853",
+        "H1697",
+        "H2063",
+        "H7892",
+        "H3117",
+        "H1931",
+        "H5337",
+        "H4481",
+        "H3709",
+        "H3605",
+        "H341",
+        "H3027",
+        "H7586",
+        "H559"
+      ]
+    },
+    {
+      "reference": "psa.19.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.20.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.21.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.22.1",
+      "text": "Al músico principal ; sobre Ajelet-sahar . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H365",
+        "H7837",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.23.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.24.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.25.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.26.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.27.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.28.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.29.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.30.1",
+      "text": "Salmo cantado en la dedicación de la Casa . Salmo de David .",
+      "ids": [
+        "H4210",
+        "H7892",
+        "H2598",
+        "H1004",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.31.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.32.1",
+      "text": "Salmo de David . Masquil .",
+      "ids": [
+        "H1732",
+        "H4905"
+      ]
+    },
+    {
+      "reference": "psa.34.1",
+      "text": "Salmo de David , cuando mudó • su semblante delante de Abimelec , y él lo echó , y se fue .",
+      "ids": [
+        "H1732",
+        "H8132",
+        "H1931",
+        "H853",
+        "H2940",
+        "H6440",
+        "H40",
+        "H1644",
+        "H3212"
+      ]
+    },
+    {
+      "reference": "psa.35.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.36.1",
+      "text": "Al músico principal . Salmo de David , • siervo de Jehová .",
+      "ids": [
+        "H5329",
+        "H1732",
+        "H5650",
+        "H3068"
+      ]
+    },
+    {
+      "reference": "psa.37.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.38.1",
+      "text": "Salmo de David , para recordar .",
+      "ids": [
+        "H4210",
+        "H1732",
+        "H2142"
+      ]
+    },
+    {
+      "reference": "psa.39.1",
+      "text": "Al músico principal ; a Jedutún . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H3038",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.40.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.41.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.42.1",
+      "text": "Al músico principal . Masquil de los hijos de Coré .",
+      "ids": [
+        "H5329",
+        "H4905",
+        "H1121",
+        "H7141"
+      ]
+    },
+    {
+      "reference": "psa.44.1",
+      "text": "Al músico principal . Masquil de los hijos de Coré .",
+      "ids": [
+        "H5329",
+        "H4905",
+        "H1121",
+        "H7141"
+      ]
+    },
+    {
+      "reference": "psa.45.1",
+      "text": "Al músico principal ; sobre Lirios . Masquil de los hijos de Coré . Canción de amores .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H7799",
+        "H4905",
+        "H1121",
+        "H7141",
+        "H7892",
+        "H3039"
+      ]
+    },
+    {
+      "reference": "psa.46.1",
+      "text": "Al músico principal ; de los hijos de Coré . Salmo sobre Alamot .",
+      "ids": [
+        "H5329",
+        "H1121",
+        "H7141",
+        "H7892",
+        "H5921",
+        "H5961"
+      ]
+    },
+    {
+      "reference": "psa.47.1",
+      "text": "Al músico principal . Salmo de los hijos de Coré .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1121",
+        "H7141"
+      ]
+    },
+    {
+      "reference": "psa.48.1",
+      "text": "Cántico . Salmo de los hijos de Coré .",
+      "ids": [
+        "H7892",
+        "H4210",
+        "H1121",
+        "H7141"
+      ]
+    },
+    {
+      "reference": "psa.49.1",
+      "text": "Al músico principal . Salmo de los hijos de Coré .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1121",
+        "H7141"
+      ]
+    },
+    {
+      "reference": "psa.50.1",
+      "text": "Salmo de Asaf .",
+      "ids": [
+        "H4210",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.51.1",
+      "text": "Al músico principal . Salmo de David , cuando después que se llegó a Betsabé , vino a él Natán el profeta .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732",
+        "H834",
+        "H935",
+        "H413",
+        "H1339",
+        "H1931",
+        "H5416",
+        "H5030"
+      ]
+    },
+    {
+      "reference": "psa.52.1",
+      "text": "Al músico principal . Masquil de David , cuando vino Doeg • edomita y dio cuenta a Saúl • diciéndole : David ha venido a casa de Ahimelec .",
+      "ids": [
+        "H5329",
+        "H4905",
+        "H1732",
+        "H935",
+        "H1673",
+        "H130",
+        "H5046",
+        "H7586",
+        "H559",
+        "H1931",
+        "H413",
+        "H1004",
+        "H288"
+      ]
+    },
+    {
+      "reference": "psa.53.1",
+      "text": "Al músico principal ; sobre Mahalat . Masquil de David .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H4257",
+        "H4905",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.54.1",
+      "text": "Al músico principal ; en Neginot . Masquil de David , cuando vinieron los zifeos y dijeron a Saúl : ¿No está David escondido en nuestra tierra ? •",
+      "ids": [
+        "H5329",
+        "H5058",
+        "H4905",
+        "H1732",
+        "H935",
+        "H2130",
+        "H559",
+        "H7586",
+        "H3808",
+        "H5641",
+        "H5973",
+        "H587"
+      ]
+    },
+    {
+      "reference": "psa.55.1",
+      "text": "Al músico principal ; en Neginot . Masquil de David .",
+      "ids": [
+        "H5329",
+        "H5058",
+        "H4905",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.56.1",
+      "text": "Al músico principal ; sobre La paloma silenciosa en paraje muy distante . Mictam de David , cuando los filisteos le prendieron en Gat .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H3128",
+        "H4387",
+        "H1732",
+        "H6430",
+        "H853",
+        "H1931",
+        "H270",
+        "H1661"
+      ]
+    },
+    {
+      "reference": "psa.57.1",
+      "text": "Al músico principal ; sobre No destruyas . Mictam de David , cuando huyó de delante de Saúl a la cueva .",
+      "ids": [
+        "H5329",
+        "H516",
+        "H4387",
+        "H1732",
+        "H1272",
+        "H1931",
+        "H4481",
+        "H6440",
+        "H7586",
+        "H4631"
+      ]
+    },
+    {
+      "reference": "psa.58.1",
+      "text": "Al músico principal ; sobre No destruyas . Mictam de David .",
+      "ids": [
+        "H5329",
+        "H516",
+        "H4387",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.59.1",
+      "text": "Al músico principal ; sobre No destruyas . Mictam de David , cuando envió Saúl , y vigilaron • la casa para matarlo .",
+      "ids": [
+        "H5329",
+        "H516",
+        "H4387",
+        "H1732",
+        "H7971",
+        "H7586",
+        "H8104",
+        "H853",
+        "H1004",
+        "H4191",
+        "H1931"
+      ]
+    },
+    {
+      "reference": "psa.60.1",
+      "text": "Al músico principal ; sobre Lirios . Testimonio . Mictam de David , para enseñar , cuando tuvo guerra contra Aram-Naharaim y contra Aram de Soba , y volvió Joab , y destrozó a doce mil de Edom en el valle de la Sal .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H7802",
+        "H4387",
+        "H1732",
+        "H3925",
+        "H5327",
+        "H1931",
+        "H853",
+        "H763",
+        "H760",
+        "H7725",
+        "H3097",
+        "H5221",
+        "H8147",
+        "H6240",
+        "H505",
+        "H123",
+        "H1516"
+      ]
+    },
+    {
+      "reference": "psa.61.1",
+      "text": "Al músico principal ; sobre Neginot . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H5058",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.62.1",
+      "text": "Al músico principal ; a Jedutún . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H3038",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.63.1",
+      "text": "Salmo de David , cuando estaba en el desierto de Judá .",
+      "ids": [
+        "H4210",
+        "H1732",
+        "H1961",
+        "H1931",
+        "H4057",
+        "H3063"
+      ]
+    },
+    {
+      "reference": "psa.64.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.65.1",
+      "text": "Al músico principal . Salmo . Cántico de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H7892",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.66.1",
+      "text": "Al músico principal . Cántico . Salmo .",
+      "ids": [
+        "H5329",
+        "H7892",
+        "H4210"
+      ]
+    },
+    {
+      "reference": "psa.67.1",
+      "text": "Al músico principal ; en Neginot . Salmo . Cántico .",
+      "ids": [
+        "H5329",
+        "H5058",
+        "H4210",
+        "H7892"
+      ]
+    },
+    {
+      "reference": "psa.68.1",
+      "text": "Al músico principal . Salmo de David . Cántico .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732",
+        "H7892"
+      ]
+    },
+    {
+      "reference": "psa.69.1",
+      "text": "Al músico principal ; sobre Lirios . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H7799",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.70.1",
+      "text": "Al músico principal . Salmo de David , para conmemorar .",
+      "ids": [
+        "H5329",
+        "H1732",
+        "H2142"
+      ]
+    },
+    {
+      "reference": "psa.72.1",
+      "text": "Para Salomón .",
+      "ids": [
+        "H8010"
+      ]
+    },
+    {
+      "reference": "psa.73.1",
+      "text": "Salmo de Asaf .",
+      "ids": [
+        "H4210",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.74.1",
+      "text": "Masquil de Asaf .",
+      "ids": [
+        "H4905",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.75.1",
+      "text": "Al músico principal ; sobre No destruyas . Salmo de Asaf . Cántico .",
+      "ids": [
+        "H5329",
+        "H516",
+        "H4210",
+        "H623",
+        "H7892"
+      ]
+    },
+    {
+      "reference": "psa.76.1",
+      "text": "Al músico principal ; sobre Neginot . Salmo de Asaf . Cántico .",
+      "ids": [
+        "H5329",
+        "H5058",
+        "H4210",
+        "H623",
+        "H7892"
+      ]
+    },
+    {
+      "reference": "psa.77.1",
+      "text": "Al músico principal ; para Jedutún . Salmo de Asaf .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H3038",
+        "H4210",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.78.1",
+      "text": "Masquil de Asaf .",
+      "ids": [
+        "H4905",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.79.1",
+      "text": "Salmo de Asaf .",
+      "ids": [
+        "H4210",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.80.1",
+      "text": "Al músico principal ; sobre Lirios . Testimonio . Salmo de Asaf .",
+      "ids": [
+        "H5329",
+        "H413",
+        "H7802",
+        "H4210",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.81.1",
+      "text": "Al músico principal ; sobre Gitit . Salmo de Asaf .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H1665",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.82.1",
+      "text": "Salmo de Asaf .",
+      "ids": [
+        "H4210",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.83.1",
+      "text": "Cántico . Salmo de Asaf .",
+      "ids": [
+        "H7892",
+        "H4210",
+        "H623"
+      ]
+    },
+    {
+      "reference": "psa.84.1",
+      "text": "Al músico principal ; sobre Gitit . Salmo para los hijos de Coré .",
+      "ids": [
+        "H5329",
+        "H5921",
+        "H1665",
+        "H4210",
+        "H1121",
+        "H7141"
+      ]
+    },
+    {
+      "reference": "psa.85.1",
+      "text": "Al músico principal . Salmo para los hijos de Coré .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1121",
+        "H7141"
+      ]
+    },
+    {
+      "reference": "psa.86.1",
+      "text": "Oración de David .",
+      "ids": [
+        "H8605",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.87.1",
+      "text": "• los hijos de Coré . Salmo . Cántico .",
+      "ids": [
+        "H1121",
+        "H7141",
+        "H4210",
+        "H7892"
+      ]
+    },
+    {
+      "reference": "psa.88.1",
+      "text": "Cántico . Salmo para los hijos de Coré . Al músico principal , para cantar sobre Mahalat . Masquil de Hemán ezraíta .",
+      "ids": [
+        "H7892",
+        "H4210",
+        "H1121",
+        "H7141",
+        "H5329",
+        "H6031",
+        "H5921",
+        "H4257",
+        "H4905",
+        "H1968",
+        "H250"
+      ]
+    },
+    {
+      "reference": "psa.89.1",
+      "text": "Masquil de Etán ezraíta .",
+      "ids": [
+        "H4905",
+        "H387",
+        "H250"
+      ]
+    },
+    {
+      "reference": "psa.90.1",
+      "text": "Oración de Moisés , varón de Dios .",
+      "ids": [
+        "H8605",
+        "H4872",
+        "H376",
+        "H430"
+      ]
+    },
+    {
+      "reference": "psa.92.1",
+      "text": "Salmo . Cántico para el día de reposo .",
+      "ids": [
+        "H4210",
+        "H7892",
+        "H3117",
+        "H7676"
+      ]
+    },
+    {
+      "reference": "psa.98.1",
+      "text": "Salmo .",
+      "ids": [
+        "H4210"
+      ]
+    },
+    {
+      "reference": "psa.100.1",
+      "text": "Salmo de alabanza .",
+      "ids": [
+        "H4210",
+        "H8426"
+      ]
+    },
+    {
+      "reference": "psa.101.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.102.1",
+      "text": "Oración del que sufre , cuando está angustiado , y delante de Jehová derrama su lamento .",
+      "ids": [
+        "H8605",
+        "H6041",
+        "H3588",
+        "H5848",
+        "H6440",
+        "H3068",
+        "H8210",
+        "H1931",
+        "H7879"
+      ]
+    },
+    {
+      "reference": "psa.103.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.108.1",
+      "text": "Cántico . Salmo de David .",
+      "ids": [
+        "H7892",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.109.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.110.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.120.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.121.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.122.1",
+      "text": "Cántico gradual ; de David .",
+      "ids": [
+        "H7892",
+        "H4609",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.123.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.124.1",
+      "text": "Cántico gradual ; de David .",
+      "ids": [
+        "H7892",
+        "H4609",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.125.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.126.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.127.1",
+      "text": "Cántico gradual ; para Salomón .",
+      "ids": [
+        "H7892",
+        "H4609",
+        "H8010"
+      ]
+    },
+    {
+      "reference": "psa.128.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.129.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.130.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.131.1",
+      "text": "Cántico gradual ; de David .",
+      "ids": [
+        "H7892",
+        "H4609",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.132.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.133.1",
+      "text": "Cántico gradual ; de David .",
+      "ids": [
+        "H7892",
+        "H4609",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.134.1",
+      "text": "Cántico gradual .",
+      "ids": [
+        "H7892",
+        "H4609"
+      ]
+    },
+    {
+      "reference": "psa.138.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.139.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.140.1",
+      "text": "Al músico principal . Salmo de David .",
+      "ids": [
+        "H5329",
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.141.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.142.1",
+      "text": "Masquil de David . Oración que hizo cuando estaba en la cueva .",
+      "ids": [
+        "H4905",
+        "H1732",
+        "H8605",
+        "H1961",
+        "H1931",
+        "H4631"
+      ]
+    },
+    {
+      "reference": "psa.143.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H4210",
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.144.1",
+      "text": "Salmo de David .",
+      "ids": [
+        "H1732"
+      ]
+    },
+    {
+      "reference": "psa.145.1",
+      "text": "Salmo de alabanza ; de David .",
+      "ids": [
+        "H8416",
+        "H1732"
+      ]
+    }
+  ],
+  "files": [
+    {
+      "bookId": "gen",
+      "path": "data/strong/books/gen.json",
+      "bytes": 1167654,
+      "sha256": "02978380599d3c6e72b9e8dd947a22e199d821f5d7baaa141110fa764aaceb44",
+      "chapters": 50
+    },
+    {
+      "bookId": "exo",
+      "path": "data/strong/books/exo.json",
+      "bytes": 940280,
+      "sha256": "0a5d38a71bd951bf7bf882b07ec8649b244ad2914932ebc7b7986ac4e5b4c3b5",
+      "chapters": 40
+    },
+    {
+      "bookId": "lev",
+      "path": "data/strong/books/lev.json",
+      "bytes": 678713,
+      "sha256": "249fb082cc9def1f9104407bb1aa13bda04ca1e0b3c58812f8535efad80c3dd8",
+      "chapters": 27
+    },
+    {
+      "bookId": "num",
+      "path": "data/strong/books/num.json",
+      "bytes": 949281,
+      "sha256": "90a6c981906358282aa501e97fe6ee6f93ebe169fe2710245d79de89ff03222f",
+      "chapters": 36
+    },
+    {
+      "bookId": "deu",
+      "path": "data/strong/books/deu.json",
+      "bytes": 864203,
+      "sha256": "9a446ef71d8738484c7b171ed51d5d37d2e9347e3f151987f545921f9b2133a6",
+      "chapters": 34
+    },
+    {
+      "bookId": "jos",
+      "path": "data/strong/books/jos.json",
+      "bytes": 573007,
+      "sha256": "4f5b6aa4c432c9da74119926083b0340beac2526f2d7a1e13dd6c0a276991673",
+      "chapters": 24
+    },
+    {
+      "bookId": "jdg",
+      "path": "data/strong/books/jdg.json",
+      "bytes": 572464,
+      "sha256": "1583c86edc0b0e2a21c2ffabc4c21a4bf1dba96e3233c3e07f4ee3c2e3240c3d",
+      "chapters": 21
+    },
+    {
+      "bookId": "rut",
+      "path": "data/strong/books/rut.json",
+      "bytes": 76967,
+      "sha256": "ec4a7c6a2c9d023ab5a1c16960be652096c0cfbe92a026f8ac43737a8d3a9721",
+      "chapters": 4
+    },
+    {
+      "bookId": "1sa",
+      "path": "data/strong/books/1sa.json",
+      "bytes": 772351,
+      "sha256": "42217bc57fe9fb143ae391c928b8d89e7230eb79b0c90ff940ba2787089bfff6",
+      "chapters": 31
+    },
+    {
+      "bookId": "2sa",
+      "path": "data/strong/books/2sa.json",
+      "bytes": 639958,
+      "sha256": "c78ac4bedfb15b2e192ba56f06dd2774d33b41eed866e59dec5aa2ffb7d2a873",
+      "chapters": 24
+    },
+    {
+      "bookId": "1ki",
+      "path": "data/strong/books/1ki.json",
+      "bytes": 754180,
+      "sha256": "c754b26fb29d94c14f2af33cc4f559fbffb1a99cca5faa99a391987121b8999f",
+      "chapters": 22
+    },
+    {
+      "bookId": "2ki",
+      "path": "data/strong/books/2ki.json",
+      "bytes": 699808,
+      "sha256": "ca20f6ede20f66015cd98f8ccd5cc84f87cf3438c44cea420df8da36d1906e6f",
+      "chapters": 25
+    },
+    {
+      "bookId": "1ch",
+      "path": "data/strong/books/1ch.json",
+      "bytes": 618311,
+      "sha256": "834ec91fccf7c987349725ebc31ae8b36fab9364f7d775e88a29c1ae9a449a18",
+      "chapters": 29
+    },
+    {
+      "bookId": "2ch",
+      "path": "data/strong/books/2ch.json",
+      "bytes": 774634,
+      "sha256": "24468e904f3d74b9b9b9cc6ae22ef26c91e26793545cb061e4630d0688f1c9ac",
+      "chapters": 36
+    },
+    {
+      "bookId": "ezr",
+      "path": "data/strong/books/ezr.json",
+      "bytes": 221492,
+      "sha256": "45bd0fdb843012afedf04fe6762e190ccc8470fb0f33b2853b271ed44ad33770",
+      "chapters": 10
+    },
+    {
+      "bookId": "neh",
+      "path": "data/strong/books/neh.json",
+      "bytes": 314893,
+      "sha256": "14e519b2a4a246d819f2c8ec95d579360a8675afde30235000936ca872d11acb",
+      "chapters": 13
+    },
+    {
+      "bookId": "est",
+      "path": "data/strong/books/est.json",
+      "bytes": 171693,
+      "sha256": "5e2d80cd952dbf856b7cbe1c377b85372c9dd92d5c37846a76c1a6ec36dd2593",
+      "chapters": 10
+    },
+    {
+      "bookId": "job",
+      "path": "data/strong/books/job.json",
+      "bytes": 535620,
+      "sha256": "4217b25e7fb876184082d7d63eb0d23a796e7a70025a2fd343300783aa50e7cc",
+      "chapters": 42
+    },
+    {
+      "bookId": "psa",
+      "path": "data/strong/books/psa.json",
+      "bytes": 1276381,
+      "sha256": "d568501873c1bee53287bc5a272a1967f9c1d6c357fb7307706fbac8194970b8",
+      "chapters": 150
+    },
+    {
+      "bookId": "pro",
+      "path": "data/strong/books/pro.json",
+      "bytes": 434401,
+      "sha256": "367e123e200ffdc9672fe2bb41f945e3b61bfc9ac0c195ffae1d568ff06caadd",
+      "chapters": 31
+    },
+    {
+      "bookId": "ecc",
+      "path": "data/strong/books/ecc.json",
+      "bytes": 174952,
+      "sha256": "1e885cee08d47731e2feef57c9acc78a3ff0844540bb782131f1e67c3a402c7c",
+      "chapters": 12
+    },
+    {
+      "bookId": "sng",
+      "path": "data/strong/books/sng.json",
+      "bytes": 83668,
+      "sha256": "3f2bafe4fbcb48de3dd735bd0047fa95505415cc18e22a1896e64ebe3bf1b12f",
+      "chapters": 8
+    },
+    {
+      "bookId": "isa",
+      "path": "data/strong/books/isa.json",
+      "bytes": 1062026,
+      "sha256": "677f122fdf10e20e0f09586dd4c13ff2866b66a9fbe517078a7d7f31add37aaf",
+      "chapters": 66
+    },
+    {
+      "bookId": "jer",
+      "path": "data/strong/books/jer.json",
+      "bytes": 1304742,
+      "sha256": "8f1adb84b11161ef3c2eb60765e558e95e44addf7f270010221eb6ba7171fc19",
+      "chapters": 52
+    },
+    {
+      "bookId": "lam",
+      "path": "data/strong/books/lam.json",
+      "bytes": 102345,
+      "sha256": "3eebdf89280e0e05ec4fb125ee38c682baff4b54c4d3a51353ac6d8f5692d091",
+      "chapters": 5
+    },
+    {
+      "bookId": "ezk",
+      "path": "data/strong/books/ezk.json",
+      "bytes": 1138839,
+      "sha256": "02d48b694be3378eb15fbc9b7d0d5fac923031af508ad428725fccc57dae355e",
+      "chapters": 48
+    },
+    {
+      "bookId": "dan",
+      "path": "data/strong/books/dan.json",
+      "bytes": 347946,
+      "sha256": "4ecb3243287dc7dd63586f8474fd763df2f816e581248045b8fdd2a4e14f816d",
+      "chapters": 12
+    },
+    {
+      "bookId": "hos",
+      "path": "data/strong/books/hos.json",
+      "bytes": 150628,
+      "sha256": "62ef3cfce86cf089350987cfd57d3b9f8d83daf4f241625748070cdcf994c1a7",
+      "chapters": 14
+    },
+    {
+      "bookId": "jol",
+      "path": "data/strong/books/jol.json",
+      "bytes": 57467,
+      "sha256": "ccbfae5e68083c0d88f51579ae8876e9914d91affcce9a4cc9569bd3dc72fac7",
+      "chapters": 3
+    },
+    {
+      "bookId": "amo",
+      "path": "data/strong/books/amo.json",
+      "bytes": 120250,
+      "sha256": "f662c4a0382998810c28f71169af6fd3febd64cc91ca84f47373847b4f25c1ac",
+      "chapters": 9
+    },
+    {
+      "bookId": "oba",
+      "path": "data/strong/books/oba.json",
+      "bytes": 18396,
+      "sha256": "f415b2df324dc506e6f7c3500ce52afed54a26cdd5a72cec43093b77711dde82",
+      "chapters": 1
+    },
+    {
+      "bookId": "jon",
+      "path": "data/strong/books/jon.json",
+      "bytes": 41179,
+      "sha256": "127254d616dc43f82b7c0ea27906acb4bf4bf3332c0d627a97fd95358cb64b83",
+      "chapters": 4
+    },
+    {
+      "bookId": "mic",
+      "path": "data/strong/books/mic.json",
+      "bytes": 88241,
+      "sha256": "286cd127d4d6b71b26a40113c13bb1b4ae87650bf314642f0c538a899649820d",
+      "chapters": 7
+    },
+    {
+      "bookId": "nam",
+      "path": "data/strong/books/nam.json",
+      "bytes": 36518,
+      "sha256": "4a84062b48a6ed56e8d6a2d6a73368a71dd778112a07ecf6829d0783ec912295",
+      "chapters": 3
+    },
+    {
+      "bookId": "hab",
+      "path": "data/strong/books/hab.json",
+      "bytes": 42251,
+      "sha256": "82de1864a983755d91ffd927516bbada5a1f62e27c13b198dbd3f01fa453b3b6",
+      "chapters": 3
+    },
+    {
+      "bookId": "zep",
+      "path": "data/strong/books/zep.json",
+      "bytes": 47765,
+      "sha256": "596b01c91986cae0c48b594cc76c7b61244d811f88a71b27f97b9b711e1bc7b5",
+      "chapters": 3
+    },
+    {
+      "bookId": "hag",
+      "path": "data/strong/books/hag.json",
+      "bytes": 33762,
+      "sha256": "7ce44bf51af12c35072e271c3f0584dd22fdff9b76e7bfda4425a286cd8ec944",
+      "chapters": 2
+    },
+    {
+      "bookId": "zec",
+      "path": "data/strong/books/zec.json",
+      "bytes": 184269,
+      "sha256": "35142fa2078657cb09d6870cad5f56b8b7df2e6e8d35e04a2668fea6bc427660",
+      "chapters": 14
+    },
+    {
+      "bookId": "mal",
+      "path": "data/strong/books/mal.json",
+      "bytes": 53206,
+      "sha256": "b3c389d72006184ce69ff83802f93f980cf4a6b8c01566c3f99eaea379cdd610",
+      "chapters": 4
+    },
+    {
+      "bookId": "mat",
+      "path": "data/strong/books/mat.json",
+      "bytes": 928359,
+      "sha256": "741a9a6f8a10798aef9c5239a03b8d26735f8f4ef6fccabf12414617087079b2",
+      "chapters": 28
+    },
+    {
+      "bookId": "mrk",
+      "path": "data/strong/books/mrk.json",
+      "bytes": 572955,
+      "sha256": "1031307d62c398f6cc89b13bb69ecc342fb60eb4d70a74e90ed12b5b0272b01d",
+      "chapters": 16
+    },
+    {
+      "bookId": "luk",
+      "path": "data/strong/books/luk.json",
+      "bytes": 973817,
+      "sha256": "0740ff8c9a4c3ae7be00d6d82de33fc0e94cb43ec1f29f3ded12d8e08e4cae00",
+      "chapters": 24
+    },
+    {
+      "bookId": "jhn",
+      "path": "data/strong/books/jhn.json",
+      "bytes": 781319,
+      "sha256": "a0de1eb8aec57f85163e09172baf4630c891ad9f9c69c6dbae5dbf50c35c459a",
+      "chapters": 21
+    },
+    {
+      "bookId": "act",
+      "path": "data/strong/books/act.json",
+      "bytes": 924599,
+      "sha256": "95987526ba43358f2eed98663d09d708739f827f83ce8530f8f8d664657db9b4",
+      "chapters": 28
+    },
+    {
+      "bookId": "rom",
+      "path": "data/strong/books/rom.json",
+      "bytes": 364359,
+      "sha256": "fd477ca335569166c7cb7f08a849912967191beb462d785c9464ab74c3bd9f19",
+      "chapters": 16
+    },
+    {
+      "bookId": "1co",
+      "path": "data/strong/books/1co.json",
+      "bytes": 353383,
+      "sha256": "bb1dc8a118244b9086a5126d4f675ecb46b8db62ec887038e9b45ea78308b76d",
+      "chapters": 16
+    },
+    {
+      "bookId": "2co",
+      "path": "data/strong/books/2co.json",
+      "bytes": 229128,
+      "sha256": "435dfba81bed382db6171bb38f3fe39798b60ab4a0979f0a4b78be2203cf7fb9",
+      "chapters": 13
+    },
+    {
+      "bookId": "gal",
+      "path": "data/strong/books/gal.json",
+      "bytes": 116799,
+      "sha256": "c1ab6ee30648992d517f92ef454fffd94234cb0589f2555fbb1c25b11e65a9ec",
+      "chapters": 6
+    },
+    {
+      "bookId": "eph",
+      "path": "data/strong/books/eph.json",
+      "bytes": 122345,
+      "sha256": "cca991d7aff92c32316d5327023a0ffef19e677ba0050c5c6d58422c55c93d64",
+      "chapters": 6
+    },
+    {
+      "bookId": "php",
+      "path": "data/strong/books/php.json",
+      "bytes": 83415,
+      "sha256": "b9c50f2f3919f59f5ad60bf807995dccff9e0b356242f00fab563474ae884f39",
+      "chapters": 4
+    },
+    {
+      "bookId": "col",
+      "path": "data/strong/books/col.json",
+      "bytes": 80800,
+      "sha256": "6abb52051069efad01893c6da38ac1f6c1fd10e92d40a789fb47e932bd615632",
+      "chapters": 4
+    },
+    {
+      "bookId": "1th",
+      "path": "data/strong/books/1th.json",
+      "bytes": 74550,
+      "sha256": "e3b512a3a5e9c26898e802af527afdcaa153b007c5a22c41ec95d2bdd64aaf40",
+      "chapters": 5
+    },
+    {
+      "bookId": "2th",
+      "path": "data/strong/books/2th.json",
+      "bytes": 41850,
+      "sha256": "8736721ae64b61cf83008ecfb895371a2366d42069d21cedfb218c0427bd7abe",
+      "chapters": 3
+    },
+    {
+      "bookId": "1ti",
+      "path": "data/strong/books/1ti.json",
+      "bytes": 85694,
+      "sha256": "331ca16dcea11a80c46e4c2a63287f677639585515e09313dca95ee4ada2e24c",
+      "chapters": 6
+    },
+    {
+      "bookId": "2ti",
+      "path": "data/strong/books/2ti.json",
+      "bytes": 64228,
+      "sha256": "fe25fca39c05c954180ceb64c962004ac18deb5ea2a3216d9e89e409bd05a3a6",
+      "chapters": 4
+    },
+    {
+      "bookId": "tit",
+      "path": "data/strong/books/tit.json",
+      "bytes": 34894,
+      "sha256": "3e59dbf48e40a55038083cdfc4b754b2ff503752689e9f46dc467f789c9b4633",
+      "chapters": 3
+    },
+    {
+      "bookId": "phm",
+      "path": "data/strong/books/phm.json",
+      "bytes": 16635,
+      "sha256": "38a26e61346167760984151b7e61f3e6d8a913c4efef2dc9d065e2557dc5571f",
+      "chapters": 1
+    },
+    {
+      "bookId": "heb",
+      "path": "data/strong/books/heb.json",
+      "bytes": 258182,
+      "sha256": "978e3658084cccaa22b68e5e7a5e2c2fca7d2b8bb8c7e9b64da636ffea83b86c",
+      "chapters": 13
+    },
+    {
+      "bookId": "jas",
+      "path": "data/strong/books/jas.json",
+      "bytes": 90683,
+      "sha256": "527e596e69e80f3543ede49d5b92fe3560c52fae825af2422270c0e2ed9f3f56",
+      "chapters": 5
+    },
+    {
+      "bookId": "1pe",
+      "path": "data/strong/books/1pe.json",
+      "bytes": 89745,
+      "sha256": "c810e269550cb4413f180c37f314cea19ab069a9a01eeb3160c7416a8c4bb26b",
+      "chapters": 5
+    },
+    {
+      "bookId": "2pe",
+      "path": "data/strong/books/2pe.json",
+      "bytes": 57350,
+      "sha256": "aacbbcf3af0921ee7ca53f63da2cc3c49806b7224c86702e9836e18e47d8683e",
+      "chapters": 3
+    },
+    {
+      "bookId": "1jn",
+      "path": "data/strong/books/1jn.json",
+      "bytes": 108195,
+      "sha256": "f1cd22c53e94008fa9c80cf773de3b1e3f5889aac418d20f77f227d5eb480e91",
+      "chapters": 5
+    },
+    {
+      "bookId": "2jn",
+      "path": "data/strong/books/2jn.json",
+      "bytes": 12599,
+      "sha256": "7150aaf231c7fd97c552209c9d66fb1aa2a32aff6dc2b417fff49a893130e67a",
+      "chapters": 1
+    },
+    {
+      "bookId": "3jn",
+      "path": "data/strong/books/3jn.json",
+      "bytes": 11144,
+      "sha256": "7334949251deb8e95a95af89a3867c2a351cac0e2d8f0f859ffce697b5f0e75a",
+      "chapters": 1
+    },
+    {
+      "bookId": "jud",
+      "path": "data/strong/books/jud.json",
+      "bytes": 23088,
+      "sha256": "2b138ae89fc4180340813c80d7bf218c2ace9d7aaef13f3550c6092d637d7557",
+      "chapters": 1
+    },
+    {
+      "bookId": "rev",
+      "path": "data/strong/books/rev.json",
+      "bytes": 486021,
+      "sha256": "03c75493c2b1d8d9c51c4d78824d46675a755db4b009b0e8d703de5de1381e56",
+      "chapters": 22
+    }
+  ]
+}

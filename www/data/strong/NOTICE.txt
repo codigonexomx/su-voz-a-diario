@@ -1,0 +1,72 @@
+DICCIONARIOS STRONG — FUENTES Y AVISOS
+
+Diccionario Strong de palabras originales del Antiguo y Nuevo Testamento, de James Strong. © 2002 Editorial Caribe Inc., una división de Thomas Nelson. Módulo StrongEsp compilado por Equipo Internacional e-Sword / Biblioteca Hispana; revisión declarada del 17 de julio de 2012.
+
+© 2002 Editorial Caribe Inc. Una división de Thomas Nelson. El módulo indica: «Solo para uso personal. Prohibida su venta.» No declara una licencia abierta.
+
+https://www.mediafire.com/download/xgqux32ye221wx9/StrongEsp.dct.mybible
+
+Lemas hebreos y griegos: Open Scriptures, JSON © 2010 y © 2009, respectivamente. Licencia indicada por sus archivos: CC BY-SA; no especifican versión. Datos hebreos preparados por David Instone-Brewer y David Troidl; datos griegos preparados por Ulrik Petersen.
+
+https://github.com/openscriptures/strongs/blob/0acd2f251c2d35ff8db2dece4e0593979d3ac223/hebrew/strongs-hebrew-dictionary.js
+
+https://github.com/openscriptures/strongs/blob/0acd2f251c2d35ff8db2dece4e0593979d3ac223/greek/strongs-greek-dictionary.js
+
+Adaptación de formato para consulta por número Strong: se retiró HTML, se decodificaron entidades y se conservaron las definiciones españolas. Los lemas vocalizados se consultan por el mismo identificador en Open Scriptures.
+
+La licencia de los lemas no se atribuye a las definiciones españolas ni al texto de la Biblia.
+
+/**
+ * A Concise Dictionary of the Words in the Hebrew Bible
+ *    with their Renderings in the King James Version
+ * by James Strong, LL.D., S.T.D.
+ * 1894
+ *
+ * JSON version
+ * ============
+ * Copyright 2010, Open Scriptures. CC-BY-SA. Derived from XML.
+ * $Id$
+ *
+ * XML e-text version
+ * ==================
+ * From a source by David Instone-Brewer (www.2LetterLookup.com):
+ * "The data came from several PD sources which were full of errors.
+ * I cleaned them by comparing them to each other and (where
+ * necessary) looking at the original."
+ *
+ * Editing, corrections and Unicode transliterations
+ * by David Troidl.
+ *
+ * Comments or corrections:
+ * open-scriptures@googlegroups.com
+ */
+
+/**
+ *                      Dictionary of Greek Words
+ *                              taken from
+ *                    Strong's Exhaustive Concordance
+ *                                   by
+ *                      James Strong, S.T.D., LL.D.
+ *                                  1890
+ *
+ * JSON version
+ * ============
+ * Copyright 2009, Open Scriptures. CC-BY-SA. Derived from XML.
+ * $Id$
+ *
+ * XML e-text version
+ * ==================
+ *
+ * The XML version of this work was prepared in 2006 by Ulrik Petersen
+ * (http://ulrikp.org) from the ASCII e-text version presented below.
+ * The XML version contains "real" UTF-8 Greek where the original ASCII
+ * e-text version had transliteration.  The XML has a stand-alone DTD
+ * which should be easy to follow.
+ *
+ * Ulrik Petersen welcomes bugfixes to the text.  Please send them to the
+ * address provided on the website:
+ *
+ * http://ulrikp.org
+ *
+ * Ulrik Petersen
+ */

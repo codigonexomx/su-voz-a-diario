@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "scope": "Preparación local por instrucción del propietario. Los avisos se conservan; la disponibilidad de una descarga no se presenta como licencia abierta de las definiciones españolas.",
+  "definitionSource": {
+    "name": "Diccionario Strong en Español",
+    "file": "StrongEsp.dct.mybible",
+    "url": "https://www.mediafire.com/download/xgqux32ye221wx9/StrongEsp.dct.mybible",
+    "catalogueUrl": "https://sites.google.com/view/iglesiadecristodaule/inicio/módulos-para-my-sword",
+    "sha256": "d39d4fed729656f9b20fce727d6a8746921050c03d22a3dd2366f84d79a21d2f",
+    "bytes": 4653056,
+    "rights": "© 2002 Editorial Caribe Inc. Una división de Thomas Nelson. El módulo indica: «Solo para uso personal. Prohibida su venta.» No declara una licencia abierta.",
+    "metadata": {
+      "title": "Diccionario Strong en Español",
+      "abbreviation": "Strong (Esp)",
+      "description": "Diccionario Strong en Español",
+      "comments": "<?xml version=\"1.0\"?><!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"\n\"file:///C:/Archivos%20de%20programa/Logictran/HTML%20Express%206.2.17/DTD/xhtml1/xhtml1-transitional.dtd\" >\n\nDICCIONARIO\nSTRONG\nPalabras\nhebreas, arameas y griegas del Antiguo y Nuevo\nTestamento\ny su traducción en\nla Versión Reina Valera\n1960\nde James\nStrong\n\nMódulo\npara e-Sword presentado\npor:\nEQUIPO\nINTERNACIONAL\nE-SWORD\nBIBLIOTECA\nHISPANA\n\nEste módulo no\nestá asociado a los propietarios del Copyright.\n\nSolo para uso personal. Prohibida su\nventa.\n\nDatos\nBibliográficos\nTítulo: Diccionario\nStrong de palabras originales del AT y\nNT\n(forma parte de\nNueva\nConcordancia Strong\nExhaustiva)\nAutor: James\nStrong\nEditorial: Caribe\nInc.\nCopyright: ©\n2002\nPropietario: Editorial\nCaribe Inc.\nUna\ndivisión de Thomas Nelson\nLugar: Nashville,\nTN--Miami, FL, E.E.U.U.\n\nDatos\nGenerales del Módulo\nEtiqueta: Strong\nEsp\nTipo: Léxico\nInformación http://www.caribebetania.com\nFuente: Versión\nimpresa\n(corregida)\nCompilador: Equipo\nInternacional e-Sword,\nB.H.\nÚltima Revisión:\n17 de julio de 2012.\n\nPlan\ndel Diccionario Strong\n1.\nTodas las palabras originales se presentan en orden alfabético, de\nacuerdo al alfabeto en sus idiomas originales, y siguiendo la numeración\nque les asignó el Dr. Strong. Esta numeración permite una\nfácil concatenación de diferentes palabras, tanto en el\ndiccionario como en la parte principal de la Concordancia. Muchos libros de\nreferencia usan los mismos números que determinó el Dr.\nStrong.\n2.\nInmediatamente después de la palabra en hebreo, arameo o griego se da una\ntransliteración exacta en español, en nuestro alfabeto, y\nsiguiendo las pautas que se indican a continuación.\n3.\nLuego se incluye la etimología, el significado de la raíz, y usos\ncomunes de la palabra, junto con cualquier otro detalle importante.\n4.\nEn el caso de los nombres propios, se incluye el nombre tal como lo deletrea\nReina Valera\n1960, acompañado de una breve\nexplicación.\n5.\nFinalmente, después de los dos puntos y raya (:-) se incluye una lista\nde todas las palabras que se usan en la\nReina\nValera, revisión de 1960, para\ntraducir esa palabra. En algunos casos se incluye una expresión o frase,\ncuando así lo traduce la Versión\nReina\nValera.\nNOTA:\nDebido a algunos cambios en el sistema de numeración, cuando el trabajo\noriginal del Dr. Strong se estaba llevando a cabo, no se citan palabras griegas\npara los números\nG2717\nó\nG3203-G3302.\nEstos números fueron dejados fuera por completo. Esto no causa\nningún problema en el sistema numérico de Strong. No se\ndejó fuera ninguna palabra griega. En razón a que muchas otras\nobras de referencia usan este sistema numérico, no se lo ha corregido. Si\nse lo corrigiera, causaría gran confusión.",
+      "author": "N/A",
+      "strong": 1,
+      "version": "1.0",
+      "versiondate": "2013-01-01 00:00:00",
+      "publishdate": "2012-02-23 00:00:00",
+      "righttoleft": 0
+    }
+  },
+  "lemmaSource": {
+    "name": "Open Scriptures Strong’s Hebrew and Greek Dictionaries",
+    "repository": "openscriptures/strongs",
+    "commit": "0acd2f251c2d35ff8db2dece4e0593979d3ac223",
+    "url": "https://github.com/openscriptures/strongs",
+    "noticeUrls": [
+      "https://github.com/openscriptures/strongs/blob/0acd2f251c2d35ff8db2dece4e0593979d3ac223/hebrew/strongs-hebrew-dictionary.js",
+      "https://github.com/openscriptures/strongs/blob/0acd2f251c2d35ff8db2dece4e0593979d3ac223/greek/strongs-greek-dictionary.js"
+    ],
+    "license": "CC-BY-SA, según los avisos de los archivos originales; la versión no se indica en esos avisos.",
+    "attribution": "JSON Hebrew © 2010 Open Scriptures; JSON Greek © 2009 Open Scriptures. Hebreo: David Instone-Brewer y David Troidl. Griego: Ulrik Petersen.",
+    "files": [
+      {
+        "language": "hebrew",
+        "variable": "strongsHebrewDictionary",
+        "count": 8674,
+        "sha256": "5ce6aeed551c709f49bcfa341cadf2f34bc7599b85d9de9e6ac2ecbf60fc3739",
+        "blob": "b5b7cd2799981b0bcf96a93541236187b2c85fcf",
+        "file": "openscriptures/strongs-hebrew-dictionary.js",
+        "notice": "/**\n * A Concise Dictionary of the Words in the Hebrew Bible\n *    with their Renderings in the King James Version\n * by James Strong, LL.D., S.T.D.\n * 1894\n *\n * JSON version\n * ============\n * Copyright 2010, Open Scriptures. CC-BY-SA. Derived from XML.\n * $Id$\n *\n * XML e-text version\n * ==================\n * From a source by David Instone-Brewer (www.2LetterLookup.com):\n * \"The data came from several PD sources which were full of errors. \n * I cleaned them by comparing them to each other and (where \n * necessary) looking at the original.\"\n *\n * Editing, corrections and Unicode transliterations\n * by David Troidl.\n *\n * Comments or corrections:\n * open-scriptures@googlegroups.com\n */"
+      },
+      {
+        "language": "greek",
+        "variable": "strongsGreekDictionary",
+        "count": 5523,
+        "sha256": "7624ee738ae47e80f1a352223e28a26d011c9cd4898822cee52f47a010c04efd",
+        "blob": "0bebdeeec31f93b42ec591909da3f18626a684a8",
+        "file": "openscriptures/strongs-greek-dictionary.js",
+        "notice": "/**\n *                      Dictionary of Greek Words\n *                              taken from\n *                    Strong's Exhaustive Concordance\n *                                   by\n *                      James Strong, S.T.D., LL.D.\n *                                  1890\n * \n * JSON version\n * ============\n * Copyright 2009, Open Scriptures. CC-BY-SA. Derived from XML.\n * $Id$\n *\n * XML e-text version\n * ==================\n * \n * The XML version of this work was prepared in 2006 by Ulrik Petersen\n * (http://ulrikp.org) from the ASCII e-text version presented below.\n * The XML version contains \"real\" UTF-8 Greek where the original ASCII\n * e-text version had transliteration.  The XML has a stand-alone DTD\n * which should be easy to follow.\n * \n * Ulrik Petersen welcomes bugfixes to the text.  Please send them to the\n * address provided on the website:\n * \n * http://ulrikp.org\n * \n * Ulrik Petersen\n */"
+      }
+    ]
+  },
+  "uiCredits": {
+    "short": "Definiciones: Diccionario Strong en Español, Editorial Caribe (2002). Lemas: Open Scriptures.",
+    "definitions": "Diccionario Strong de palabras originales del Antiguo y Nuevo Testamento, de James Strong. © 2002 Editorial Caribe Inc., una división de Thomas Nelson. Módulo StrongEsp compilado por Equipo Internacional e-Sword / Biblioteca Hispana; revisión declarada del 17 de julio de 2012.",
+    "lemmas": "Lemas hebreos y griegos: Open Scriptures, JSON © 2010 y © 2009, respectivamente. Licencia indicada por sus archivos: CC BY-SA; no especifican versión. Datos hebreos preparados por David Instone-Brewer y David Troidl; datos griegos preparados por Ulrik Petersen.",
+    "changes": "Adaptación de formato para consulta por número Strong: se retiró HTML, se decodificaron entidades y se conservaron las definiciones españolas. Los lemas vocalizados se consultan por el mismo identificador en Open Scriptures."
+  },
+  "normalization": [
+    "Cada definición y transliteración española procede de su entrada StrongEsp por ID, sin traducciones generadas.",
+    "Los lemas vocalizados se toman de Open Scriptures por el mismo ID; no se usan los lemas sin vocales del módulo español.",
+    "HTML y estilos retirados; entidades decodificadas. Texto de etimología, variantes y traducciones españolas conservado íntegro.",
+    "Arameo sólo cuando la definición hebrea comienza con la indicación explícita (caldeo).",
+    "No se inventa una pronunciación fonética: la fuente española suministra transliteración; pronunciation se deja vacío.",
+    "G2717 se conserva como nota editorial, no como palabra. G3203–G3302 no tienen entradas en la numeración histórica."
+  ],
+  "counts": {
+    "hebrew": 8003,
+    "aramaic": 671,
+    "greek": 5523
+  },
+  "files": {
+    "hebrew": {
+      "file": "hebrew.json",
+      "entries": 8674,
+      "bytes": 2172677,
+      "sha256": "99851cc67f6536e6764abb8a98572fc41bd9120d0c8dc899909cf8d787ca1cef"
+    },
+    "greek": {
+      "file": "greek.json",
+      "entries": 5523,
+      "bytes": 1401440,
+      "sha256": "a9b9d9aa7b414b3dedbea9d4c8196a43a53321920bd62b3eeac35af7e9146b52"
+    }
+  },
+  "unresolvedRelatedIds": [
+    "G12023",
+    "G3203",
+    "G35624",
+    "G6085",
+    "G6578",
+    "G6606"
+  ],
+  "editorialNotes": [
+    {
+      "id": "G2717",
+      "text": "Debido a algunos cambios en el sistema de numeración (mientras el trabajo original estaba en progreso) no se incluyeron palabras griegas para G2717 ni para G3203-G3302. Estos números fueron dejados fuera por completo. Esto no causará ningún problema en el sistema de numeración de Strong. No se ha dejado fuera ninguna palabra griega. Debido a que tantas obras de referencia usan este sistema de numeración, no se lo ha revisado. Si se revisara, ciertamente resultaría en mucha confusión."
+    }
+  ]
+}
