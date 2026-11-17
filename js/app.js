@@ -399,7 +399,9 @@ async function loadRV1909Bible() {
 }
 
 function getBibleReaderVersionId() {
-    return window.App?.sessionOverrideBibleVersion || window.App?.currentBibleVersion || RV1909_VERSION_ID;
+    const requested = window.App?.sessionOverrideBibleVersion || window.App?.currentBibleVersion;
+    return window.App?.getBibleReaderVersions().some(version => version.id === requested)
+        ? requested : RVR1960_VERSION_ID;
 }
 
 async function getBibleChapter(
@@ -591,7 +593,7 @@ const App = {
     monthlyReadingsLoadPromises: {},
     currentView: 'home',
     currentVersion: 'rvr60',
-    currentBibleVersion: 'rv1909',
+    currentBibleVersion: 'rvr60',
     isBibleAudioPlaying: false,
     bibleBooks: [
     { id: 'gen', name: 'Génesis', chapters: 50 },
@@ -1000,7 +1002,7 @@ _authInitPromise: null,
     if (this.getBibleReaderVersions().some(version => version.id === savedBibleVersion)) {
         this.currentBibleVersion = savedBibleVersion;
     } else {
-        this.currentBibleVersion = 'rv1909';
+        this.currentBibleVersion = RVR1960_VERSION_ID;
     }
        
 this.initTheme();
@@ -1085,7 +1087,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '278'
+            pwaVersion: '279'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -4530,7 +4532,7 @@ openCommunityBibleReference: function(reference) {
     }
 
     this.saveCommunityScrollPosition();
-    this.navigateToVerse(parsed.bookId, parsed.chapter, parsed.verse, parsed.endVerse);
+    this.navigateToVerse(parsed.bookId, parsed.chapter, parsed.verse, parsed.endVerse, RVR1960_VERSION_ID);
 },
 
 focusCommunityTarget: function(postId, replyId = null, highlight = false) {
@@ -7121,12 +7123,8 @@ syncAppBadge: function(count) {
             const uiState = MeditationSessionUIStateStorage.load(sessionId);
             this.pinnedReferences = uiState.pinnedReferences || {};
             
-            // Forzar la versión de la sesión si es diferente a la global
-            if (session.bibleVersion && session.bibleVersion !== this.currentBibleVersion) {
-                this.sessionOverrideBibleVersion = session.bibleVersion;
-            } else {
-                this.sessionOverrideBibleVersion = null;
-            }
+            // Las referencias históricas conservan la edición de su sesión, incluso si cambia el lector.
+            this.sessionOverrideBibleVersion = session.bibleVersion || null;
 
             this.resolveMeditationMetadata(session, { persist: true }).catch(error => {
                 console.warn('[MeditationMetadata] No se pudo normalizar la meditación abierta:', error);
@@ -7176,7 +7174,7 @@ syncAppBadge: function(count) {
                 status: 'draft',
                 favorite: false,
                 title: title,
-                bibleVersion: this.currentBibleVersion || 'rv1909',
+                bibleVersion: this.getDailyReadingVersionId(readingObj) || RVR1960_VERSION_ID,
                 bookId: bookId,
                 chapter: chapter,
                 verseStart: verseStart,
@@ -7184,7 +7182,7 @@ syncAppBadge: function(count) {
                 notes: { dios: '', aprendizaje: '', respuesta: '', oracion: '' },
                 references: {}
             };
-            this.attachMeditationMetadataSync(session);
+            this.attachMeditationMetadataSync(session, readingObj);
             MeditationSessionStorage.save(session);
             this.invalidateMeditationLibraryCache();
             MeditationSessionUIStateStorage.save(newId, { pinnedReferences: {} });
@@ -7367,7 +7365,7 @@ syncAppBadge: function(count) {
             onSaveError: () => this.showToast('No se pudo guardar. Tu texto sigue abierto; reintenta o guarda un respaldo.', 7000),
             onRestore: () => {
                 if (this.openNoteDate === reading.date) {
-                    this.toggleNote(reading.date);
+                    this.toggleNote(reading.date, reading);
                 }
                 if (this.currentView === 'calendar') this.renderCalendar();
             }
@@ -10425,6 +10423,13 @@ renderDailyReadingCopyright: function(reading, version = this.currentVersion) {
     return notices[displayed] ? `<p class="reading-copyright" data-translation="${displayed}">${this.escapeHtml(notices[displayed])}</p>` : '';
 },
 
+getDailyReadingVersionId: function(reading, version = this.currentVersion) {
+    if (!reading) return null;
+    const versions = reading.versions || {};
+    if (typeof versions[version] === 'string' && versions[version].trim()) return version;
+    return versions.rvr60 ? 'rvr60' : versions.ntv ? 'ntv' : reading.text ? 'rvr60' : null;
+},
+
 getDailyReadingText: function(reading, version = this.currentVersion) {
     if (!reading) return '';
 
@@ -10896,7 +10901,7 @@ playBibleChapterVoiceSequence: async function(token) {
         this.updateBibleChapterVoiceUI();
         this.trackAnalyticsEvent('audio_complete', {
             audio_context: 'bible',
-            bible_version: this.currentBibleVersion || 'rv1909'
+            bible_version: this.currentBibleVersion || RVR1960_VERSION_ID
         });
     } catch (error) {
         if (!this.isBibleChapterVoiceTokenActive(token)) return;
@@ -10932,7 +10937,7 @@ startBibleChapterVoice: function(key, verses, reference = '', point = {}) {
     this.updateBibleChapterVoiceUI();
     this.trackAnalyticsEvent('audio_start', {
         audio_context: 'bible',
-        bible_version: this.currentBibleVersion || 'rv1909'
+        bible_version: this.currentBibleVersion || RVR1960_VERSION_ID
     });
     this.playBibleChapterVoiceSequence(token);
 },
@@ -10964,7 +10969,7 @@ resumeBibleChapterVoice: function() {
     this.updateBibleChapterVoiceUI();
     this.trackAnalyticsEvent('audio_start', {
         audio_context: 'bible',
-        bible_version: this.currentBibleVersion || 'rv1909'
+        bible_version: this.currentBibleVersion || RVR1960_VERSION_ID
     });
     this.playBibleChapterVoiceSequence(token);
 },
@@ -11689,7 +11694,7 @@ formatBibleCrossReferenceAccessibleLabel: function(reference) {
         .replace(/–/g, ' al ');
 },
 
-getBibleCrossReferencePassage: async function(reference, versionId = this.currentBibleVersion || RV1909_VERSION_ID) {
+getBibleCrossReferencePassage: async function(reference, versionId = this.currentBibleVersion || RVR1960_VERSION_ID) {
     const cacheKey = `${versionId}:${reference?.id || ''}`;
 
     if (this.bibleCrossReferencePassageCache.has(cacheKey)) {
@@ -11849,7 +11854,7 @@ renderBibleCrossReferencePassage: function(state) {
                     data-chapter="${reference.start.chapter}"
                     data-verse="${reference.start.verse}"
                     data-end-verse="${reference.start.bookId === reference.end.bookId && reference.start.chapter === reference.end.chapter ? reference.end.verse : reference.start.verse}"
-                    data-version-id="${this.escapeHtml(state.versionId || this.currentBibleVersion || RV1909_VERSION_ID)}"
+                    data-version-id="${this.escapeHtml(state.versionId || this.currentBibleVersion || RVR1960_VERSION_ID)}"
                     data-title-only="${reference.titleOnly ? 'true' : 'false'}"
                 >
                     Ir al pasaje <span aria-hidden="true">→</span>
@@ -12339,7 +12344,7 @@ openBibleCrossReference: async function(button) {
     const bookId = button?.getAttribute('data-book-id');
     const chapter = Number(button?.getAttribute('data-chapter'));
     const verse = Number(button?.getAttribute('data-verse'));
-    const versionId = button?.getAttribute('data-version-id') || this.currentBibleVersion || RV1909_VERSION_ID;
+    const versionId = button?.getAttribute('data-version-id') || this.currentBibleVersion || RVR1960_VERSION_ID;
     const activeVersion = this.currentBibleVersion;
     if (!button || !bookId || !Number.isInteger(chapter) || !Number.isInteger(verse)) return;
     const requestId = this.bibleCrossReferenceRequestId = (this.bibleCrossReferenceRequestId || 0) + 1;
@@ -12410,7 +12415,7 @@ selectBibleCrossReferenceFromPopover: async function(referenceIndex) {
     state.popover.focus({ preventScroll: true });
 
     try {
-        const passage = await this.getBibleCrossReferencePassage(reference, state.versionId || this.currentBibleVersion || RV1909_VERSION_ID);
+        const passage = await this.getBibleCrossReferencePassage(reference, state.versionId || this.currentBibleVersion || RVR1960_VERSION_ID);
 
         if (this.bibleCrossReferencePopover !== state || state.selectedReference !== reference) return;
 
@@ -12639,17 +12644,19 @@ meditateOnSelectedPassage: async function() {
     const bibleKey = parseBibleReadingKey(this.currentSelectionDate);
     const date = bibleKey ? this.getTodayDateStr() : this.currentSelectionDate;
     const label = bibleKey ? this.getBibleSelectionReferenceLabel() : 'Pasaje de la lectura';
-    const version = bibleKey?.versionId || this.currentVersion;
-    const quotation = `${label} (${this.getBibleVersionLabel(version)})\n«${text}»`;
+    const selectedDailyVersion = this.currentVersion;
     this._addingBibleMeditation = true;
     try {
         const reading = await this.getReadingByDate(date);
         if (!reading) { this.showToast('No se pudo abrir la meditación de hoy. Tu selección permanece disponible.'); return; }
+        const dailyVersion = this.getDailyReadingVersionId(reading, selectedDailyVersion) || RVR1960_VERSION_ID;
+        const version = bibleKey?.versionId || dailyVersion;
+        const quotation = `${label} (${this.getBibleVersionLabel(version)})\n«${text}»`;
         const existing = MeditationSessionStorage.getAllMetadata().find(item => item.readingId === date && item.status === 'draft');
         const session = existing ? MeditationSessionStorage.get(existing.id) : {
             id: this.generateUUID(), readingId: date, createdAt: Date.now(), updatedAt: Date.now(),
             completedAt: null, status: 'draft', favorite: false, title: `Meditación ${date}`,
-            bibleVersion: this.currentVersion || 'rvr60', bookId: null, chapter: null,
+            bibleVersion: dailyVersion, bookId: null, chapter: null,
             verseStart: null, verseEnd: null,
             notes: { dios: '', aprendizaje: '', respuesta: '', oracion: '' }, references: {}
         };
@@ -12880,7 +12887,7 @@ openDailyBibleChapter: function(date) {
     this.stopIntroVideo();
     this.bibleRestoreScrollPending = false;
     this.bibleStudyRestoreAnchor = null;
-    this.navigateToVerse(context.book.id, context.chapter, null);
+    this.navigateToVerse(context.book.id, context.chapter, null, null, RVR1960_VERSION_ID);
     return true;
 },
 
@@ -13272,7 +13279,7 @@ extractChapterVerse: function(result) {
 },
 
 getLocalBibleSearchVersionId: function() {
-    return ['rvr60', 'rvr60-strong'].includes(this.currentBibleVersion) ? this.currentBibleVersion : 'rv1909';
+    return ['rv1909', 'rvr60', 'rvr60-strong'].includes(this.currentBibleVersion) ? this.currentBibleVersion : RVR1960_VERSION_ID;
 },
 
 renderBibleSearchResults: function() {
@@ -13729,7 +13736,7 @@ renderBiblePagination: function() {
 performBibleSearch: async function(query, resetPage = true) {
     const inputQuery = String(query || '');
     const normalizedQuery = inputQuery.trim();
-    const activeVersionId = String(this.currentBibleVersion || RV1909_VERSION_ID)
+    const activeVersionId = String(this.currentBibleVersion || RVR1960_VERSION_ID)
         .trim()
         .toLowerCase();
     const searchVersionId = this.getLocalBibleSearchVersionId();
@@ -13929,7 +13936,7 @@ updateBibleSearchResults: function() {
     this.updateBibleSearchClearButton();
 },
 
-navigateToVerse: function(apiBookId, chapter, verse, endVerse = null) {
+navigateToVerse: function(apiBookId, chapter, verse, endVerse = null, versionId = null) {
     // Convertir ID de API a nuestro ID
     const rawBookId = String(apiBookId || '');
     const ourBookId = this.bibleApiIdMap[rawBookId.toUpperCase()] || rawBookId.toLowerCase();
@@ -13942,6 +13949,11 @@ navigateToVerse: function(apiBookId, chapter, verse, endVerse = null) {
         return;
     }
     
+    if (versionId) {
+        if (!this.getBibleReaderVersions().some(version => version.id === versionId)) return;
+        this.currentBibleVersion = versionId;
+        localStorage.setItem('current-bible-version', versionId);
+    }
     if (this.currentView === 'bible-search') {
         this.bibleStudyReturn = { view: 'bible-search', label: 'Volver a la búsqueda', scrollY: window.scrollY || 0 };
     }
@@ -14009,13 +14021,13 @@ normalizeBibleReadingState: function(value = null) {
     const bookId = String(value?.bookId || '').trim().toLowerCase();
     const chapter = Number(value?.chapter);
     const book = this.bibleBooks.find(item => item.id === bookId);
-    const versionId = String(value?.versionId || value?.version || this.currentBibleVersion || RV1909_VERSION_ID)
+    const versionId = String(value?.versionId || value?.version || this.currentBibleVersion || RVR1960_VERSION_ID)
         .trim()
         .toLowerCase();
     const allowedVersion = this.getBibleReaderVersions()
         .some(version => version.id === versionId)
         ? versionId
-        : RV1909_VERSION_ID;
+        : RVR1960_VERSION_ID;
     const finite = value => Number.isFinite(Number(value)) ? Number(value) : 0;
     const scrollY = Math.max(0, finite(value?.scrollY));
 
@@ -14065,7 +14077,7 @@ getBibleLastLocation: function() {
 saveBibleLastLocation: function(bookId, chapter, options = {}) {
     const book = this.bibleBooks.find(item => item.id === bookId);
     const chapterNumber = Number(chapter);
-    const versionId = String(options.versionId || this.currentBibleVersion || RV1909_VERSION_ID)
+    const versionId = String(options.versionId || this.currentBibleVersion || RVR1960_VERSION_ID)
         .trim()
         .toLowerCase();
     const existing = this.getBibleLastLocation();
@@ -14114,7 +14126,7 @@ restoreBibleLastLocation: function() {
         return false;
     }
 
-    this.currentBibleVersion = location.versionId || RV1909_VERSION_ID;
+    this.currentBibleVersion = location.versionId || RVR1960_VERSION_ID;
     localStorage.setItem('current-bible-version', this.currentBibleVersion);
     this.selectedBibleBook = location.bookId;
     this.selectedBibleChapter = location.chapter;
@@ -14202,7 +14214,7 @@ shouldAutoRestoreBibleReading: function(oldView) {
 	        !location ||
 	        location.bookId !== this.selectedBibleBook ||
 	        Number(location.chapter) !== Number(this.selectedBibleChapter) ||
-	        String(location.versionId || RV1909_VERSION_ID) !== String(this.currentBibleVersion || RV1909_VERSION_ID)
+	        String(location.versionId || RVR1960_VERSION_ID) !== String(this.currentBibleVersion || RVR1960_VERSION_ID)
 	    ) {
 	        this.bibleSuppressScrollSave = false;
 	        releaseCalendarNoSmooth();
@@ -14853,9 +14865,9 @@ renderBibleVersionPicker: function() {
     if (!this.bibleVersionPickerOpen) return '';
 
     const versions = [
-        { id: 'rv1909', label: 'Reina-Valera 1909' },
         { id: 'rvr60', label: 'Reina-Valera 1960' },
         { id: 'rvr60-strong', label: 'Reina-Valera 1960 + Strong' },
+        { id: 'rv1909', label: 'Reina-Valera 1909' },
         { id: 'nbla', label: 'NBLA' },
         { id: 'nvi', label: 'NVI' },
         { id: 'biblia-libre', label: 'Biblia Libre' }
@@ -14931,9 +14943,9 @@ closeBibleVersionPicker: function() {
 
 getBibleReaderVersions: function() {
     return [
-        { id: 'rv1909', label: 'RV1909', name: 'Reina-Valera 1909' },
         { id: 'rvr60', label: 'RVR1960', name: 'Reina-Valera 1960' },
         { id: 'rvr60-strong', label: 'RVR1960 + Strong', name: 'Reina-Valera 1960 con números Strong' },
+        { id: 'rv1909', label: 'RV1909', name: 'Reina-Valera 1909' },
         { id: 'nbla', label: 'NBLA', name: 'Nueva Biblia de las Américas' },
         { id: 'nvi', label: 'NVI', name: 'Nueva Versión Internacional' },
         { id: 'biblia-libre', label: 'BL', name: 'Biblia Libre' }
@@ -14941,7 +14953,7 @@ getBibleReaderVersions: function() {
 },
 
 renderBibleReaderVersionSwitcher: function() {
-    const currentVersion = String(this.currentBibleVersion || RV1909_VERSION_ID)
+    const currentVersion = String(this.currentBibleVersion || RVR1960_VERSION_ID)
         .trim()
         .toLowerCase();
 
@@ -15334,7 +15346,7 @@ restoreBibleReaderScrollAnchor: function(anchor) {
 },
 
 updateBibleReaderVersionButtons: function({ loadingVersionId = '' } = {}) {
-    const currentVersion = String(this.currentBibleVersion || RV1909_VERSION_ID)
+    const currentVersion = String(this.currentBibleVersion || RVR1960_VERSION_ID)
         .trim()
         .toLowerCase();
 
@@ -15367,7 +15379,7 @@ async switchBibleReaderVersion(versionId) {
     this.closeBibleCrossReferencePopover({ restoreHistory: false });
     const nextVersionId = String(versionId || '').trim().toLowerCase();
     const allowed = this.getBibleReaderVersions().some(version => version.id === nextVersionId);
-    const previousVersionId = this.currentBibleVersion || RV1909_VERSION_ID;
+    const previousVersionId = this.currentBibleVersion || RVR1960_VERSION_ID;
     const requestedBookId = this.selectedBibleBook;
     const requestedChapter = Number(this.selectedBibleChapter);
     const requestedBook = this.bibleBooks.find(book => book.id === requestedBookId);
@@ -15623,7 +15635,7 @@ renderBibleReading: async function() {
     `);
 
     try {
-        const requestedVersionId = this.currentBibleVersion || RV1909_VERSION_ID;
+        const requestedVersionId = this.currentBibleVersion || RVR1960_VERSION_ID;
         const footnotesPromise = this.getBibleChapterFootnotes(
             requestedBookId,
             requestedChapter,
@@ -15741,8 +15753,8 @@ renderBibleReading: async function() {
                 errorMessage = 'Esta versión no está disponible temporalmente.';
             }
             actionButtonHtml = `
-                <button class="btn-primary" type="button" data-action="revert-to-rv1909" style="margin-top: 20px;">
-                    Volver a Reina-Valera 1909
+                <button class="btn-primary" type="button" data-action="revert-to-rvr1960" style="margin-top: 20px;">
+                    Volver a Reina-Valera 1960
                 </button>
             `;
         }
@@ -18833,7 +18845,7 @@ if (openBibleContinueBtn) {
 	if (location?.mode === 'chapter') {
 	    this.selectedBibleBook = location.bookId;
 	    this.selectedBibleChapter = location.chapter;
-        this.currentBibleVersion = location.versionId || RV1909_VERSION_ID;
+        this.currentBibleVersion = location.versionId || RVR1960_VERSION_ID;
         localStorage.setItem('current-bible-version', this.currentBibleVersion);
 	} else {
 	    this.selectedBibleBook = 'gen';
@@ -19035,11 +19047,11 @@ if (bibleFocusModeBtn) {
     return;
 }
 
-const revertToRv1909Btn = e.target.closest('[data-action="revert-to-rv1909"]');
-if (revertToRv1909Btn) {
-    this.currentBibleVersion = 'rv1909';
-    localStorage.setItem('current-bible-version', 'rv1909');
-    this.showToast('Versión restablecida a RV1909');
+const revertToRvr1960Btn = e.target.closest('[data-action="revert-to-rvr1960"]');
+if (revertToRvr1960Btn) {
+    this.currentBibleVersion = RVR1960_VERSION_ID;
+    localStorage.setItem('current-bible-version', RVR1960_VERSION_ID);
+    this.showToast('Versión restablecida a RVR1960');
     this.handleRoute().catch(err => console.error('[Route] Error al restablecer versión:', err));
     return;
 }
@@ -20509,33 +20521,41 @@ if (meditationLearningReturnBtn) {
 }
 
 // Notas
-	const noteBtn = e.target.closest('[data-action="toggle-note"]');
-	if (noteBtn) {
-	    const date = noteBtn.getAttribute('data-date');
-	    const isClosing = this.openNoteDate === date;
-
-	    if (isClosing) {
-	        await window.DeepeningShell?.unmount();
-	        return;
-	    }
-	    if (noteBtn.closest('.daily-reading-entry')) this.stopIntroVideo();
-	    this.toggleNote(date);
-
-	    const reading = await this.getReadingByDate(date);
+    const noteBtn = e.target.closest('[data-action="toggle-note"]');
+    if (noteBtn) {
+        const date = noteBtn.getAttribute('data-date');
+        const requestId = this._meditationOpenRequestId = (this._meditationOpenRequestId || 0) + 1;
+        if (this.openNoteDate === date) {
+            await window.DeepeningShell?.unmount();
+            return;
+        }
+        const originHash = window.location.hash;
+        const originView = this.currentView;
+        const isCurrent = () => this._meditationOpenRequestId === requestId
+            && window.location.hash === originHash && this.currentView === originView
+            && noteBtn.isConnected !== false
+            && (!['home', 'reading'].includes(originView) || this.getHomeViewingDate() === date);
+        if (noteBtn.closest('.daily-reading-entry')) this.stopIntroVideo();
+        const reading = await this.getReadingByDate(date);
+        if (!isCurrent()) return;
+        if (!reading || reading.date !== date) {
+            this.showToast('No se pudo cargar esta lectura. Tu meditación se conserva.');
+            return;
+        }
+        this.toggleNote(date, reading);
+        const sessionId = this.currentMeditationSessionId;
         this.trackAnalyticsOnce(`reading_start:${date}`, 'reading_start', this.getReadingAnalyticsParams(reading, this.currentView === 'home' ? 'home' : 'reading'));
         this.trackAnalyticsEvent('deepen_open', {
             reading_date: date,
             entry_point: this.currentView === 'home' ? 'home' : 'direct'
         });
-	    if (this.currentMeditationSessionId) {
-	        const session = MeditationSessionStorage.get(this.currentMeditationSessionId);
-	        if (session) {
-	            await this.resolveMeditationMetadata(session, { persist: true, reading });
-	        }
-	    }
-	    this.openDeepeningShell(reading);
-	    return;
-	}
+        if (sessionId) {
+            const session = MeditationSessionStorage.get(sessionId);
+            if (session) await this.resolveMeditationMetadata(session, { persist: true, reading });
+        }
+        if (isCurrent() && this.currentMeditationSessionId === sessionId) this.openDeepeningShell(reading);
+        return;
+    }
 const completeSessionBtn = e.target.closest('[data-action="complete-session"]');
 if (completeSessionBtn) {
     if (this.currentMeditationSessionId) {
@@ -22795,6 +22815,7 @@ App.createMeditationReferenceModel = function(extractedData) {
 
     return {
         id: this.generateUUID(),
+        versionId: 'rvr60',
         bookId: bookId,
         book: bookName,
         chapter: chapterNum,
@@ -22988,37 +23009,40 @@ App.addReferenceChip = function(stepId, refObj) {
     container.appendChild(wrapper);
 };
 
+App.getNotebookReferenceVersion = function(ref = null) {
+    const available = this.getBibleReaderVersions();
+    for (const candidate of [ref?.versionId, this.sessionOverrideBibleVersion]) {
+        const versionId = String(candidate || '').trim().toLowerCase();
+        if (available.some(version => version.id === versionId)) return versionId;
+    }
+    return 'rvr60';
+};
+
 App.loadPinnedReferenceText = async function(stepId, ref, contentContainer) {
     const bookId = ref.bookId || BibleReferenceService.getBookId(ref.book, this.bibleBooks);
-    if (!bookId) return;
+    if (!bookId || !contentContainer) return;
 
-    // Condición de Carrera: Guardar la versión actual y el contenedor para validar después del fetch
-    const requestedVersion = this.sessionOverrideBibleVersion || this.currentBibleVersion;
+    const requestedVersion = this.getNotebookReferenceVersion(ref);
+    const sessionId = this.currentMeditationSessionId;
+    const requestId = this._pinnedReferenceRequestId = (this._pinnedReferenceRequestId || 0) + 1;
+    this._pinnedReferenceRequests ||= new WeakMap();
+    this._pinnedReferenceRequests.set(contentContainer, requestId);
+    const isCurrent = () => contentContainer.isConnected
+        && this._pinnedReferenceRequests.get(contentContainer) === requestId
+        && this.currentMeditationSessionId === sessionId
+        && this.devotionalReferences?.[stepId]?.includes(ref)
+        && this.getNotebookReferenceVersion(ref) === requestedVersion;
 
     try {
-        const chapterData = await getBibleChapter(bookId, ref.chapter);
-        
-        // Cancelar silenciosamente si:
-        // 1. El contenedor ya no está en el DOM (fue borrado o desanclado)
-        // 2. La versión de la Biblia cambió mientras cargaba
-        const currentActiveVersion = this.sessionOverrideBibleVersion || this.currentBibleVersion;
-        if (!contentContainer.isConnected || requestedVersion !== currentActiveVersion) {
-            return;
+        const chapterData = await getBibleChapter(bookId, ref.chapter, requestedVersion);
+        if (!isCurrent()) return;
+        if (chapterData?.versionId !== requestedVersion || !Array.isArray(chapterData.verses)) {
+            throw new Error('No se encontraron versículos de la versión solicitada');
         }
-
-        if (!chapterData || !chapterData.verses) throw new Error('No se encontraron versículos');
-
         const versesHtml = BibleReferenceService.generateVersesHTML(chapterData.verses, ref.verseStart, ref.verseEnd);
-
-        if (versesHtml.trim() === '') {
-            contentContainer.innerHTML = `<div class="ref-preview-state">Texto no encontrado.</div>`;
-        } else {
-            contentContainer.innerHTML = versesHtml;
-        }
-    } catch (e) {
-        if (contentContainer.isConnected) {
-            contentContainer.innerHTML = `<div class="ref-preview-state">Error al cargar texto.</div>`;
-        }
+        contentContainer.innerHTML = versesHtml.trim() || '<div class="ref-preview-state">Texto no encontrado.</div>';
+    } catch (error) {
+        if (isCurrent()) contentContainer.innerHTML = '<div class="ref-preview-state">Error al cargar texto.</div>';
     }
 };
 
@@ -23069,70 +23093,48 @@ App.renderAllReferences = function() {
  * Fase 4: Navegación desde el Cuadernillo
  */
 
-App.isChapterLoaded = function(bookId, chapterNum) {
-    // Si no estamos en un modo de lectura de Biblia, no está cargado.
-    if (this.currentView !== 'bible-reading' && this.currentView !== 'reading') return false;
-
-    // Buscamos un versículo que coincida con el libro y capítulo
-    // Nota: data-book-name almacena el ID o el nombre? bookName en el modelo es el nombre,
-    // pero bookId es el ID real. Veamos cómo se renderiza the verse-item.
-    // El verse-item no siempre tiene bookId, así que busquemos por `data-book-name` si coincide con el bookId
-    // o comparando las variables de estado actuales.
-    if (this.currentView === 'bible-reading') {
-        return this.selectedBibleBook === bookId && this.selectedBibleChapter === chapterNum;
-    }
-    
-    // Si estamos en lectura diaria ('reading'), el DOM contiene los versículos
-    // Buscamos si existe al menos un versículo con el mismo libro (por nombre) y capítulo
-    const book = this.bibleBooks.find(b => b.id === bookId);
-    if (book) {
-        return !!document.querySelector(`.verse-item[data-book-name="${book.name}"][data-chapter-number="${chapterNum}"]`);
-    }
-    return false;
+App.isChapterLoaded = function(bookId, chapterNum, versionId = this.getNotebookReferenceVersion()) {
+    // Daily passages do not expose the Bible reader's versioned chapter shell.
+    if (this.currentView !== 'bible-reading') return false;
+    return this.currentBibleVersion === versionId
+        && this.selectedBibleBook === bookId
+        && Number(this.selectedBibleChapter) === Number(chapterNum)
+        && (!this.currentBibleChapterData || this.currentBibleChapterData.versionId === versionId);
 };
 
 App.handleReferenceClick = function(refId, stepId) {
-    const refs = this.devotionalReferences[stepId];
-    if (!refs) return;
-    
-    const ref = refs.find(r => r.id === refId);
+    const ref = this.devotionalReferences?.[stepId]?.find(item => item.id === refId);
     if (!ref) return;
-
-    // Guardar en el estado la última referencia consultada
-    this.lastNotebookReference = ref;
-
-    // Cerrar panel de selección si estuviera abierto
-    this.hideSelectionPanel();
-
-    const bookId = ref.bookId || this.bibleBooks.find(b => b.name === ref.book)?.id;
+    const bookId = ref.bookId || this.bibleBooks.find(book => book.name === ref.book)?.id;
     if (!bookId) return;
 
-    // Efecto visual en el chip
+    const versionId = this.getNotebookReferenceVersion(ref);
+    const alreadyLoaded = this.isChapterLoaded(bookId, ref.chapter, versionId);
+    this.lastNotebookReference = ref;
+    this.hideSelectionPanel();
+    this.clearVerseSelection();
+    this.currentBibleVersion = versionId;
+    localStorage.setItem('current-bible-version', versionId);
+    this.targetVerse = ref.verseStart;
+    this.targetVerseStart = ref.verseStart;
+    this.targetVerseEnd = ref.verseEnd;
+
     const chip = document.querySelector(`.devotional-ref-chip[data-ref-id="${refId}"]`);
     if (chip) {
         chip.classList.add('devotional-ref-chip-active');
         setTimeout(() => chip.classList.remove('devotional-ref-chip-active'), 2000);
     }
-
-    if (this.isChapterLoaded(bookId, ref.chapter)) {
-        // Ya está cargado, solo hacer scroll y resaltar
-        this.targetVerseStart = ref.verseStart;
-        this.targetVerseEnd = ref.verseEnd;
+    if (alreadyLoaded) {
         this.scrollToTargetVerse();
-    } else {
-        // No está cargado, abrir la Biblia
-        this.targetVerseStart = ref.verseStart;
-        this.targetVerseEnd = ref.verseEnd;
-        this.selectedBibleBook = bookId;
-        this.selectedBibleChapter = ref.chapter;
-        this.bibleChapterPickerMode = false;
-        
-        // Guardamos el historial del usuario para que pueda retroceder normal
-        this.saveBibleLastLocation(bookId, ref.chapter, { scrollY: 0 });
-        
-        // Navegamos (esto no cierra el cuadernillo, ya que el cuadernillo es flotante y no está atado al hash/view)
-        this.navigate('bible-reading');
+        return;
     }
+    this.selectedBibleBook = bookId;
+    this.selectedBibleChapter = ref.chapter;
+    this.bibleChapterPickerMode = false;
+    this.bibleRestoreScrollPending = false;
+    this.bibleStudyRestoreAnchor = null;
+    this.saveBibleLastLocation(bookId, ref.chapter, { versionId, scrollY: 0 });
+    this.navigate('bible-reading');
 };
 
 /**
@@ -23157,57 +23159,45 @@ App._handlePopoverEscape = function(e) {
  * Fase 5: Vista Previa de Referencia (Popover) Refactorizada
  */
 App.showReferencePreview = async function(refId, stepId, chipElement) {
-    const refs = this.devotionalReferences[stepId];
-    if (!refs) return;
-    
-    const ref = refs.find(r => r.id === refId);
+    const ref = this.devotionalReferences?.[stepId]?.find(item => item.id === refId);
     if (!ref) return;
-
     const bookId = ref.bookId || BibleReferenceService.getBookId(ref.book, this.bibleBooks);
     if (!bookId) return;
 
-    let popover = this._getOrCreatePopover();
-    
-    // Set initial loading state
+    const popover = this._getOrCreatePopover();
     const titleEl = popover.querySelector('.ref-preview-title');
     const bodyEl = popover.querySelector('.ref-preview-body');
-    const versionId = getBibleReaderVersionId();
-    
-    titleEl.textContent = `${ref.label} (${versionId.toUpperCase()})`;
-    bodyEl.innerHTML = `<div class="ref-preview-state" aria-live="polite">Cargando...</div>`;
+    const versionId = this.getNotebookReferenceVersion(ref);
+    const sessionId = this.currentMeditationSessionId;
+    const requestId = this._referencePreviewRequestId = (this._referencePreviewRequestId || 0) + 1;
+    const isCurrent = () => this._referencePreviewRequestId === requestId
+        && popover.isConnected && chipElement?.isConnected !== false
+        && popover.classList.contains('is-visible')
+        && popover.querySelector('.ref-preview-body') === bodyEl
+        && this.currentMeditationSessionId === sessionId
+        && this.devotionalReferences?.[stepId]?.includes(ref)
+        && this.getNotebookReferenceVersion(ref) === versionId;
+
+    titleEl.textContent = `${ref.label} (${this.getBibleVersionLabel(versionId)})`;
+    bodyEl.innerHTML = '<div class="ref-preview-state" aria-live="polite">Cargando...</div>';
     popover.querySelector('.ref-preview-actions').style.display = 'none';
-    
     this.positionReferencePreview(popover, chipElement);
-    
     popover.classList.add('is-visible');
-    popover.focus(); // Needs tabindex="-1" created in _getOrCreatePopover
+    popover.focus();
     this.lastFocusedChip = chipElement;
 
-    // Guardamos estado para validación de condición de carrera
-    const requestedVersion = this.sessionOverrideBibleVersion || this.currentBibleVersion;
-
     try {
-        const chapterData = await getBibleChapter(bookId, ref.chapter);
-        
-        const currentActiveVersion = this.sessionOverrideBibleVersion || this.currentBibleVersion;
-        if (!popover.classList.contains('is-visible') || requestedVersion !== currentActiveVersion) {
-            return; // Cancelar si se cerró o cambió versión
+        const chapterData = await getBibleChapter(bookId, ref.chapter, versionId);
+        if (!isCurrent()) return;
+        if (chapterData?.versionId !== versionId || !Array.isArray(chapterData.verses)) {
+            throw new Error('No se encontraron versículos de la versión solicitada');
         }
-
-        if (!chapterData || !chapterData.verses) throw new Error('No se encontraron versículos');
-
         const versesHtml = BibleReferenceService.generateVersesHTML(chapterData.verses, ref.verseStart, ref.verseEnd);
-
-        bodyEl.innerHTML = versesHtml.trim() === '' 
-            ? `<div class="ref-preview-state">No se encontró texto para esta referencia.</div>` 
-            : versesHtml;
-        
+        bodyEl.innerHTML = versesHtml.trim()
+            || '<div class="ref-preview-state">No se encontró texto para esta referencia.</div>';
         this._setupPopoverActions(popover, stepId, refId);
-        
     } catch (error) {
-        if (popover.classList.contains('is-visible')) {
-            bodyEl.innerHTML = `<div class="ref-preview-state">Error al cargar el pasaje. Verifica tu conexión.</div>`;
-        }
+        if (isCurrent()) bodyEl.innerHTML = '<div class="ref-preview-state">Error al cargar el pasaje. Verifica tu conexión.</div>';
     }
 };
 
@@ -23339,19 +23329,16 @@ App.positionReferencePreview = function(popover, chipElement) {
 };
 
 App.closeReferencePreview = function() {
+    this._referencePreviewRequestId = (this._referencePreviewRequestId || 0) + 1;
     const popover = document.getElementById('ref-preview-popover');
     if (popover && popover.classList.contains('is-visible')) {
         popover.classList.remove('is-visible');
-        if (this.lastFocusedChip) {
-            this.lastFocusedChip.focus();
-            this.lastFocusedChip = null;
-        }
-        
-        // Remove dynamic listeners
+        if (this.lastFocusedChip?.isConnected) this.lastFocusedChip.focus();
         document.removeEventListener('click', this._handlePopoverClickOutside);
         document.removeEventListener('keydown', this._handlePopoverEscape);
         if (typeof NotebookDiagnostics !== 'undefined') NotebookDiagnostics.trackListener(-2);
     }
+    this.lastFocusedChip = null;
 };
 
 App.toggleReferenceBubble = function(e, btn) {

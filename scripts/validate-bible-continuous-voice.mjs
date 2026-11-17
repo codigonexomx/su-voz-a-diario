@@ -1,3 +1,4 @@
+import { RVR1960_VERSION_ID } from '../js/bible/LocalRvr1960Provider.js';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
@@ -6,7 +7,7 @@ const app={bibleChapterVoice:{status:'idle'},stopDailyReadingVoice(){},stopBible
 for(const name of ['createBibleChapterVoiceToken','isBibleChapterVoiceTokenActive','invalidateBibleChapterVoiceToken','playBibleChapterVoiceSequence','startBibleChapterVoice','pauseBibleChapterVoice','resumeBibleChapterVoice','toggleBibleChapterVoice','stopBibleChapterVoice','getBibleChapterVoiceStatus']) {
  const start=source.indexOf(name+': ');assert(start>=0,name);
  const end=source.indexOf('\n},',start);
- app[name]=vm.runInNewContext('({'+source.slice(start,end+2)+'})',{console,Symbol})[name];
+ app[name]=vm.runInNewContext('({'+source.slice(start,end+2)+'})',{console,Symbol,RVR1960_VERSION_ID})[name];
 }
 let spoken=[];let finish=[];
 app.speakBibleChapterVerse=(verse,token)=>{spoken.push(verse.text);return new Promise(resolve=>{finish.push(()=>resolve(true));token.cancelWait=()=>resolve(false);});};

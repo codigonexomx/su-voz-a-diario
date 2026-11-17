@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59', '--candidate60'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate59')
+const release = process.argv.includes('--candidate60')
+    ? { code: 60, name: '1.5.28', pwa: 279 }
+    : process.argv.includes('--candidate59')
     ? { code: 59, name: '1.5.27', pwa: 278 }
     : process.argv.includes('--candidate58')
     ? { code: 58, name: '1.5.26', pwa: 273 }
@@ -46,10 +48,15 @@ const java = '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const run = (program, args) => execFileSync(program, args, { maxBuffer: 100000000 });
 const tool = args => run(java + 'java', ['-jar', path.join(root, 'artifacts/tools/bundletool-all-1.18.3.jar'), ...args]).toString();
-const baseline = release.code >= 59
+const baseline = release.code >= 60
+    ? 'artifacts/android-1.5.27-59-release/su-voz-1.5.27-59.aab'
+    : release.code >= 59
     ? 'artifacts/android-1.5.26-58-release/su-voz-1.5.26-58.aab'
     : 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
 const frozen = [
+    ...(release.code >= 60 ? [
+        ['artifacts/android-1.5.27-59-release/su-voz-1.5.27-59.aab', 'cafdf8e14023c6c008a4ce65832f7bc4229ef0de8adfda444147e9ba35c48626']
+    ] : []),
     ...(release.code >= 59 ? [
         ['artifacts/android-1.5.26-58-release/su-voz-1.5.26-58.aab', '56b5dd148929533aba12639fb2b2f152d7feb523f045cb75c93287c969cf5f1e']
     ] : []),
@@ -108,9 +115,12 @@ const frozen = [
 ];
 for (const [file, expected] of frozen) assert.equal(hash(readFileSync(file)), expected, file);
 const checks = JSON.parse(readFileSync('artifacts/validation/tests.json', 'utf8'));
-const expectedChecks = release.code >= 59 ? 67 : release.code >= 54 ? 64 : release.code >= 53 ? 62 : release.code >= 52 ? 61 : release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
+const expectedChecks = release.code >= 60 ? 68 : release.code >= 59 ? 67 : release.code >= 54 ? 64 : release.code >= 53 ? 62 : release.code >= 52 ? 61 : release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
 assert.equal(checks.results.length, expectedChecks);
 assert(checks.results.every(check => check.status === 0));
+if (release.code >= 60) {
+    assert(checks.results.some(check => check.command[0] === 'scripts/validate-rvr1960-links.mjs'));
+}
 if (release.code >= 59) {
     for (const script of ['scripts/validate-rvr1960.mjs', 'scripts/validate-rvr1960-references.mjs',
         'scripts/validate-rvr1960-strong.mjs', 'scripts/test-account-auth-emulator.mjs',

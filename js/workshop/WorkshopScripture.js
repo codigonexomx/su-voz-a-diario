@@ -1,7 +1,7 @@
 import { WORKSHOP_PASSAGES } from './WorkshopContent.js';
 import { normalizeBibleVoiceText } from '../bible/BibleReaderSelection.js';
 
-export const WORKSHOP_BIBLE_VERSION = 'nbla';
+export const WORKSHOP_BIBLE_VERSION = 'rvr60';
 
 export class WorkshopScripture {
     constructor({ getChapter, resolveBookId } = {}) {
@@ -16,14 +16,14 @@ export class WorkshopScripture {
 
     async loadChapter(sourceBookId, chapter) {
         const bookId = this.resolveBookId?.(sourceBookId);
-        if (!bookId || typeof this.getChapter !== 'function') throw new Error('NBLA no está disponible.');
+        if (!bookId || typeof this.getChapter !== 'function') throw new Error('RVR1960 no está disponible.');
         const key = `${bookId}:${chapter}`;
         if (!this.chapters.has(key)) {
             const request = Promise.resolve().then(() => this.getChapter(WORKSHOP_BIBLE_VERSION, bookId, chapter))
                 .then(data => {
                     if (data?.versionId !== WORKSHOP_BIBLE_VERSION || data.bookId !== bookId
                         || data.chapter !== chapter || !Array.isArray(data.verses)) {
-                        throw new Error('La respuesta no corresponde al capítulo NBLA solicitado.');
+                        throw new Error('La respuesta no corresponde al capítulo RVR1960 solicitado.');
                     }
                     return data;
                 }).finally(() => this.chapters.delete(key));
@@ -43,7 +43,7 @@ export class WorkshopScripture {
             const numbers = new Set();
             for (const verse of data.verses) {
                 if (!Number.isInteger(verse.number) || verse.number < 1 || numbers.has(verse.number)) {
-                    throw new Error('El capítulo NBLA contiene números de versículo inválidos.');
+                    throw new Error('El capítulo RVR1960 contiene números de versículo inválidos.');
                 }
                 numbers.add(verse.number);
             }
@@ -51,7 +51,7 @@ export class WorkshopScripture {
             for (let number = from; number <= to; number++) {
                 const verse = data.verses.find(v => v.number === number);
                 const text = typeof verse?.text === 'string' ? normalizeBibleVoiceText(verse.text) : '';
-                if (!text) throw new Error('El pasaje NBLA está incompleto.');
+                if (!text) throw new Error('El pasaje RVR1960 está incompleto.');
                 verses.push({ number: `${chapter}:${number}`, text });
             }
             return verses;

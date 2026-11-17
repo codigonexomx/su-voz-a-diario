@@ -9,6 +9,7 @@ import { renderWorkshop, advisorUrls, ADVISOR_EMAIL } from '../js/workshop/Works
 import { getWorkshopReturnHref, mountWorkshop } from '../js/workshop/WorkshopController.js';
 import { WorkshopScripture, WORKSHOP_BIBLE_VERSION } from '../js/workshop/WorkshopScripture.js';
 import { LocalRv1909Provider } from '../js/bible/LocalRv1909Provider.js';
+import { LocalRvr1960Provider } from '../js/bible/LocalRvr1960Provider.js';
 import { exportJourney, restoreJourney, validateJourneyBackup } from '../js/services/JourneyService.js';
 import { readingIcon } from '../js/utils/readingIcons.js';
 
@@ -21,17 +22,28 @@ class Storage {
 globalThis.document = { createElement: () => ({ textContent: '', get innerHTML() {
     return String(this.textContent).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 } }) };
-const rangeFixture = JSON.parse(readFileSync('data/rv1909.json', 'utf8').replace(/^\uFEFF/, ''));
+const rangeFixture = JSON.parse(readFileSync('data/rvr1960.json', 'utf8').replace(/^\uFEFF/, ''));
+// Workshop ranges retain their historical abbreviations (e.g. jud = Jueces).
+// This resolver supplies aliases only; all scripture comes from the RVR1960 provider.
 const bookIds = new LocalRv1909Provider();
+let localFetches = 0;
+const realProvider = new LocalRvr1960Provider({ fetchImpl: async url => {
+    assert.equal(url, './data/rvr1960.json'); localFetches++;
+    return { ok: true, json: async () => structuredClone(rangeFixture) };
+} });
 const chapterRequests = [];
 const syntheticChapter = async (versionId, bookId, chapter) => {
     chapterRequests.push({ versionId, bookId, chapter });
-    const book = rangeFixture.find(b => bookIds.getCanonicalBookId(b.abbrev) === bookId);
+    const book = rangeFixture.find(b => b.abbrev === bookId);
     return { versionId, bookId, chapter, verses: book.chapters[chapter - 1].map((_, i) => ({
-        number: i + 1, text: `[NBLA prueba] ${bookId} ${chapter}:${i + 1} [[REF:f:nota%20de%20prueba]]`
+        number: i + 1, text: `[RVR1960 prueba] ${bookId} ${chapter}:${i + 1} [[REF:f:nota%20de%20prueba]]`
     })) };
 };
-const bible = new WorkshopScripture({ getChapter: syntheticChapter, resolveBookId: id => bookIds.getCanonicalBookId(id) });
+const bible = new WorkshopScripture({ getChapter: async (versionId, bookId, chapter) => {
+    chapterRequests.push({ versionId, bookId, chapter });
+    assert.equal(versionId, 'rvr60');
+    return realProvider.getChapter(bookId, chapter);
+}, resolveBookId: id => bookIds.getCanonicalBookId(id) });
 let checks = 0;
 const check = (value, name) => { assert(value, name); checks++; };
 const metaTeaching = /\b(?:taller|manual|adaptaci[oó]n|propuesta|interfaz|m[eé]todo)\b|metodolog|hoja de pr[aá]ctica|complemento b[ií]blico de Su Voz/i;
@@ -61,8 +73,14 @@ let verses = 0, combinations = 0;
 for (const [id, p] of Object.entries(passages)) {
     const value = await bible.load(id); verses += value.verses.length;
     check(value.verses.length > 0 && value.verses.every(v => v.text), id);
-    check(value.versionId === 'nbla' && value.verses.every(v => v.text.startsWith('[NBLA prueba]') && !v.text.includes('[[REF:')), 'NBLA response only, without study markers');
-    check(value.verses.map(v => v.number).join() === getWorkshopPassage(id, rangeFixture).verses.map(v => v.number).join(), 'reference coordinates unchanged');
+    check(value.versionId === 'rvr60' && value.verses.every(v => !v.text.includes('[[REF:')), 'real RVR1960 response only, without study markers');
+    const expected = p.ranges.flatMap(([legacyBook, chapter, from, to]) => {
+        const canonical = bookIds.getCanonicalBookId(legacyBook);
+        const book = rangeFixture.find(item => item.abbrev === canonical);
+        return Array.from({ length: to - from + 1 }, (_, index) => ({ number: `${chapter}:${from + index}`, text: book.chapters[chapter - 1][from + index - 1] }));
+    });
+    assert.deepEqual(value.verses, expected, `literal RVR1960 text and coordinates: ${id}`);
+    checks++; // The deep equality above checks every literal verse and coordinate.
     check(!/(^|;\s*)Pedro\b/.test(p.reference), 'qualified Pedro reference');
     check(p.origin === (p.pages ? 'manual' : 'complemento'), 'source provenance');
 }
@@ -70,7 +88,11 @@ check(verses === 475, 'complete literal verse ranges');
 check(passages.santidad.reference === '1 Pedro 1:15-16' && passages.santidad.clarification.includes('no una corrección confirmada'), 'editorial clarification');
 assert.throws(() => getWorkshopPassage('invented', rangeFixture));
 await assert.rejects(() => bible.load('invented'));
-check(WORKSHOP_BIBLE_VERSION === 'nbla' && chapterRequests.every(r => r.versionId === 'nbla'), 'all requests explicitly use NBLA');
+check(WORKSHOP_BIBLE_VERSION === 'rvr60' && chapterRequests.every(r => r.versionId === 'rvr60'), 'all requests explicitly use RVR1960');
+check(localFetches === 1, 'all 80 passages use the bundled RVR1960 file without a remote Bible API');
+check(bookIds.getCanonicalBookId('jud') === 'jdg', 'legacy workshop alias jud remains Jueces, never Judas');
+const markedBible = new WorkshopScripture({ getChapter: syntheticChapter, resolveBookId: id => bookIds.getCanonicalBookId(id) });
+check((await markedBible.load('josue')).verses.every(v => v.text.startsWith('[RVR1960 prueba]') && !v.text.includes('[[REF:')), 'study markers stripped from scripture supplied by the expected version');
 const countBeforeCache = chapterRequests.length;
 await bible.load('josue');
 check(chapterRequests.length === countBeforeCache, 'session passage cache avoids repeat request');
@@ -86,8 +108,8 @@ for (let i = 0; i < lessons.length; i++) {
             check(view.includes('Sustento bíblico') && view.includes(`data-passage="${id}"`) && !view.includes('undefined'), 'lesson/exercise render');
             check(!/Ricardo|autor indicado en la portada|Muestra aislada|Sin conexión a tu cuenta real|Contenido en revisión/.test(view), 'no personal name or demo UI');
             check(view.includes('#reading/2026-10-22?from=workshop'), 'existing daily meditation link');
-            check(view.includes('Nueva Biblia de las Américas · NBLA') && !view.includes('Reina-Valera 1909')
-                && view.includes('Copyright © 2005 por The Lockman Foundation') && view.includes('https://www.NuevaBiblia.com'), 'correct displayed translation and attribution');
+            check(view.includes('Reina-Valera 1960 · RVR1960') && !view.includes('Reina-Valera 1909')
+                && view.includes('© Sociedades Bíblicas en América Latina, 1960') && !view.includes('The Lockman Foundation'), 'correct displayed translation and attribution');
             checkLearningSurface(view);
             check(view.includes('<summary>Fuentes de esta lección</summary>') && view.includes(lesson.source)
                 && view.includes(lesson.added) && view.includes(passages[id].reference), 'source and adaptation remain available');
@@ -155,14 +177,14 @@ assert.throws(() => validateJourneyBackup({ version: 1, entries: { [WORKSHOP_KEY
 check(renderWorkshop(state, { ...ui, page: 'retomar' }, bible).includes('#workshop/aplicacion'), 'resume actual saved lesson');
 const failedBible = { get: () => ({ error: true }) };
 check(renderWorkshop(state, { ...ui, page: 'aplicacion' }, failedBible).includes('Reintentar pasaje'), 'per-passage failure retry');
-check(renderWorkshop(state, { ...ui, page: 'aplicacion' }, null).includes('Consultando el pasaje NBLA'), 'pending passage does not pretend to be loaded');
-for (const change of [data => ({ ...data, versionId: 'rv1909' }), data => ({ ...data, bookId: 'gen' }),
+check(renderWorkshop(state, { ...ui, page: 'aplicacion' }, null).includes('Cargando el pasaje RVR1960'), 'pending passage does not pretend to be loaded');
+for (const change of [data => ({ ...data, versionId: 'nbla' }), data => ({ ...data, versionId: 'rv1909' }), data => ({ ...data, bookId: 'gen' }),
     data => ({ ...data, chapter: 2 }), data => ({ ...data, verses: data.verses.filter(v => v.number !== 8) }),
     data => ({ ...data, verses: [...data.verses, data.verses[0]] }),
     data => ({ ...data, verses: data.verses.map(v => v.number === 8 ? { ...v, text: '' } : v) })]) {
     const invalidBible = new WorkshopScripture({ getChapter: async (...args) => change(await syntheticChapter(...args)), resolveBookId: id => bookIds.getCanonicalBookId(id) });
     await assert.rejects(() => invalidBible.load('josue'));
-    check(invalidBible.get('josue').error && !renderWorkshop(state, { ...ui, page: 'biblioteca' }, invalidBible).includes('[NBLA prueba]'), 'wrong or incomplete response never displayed as NBLA');
+    check(invalidBible.get('josue').error && !renderWorkshop(state, { ...ui, page: 'biblioteca' }, invalidBible).includes('[RVR1960 prueba]'), 'wrong or incomplete response never displayed as RVR1960');
 }
 let attempts = 0;
 const retryBible = new WorkshopScripture({ resolveBookId: id => bookIds.getCanonicalBookId(id), getChapter: async (...args) => {
@@ -239,7 +261,7 @@ await deferredChapters.get('gen')(); await new Promise(resolve => setImmediate(r
 check(slot.innerHTML.includes('gen 1:26') && !slot.innerHTML.includes('jos 1:8'), 'latest library passage renders before older request finishes');
 const currentMarkup = slot.innerHTML;
 await deferredChapters.get('jos')(); await new Promise(resolve => setImmediate(resolve));
-check(slot.innerHTML === currentMarkup && !staleSlot.innerHTML.includes('[NBLA prueba]'), 'late response cannot overwrite a replacement slot');
+check(slot.innerHTML === currentMarkup && !staleSlot.innerHTML.includes('[RVR1960 prueba]'), 'late response cannot overwrite a replacement slot');
 mounted.destroy(); check(slotListeners.size === 0, 'including capture toggle listener, all handlers removed');
 const absentBible = new WorkshopScripture({ resolveBookId: id => bookIds.getCanonicalBookId(id), getChapter: async () => { throw Error('offline'); } });
 mounted = mountWorkshop({ ...app, $content: slotHost }, 'biblioteca', absentBible);
@@ -248,7 +270,7 @@ check(slot.innerHTML.includes('Reintentar pasaje') && !slot.innerHTML.includes('
 absentBible.getChapter = syntheticChapter;
 slotListeners.get('click')({ target: { closest: () => ({ dataset: { workshopAction: 'retry-bible' }, closest: () => slot }) } });
 await new Promise(resolve => setImmediate(resolve));
-check(slot.innerHTML.includes('jos 1:8') && !slot.innerHTML.includes('Reintentar pasaje'), 'actual retry control restores the same NBLA passage');
+check(slot.innerHTML.includes('jos 1:8') && !slot.innerHTML.includes('Reintentar pasaje'), 'actual retry control restores the same RVR1960 passage');
 mounted.destroy();
 const appSource = readFileSync('js/app.js', 'utf8');
 const ast = parse(appSource, { ecmaVersion: 'latest', sourceType: 'module' });

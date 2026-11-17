@@ -33,9 +33,9 @@ function daily(today) {
 
 export function renderWorkshopScripture(id, bible) {
     const p = bible?.get(id);
-    if (!p) return '<p class="wt-small" role="status">Consultando el pasaje NBLA…</p>';
-    if (p.error || p.versionId !== WORKSHOP_BIBLE_VERSION) return `<p class="wt-small" role="status">No pudimos consultar este pasaje NBLA. Comprueba tu conexión; tu ejercicio se conserva.</p>${command(icon('refresh') + 'Reintentar pasaje', 'retry-bible')}`;
-    return `<div class="wt-scripture">${p.verses.map(v => `<span><sup>${v.number}</sup>${esc(v.text)} </span>`).join('')}</div><p class="wt-small">Nueva Biblia de las Américas · NBLA</p>`;
+    if (!p) return '<p class="wt-small" role="status">Cargando el pasaje RVR1960…</p>';
+    if (p.error || p.versionId !== WORKSHOP_BIBLE_VERSION) return `<p class="wt-small" role="status">No pudimos cargar este pasaje RVR1960. Tu ejercicio se conserva.</p>${command(icon('refresh') + 'Reintentar pasaje', 'retry-bible')}`;
+    return `<div class="wt-scripture">${p.verses.map(v => `<span><sup>${v.number}</sup>${esc(v.text)} </span>`).join('')}</div><p class="wt-small">Reina-Valera 1960 · RVR1960</p>`;
 }
 
 const scripture = (id, bible) => `<div data-workshop-passage="${id}">${renderWorkshopScripture(id, bible)}</div>`;
@@ -114,6 +114,6 @@ export function renderWorkshop(state, ui, bible) {
         ${ui.saveError ? '<p class="wt-warning" role="alert">No se pudo guardar el avance. Tus datos anteriores no se han reemplazado. Conserva los cambios antes de salir.</p>' : ''}
         <div class="wt-content">${content}</div><footer class="wt-footer"><p>Basado en «La Meditación Bíblica»</p><strong>Meditación Bíblica México</strong><p>Lee Jeong Book</p>
         <details><summary>Créditos y referencias</summary><p>Material base: <em>La Meditación Bíblica</em>, Lee Jeong Book. Edición para Su Voz a Diario.</p><p>Las referencias del material base indican la página de origen. Los pasajes complementarios incorporados por Su Voz se identifican por separado. La referencia incompleta «Pedro 1:15-16» se precisa editorialmente como 1 Pedro 1:15-16 por su relación con la santidad; no se presenta como una corrección confirmada por el autor.</p></details>
-        <p>Escrituras tomadas de la Nueva Biblia de las Américas (NBLA), Copyright © 2005 por The Lockman Foundation. <a href="https://www.NuevaBiblia.com" target="_blank" rel="noopener noreferrer">www.NuevaBiblia.com</a>.</p>
+        <p>Pasajes bíblicos: Reina-Valera 1960® · © Sociedades Bíblicas en América Latina, 1960. Renovado © Sociedades Bíblicas Unidas, 1988. Reina-Valera 1960® es una marca registrada de Sociedades Bíblicas Unidas y se puede usar solamente bajo licencia.</p>
         <p>Tu avance y tus ejercicios se guardan en este dispositivo y se incluyen en tu respaldo.</p></footer></section>`;
 }

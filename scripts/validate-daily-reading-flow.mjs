@@ -4,6 +4,7 @@ import vm from 'node:vm';
 import { parse } from 'acorn';
 import { readingIcon } from '../js/utils/readingIcons.js';
 import { getIntroVideoConfig, shouldShowIntroVideo } from '../js/core/constants.js';
+import { RVR1960_VERSION_ID } from '../js/bible/LocalRvr1960Provider.js';
 
 const source = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
 const tree = parse(source, { ecmaVersion: 'latest', sourceType: 'module' });
@@ -13,8 +14,10 @@ function find(node, predicate) {
         if (child?.type) { const match = find(child, predicate); if (match) return match; }
     }
 }
+const storedBiblePreferences = new Map();
 const context = vm.createContext({ window: { speechSynthesis: {} }, document: {},
-    SpeechSynthesisUtterance: class {}, readingIcon, getIntroVideoConfig, shouldShowIntroVideo });
+    localStorage: { setItem: (key, value) => storedBiblePreferences.set(key, value) },
+    RVR1960_VERSION_ID, SpeechSynthesisUtterance: class {}, readingIcon, getIntroVideoConfig, shouldShowIntroVideo });
 function method(name) {
     const node = find(tree, item => item.type === 'Property' && item.key.name === name);
     assert(node, name);
@@ -144,13 +147,19 @@ Object.assign(bibleContext, { currentView: 'home', homeViewingDate: scripture.da
     scrollWindowInstantly: value => { restoredScroll = value; }, handleRoute: async () => {}, showToast: () => {} });
 assert.equal(method('openDailyBibleChapter').call(bibleContext, '2026-10-23'), false);
 assert.equal(method('openDailyBibleChapter').call(bibleContext, scripture.date), true);
-assert.deepEqual(openedChapter, ['2pe', 1, null]); assert.equal(introStops, 1);
+assert.deepEqual(openedChapter, ['2pe', 1, null, null, RVR1960_VERSION_ID]); assert.equal(introStops, 1);
+let savedChapterVersion;
 const chapterNavigation = { bibleBooks: bibleContext.bibleBooks, bibleApiIdMap: {}, currentView: 'home',
+    currentBibleVersion: 'rv1909', getBibleReaderVersions: () => [{ id: 'rv1909' }, { id: RVR1960_VERSION_ID }],
     targetVerse: 9, targetVerseStart: 9, targetVerseEnd: 10,
-    saveBibleLastLocation: () => {}, navigate: view => { assert.equal(view, 'bible-reading'); } };
+    saveBibleLastLocation() { savedChapterVersion = this.currentBibleVersion; },
+    navigate: view => { assert.equal(view, 'bible-reading'); } };
 method('navigateToVerse').apply(chapterNavigation, openedChapter);
 assert.equal(chapterNavigation.selectedBibleBook, '2pe');
 assert.equal(chapterNavigation.selectedBibleChapter, 1);
+assert.equal(chapterNavigation.currentBibleVersion, RVR1960_VERSION_ID, 'Daily passage links open the requested RVR1960 edition');
+assert.equal(savedChapterVersion, RVR1960_VERSION_ID, 'The saved chapter already belongs to RVR1960');
+assert.equal(storedBiblePreferences.get('current-bible-version'), RVR1960_VERSION_ID);
 assert.equal(chapterNavigation.targetVerse, null, 'A whole chapter opens at its heading, not a centered verse that can activate the previous chapter');
 assert.equal(chapterNavigation.targetVerseStart, null);
 assert.equal(chapterNavigation.targetVerseEnd, null);
@@ -168,4 +177,4 @@ assert.equal(restoredScroll, null, 'A late return must not scroll a different pa
 let forwarded;
 method('returnToBibleStudy').call({ bibleStudyReturn: destination, returnToDailyReadingContext: value => { forwarded = value; } });
 assert.equal(forwarded, destination);
-console.log('OK: compact chapter context for short/long books, exact full chapter, unchanged Bible version, and same-date/scroll/focus return with stale-route guard');
+console.log('OK: compact chapter context for short/long books, exact full chapter in RVR1960 saved with its edition, and same-date/scroll/focus return with stale-route guard');

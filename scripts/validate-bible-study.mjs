@@ -1,3 +1,4 @@
+import { RVR1960_VERSION_ID } from '../js/bible/LocalRvr1960Provider.js';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
@@ -7,7 +8,7 @@ const app = { bibleSearchBook:'', bibleSearchFilter:'all', bibleSearchPageSize:2
 function attach(name, extras={}) {
  const start=source.indexOf(name+': function'); assert(start>=0,name);
  const end=source.indexOf('\n},',start);
- app[name]=vm.runInNewContext('({'+source.slice(start,end+2)+'})', {console,parseBibleReadingKey, canAccessRemoteBibleVersions,...extras})[name];
+ app[name]=vm.runInNewContext('({'+source.slice(start,end+2)+'})', {console,RVR1960_VERSION_ID,parseBibleReadingKey, canAccessRemoteBibleVersions,...extras})[name];
 }
 for(const name of ['normalizeBibleWord','tokenizeBibleText','buildLocalBibleSearchIndex','matchesBibleFilter','searchLocalBible','applyBibleSearchPagination','getBibleReaderVersions','getLocalBibleSearchVersionId']) attach(name);
 app.bibleSearchData = [
@@ -27,7 +28,7 @@ app.applyBibleSearchPagination(app.searchLocalBible('no temas'));assert.equal(ap
 assert.equal(canAccessRemoteBibleVersions({}),true);
 assert.equal(getInternalBibleTestVersion({__bibleTestVersion:'nbla'}),null);
 assert.equal(getInternalBibleTestVersion({__bibleInternalPreview:true,__bibleTestVersion:'nbla'}),'nbla');
-assert.deepEqual(Array.from(app.getBibleReaderVersions(),v=>v.id),['rv1909','rvr60','rvr60-strong','nbla','nvi','biblia-libre']);
+assert.deepEqual(Array.from(app.getBibleReaderVersions(),v=>v.id),['rvr60','rvr60-strong','rv1909','nbla','nvi','biblia-libre']);
 const records={
  'su-voz-selection-notes-bible-jhn-3':[{text:'Dios amó al mundo',note:'Reflexión local'}],
  'su-voz-selection-notes-bible-nvi-jhn-3':[{text:'Dios amó al mundo',note:'Otra edición'}]
@@ -48,9 +49,10 @@ assert(!fs.readFileSync('index.html','utf8').includes('open-strong-dictionary'))
 console.log('OK: phrase order, smart quotes, accents, book/testament filters, empty results, pagination, public catalog, isolated preview, version-specific notes and search return.');
 const sessions = new Map([['draft',{id:'draft',readingId:'2026-09-24',status:'draft',notes:{aprendizaje:'Mi enseñanza anterior',oracion:'Oración privada'},references:{}}],['complete',{id:'complete',readingId:'2026-09-24',status:'completed',notes:{aprendizaje:'Meditación terminada'}}]]);
 const fakeStorage = {getAllMetadata:()=>Array.from(sessions.values()),get:id=>structuredClone(sessions.get(id)),save:session=>sessions.set(session.id,structuredClone(session))};
+attach('getDailyReadingVersionId');
 const start = source.indexOf('meditateOnSelectedPassage: async function'); const end = source.indexOf('\n},',start);
-app.meditateOnSelectedPassage = vm.runInNewContext('({'+source.slice(start,end+2)+'})',{console,parseBibleReadingKey,MeditationSessionStorage:fakeStorage}) .meditateOnSelectedPassage;
-Object.assign(app,{currentSelectedText:'No temas.',currentSelectionDate:'bible-isa-41',currentVersion:'ntv',getTodayDateStr:()=> '2026-09-24',getBibleSelectionReferenceLabel:()=> 'Isaías 41:10',getBibleVersionLabel:v=>v,getReadingByDate:async()=>({date:'2026-09-24'}),attachMeditationMetadataSync(){},invalidateMeditationLibraryCache(){},hideSelectionPanel(){},stopBibleChapterVoice(){},openMeditationLibraryEditor:async(id,field)=>{app.openedEditor={id,field};},showToast(){}});
+app.meditateOnSelectedPassage = vm.runInNewContext('({'+source.slice(start,end+2)+'})',{console,RVR1960_VERSION_ID,parseBibleReadingKey,MeditationSessionStorage:fakeStorage}) .meditateOnSelectedPassage;
+Object.assign(app,{currentSelectedText:'No temas.',currentSelectionDate:'bible-isa-41',currentVersion:'ntv',getTodayDateStr:()=> '2026-09-24',getBibleSelectionReferenceLabel:()=> 'Isaías 41:10',getBibleVersionLabel:v=>v,getReadingByDate:async()=>({date:'2026-09-24',versions:{rvr60:'Texto RVR1960',ntv:'Texto NTV'}}),attachMeditationMetadataSync(){},invalidateMeditationLibraryCache(){},hideSelectionPanel(){},stopBibleChapterVoice(){},openMeditationLibraryEditor:async(id,field)=>{app.openedEditor={id,field};},showToast(){}});
 await Promise.all([app.meditateOnSelectedPassage(),app.meditateOnSelectedPassage()]);
 await app.meditateOnSelectedPassage();
 assert.equal(sessions.size,2);

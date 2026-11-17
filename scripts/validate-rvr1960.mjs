@@ -189,6 +189,30 @@ for (const name of [
     'normalizeBibleReadingState', 'parseBibleMemoryDate', 'getBibleMemoryItems'
 ]) app[name] = method(name);
 assert(app.getBibleReaderVersions().some(version => version.id === 'rvr60'));
+const defaultVersionNode = find(tree, node => node.type === 'Property' && node.key.name === 'currentBibleVersion');
+assert.equal(vm.runInContext('(' + source.slice(defaultVersionNode.value.start, defaultVersionNode.value.end) + ')', context), RVR1960_VERSION_ID);
+const initNode = find(tree, node => node.type === 'Property' && node.key.name === 'init');
+const initStatements = initNode.value.body.body;
+const preferenceIndex = initStatements.findIndex(node => node.type === 'VariableDeclaration'
+    && node.declarations.some(declaration => declaration.id.name === 'savedBibleVersion'));
+assert(preferenceIndex >= 0, 'Initialization restores the saved Bible edition');
+const restorePreference = vm.runInContext('(function(){' + source.slice(initStatements[preferenceIndex].start,
+    initStatements[preferenceIndex + 1].end) + '})', context);
+for (const savedPreference of [null, 'invalid', 'rvr60', 'rv1909', 'rvr60-strong']) {
+    records.clear();
+    if (savedPreference !== null) localStorage.setItem('current-bible-version', savedPreference);
+    const freshApp = { currentBibleVersion: 'uninitialized', getBibleReaderVersions: app.getBibleReaderVersions };
+    restorePreference.call(freshApp);
+    assert.equal(freshApp.currentBibleVersion, ['rvr60', 'rv1909', 'rvr60-strong'].includes(savedPreference)
+        ? savedPreference : RVR1960_VERSION_ID, 'Initialization respects explicit editions and defaults to RVR1960');
+}
+records.clear();
+for (const selectedEdition of ['rvr60', 'rv1909', 'rvr60-strong', 'nbla', 'nvi', 'biblia-libre', '', undefined]) {
+    app.currentBibleVersion = selectedEdition;
+    assert.equal(app.getLocalBibleSearchVersionId(), ['rvr60', 'rv1909', 'rvr60-strong'].includes(selectedEdition)
+        ? selectedEdition : RVR1960_VERSION_ID, 'Local search keeps an explicitly selected local edition; otherwise uses RVR1960');
+}
+app.currentBibleVersion = RVR1960_VERSION_ID;
 await app.loadLocalBibleSearchData();
 assert.equal(app.bibleSearchData.length, 31104);
 assert(app.bibleSearchData.every(verse => verse.versionId === 'rvr60'));
@@ -210,7 +234,7 @@ assert.equal(app.bibleSearchResults.length, 1);
 assert.equal(app.bibleSearchResults[0].text, 'antigua palabra');
 assert.equal(app.bibleSearchResults[0].versionId, 'rv1909');
 app.currentBibleVersion = 'nbla';
-assert.equal(app.getLocalBibleSearchVersionId(), 'rv1909', 'Remote word search retains its documented local fallback');
+assert.equal(app.getLocalBibleSearchVersionId(), RVR1960_VERSION_ID, 'Remote word search uses RVR1960 as its local fallback');
 const oldResultsHtml = app.renderBibleSearchResults();
 assert(oldResultsHtml.includes('data-version-id="rv1909"'), 'Search result opens the edition containing the displayed text');
 
@@ -241,9 +265,38 @@ assert.equal(app.currentView, 'bible-reading');
 assert.equal(app.selectedBibleBook, 'jhn');
 assert.equal(app.targetVerse, 16);
 
+const navigationEvents = [];
+const navigator = { ...app, currentBibleVersion: 'rv1909', currentView: 'home',
+    saveBibleLastLocation(bookId, chapter) { navigationEvents.push(['save', this.currentBibleVersion, bookId, chapter]); },
+    navigate(view) { navigationEvents.push(['navigate', this.currentBibleVersion, view]); }
+};
+navigator.navigateToVerse('JHN', 3, 16, 18, RVR1960_VERSION_ID);
+assert.deepEqual(navigationEvents, [['save', RVR1960_VERSION_ID, 'jhn', 3], ['navigate', RVR1960_VERSION_ID, 'bible-reading']],
+    'The requested version is applied before saving or rendering its chapter');
+assert.equal(navigator.targetVerseStart, 16);
+assert.equal(navigator.targetVerseEnd, 18);
+for (const versionId of ['rv1909', 'rvr60-strong']) {
+    navigator.currentBibleVersion = versionId;
+    navigator.navigateToVerse('jhn', 3, 16);
+    assert.equal(navigator.currentBibleVersion, versionId, 'Navigation without a requested edition preserves the current edition');
+}
+const previousEvents = navigationEvents.length;
+const previousPreference = localStorage.getItem('current-bible-version');
+navigator.navigateToVerse('jhn', 4, 1, null, 'invalid');
+assert.equal(navigationEvents.length, previousEvents, 'An unsupported requested edition cannot navigate or save a location');
+assert.equal(navigator.currentBibleVersion, 'rvr60-strong');
+assert.equal(navigator.selectedBibleChapter, 3);
+assert.equal(localStorage.getItem('current-bible-version'), previousPreference);
+
 const saved = app.normalizeBibleReadingState({ versionId: 'rvr60', bookId: 'jhn', chapter: 3, verseNumber: 16 });
 assert.equal(saved.versionId, 'rvr60');
-assert.equal(app.normalizeBibleReadingState({ versionId: 'invalid', bookId: 'jhn', chapter: 3 }).versionId, 'rv1909');
+assert.equal(app.normalizeBibleReadingState({ versionId: 'invalid', bookId: 'jhn', chapter: 3 }).versionId, RVR1960_VERSION_ID);
+for (const versionId of ['rv1909', 'rvr60', 'rvr60-strong']) {
+    assert.equal(app.normalizeBibleReadingState({ versionId, bookId: 'jhn', chapter: 3 }).versionId, versionId,
+        'Existing reading states retain their edition');
+}
+const noPreference = { ...app, currentBibleVersion: undefined };
+assert.equal(noPreference.normalizeBibleReadingState({ bookId: 'jhn', chapter: 3 }).versionId, RVR1960_VERSION_ID);
 assert.equal(app.normalizeBibleReadingState({ versionId: 'rvr60', bookId: 'jhn', chapter: 22 }), null);
 assert.equal(app.normalizeBibleReadingState({ versionId: 'rvr60', bookId: 'unknown', chapter: 1 }), null);
 assert.equal(app.normalizeBibleReadingState({ versionId: 'rvr60', bookId: 'jhn', chapter: 0 }), null);
@@ -276,4 +329,4 @@ assert(rendered.copyrightHtml.includes('Sociedades Bíblicas'));
 assert(!rendered.content.includes('reading-copyright'), 'Copyright stays outside the selectable Scripture text');
 assert(rendered.content.includes(escapeBibleHtml(john.text)));
 assert.equal(networkCalls, 0);
-console.log('OK: RVR1960 — 66 books, 1189 chapters, 31104 verses, manifest hash/counts, Unicode, cache/retry, chapter identity, boundaries, version keys, search switching/races, correct-result navigation, annotation isolation and copyright.');
+console.log('OK: RVR1960 — 66 books, 1189 chapters, 31104 verses, manifest hash/counts, Unicode, cache/retry, chapter identity, boundaries, version keys, search switching/races, RVR1960 defaults, explicit edition preservation, version-aware navigation, annotation isolation and copyright.');

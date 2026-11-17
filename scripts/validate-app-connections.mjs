@@ -1,3 +1,4 @@
+import { RVR1960_VERSION_ID } from '../js/bible/LocalRvr1960Provider.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -5,16 +6,17 @@ import vm from 'node:vm';
 const source=fs.readFileSync('js/app.js','utf8');
 const sessions=new Map();let saved=[],rendered=0,opened=[];
 const storage={get:key=>key==='su-voz-note-2026-09-22'?{dios:'Nota del día 22'}:{},set:()=>true};
-const context=vm.createContext({console,Date,Set,crypto:{randomUUID:()=> 'new-session'},MeditationSessionStorage:{get:id=>sessions.get(id),save:s=>{sessions.set(s.id,s);saved.push(s.id);},getAllMetadata:()=>[...sessions.values()]},MeditationSessionUIStateStorage:{save:()=>{}},localStorage:{getItem:()=>null,setItem:()=>{},length:0},NotebookStorage:{load:()=>({})},NotebookUIStateStorage:{load:()=>({})}});
+const context=vm.createContext({console,Date,Set,RVR1960_VERSION_ID,crypto:{randomUUID:()=> 'new-session'},MeditationSessionStorage:{get:id=>sessions.get(id),save:s=>{sessions.set(s.id,s);saved.push(s.id);},getAllMetadata:()=>[...sessions.values()]},MeditationSessionUIStateStorage:{save:()=>{}},localStorage:{getItem:()=>null,setItem:()=>{},length:0},NotebookStorage:{load:()=>({})},NotebookUIStateStorage:{load:()=>({})}});
 function method(name,next){const start=source.indexOf(name+': function');assert(start>=0,name);const end=source.indexOf(next+':',start);const text=source.slice(start,end).trim().replace(/,\s*$/,'');return vm.runInContext('({'+text+'})',context)[name];}
 const app={storage,currentMeditationSessionId:'a',getNoteKey:d=>'su-voz-note-'+d,sendToSW:()=>{},attachMeditationMetadataSync:()=>{},invalidateMeditationLibraryCache:()=>{},renderStats:()=>rendered++,closeSlidingNotebook:()=>{},openMeditationSession:id=>opened.push(id)};
+app.getDailyReadingVersionId=method('getDailyReadingVersionId','getDailyReadingText');
 app.getNote=method('getNote','hasNote');app.saveNote=method('saveNote','getDevotionalSteps');app.toggleNote=method('toggleNote','getOrCreateSlidingNotebookPanel');
 sessions.set('a',{id:'a',readingId:'2026-09-23',status:'draft',notes:{dios:'Nota del día 23'}});
 assert.equal(app.getNote('2026-09-22').dios,'Nota del día 22');assert.equal(app.getNote('2026-09-23').dios,'Nota del día 23');
 app.saveNote('2026-09-22',{dios:'Nueva del día 22'});assert.equal(sessions.get('a').notes.dios,'Nota del día 23');assert.equal(saved.length,0);
 app.saveNote('2026-09-23',{dios:'Cambio correcto'});assert.equal(sessions.get('a').notes.dios,'Cambio correcto');
 console.log('OK: consultar/guardar otra fecha no lee ni sobrescribe la sesión abierta');
-sessions.clear();sessions.set('archived',{id:'archived',readingId:'2026-09-22',status:'archived',notes:{dios:'Conservar archivo'}});app.openNoteDate=null;app.toggleNote('2026-09-22');assert.deepEqual(opened,['new-session']);assert.equal(sessions.get('archived').status,'archived');
+sessions.clear();sessions.set('archived',{id:'archived',readingId:'2026-09-22',status:'archived',notes:{dios:'Conservar archivo'}});app.openNoteDate=null;app.toggleNote('2026-09-22',{versions:{rvr60:'Texto de la lectura'}});assert.equal(sessions.get('new-session').bibleVersion,RVR1960_VERSION_ID);assert.deepEqual(opened,['new-session']);assert.equal(sessions.get('archived').status,'archived');
 console.log('OK: una sesión archivada se conserva y no se reabre como activa');
 context.document={body:{classList:{remove:()=>{}}}};app.currentView='stats';app.libraryEditorSessionId='a';method('closeMeditationLibraryEditor','shareMeditationFromLibrary').call(app);assert.equal(rendered,1);
 console.log('OK: cerrar el editor refresca Mi camino');
