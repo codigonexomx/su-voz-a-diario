@@ -103,7 +103,7 @@
                         <div class="deepening-reading-toolbar-actions">
                             ${renderVersionSelector()}
                             ${renderListenControl()}
-                            ${options.onCommentaryOpen ? '<button type="button" class="deepening-commentary-trigger" data-deepening-commentary aria-label="Leer el comentario de Hendriksen para esta meditación">Comentario · Hendriksen</button>' : ''}
+                            ${options.onCommentaryOpen ? '<button type="button" class="deepening-commentary-trigger" data-deepening-commentary aria-label="Leer comentarios de esta meditación">Comentarios</button>' : ''}
                         </div>
                     </div>
                     <main class="deepening-reading" aria-label="Texto biblico">

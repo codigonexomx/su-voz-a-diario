@@ -24,6 +24,9 @@
 .commentary-panel .commentary-header h2 { margin: 3px 0 0; color: var(--commentary-ink); font: 600 29px/1.1 'Cormorant Garamond', Georgia, serif; }
 .commentary-header p { margin: 5px 0 0; color: var(--commentary-muted); font-size: 13px; }
 .commentary-close { width: 44px; flex: 0 0 44px; font-size: 28px !important; line-height: 1; }
+.commentary-work-picker { padding: 0 26px 12px; }
+.commentary-work-picker label { display: grid; gap: 4px; color: var(--commentary-muted); font-size: 11px; }
+.commentary-work-picker select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; border: 1px solid var(--commentary-line); border-radius: 7px; background: var(--commentary-paper); font-size: 13px; }
 .commentary-origin { padding: 0 26px 15px; color: var(--commentary-muted); font-size: 12px; }
 .commentary-tabs { display: flex; gap: 8px; padding: 0 26px 14px; border-bottom: 1px solid var(--commentary-line); }
 .commentary-tabs button { padding: 8px 13px; font-size: 13px; font-weight: 600; }
@@ -70,6 +73,7 @@ body.dark-mode .deepening-commentary-trigger { background: #263c30; color: #c4e3
     .commentary-overlay { padding: env(safe-area-inset-top) 0 0; }
     .commentary-panel { width: 100%; border-radius: 14px 14px 0 0; border-bottom: 0; }
     .commentary-header { padding: 18px 20px 8px; }
+    .commentary-work-picker { padding: 0 20px 10px; }
     .commentary-origin { padding: 0 20px 10px; }
     .commentary-tabs { padding: 0 20px 10px; }
     .commentary-section-navigation { padding: 7px 20px; }

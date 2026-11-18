@@ -1089,7 +1089,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '281'
+            pwaVersion: '282'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -12767,7 +12767,7 @@ showSelectionPanelForVerse: function() {
         && ['rvr60', 'rvr60-strong'].includes(this.currentBibleVersion);
     if (!commentary && commentaryAvailable) {
         panel.querySelector('.selection-actions-row')?.insertAdjacentHTML('afterbegin',
-            '<button type="button" class="action-btn bible-selection-commentary" data-action="commentary-for-selection">Comentario · Hendriksen</button>');
+            '<button type="button" class="action-btn bible-selection-commentary" data-action="commentary-for-selection">Comentarios</button>');
         commentary = panel.querySelector('[data-action="commentary-for-selection"]');
     }
     if (commentary) commentary.hidden = !commentaryAvailable;
@@ -15109,7 +15109,7 @@ renderBibleReaderContextBar: function(bookName, chapterNumber) {
                 <span>${audioLabel}</span>
             </button>
             ${this.currentBibleVersion === 'rvr60-strong' ? `<button class="bible-reader-tool strong-dictionary-tool" type="button" data-action="open-strong-dictionary" aria-label="Abrir diccionario Strong"><span class="bible-reader-tool-icon" aria-hidden="true">אα</span><span>Diccionario</span></button>` : ''}
-            ${this.selectedBibleBook === 'rev' && ['rvr60', 'rvr60-strong'].includes(this.currentBibleVersion) ? `<button class="bible-reader-tool" type="button" data-action="open-bible-commentary" aria-label="Leer el comentario de Hendriksen para este pasaje"><span class="bible-reader-tool-icon" aria-hidden="true">${readingIcon('read')}</span><span>Comentario</span></button>` : ''}
+            ${this.selectedBibleBook === 'rev' && ['rvr60', 'rvr60-strong'].includes(this.currentBibleVersion) ? `<button class="bible-reader-tool" type="button" data-action="open-bible-commentary" aria-label="Leer comentarios de este pasaje"><span class="bible-reader-tool-icon" aria-hidden="true">${readingIcon('read')}</span><span>Comentario</span></button>` : ''}
             ${hasAudio ? `
                 <button class="bible-reader-tool continuous-return" type="button" data-action="return-to-bible-audio" aria-label="Volver al pasaje que se está leyendo" title="Volver al audio">${readingIcon('back')}<span>${this.escapeHtml(this.bibleChapterVoice.reference || 'Volver al audio')}</span></button>
                 <button
