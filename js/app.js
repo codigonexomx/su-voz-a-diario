@@ -1,5 +1,7 @@
 import { sanitizeCommunityHtml, communityPlainText } from './utils/communityHtml.js';
 import { ContinuousReader } from './bible/ContinuousReader.js';
+import { CommentaryPanel, parseCommentaryReference, isCommentaryRange } from './bible/CommentaryPanel.js';
+import { commentaryRepository } from './bible/CommentaryRepository.js';
 import { renderBibleReadingDocument, positionBibleStudyPanel } from './bible/BibleReaderPresentation.js';
 import { calendarMethods } from './calendar/CalendarController.js';
 import { communityExperienceMethods } from './community/CommunityExperience.js';
@@ -1087,7 +1089,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '279'
+            pwaVersion: '280'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -1287,6 +1289,7 @@ console.log('[App] Inicialización completada');
 
     handleAndroidBackButton: function(event = {}) {
         if (!this.isCapacitorAndroid()) return;
+        if (this.commentaryPanel?.state) { this.commentaryPanel.close(); return; }
         if (this.strongStudyPanel?.state) { this.strongStudyPanel.close({ restoreFocus: true }); return; }
 
         if (this.$verseImagePanel?.classList.contains('visible')) {
@@ -7305,6 +7308,7 @@ syncAppBadge: function(count) {
         }
 
         const readingText = this.getDailyReadingText(reading);
+        const commentaryRange = parseCommentaryReference(reading.reference);
         const readingHtml = this.renderVerseText(readingText, reading.date) + this.renderDailyReadingCopyright(reading);
         const versions = [
             { id: 'rvr60', label: 'RVR60' },
@@ -7325,6 +7329,14 @@ syncAppBadge: function(count) {
             focusEditor: returnState?.focusEditor === true,
             renderIcon: readingIcon,
             onLearn: lesson => this.openMeditationLearning(lesson, reading.date),
+            onCommentaryOpen: commentaryRange ? ({ anchor, onClose }) => {
+                const mountRoot = document.getElementById('deepening-root');
+                if (!mountRoot || mountRoot.hidden) return;
+                this.getCommentaryPanel().open({ anchor, range: commentaryRange, mountRoot,
+                    returnLabel: 'Seguir meditando', onClose,
+                    isCurrent: () => window.DeepeningShell?.isMounted?.() && !mountRoot.hidden });
+            } : null,
+            onCommentaryClose: () => this.commentaryPanel?.close({ restoreFocus: false }),
             onBackup: () => this.exportAllData(),
             getReadingHtml: versionId => this.renderVerseText(
                 this.getDailyReadingText(reading, versionId),
@@ -9452,6 +9464,13 @@ bindSelectionPanelEvents: function() {
     if (this._selectionPanelEventsBound) return;
 
     this.$selectionPanel?.addEventListener('click', event => {
+        const commentary = event.target.closest('[data-action="commentary-for-selection"]');
+        if (commentary) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.openBibleCommentary(commentary);
+            return;
+        }
         if (!event.target.closest('[data-action="listen-bible-selection"]')) return;
         event.preventDefault();
         event.stopPropagation();
@@ -10135,6 +10154,7 @@ handleBibleCrossReferencePopState: function(event) {
 },
 
 closeTransientBibleUI: function() {
+    this.commentaryPanel?.close({ restoreFocus: false });
     this.strongStudyPanel?.close();
     this.closeBibleFootnotePopover();
     this.closeBibleCrossReferencePopover({ restoreHistory: false });
@@ -12505,11 +12525,60 @@ returnToBibleStudy: function() {
     }));
 },
 
+getCommentaryPanel: function() {
+    if (!this.commentaryPanel) this.commentaryPanel = new CommentaryPanel({ repository: commentaryRepository });
+    return this.commentaryPanel;
+},
+
+openBibleCommentary: function(anchor) {
+    if (this.currentView !== 'bible-reading'
+        || !['rvr60', 'rvr60-strong'].includes(this.currentBibleVersion)) return false;
+    const versionId = this.currentBibleVersion;
+    const fromSelection = anchor?.getAttribute('data-action') === 'commentary-for-selection';
+    const epoch = this._bibleReaderEpoch;
+    const visible = this.captureBibleReaderScrollAnchor();
+    const selectedKey = parseBibleReadingKey(this.currentSelectionDate);
+    const selected = this.currentSelectedVerse?.isConnected && selectedKey?.bookId === 'rev'
+        && selectedKey.versionId === versionId ? this.currentSelectedVerse : null;
+    if (fromSelection ? !selected : this.selectedBibleBook !== 'rev') return false;
+    const selectedVerses = selected ? Array.from(selected.closest('.reading-text-shell')?.querySelectorAll('.verse-selected') || [])
+        .map(verse => Number(verse.getAttribute('data-verse-number'))).filter(Number.isInteger).sort((a, b) => a - b) : [];
+    const chapter = Number(selected ? selectedKey.chapter : visible?.chapter || this.selectedBibleChapter);
+    const firstVerse = selectedVerses[0] || Number(selected?.getAttribute('data-verse-number')) || visible?.verseNumber || 1;
+    const lastVerse = selectedVerses.at(-1) || firstVerse;
+    const range = { start: { bookId: 'rev', chapter, verse: firstVerse }, end: { bookId: 'rev', chapter, verse: lastVerse } };
+    if (!isCommentaryRange(range)) return false;
+    clearTimeout(this._bibleVerseClickTimer);
+    this.strongStudyPanel?.close();
+    this.closeBibleFootnotePopover();
+    this.closeBibleCrossReferencePopover({ restoreHistory: false });
+    const isCurrent = () => this.currentView === 'bible-reading'
+        && this.currentBibleVersion === versionId && this._bibleReaderEpoch === epoch
+        && (fromSelection ? selected?.isConnected : this.selectedBibleBook === 'rev');
+    const selectionWasVisible = this.$selectionPanel?.classList.contains('visible');
+    if (selectionWasVisible) {
+        // Keep the selected verses and any unsaved selection note in place.
+        // Only hide this sheet while reading the commentary above it.
+        this.$selectionPanel.classList.remove('visible');
+        document.body.classList.remove('selection-panel-open');
+    }
+    void this.getCommentaryPanel().open({ anchor, range,
+        isCurrent,
+        onClose: () => {
+            if (!selectionWasVisible || !isCurrent()) return;
+            this.$selectionPanel.classList.add('visible');
+            document.body.classList.add('selection-panel-open');
+            anchor?.focus({ preventScroll: true });
+        } });
+    return true;
+},
+
 getStrongStudyPanel: function() {
     if (!this.strongStudyPanel) this.strongStudyPanel = new StrongStudyPanel({
         repository: strongRepository,
         isContextCurrent: () => this.currentView === 'bible-reading' && this.currentBibleVersion === 'rvr60-strong',
         onBeforeOpen: () => {
+            this.commentaryPanel?.close({ restoreFocus: false });
             this.closeBibleFootnotePopover();
             this.closeBibleCrossReferencePopover({ restoreHistory: false });
         }
@@ -12691,6 +12760,17 @@ showSelectionPanelForVerse: function() {
         listen = panel.querySelector('[data-action="listen-bible-selection"]');
     }
     if (listen) listen.hidden = this.currentView !== 'bible-reading';
+    let commentary = panel.querySelector('[data-action="commentary-for-selection"]');
+    const selectedKey = parseBibleReadingKey(this.currentSelectionDate);
+    const commentaryAvailable = this.currentView === 'bible-reading' && selectedKey?.bookId === 'rev'
+        && selectedKey.versionId === this.currentBibleVersion
+        && ['rvr60', 'rvr60-strong'].includes(this.currentBibleVersion);
+    if (!commentary && commentaryAvailable) {
+        panel.querySelector('.selection-actions-row')?.insertAdjacentHTML('afterbegin',
+            '<button type="button" class="action-btn bible-selection-commentary" data-action="commentary-for-selection">Comentario · Hendriksen</button>');
+        commentary = panel.querySelector('[data-action="commentary-for-selection"]');
+    }
+    if (commentary) commentary.hidden = !commentaryAvailable;
     
     // ✅ GUARDAR la posición actual del scroll
     this._savedScrollY = window.scrollY;
@@ -15006,7 +15086,7 @@ renderBibleReaderContextBar: function(bookName, chapterNumber) {
         : (isPaused ? 'Reanudar audio del capítulo' : 'Escuchar capítulo');
 
     return `
-        <div class="bible-reader-context-bar ${this.currentBibleVersion === 'rvr60-strong' ? 'has-strong-tools' : ''} ${hasAudio ? 'has-audio-stop' : ''}" role="toolbar" aria-label="Accesos rápidos del lector bíblico">
+        <div class="bible-reader-context-bar ${this.currentBibleVersion === 'rvr60-strong' ? 'has-strong-tools' : ''} ${this.selectedBibleBook === 'rev' && ['rvr60', 'rvr60-strong'].includes(this.currentBibleVersion) ? 'has-commentary' : ''} ${hasAudio ? 'has-audio-stop' : ''}" role="toolbar" aria-label="Accesos rápidos del lector bíblico">
             <button
                 class="bible-reader-tool ${isPlaying || isPaused ? 'is-active' : ''}"
                 type="button"
@@ -15018,6 +15098,7 @@ renderBibleReaderContextBar: function(bookName, chapterNumber) {
                 <span>${audioLabel}</span>
             </button>
             ${this.currentBibleVersion === 'rvr60-strong' ? `<button class="bible-reader-tool strong-dictionary-tool" type="button" data-action="open-strong-dictionary" aria-label="Abrir diccionario Strong"><span class="bible-reader-tool-icon" aria-hidden="true">אα</span><span>Diccionario</span></button>` : ''}
+            ${this.selectedBibleBook === 'rev' && ['rvr60', 'rvr60-strong'].includes(this.currentBibleVersion) ? `<button class="bible-reader-tool" type="button" data-action="open-bible-commentary" aria-label="Leer el comentario de Hendriksen para este pasaje"><span class="bible-reader-tool-icon" aria-hidden="true">${readingIcon('read')}</span><span>Comentario</span></button>` : ''}
             ${hasAudio ? `
                 <button class="bible-reader-tool continuous-return" type="button" data-action="return-to-bible-audio" aria-label="Volver al pasaje que se está leyendo" title="Volver al audio">${readingIcon('back')}<span>${this.escapeHtml(this.bibleChapterVoice.reference || 'Volver al audio')}</span></button>
                 <button
@@ -15370,6 +15451,7 @@ updateBibleReaderVersionButtons: function({ loadingVersionId = '' } = {}) {
 },
 
 async switchBibleReaderVersion(versionId) {
+    this.commentaryPanel?.close({ restoreFocus: false });
     this.strongStudyPanel?.close();
     this._bibleScrollRestoreCancel?.();
     this._bibleAnchorRestoreCancel?.();
@@ -15520,6 +15602,7 @@ mountContinuousBibleReader: function(book, chapter, versionId, alignInitial = fa
 },
 
 renderBibleReading: async function() {
+    this.commentaryPanel?.close({ restoreFocus: false });
     this.strongStudyPanel?.close();
     this._bibleScrollRestoreCancel?.();
     this._bibleAnchorRestoreCancel?.();
@@ -18773,6 +18856,10 @@ document.addEventListener('click', (e) => {
     }
 }, true);
         
+        // Preserve native selection before a commentary toolbar button receives focus.
+     this.$content.addEventListener('pointerdown', (e) => {
+        if (e.target.closest('[data-action="open-bible-commentary"]')) e.preventDefault();
+     });
         // Eventos del contenido
      this.$content.addEventListener('keydown', (e) => {
         if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-action="open-strong-word"]')) {
@@ -18780,6 +18867,8 @@ document.addEventListener('click', (e) => {
         }
      });
      this.$content.addEventListener('click', async (e) => {
+    const commentaryTrigger = e.target.closest('[data-action="open-bible-commentary"]');
+    if (commentaryTrigger) { e.preventDefault(); e.stopPropagation(); this.openBibleCommentary(commentaryTrigger); return; }
     if (e.target.closest('.post-menu-dropdown button')) this.closePostMenus(true);
     if (this.handleStrongStudyAction(e.target)) { e.preventDefault(); e.stopPropagation(); return; }
     // Source parallel passages live under headings, outside a verse selection.

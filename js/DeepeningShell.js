@@ -804,6 +804,7 @@
         try {
             if (await callbacks.onAutoSave?.() === false) return false;
             closeHelp();
+            callbacks.onCommentaryClose?.();
             if (meditationDocument?.destroy() === false) return false;
             meditationDocument = null;
             blurActiveShellElement(targetRoot);
@@ -844,6 +845,7 @@
         if (!targetRoot) return null;
         if (meditationDocument?.flushAutoSave(true) === false) return null;
         closeHelp();
+        mountedOptions?.onCommentaryClose?.();
 
         keyboardManager?.destroy();
         meditationActionsPanel?.destroy();
@@ -875,6 +877,7 @@
                 meditationDocument?.setDocumentMetadata?.({ version: versionId });
                 options.onVersionChange?.(versionId);
             },
+            onCommentaryOpen: options.onCommentaryOpen,
             onVoiceToggle: options.onVoiceToggle,
             onVoiceStop: options.onVoiceStop,
             getVoiceState: options.getVoiceState,

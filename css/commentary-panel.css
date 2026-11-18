@@ -1,0 +1,83 @@
+/* Native commentary reader, shared by the Bible and meditation. */
+.commentary-overlay {
+    --commentary-paper: #faf8f2; --commentary-ink: #273c31; --commentary-muted: #637468;
+    --commentary-accent: #25664f; --commentary-line: #dce4dc; --commentary-soft: #edf3ed;
+    position: fixed; inset: 0; z-index: 1900; display: flex; justify-content: flex-end;
+    padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) 12px;
+    box-sizing: border-box; background: #12241bc2; overscroll-behavior: contain;
+}
+#deepening-root > .commentary-overlay { position: absolute; }
+.commentary-panel {
+    width: min(100%, 720px); min-width: 0; max-height: 100%; display: flex; flex-direction: column;
+    overflow: hidden; border: 1px solid var(--commentary-line); border-radius: 18px;
+    background: var(--commentary-paper); color: var(--commentary-ink);
+    box-shadow: 0 20px 80px #0c221e40; font: 400 14px/1.6 var(--font-ui, Inter, sans-serif);
+}
+.commentary-panel *, .commentary-panel *::before, .commentary-panel *::after { box-sizing: border-box; }
+.commentary-panel button, .commentary-panel select { font: inherit; color: inherit; }
+.commentary-panel button { min-height: 44px; cursor: pointer; border: 0; background: transparent; border-radius: 6px; }
+.commentary-panel button:hover { background: var(--commentary-soft); }
+.commentary-panel button:disabled { opacity: .4; cursor: default; }
+.commentary-panel :is(button, select, summary):focus-visible { outline: 2px solid var(--commentary-accent); outline-offset: 2px; }
+.commentary-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding: 22px 26px 12px; }
+.commentary-eyebrow { text-transform: uppercase; letter-spacing: .12em; font-size: 10px; font-weight: 700; color: var(--commentary-accent); }
+.commentary-panel .commentary-header h2 { margin: 3px 0 0; color: var(--commentary-ink); font: 600 29px/1.1 'Cormorant Garamond', Georgia, serif; }
+.commentary-header p { margin: 5px 0 0; color: var(--commentary-muted); font-size: 13px; }
+.commentary-close { width: 44px; flex: 0 0 44px; font-size: 28px !important; line-height: 1; }
+.commentary-origin { padding: 0 26px 15px; color: var(--commentary-muted); font-size: 12px; }
+.commentary-tabs { display: flex; gap: 8px; padding: 0 26px 14px; border-bottom: 1px solid var(--commentary-line); }
+.commentary-tabs button { padding: 8px 13px; font-size: 13px; font-weight: 600; }
+.commentary-tabs button[aria-pressed='true'] { background: var(--commentary-soft); color: var(--commentary-accent); box-shadow: inset 0 -2px var(--commentary-accent); }
+.commentary-section-navigation { padding: 10px 26px; border-bottom: 1px solid var(--commentary-line); }
+.commentary-section-navigation label { display: grid; gap: 4px; color: var(--commentary-muted); font-size: 11px; }
+.commentary-section-navigation select { width: 100%; min-height: 40px; border: 1px solid var(--commentary-line); border-radius: 6px; padding: 7px 9px; background: var(--commentary-paper); font-size: 13px; }
+.commentary-section-navigation > div { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; }
+.commentary-section-navigation button { padding: 5px 8px; }
+.commentary-body { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 25px 30px 38px; scrollbar-width: thin; }
+.commentary-entry-meta { color: var(--commentary-accent); font-size: 12px; font-weight: 600; }
+.commentary-panel .commentary-article h3, .commentary-panel .commentary-index h3 { margin: 8px 0; color: var(--commentary-ink); font: 600 30px/1.2 'Cormorant Garamond', Georgia, serif; }
+.commentary-page-source { margin: 8px 0 22px; font-size: 11px; color: var(--commentary-muted); }
+.commentary-prose { font: 400 16px/1.9 var(--font-reading-content, Merriweather, Georgia, serif); overflow-wrap: anywhere; }
+.commentary-prose p { margin: 0 0 1.2em; }
+.commentary-figure { margin: 24px 0; }
+.commentary-figure img { display: block; max-width: 100%; height: auto; margin-inline: auto; background: white; }
+.commentary-figure figcaption { margin-top: 8px; font-size: 12px; color: var(--commentary-muted); }
+.commentary-notes, .commentary-attribution { margin-top: 24px; border-top: 1px solid var(--commentary-line); padding-top: 14px; }
+.commentary-panel summary { min-height: 44px; cursor: pointer; padding: 8px 0; font-weight: 600; }
+.commentary-notes ol { padding-left: 28px; }
+.commentary-notes li { padding-left: 5px; margin-bottom: 18px; overflow-wrap: anywhere; }
+.commentary-notes p { margin: 0 0 12px; }
+.commentary-notes-intro, .commentary-attribution { color: var(--commentary-muted); font-size: 12px; }
+.commentary-index > p { color: var(--commentary-muted); font-size: 13px; }
+.commentary-index > details { border-bottom: 1px solid var(--commentary-line); padding: 7px 0; }
+.commentary-index-entry { display: grid; width: 100%; text-align: left; gap: 3px; padding: 10px 10px 10px calc(10px + var(--entry-depth, 0) * 12px); }
+.commentary-index-entry small { color: var(--commentary-muted); font-size: 11px; }
+.commentary-footer { padding: 12px 26px; border-top: 1px solid var(--commentary-line); }
+.commentary-footer button { width: 100%; background: var(--commentary-accent); color: white; font-weight: 600; }
+.commentary-footer button:hover { background: #1a503d; }
+.commentary-status { padding: 20px 0; }
+.commentary-status button { padding: 8px 20px; background: var(--commentary-soft); }
+.deepening-commentary-trigger { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 12px; border: 1px solid #c6d3c8; border-radius: 7px; background: #f2f6ef; color: #25664f; font: 600 12px/1.3 var(--font-ui, Inter, sans-serif); cursor: pointer; }
+.bible-selection-commentary { grid-column: 1 / -1; }
+.bible-selection-commentary[hidden] { display: none !important; }
+body .bible-reader-view .bible-reader-context-bar.has-commentary { display: flex; justify-content: space-around; max-width: 560px; }
+body .bible-reader-view .bible-reader-context-bar.has-commentary .bible-reader-tool { flex: 1 1 0; min-width: 0; font-size: 11px; padding-inline: 4px; }
+body .bible-reader-view .bible-reader-context-bar.has-commentary.has-audio-stop { flex-wrap: wrap; }
+body.dark-mode .commentary-overlay { --commentary-paper: #17251f; --commentary-ink: #e1ebe1; --commentary-muted: #b2c3b5; --commentary-accent: #99ccb0; --commentary-line: #344a3c; --commentary-soft: #263c30; }
+body.dark-mode .commentary-footer button { background: #367356; color: white; }
+body.dark-mode .deepening-commentary-trigger { background: #263c30; color: #c4e3cf; border-color: #45604c; }
+@media (max-width: 600px) {
+    .commentary-overlay { padding: env(safe-area-inset-top) 0 0; }
+    .commentary-panel { width: 100%; border-radius: 14px 14px 0 0; border-bottom: 0; }
+    .commentary-header { padding: 18px 20px 8px; }
+    .commentary-origin { padding: 0 20px 10px; }
+    .commentary-tabs { padding: 0 20px 10px; }
+    .commentary-section-navigation { padding: 7px 20px; }
+    .commentary-body { padding: 22px 23px 32px; }
+    .commentary-prose { font-size: 15px; line-height: 1.85; }
+    .commentary-footer { padding: 10px 20px max(12px, env(safe-area-inset-bottom)); }
+    .commentary-panel .commentary-header h2 { font-size: 26px; }
+}
+.deepening-reading-toolbar-actions:has(.deepening-commentary-trigger) { flex-wrap: wrap; }
+.deepening-commentary-trigger { margin-left: auto; flex-shrink: 0; }
+.commentary-subsections h4 { font-size: 13px; color: var(--commentary-muted); }

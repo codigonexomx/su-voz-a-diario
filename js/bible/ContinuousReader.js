@@ -81,7 +81,13 @@ export class ContinuousReader {
     }
     activeEntry() {
         const guard = (document.querySelector('.bible-reader-fixed-header')?.getBoundingClientRect().bottom || 72) + 20;
-        return this.entries.find(entry => entry.element.getBoundingClientRect().bottom > guard) || this.entries.at(-1);
+        // A previous chapter's copyright/footer can remain visible above the
+        // next chapter. Study tools must follow the visible biblical verses.
+        return this.entries.find(entry => {
+            const verses = entry.element.querySelectorAll('.verse-item');
+            const lastVerse = verses[verses.length - 1];
+            return (lastVerse || entry.element).getBoundingClientRect().bottom > guard;
+        }) || this.entries.at(-1);
     }
     anchor() {
         const entry = this.activeEntry();

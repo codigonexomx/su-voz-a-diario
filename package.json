@@ -5,7 +5,7 @@
     "test:stabilization": "node scripts/validate-stabilization.mjs",
     "test:all:emulator": "firebase emulators:exec --only firestore,auth,storage --project demo-su-voz-stability \"node scripts/run-tests.mjs --emulator\"",
     "check:readings-coverage": "node scripts/check-reading-coverage.mjs",
-    "android:copy": "rsync -av --delete --delete-excluded --prune-empty-dirs --exclude '.DS_Store' --exclude '*.log' --exclude '*.test.js' --exclude '/.git/***' --exclude '/node_modules/***' --exclude '/android/***' --exclude '/ios/***' --exclude '/www/***' --include '/.well-known/***' --include '/assets/***' --include '/compartir/***' --include '/css/***' --include '/data/' --include '/data/*.json' --include '/data/readings/***' --include '/data/strong/***' --include '/hoy/***' --include '/icons/***' --include '/js/***' --include '/lectura/***' --include '/media/***' --include '/CNAME' --include '/.nojekyll' --include '/imagen modo oscuro.png' --include '/imagendefondo.png' --include '/index.html' --include '/manifest.json' --include '/privacy.html' --include '/eliminar-cuenta.html' --include '/sw.js' --exclude '*' ./ www/",
+    "android:copy": "rsync -av --delete --delete-excluded --prune-empty-dirs --exclude '.DS_Store' --exclude '*.log' --exclude '*.test.js' --exclude '/.git/***' --exclude '/node_modules/***' --exclude '/android/***' --exclude '/ios/***' --exclude '/www/***' --include '/.well-known/***' --include '/assets/***' --include '/compartir/***' --include '/css/***' --include '/data/' --include '/data/*.json' --include '/data/readings/***' --include '/data/strong/***' --include '/data/commentaries/***' --include '/hoy/***' --include '/icons/***' --include '/js/***' --include '/lectura/***' --include '/media/***' --include '/CNAME' --include '/.nojekyll' --include '/imagen modo oscuro.png' --include '/imagendefondo.png' --include '/index.html' --include '/manifest.json' --include '/privacy.html' --include '/eliminar-cuenta.html' --include '/sw.js' --exclude '*' ./ www/",
     "android:sync": "npm run android:copy && npx cap sync android",
     "android:open": "npm run android:sync && npx cap open android",
     "firebase:emulators": "firebase emulators:start --only functions,firestore",
@@ -33,7 +33,8 @@
     "test:rvr1960": "node scripts/validate-rvr1960.mjs",
     "test:rvr1960-references": "node scripts/validate-rvr1960-references.mjs",
     "test:bible-plain": "node scripts/validate-bible-plain.mjs",
-    "test:rvr1960-strong": "node scripts/validate-rvr1960-strong.mjs"
+    "test:rvr1960-strong": "node scripts/validate-rvr1960-strong.mjs",
+    "test:commentary": "node scripts/validate-commentary.mjs"
   },
   "dependencies": {
     "@capacitor-community/text-to-speech": "^8.0.2",

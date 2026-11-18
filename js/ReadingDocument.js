@@ -103,6 +103,7 @@
                         <div class="deepening-reading-toolbar-actions">
                             ${renderVersionSelector()}
                             ${renderListenControl()}
+                            ${options.onCommentaryOpen ? '<button type="button" class="deepening-commentary-trigger" data-deepening-commentary aria-label="Leer el comentario de Hendriksen para esta meditación">Comentario · Hendriksen</button>' : ''}
                         </div>
                     </div>
                     <main class="deepening-reading" aria-label="Texto biblico">
@@ -255,7 +256,7 @@
 
         function onReadingMouseDown(event) {
             if (event.button !== 0 || !preservedEditable?.isConnected) return;
-            const target = getVerseItemFromEvent(event) || event.target.closest('[data-deepening-version], [data-deepening-voice-toggle], [data-deepening-voice-stop]');
+            const target = getVerseItemFromEvent(event) || event.target.closest('[data-deepening-version], [data-deepening-voice-toggle], [data-deepening-voice-stop], [data-deepening-commentary]');
             if (!target || !root?.contains(target)) return;
             // Cancel WebKit's compatibility mousedown before it can dismiss the editor keyboard.
             event.preventDefault();
@@ -339,7 +340,7 @@
                 return;
             }
 
-            const control = event.target.closest('[data-deepening-version], [data-deepening-voice-toggle], [data-deepening-voice-stop]');
+            const control = event.target.closest('[data-deepening-version], [data-deepening-voice-toggle], [data-deepening-voice-stop], [data-deepening-commentary]');
             if (!control || !root?.contains(control)) return;
 
             preserveWritingFocus();
@@ -350,6 +351,13 @@
         }
 
         function onClick(event) {
+            const commentaryButton = event.target.closest?.('[data-deepening-commentary]');
+            if (commentaryButton && root?.contains(commentaryButton)) {
+                event.preventDefault(); event.stopPropagation();
+                options.onCommentaryOpen?.({ anchor: commentaryButton, versionId: activeVersion,
+                    onClose: () => { restoreWritingFocus(); clearWritingFocus(); } });
+                return;
+            }
             const verseItem = getVerseItemFromEvent(event);
             if (verseItem) {
                 event.preventDefault();

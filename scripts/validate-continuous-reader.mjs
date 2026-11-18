@@ -26,4 +26,17 @@ reader.entries=[{book:books[0],chapter:3,data:{verses:[{number:1,text:'A'}]}},{b
 reader.active=reader.entries[1];
 assert.equal(reader.findVoice('Mateo-3').data.verses[0].text,'A');
 assert.equal(reader.findVoice('Mateo-4').data.verses[0].text,'B');
+// A visible copyright footer from Judas must not hide Apocalipsis study tools
+// when all the visible Bible verses belong to Apocalipsis.
+globalThis.document={querySelector:()=>({getBoundingClientRect:()=>({bottom:160})})};
+const chapterElement=(verseBottom,footerBottom)=>({
+ querySelectorAll:()=>[{getBoundingClientRect:()=>({bottom:verseBottom})}],
+ getBoundingClientRect:()=>({bottom:footerBottom})
+});
+reader.entries=[{book:{id:'jud'},element:chapterElement(170,280)},
+ {book:{id:'rev'},element:chapterElement(1600,1700)}];
+assert.equal(reader.activeEntry().book.id,'rev');
+reader.entries[0].element=chapterElement(220,280);
+assert.equal(reader.activeEntry().book.id,'jud','Actual previous-book verses remain the active reading');
+delete globalThis.document;
 console.log('OK: chapter/book boundaries, rapid repeated requests, obsolete response, offline retry, independent voice chapter');
