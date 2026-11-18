@@ -1089,7 +1089,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '280'
+            pwaVersion: '281'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -14065,12 +14065,22 @@ scrollToTargetVerse: function() {
     const bookId = this.selectedBibleBook;
     const chapter = this.selectedBibleChapter;
     const version = this.currentBibleVersion;
-    setTimeout(() => {
+    const epoch = this._bibleReaderEpoch;
+    const requestId = this._bibleTargetScrollRequestId = (this._bibleTargetScrollRequestId || 0) + 1;
+    clearTimeout(this._bibleTargetScrollTimer);
+    this._bibleTargetScrollTimer = setTimeout(() => {
+        if (this.currentView !== 'bible-reading' || this._bibleReaderEpoch !== epoch
+            || this.currentBibleVersion !== version || this._bibleTargetScrollRequestId !== requestId) return;
         const shell = this.$content?.querySelector(`[data-reading-date="${createBibleReadingKey(version, bookId, chapter)}"]`);
         if (!shell) return;
         const verseElement = shell.querySelector(`.verse-item[data-verse-number="${start}"]`);
         if (verseElement) {
-            verseElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // A smooth centered jump can race with a chapter prepended by the
+            // continuous reader. Anchor the actual target below the fixed header.
+            const headerBottom = this.$content.querySelector('.bible-reader-fixed-header')?.getBoundingClientRect().bottom || 72;
+            this.scrollWindowInstantly(Math.max(0,
+                (window.scrollY || 0) + verseElement.getBoundingClientRect().top - headerBottom - 16));
+            this.continuousReader?.update();
             
             // Highlight the range
             for (let i = start; i <= end; i++) {
@@ -14086,6 +14096,7 @@ scrollToTargetVerse: function() {
         this.targetVerse = null;
         this.targetVerseStart = null;
         this.targetVerseEnd = null;
+        this._bibleTargetScrollTimer = null;
     }, 300);
 },
 

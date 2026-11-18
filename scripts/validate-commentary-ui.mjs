@@ -122,6 +122,115 @@ assert.deepEqual(JSON.parse(JSON.stringify(toolbarApocalypse.opened.range)),
     { start: { bookId: 'rev', chapter: 1, verse: 7 }, end: { bookId: 'rev', chapter: 1, verse: 7 } });
 console.log('OK: real app selection/menu follows selected book/version at Judas–Apocalipsis boundary; toolbar follows active book; draft and stale-close restoration are preserved');
 
+// A delayed Judas prepend must not interact with a centered smooth scroll.
+const targetScrollProperty = appObject.properties.find(item => item.key.name === 'scrollToTargetVerse');
+assert(targetScrollProperty);
+const targetScrollSource = '(' + appSource.slice(targetScrollProperty.value.start, targetScrollProperty.value.end) + ')';
+function targetScrollFixture() {
+    const timers = [];
+    const scrolls = [];
+    let nextTimerId = 0;
+    let readerUpdates = 0;
+    let documentVerseTop = 900;
+    const viewport = { scrollY: 300 };
+    const header = { getBoundingClientRect: () => ({ bottom: 160 }) };
+    const verses = new Map(Array.from({ length: 20 }, (_, i) => [i + 1, {
+        isConnected: true, classList: classList(),
+        getBoundingClientRect: () => ({ top: documentVerseTop + i * 70 - viewport.scrollY,
+            bottom: documentVerseTop + i * 70 + 45 - viewport.scrollY }),
+        scrollIntoView() { assert.fail('Target navigation must not start a smooth/centered scroll while chapters are prepended'); }
+    }]));
+    const shell = { isConnected: true, querySelector(selector) {
+        const number = Number(selector.match(/data-verse-number="(\d+)"/)?.[1]);
+        return verses.get(number) || null;
+    } };
+    const content = { querySelector(selector) {
+        if (selector === '.bible-reader-fixed-header') return header;
+        if (selector.includes('data-reading-date')) {
+            assert(selector.includes(createBibleReadingKey('rvr60', 'rev', 1)), 'Target lookup keeps the requested reading identity');
+            return shell;
+        }
+        return shell.querySelector(selector);
+    } };
+    const applyScroll = (method, options) => {
+        assert.equal(typeof options, 'object');
+        assert.notEqual(options.behavior, 'smooth', 'Prepending chapters must not race an animated target scroll');
+        scrolls.push({ method, ...options });
+        viewport.scrollY = method === 'scrollBy' ? viewport.scrollY + options.top : options.top;
+    };
+    viewport.scrollBy = options => applyScroll('scrollBy', options);
+    viewport.scrollTo = options => applyScroll('scrollTo', options);
+    const schedule = (callback, delay = 0) => {
+        const timer = { id: ++nextTimerId, callback, delay, cancelled: false, executed: false };
+        timers.push(timer); return timer.id;
+    };
+    const cancel = id => { const timer = timers.find(item => item.id === id); if (timer) timer.cancelled = true; };
+    const vmContext = vm.createContext({ createBibleReadingKey, window: viewport,
+        document: { querySelector: selector => selector === '.bible-reader-fixed-header' ? header : content.querySelector(selector) },
+        setTimeout: schedule, clearTimeout: cancel, requestAnimationFrame: callback => schedule(callback), cancelAnimationFrame: cancel });
+    const run = vm.runInContext(targetScrollSource, vmContext);
+    const state = { currentView: 'bible-reading', currentBibleVersion: 'rvr60', _bibleReaderEpoch: 7,
+        selectedBibleBook: 'rev', selectedBibleChapter: 1,
+        targetVerse: 1, targetVerseStart: 1, targetVerseEnd: 2,
+        $content: content, continuousReader: { update() { readerUpdates++; } }, scrollWindowInstantly(top) { applyScroll('scrollTo', { top, behavior: 'instant' }); } };
+    function flushNavigation() {
+        for (let pass = 0; pass < 10; pass++) {
+            const pending = timers.filter(timer => !timer.cancelled && !timer.executed && timer.delay < 1000);
+            if (!pending.length) return;
+            for (const timer of pending) { timer.executed = true; timer.callback(); }
+        }
+        assert.fail('Target scroll scheduling must settle');
+    }
+    return { state, run, timers, verses, scrolls, viewport, flushNavigation,
+        get readerUpdates() { return readerUpdates; },
+        prepend(height) { documentVerseTop += height; } };
+}
+{
+    const fixture = targetScrollFixture();
+    fixture.run.call(fixture.state);
+    fixture.prepend(1400);
+    fixture.flushNavigation();
+    assert.equal(fixture.verses.get(1).getBoundingClientRect().top, 176,
+        'After a delayed previous-book prepend, the target verse must align exactly below header + 16px');
+    assert.equal(fixture.scrolls.length, 1);
+    assert.equal(fixture.readerUpdates, 1, 'The continuous reader must refresh its active passage after the instant jump');
+    assert.equal(fixture.verses.get(1).classList.contains('highlight-temporary'), true);
+    assert.equal(fixture.verses.get(2).classList.contains('highlight-temporary'), true);
+    assert.equal(fixture.verses.get(3).classList.contains('highlight-temporary'), false);
+    assert.deepEqual([fixture.state.targetVerse, fixture.state.targetVerseStart, fixture.state.targetVerseEnd], [null, null, null]);
+    for (const timer of fixture.timers.filter(timer => !timer.cancelled && timer.delay >= 1000)) timer.callback();
+    assert.equal(fixture.verses.get(1).classList.contains('highlight-temporary'), false);
+    assert.equal(fixture.verses.get(2).classList.contains('highlight-temporary'), false);
+}
+for (const [property, replacement] of [['currentView', 'home'], ['currentBibleVersion', 'rvr60-strong'], ['_bibleReaderEpoch', 8]]) {
+    const fixture = targetScrollFixture();
+    fixture.run.call(fixture.state);
+    fixture.state[property] = replacement;
+    fixture.state.targetVerse = 8; fixture.state.targetVerseStart = 8; fixture.state.targetVerseEnd = 9;
+    fixture.flushNavigation();
+    assert.equal(fixture.scrolls.length, 0, 'Stale callback must not scroll after ' + property + ' changes');
+    assert.deepEqual([fixture.state.targetVerse, fixture.state.targetVerseStart, fixture.state.targetVerseEnd], [8, 8, 9],
+        'Stale callback must not clear the next navigation target after ' + property + ' changes');
+    assert.equal(fixture.verses.get(1).classList.contains('highlight-temporary'), false);
+}
+{
+    const fixture = targetScrollFixture();
+    fixture.run.call(fixture.state);
+    const oldTimer = fixture.timers.find(timer => timer.delay < 1000);
+    assert(oldTimer, 'Target navigation should schedule its DOM-dependent positioning');
+    fixture.state.targetVerse = 8; fixture.state.targetVerseStart = 8; fixture.state.targetVerseEnd = 9;
+    // Notebook references can schedule a second target in the same reader epoch.
+    fixture.run.call(fixture.state);
+    assert.equal(oldTimer.cancelled, true, 'Scheduling a new target must cancel the pending earlier navigation timer');
+    oldTimer.callback(); // Simulate a callback already queued by the browser.
+    assert.equal(fixture.scrolls.length, 0);
+    assert.deepEqual([fixture.state.targetVerse, fixture.state.targetVerseStart, fixture.state.targetVerseEnd], [8, 8, 9]);
+    fixture.flushNavigation();
+    assert.equal(fixture.verses.get(8).getBoundingClientRect().top, 176);
+    assert.equal(fixture.scrolls.length, 1);
+}
+console.log('OK: real target scroll anchors below header after delayed prepend, rejects stale view/version/epoch and superseded targets, cancels prior timers and keeps temporary highlighting');
+
 if (process.argv.includes('--browser')) {
     const modulePath = process.env.PLAYWRIGHT_MODULE;
     assert(modulePath, 'Set PLAYWRIGHT_MODULE to a local Playwright installation for browser checks.');

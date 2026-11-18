@@ -1,6 +1,6 @@
 # Hendriksen junto a Apocalipsis
 
-La edición web/PWA 280 permite abrir «Más que vencedores», de William Hendriksen, desde el pasaje que se está leyendo en Biblia (RVR1960 o RVR1960 + Strong) y desde las meditaciones de Apocalipsis. El texto se presenta dentro de la aplicación; no abre un PDF.
+La edición web/PWA 281 permite abrir «Más que vencedores», de William Hendriksen, desde el pasaje que se está leyendo en Biblia (RVR1960 o RVR1960 + Strong) y desde las meditaciones de Apocalipsis. El texto se presenta dentro de la aplicación; no abre un PDF.
 
 El botón «Comentario» usa el versículo visible. Las acciones de un versículo seleccionado ofrecen «Comentario · Hendriksen». Al cerrar el comentario se conservan la selección, el lugar de lectura y cualquier nota. En la meditación, «Seguir meditando» devuelve al mismo borrador, cursor y posición. El comentario no se inserta automáticamente en las reflexiones personales.
 
@@ -23,6 +23,7 @@ Paquete editorial final SHA-256: `e587f81cab2a628bf5109257c629a4b4b53e90393db119
 - Panel dentro de DeepeningShell, manejo de Escape/atrás, foco, borradores y cargas obsoletas. Índice completo y padres estructurales con acceso a sus subsecciones.
 - Recursos de interfaz requeridos por el service worker y datos disponibles en la copia pública `www`.
 - El capítulo activo del lector continuo sigue los versículos visibles. El pie de copyright de Judas ya no mantiene activo ese libro al comenzar Apocalipsis.
+- La entrada a un versículo lo sitúa debajo del encabezado fijo, sin una animación que compita con la carga del capítulo anterior. Los callbacks obsoletos no desplazan otra navegación ni limpian un destino posterior.
 - Pruebas del panel con DeepeningShell real en 390×844 y 1280×900; pruebas adicionales de la aplicación completa, con conexiones externas bloqueadas y perfiles de navegador aislados.
 
 Pruebas reproducibles: `scripts/validate-commentary.mjs`, `scripts/validate-commentary-ui.mjs` y `scripts/validate-continuous-reader.mjs`. Informes y capturas de la comprobación local completa en `artifacts/validation/commentary-app/` (no publicados).
