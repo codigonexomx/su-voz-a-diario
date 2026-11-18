@@ -7,26 +7,35 @@ import { parse as parseJavaScript } from 'acorn';
 import { createBibleReadingKey, parseBibleReadingKey } from '../js/bible/bibleInternalTest.js';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parse as parseHTML } from 'node-html-parser';
-import { parseCommentaryReference, isCommentaryRange, formatCommentaryRange, renderCommentaryEntry } from '../js/bible/CommentaryPanel.js';
+import { parseCommentaryReference, isCommentaryRange, formatCommentaryRange, renderCommentaryEntry,
+    findCommentaryEntryAtPoint, renderCommentaryCredits } from '../js/bible/CommentaryPanel.js';
 
 const root = path.resolve(fileURLToPath(new URL('../', import.meta.url)));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'data/commentaries/hendriksen-apocalipsis.json'), 'utf8'));
 const bundle = { ...pkg, contents: pkg.entries };
 const sampleRange = parseCommentaryReference('Apocalipsis 11:15–12:6');
 const henryWorkId = 'matthew-henry-apocalipsis';
-// Deliberately synthetic UI fixture: no editorial text or translated content.
-const henryFixture = { schemaVersion: '1.0',
-    work: { id: henryWorkId, title: 'Comentario conciso de Apocalipsis', author: 'Matthew Henry',
-        displayLabel: 'Matthew Henry · Comentario conciso', attribution: 'Comentario conciso de Matthew Henry y sus continuadores',
-        translator: 'DeepSeek', editionNote: 'Nota de edición de prueba.', translationReview: 'Nota de revisión de prueba.' },
-    book: pkg.book, entries: [
-        { id: 'fixture-henry-11', kind: 'commentary', mappingStatus: 'confirmed', title: 'Apocalipsis 11:15–19',
-            text: 'Contenido de prueba de la primera sección. '.repeat(100), order: 0, parentId: null, notesGroupId: null, sourceSpans: [],
-            ranges: [{ start: sampleRange.start, end: { bookId: 'rev', chapter: 11, verse: 19 } }] },
-        { id: 'fixture-henry-12', kind: 'commentary', mappingStatus: 'confirmed', title: 'Apocalipsis 12:1–6',
-            text: 'Contenido de prueba de la segunda sección. '.repeat(100), order: 1, parentId: null, notesGroupId: null, sourceSpans: [],
-            ranges: [{ start: { bookId: 'rev', chapter: 12, verse: 1 }, end: sampleRange.end }] }
-    ], notes: [], noteGroups: [], assets: [], frontMatter: [], indexes: [] };
+const henryFixture = JSON.parse(fs.readFileSync(path.join(root, 'data/commentaries/matthew-henry-apocalipsis.json'), 'utf8'));
+const hendriksenWorkId = pkg.work.id;
+const entryAt = (edition, chapter, verse) => findCommentaryEntryAtPoint(edition.entries, { bookId: 'rev', chapter, verse });
+for (const edition of [pkg, henryFixture]) {
+    for (let chapter = 1; chapter <= 22; chapter++) {
+        for (let verse = 1; verse <= edition.book.chapterVerseCounts[chapter - 1]; verse++) {
+            const entry = entryAt(edition, chapter, verse);
+            assert(entry && entry.kind === 'commentary' && entry.mappingStatus === 'confirmed');
+        }
+    }
+    assert.equal(entryAt(edition, 22, 22), null);
+    assert.equal(entryAt(edition, 0, 1), null);
+}
+assert.equal(entryAt(pkg, 22, 1).id, entryAt(pkg, 21, 9).id, 'A cross-chapter source section remains a single section');
+assert.notEqual(entryAt(pkg, 22, 5).id, entryAt(pkg, 22, 6).id);
+assert.equal(entryAt(pkg, 1, 1).id, 'hendriksen-vii-a', 'An introductory context with a broad range is not the verse commentary');
+const henryCredits = parseHTML(renderCommentaryCredits(henryFixture.work)).text;
+assert(henryCredits.includes('Traducción: IA'));
+assert(!henryCredits.includes('DeepSeek'));
+assert.equal(henryFixture.translation.translator, 'DeepSeek', 'Reader credit does not change internal provenance');
+assert(parseHTML(renderCommentaryCredits(pkg.work)).text.includes(pkg.work.translator), 'The editorial Hendriksen translator is preserved');
 assert.deepEqual(sampleRange, { start: { bookId: 'rev', chapter: 11, verse: 15 }, end: { bookId: 'rev', chapter: 12, verse: 6 } });
 assert.equal(formatCommentaryRange(sampleRange), 'Apocalipsis 11:15–12:6');
 assert.equal(isCommentaryRange(parseCommentaryReference('Apocalipsis 21:9–22:5')), true);
@@ -301,7 +310,8 @@ if (process.argv.includes('--browser')) {
         res.setHeader('X-Content-Type-Options', 'nosniff');
         if (req.url === '/__commentary_ui_fixture__') { res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(fixture); return; }
         const name = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
-        if (!/^(?:\/js\/|\/css\/|\/assets\/fonts\/)/.test(name) && name !== '/data/commentaries/hendriksen-apocalipsis.json') {
+        if (!/^(?:\/js\/|\/css\/|\/assets\/fonts\/)/.test(name)
+            && !['/data/commentaries/hendriksen-apocalipsis.json', '/data/commentaries/matthew-henry-apocalipsis.json'].includes(name)) {
             res.writeHead(404).end(); return;
         }
         const file = path.resolve(root, '.' + name);
@@ -319,12 +329,41 @@ if (process.argv.includes('--browser')) {
     const artifacts = path.join(root, 'artifacts/validation/commentary-ui');
     fs.mkdirSync(artifacts, { recursive: true });
     try {
-        for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }]) {
+        for (const viewport of [{ width: 1280, height: 900 }, { width: 390, height: 844 }, { width: 320, height: 568 }, { width: 844, height: 390 }]) {
             const page = await browser.newPage({ viewport });
             page.on('pageerror', error => { errors.push(error.message); console.error('Browser error:', error.message); });
-            await page.route('**/data/commentaries/matthew-henry-apocalipsis.json', route => route.fulfill({ json: henryFixture }));
             await page.goto('http://127.0.0.1:' + server.address().port + '/__commentary_ui_fixture__');
             await page.waitForFunction(() => Boolean(window.fixture));
+            const waitForEntry = async id => {
+                await page.waitForFunction(expected => window.fixture.panel.state?.selectedId === expected
+                    && !window.fixture.panel.state.loading && !window.fixture.panel.state.error
+                    && window.fixture.panel.state.mode === 'reading', id);
+            };
+            const chooseWork = async id => {
+                await page.locator('[data-commentary-work]').selectOption(id);
+                await page.waitForFunction(expected => window.fixture.panel.state?.workId === expected
+                    && !window.fixture.panel.state.loading && !window.fixture.panel.state.error, id);
+            };
+            const goTo = async (chapter, verse) => {
+                await page.locator('[data-commentary-chapter]').selectOption(String(chapter));
+                await page.locator('[data-commentary-verse]').selectOption(String(verse));
+                await page.locator('[data-commentary-action="goto"]').click();
+                assert.deepEqual(await page.evaluate(() => window.fixture.panel.state.location), { bookId: 'rev', chapter, verse });
+            };
+            const checkLayout = async () => {
+                const layout = await page.evaluate(() => {
+                    const panel = document.querySelector('.commentary-panel'), body = panel.querySelector('.commentary-body');
+                    const rect = panel.getBoundingClientRect();
+                    return { x: rect.x, y: rect.y, right: rect.right, bottom: rect.bottom,
+                        horizontalOverflow: panel.scrollWidth - panel.clientWidth, bodyHeight: body.getBoundingClientRect().height,
+                        proseOverflow: panel.querySelector('.commentary-prose')?.scrollWidth - body.clientWidth };
+                });
+                assert(layout.x >= 0 && layout.y >= 0 && layout.right <= viewport.width + 1 && layout.bottom <= viewport.height + 1,
+                    'Panel must fit viewport ' + JSON.stringify(viewport));
+                assert(layout.horizontalOverflow <= 1, 'No panel horizontal overflow');
+                assert(layout.proseOverflow <= 1, 'Prose stays within its reading column');
+                assert(layout.bodyHeight >= 120, 'Navigation must leave at least 120px for the reading body: ' + JSON.stringify(layout));
+            };
             await page.evaluate(() => window.fixture.mount());
             const editor = page.locator('[data-deepening-editor]');
             await editor.fill('Mi reflexión escrita debe conservarse al consultar Hendriksen.');
@@ -339,7 +378,18 @@ if (process.argv.includes('--browser')) {
             await page.waitForSelector('.commentary-article');
             assert.equal(await page.locator('#deepening-root > .commentary-overlay').count(), 1);
             assert.equal(await page.locator('.commentary-overlay').evaluate(element => Boolean(element.closest('[inert]'))), false);
-            assert.deepEqual(await page.locator('[data-commentary-select] option').evaluateAll(options => options.map(option => option.value)), ['hendriksen-x-g','hendriksen-xi-a']);
+            assert.equal(await page.locator('[data-commentary-select] option').count(), 101, 'All readable Hendriksen sections remain reachable from a meditation');
+            assert.deepEqual(await page.evaluate(() => window.fixture.panel.state.bundle.entries.map(entry => entry.id)), ['hendriksen-x-g','hendriksen-xi-a']);
+            const immutableOrigin = await page.evaluate(() => {
+                const state = window.fixture.panel.state, original = window.fixture.range;
+                const independent = state.range !== original && state.range.start !== original.start && state.range.end !== original.end;
+                original.start.verse = 16;
+                const preserved = state.range.start.verse === 15;
+                original.start.verse = 15;
+                return { independent, preserved };
+            });
+            assert.deepEqual(immutableOrigin, { independent: true, preserved: true });
+            await checkLayout();
             const select=page.locator('[data-commentary-select]');await select.focus();await select.selectOption('hendriksen-xi-a');
             assert.equal(await page.evaluate(()=>document.activeElement.hasAttribute('data-commentary-select')), true);
             assert.equal(await page.locator('.commentary-article').getAttribute('aria-label'), pkg.entries.find(entry=>entry.id==='hendriksen-xi-a').title);
@@ -349,30 +399,70 @@ if (process.argv.includes('--browser')) {
             });
             const workSelect = page.locator('[data-commentary-work]');
             await workSelect.focus(); await workSelect.selectOption(henryWorkId);
-            await page.waitForFunction(() => document.querySelector('.commentary-article')?.getAttribute('aria-label') === 'Apocalipsis 11:15–19');
+            await waitForEntry(entryAt(henryFixture, 12, 1).id);
             assert.equal(await page.evaluate(() => document.activeElement.hasAttribute('data-commentary-work')), true);
-            assert.equal(await page.locator('.commentary-header p').innerText(), 'Matthew Henry · Comentario conciso');
+            assert.match(await page.locator('[data-commentary-work] option:checked').innerText(), /Matthew Henry/);
             assert.equal(await page.locator('.commentary-origin').innerText(), 'Apocalipsis 11:15–12:6');
-            assert.deepEqual(await page.locator('[data-commentary-select] option').evaluateAll(options => options.map(option => option.value)), ['fixture-henry-11', 'fixture-henry-12']);
+            assert.deepEqual(await page.locator('[data-commentary-select] option').evaluateAll(options => options.map(option => option.value)), henryFixture.entries.map(entry => entry.id));
             assert.equal(await page.locator('.commentary-page-source, .commentary-notes').count(), 0);
             await page.locator('.commentary-attribution summary').click();
             const credits = await page.locator('.commentary-attribution').innerText();
             assert(credits.includes('Comentario conciso de Matthew Henry y sus continuadores'));
-            assert(credits.includes('Nota de edición de prueba.') && credits.includes('Nota de revisión de prueba.'));
-            assert(!(await page.locator('.commentary-prose').innerText()).includes('Nota de revisión de prueba.'));
+            assert(credits.includes('Traducción: IA') && !credits.includes('DeepSeek'));
+            assert(!(await page.locator('.commentary-prose').innerText()).includes('Traducción: IA'));
+            await chooseWork(hendriksenWorkId);
+            await waitForEntry('hendriksen-xi-a');
+            assert.deepEqual(await page.evaluate(() => ({ id: window.fixture.panel.state.selectedId, scroll: document.querySelector('.commentary-body').scrollTop })), hendriksenPosition,
+                'Changing works at the same passage restores its existing reading position');
+            await chooseWork(henryWorkId);
+            await goTo(1, 20);
+            await page.locator('[data-commentary-action="next"]').click();
+            await waitForEntry(entryAt(henryFixture, 2, 1).id);
+            await page.locator('[data-commentary-action="previous"]').click();
+            await waitForEntry(entryAt(henryFixture, 1, 20).id);
+            await goTo(22, 1);
+            await chooseWork(hendriksenWorkId);
+            await waitForEntry('hendriksen-xiv-b-2');
+            assert.deepEqual(await page.evaluate(() => window.fixture.panel.state.location), { bookId: 'rev', chapter: 22, verse: 1 });
+            assert.match(await page.locator('.commentary-entry-meta').innerText(), /21:9–22:5/);
+            await goTo(22, 5);
+            await waitForEntry('hendriksen-xiv-b-2');
+            await goTo(22, 6);
+            await waitForEntry('hendriksen-xiv-b-3');
+            await goTo(2, 29);
+            await page.locator('[data-commentary-chapter]').selectOption('3');
+            assert.equal(await page.locator('[data-commentary-verse]').inputValue(), '22', 'Chapter change clamps a verse beyond its last verse');
+            assert.deepEqual(await page.evaluate(() => window.fixture.panel.state.location), { bookId: 'rev', chapter: 2, verse: 29 }, 'Changing the picker alone does not navigate');
+            await page.locator('[data-commentary-action="goto"]').click();
+            assert.deepEqual(await page.evaluate(() => window.fixture.panel.state.location), { bookId: 'rev', chapter: 3, verse: 22 });
+            await chooseWork(henryWorkId);
+            await goTo(22, 21);
+            await waitForEntry(henryFixture.entries.at(-1).id);
+            assert.equal(await page.locator('[data-commentary-action="next"]').isEnabled(), false);
+            await goTo(1, 1);
+            assert.equal(await page.locator('[data-commentary-action="previous"]').isEnabled(), false);
+            assert.deepEqual(await page.evaluate(() => window.fixture.panel.state.range), sampleRange);
+            await page.locator('[data-commentary-action="passage"]').click();
+            await waitForEntry(entryAt(henryFixture, 11, 15).id);
+            assert.deepEqual(await page.evaluate(() => window.fixture.panel.state.location), sampleRange.start);
+            assert.equal(await page.locator('.commentary-origin').innerText(), 'Apocalipsis 11:15–12:6');
+            assert.equal(await page.evaluate(() => window.fixture.panel.state.bundle.entries.length), 2);
             await page.locator('[data-commentary-action="contents"]').click();
             await page.waitForSelector('.commentary-index');
             assert.equal(await page.locator('[data-index-group="edition"]').count(), 0, 'No empty edition section for an edition without preliminaries');
-            assert.equal(await page.locator('.commentary-index [data-entry-id]').count(), 2);
-            assert.deepEqual(await page.locator('.commentary-index > details > summary').allTextContents(), ['Apocalipsis 11', 'Apocalipsis 12']);
+            assert.equal(await page.locator('.commentary-index [data-entry-id]').count(), 62);
+            assert.deepEqual(await page.locator('.commentary-index > details > summary').allTextContents(), Array.from({ length: 22 }, (_, index) => 'Apocalipsis ' + (index + 1)));
             await workSelect.focus(); await workSelect.selectOption('hendriksen-mas-que-vencedores-es-2005');
-            await page.waitForSelector('.commentary-article');
-            assert.deepEqual(await page.evaluate(() => ({ id: window.fixture.panel.state.selectedId, scroll: document.querySelector('.commentary-body').scrollTop })), hendriksenPosition);
+            await page.waitForSelector('.commentary-index');
+            assert.equal(await page.evaluate(() => window.fixture.panel.state.mode), 'contents', 'Switching works in the index keeps the index open');
             assert.equal(await page.evaluate(() => document.activeElement.hasAttribute('data-commentary-work')), true);
+            await page.locator('[data-commentary-action="passage"]').click();
+            await waitForEntry('hendriksen-x-g');
             await page.screenshot({path:path.join(artifacts,viewport.width+'-passage.png')});
-            const bounds=await page.locator('.commentary-panel').boundingBox();
-            assert(bounds.x>=0 && bounds.y>=0 && bounds.x+bounds.width<=viewport.width+1 && bounds.y+bounds.height<=viewport.height+1, 'Panel must fit the viewport');
-            assert.equal(await page.evaluate(()=>document.querySelector('.commentary-panel').scrollWidth<=document.querySelector('.commentary-panel').clientWidth),true);
+            await checkLayout();
+            await page.locator('.commentary-prose').evaluate(element => { element.style.fontSize = '20px'; });
+            await checkLayout();
+            await page.screenshot({path:path.join(artifacts,viewport.width+'-large-text.png')});
             await page.keyboard.press('Escape');
             const restored=await page.evaluate(()=>({mounted:window.DeepeningShell.isMounted(),html:document.querySelector('[data-deepening-editor]').innerHTML,focused:document.activeElement.hasAttribute('data-deepening-editor'),offset:window.getSelection().anchorOffset,readingScroll:document.querySelector('[data-deepening-reading-document]').scrollTop}));
             assert.equal(restored.mounted,true,'Escape must close only the commentary');assert.equal(restored.html,before.html);assert.equal(restored.focused,true);assert.equal(restored.offset,before.offset);assert.equal(restored.readingScroll,before.readingScroll);
@@ -421,9 +511,12 @@ if (process.argv.includes('--browser')) {
                 let attempts=0;const retry=new CommentaryPanel({repository:{getForRange:()=>++attempts===1?Promise.reject(new Error('offline')):repository.getForRange(range)}});
                 await retry.open({anchor,range});const errorShown=Boolean(retry.state.panel.querySelector('[data-commentary-action="retry"]'));
                 await retry.loadPassage();const recovered=Boolean(retry.state.panel.querySelector('.commentary-article'));retry.close();
-                return {staleClosed,lateClosed:!late.state,errorShown,recovered};
+                let cachedCurrent=true;const cached=new CommentaryPanel({repository});
+                await cached.open({anchor,range,isCurrent:()=>cachedCurrent});cachedCurrent=false;await cached.showContents();
+                const staleCachedContentsClosed=!cached.state && !document.querySelector('.commentary-overlay');
+                return {staleClosed,lateClosed:!late.state,errorShown,recovered,staleCachedContentsClosed};
             });
-            assert.deepEqual(asyncResult,{staleClosed:true,lateClosed:true,errorShown:true,recovered:true});
+            assert.deepEqual(asyncResult,{staleClosed:true,lateClosed:true,errorShown:true,recovered:true,staleCachedContentsClosed:true});
 
             const workRaceResult = await page.evaluate(async () => {
                 const { CommentaryPanel, range, repository } = window.fixture;
@@ -450,7 +543,7 @@ if (process.argv.includes('--browser')) {
                     await opening;
                     identities.push(reader.state.workId === secondId && reader.state.bundle.work.id === secondId
                         && reader.state.overlay === overlay && !reader.state.error
-                        && reader.state.panel.querySelector('.commentary-header p').textContent === 'Matthew Henry · Comentario conciso');
+                        && reader.state.panel.querySelector('[data-commentary-work]').value === secondId);
                     reader.close();
                 }
                 // Reading the index can finish before the first passage request.
@@ -469,12 +562,12 @@ if (process.argv.includes('--browser')) {
                 const savedScroll = body.scrollTop;
                 await indexReader.selectWork(secondId);
                 await indexReader.selectWork(firstId);
-                const indexRestored = indexReader.state.mode === 'book' && indexReader.state.selectedId === 'hendriksen-vii-g'
+                const indexRestored = indexReader.state.mode === 'reading' && indexReader.state.selectedId === 'hendriksen-vii-g'
                     && indexReader.state.panel.querySelector('.commentary-body').scrollTop === savedScroll
                     && initialRequests === 1;
                 finishPassage(firstBundle);
                 await openingIndex;
-                const stalePassageIgnored = indexReader.state.mode === 'book' && indexReader.state.selectedId === 'hendriksen-vii-g';
+                const stalePassageIgnored = indexReader.state.mode === 'reading' && indexReader.state.selectedId === 'hendriksen-vii-g';
                 indexReader.close();
                 let finishSwitch;
                 const closingReader = new CommentaryPanel({ repository: {
@@ -494,7 +587,7 @@ if (process.argv.includes('--browser')) {
                 indexRestored: true, stalePassageIgnored: true, closedDuringSwitch: true });
 
             await page.close();
-            console.log('OK: browser '+viewport.width+'×'+viewport.height+' — work switching, passage, book, figure, focus/caret, native selection, draft, scroll, stale requests and retry');
+            console.log('OK: browser '+viewport.width+'×'+viewport.height+' — complete navigation, chapter/verse, exact cross-chapter location, immutable origin, work switching, figure, focus/caret, draft, scroll, stale requests, large text and retry');
         }
         assert.deepEqual(errors,[],'Browser errors');
     } finally { await browser.close(); await new Promise(resolve=>server.close(resolve)); }

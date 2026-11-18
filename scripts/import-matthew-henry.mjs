@@ -67,11 +67,9 @@ const pkg = {
         id: 'matthew-henry-apocalipsis', title: 'Comentario conciso de Apocalipsis',
         author: 'Matthew Henry', displayLabel: 'Matthew Henry · Comentario conciso',
         attribution: 'Comentario conciso de Matthew Henry y sus continuadores',
-        language: 'es', translator: 'DeepSeek',
+        language: 'es', translator: 'IA',
         originalEnglish: { title: "Matthew Henry's Concise Commentary on the Whole Bible", module: 'MHCC', version: '2.0' },
-        copyrightNotice: 'El módulo inglés MHCC 2.0 se distribuye como dominio público por CrossWire SWORD. Traducción propia al español para Su Voz a Diario.',
-        editionNote: 'Traducción de MHCC 2.0, edición abreviada. El comentario de Apocalipsis de la obra extensa fue completado por William Tong; no se atribuye cada frase de esta abreviación a una autoría individual.',
-        translationReview: 'Traducción de DeepSeek cotejada con el original mediante revisión asistida. Revisión humana independiente pendiente.'
+        copyrightNotice: 'Original en inglés: MHCC 2.0, dominio público. Edición en español de Su Voz a Diario.'
     },
     book: { id: 'rev', number: 66, name: 'Apocalipsis', chapterVerseCounts: counts },
     preferredBibleVersion: 'rvr60', compatibleBibleVersions: ['rvr60', 'rvr60-strong'],
@@ -98,7 +96,7 @@ const serialized = JSON.stringify(pkg) + '\n';
 await writeFile(new URL('../data/commentaries/matthew-henry-apocalipsis.json', import.meta.url), serialized);
 await writeFile(new URL('../data/commentaries/MATTHEW-HENRY-NOTICE.txt', import.meta.url), [
     pkg.work.attribution, pkg.work.originalEnglish.title, 'Fuente: MHCC 2.0 · CrossWire SWORD / GetBible / CCEL.',
-    pkg.work.copyrightNotice, pkg.work.editionNote, pkg.work.translationReview,
+    `Traducción: ${pkg.work.translator}.`, pkg.work.copyrightNotice,
     'El texto del comentario se mantiene separado de la Biblia RVR1960 y de las meditaciones del lector.', ''
 ].join('\n'));
 console.log(JSON.stringify({ workId: pkg.work.id, chapters: 22, entries: entries.length, verses: 404,

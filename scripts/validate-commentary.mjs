@@ -148,7 +148,7 @@ assert.equal(realHenry.work.id, henryWorkId);
 assert.equal(realHenry.work.displayLabel, 'Matthew Henry · Comentario conciso');
 assert.equal(realHenry.work.attribution, 'Comentario conciso de Matthew Henry y sus continuadores');
 assert.equal(realHenry.work.language, 'es');
-assert.equal(realHenry.work.translator, 'DeepSeek');
+assert.equal(realHenry.work.translator, 'IA');
 assert.equal(realHenry.work.originalEnglish.module, 'MHCC');
 assert.equal(realHenry.work.originalEnglish.version, '2.0');
 assert.equal(realHenry.book.id, 'rev');

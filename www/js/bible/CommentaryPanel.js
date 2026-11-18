@@ -59,13 +59,14 @@ export function renderCommentaryEntry(entry, bundle = {}) {
     const notes = (bundle.notes || []).filter(note => note.groupId === entry.notesGroupId);
     const assets = (bundle.assets || []).filter(asset => (entry.assetIds || []).includes(asset.id));
     const pages = sourcePages(entry);
+    const reference = referenceOf(entry);
     const normalizedText = String(entry.text || '').replace(/\s+/g, ' ').trim();
     const supplements = (entry.visualSupplements || []).filter(item => item.text
         && !normalizedText.includes(String(item.text).replace(/\s+/g, ' ').trim()));
     const children = (bundle.contents || []).filter(item => item.parentId === entry.id);
     const translationNotes = entry.translationNotes || [];
     return `<article class="commentary-article" aria-label="${escape(entry.title || 'Texto del libro')}">
-        <div class="commentary-entry-meta">${escape(referenceOf(entry) || (entry.kind === 'context' ? 'Contexto del libro' : 'Texto del libro'))}</div>
+        ${reference === entry.title ? '' : `<div class="commentary-entry-meta">${escape(reference || (entry.kind === 'context' ? 'Contexto del libro' : 'Texto del libro'))}</div>`}
         <h3>${escape(entry.title || 'Texto del libro')}</h3>
         ${pages.length ? `<p class="commentary-page-source">${pages.length === 1 ? 'Página' : 'Páginas'} ${escape(formatSourcePages(pages))} de la edición original</p>` : ''}
         <div class="commentary-prose">${paragraphs(entry.text)}${supplements.map(item => `<section aria-label="${escape(({ 'front-cover': 'Portada', 'back-cover': 'Contraportada', 'credits-missing-line': 'Datos de la edición' })[item.role] || 'Texto de la edición')}">${paragraphs(item.text)}</section>`).join('')}</div>
@@ -99,7 +100,35 @@ function renderContents(bundle, openGroups = new Set()) {
     </section>`;
 }
 
-const emptyWorkState = () => ({ mode: 'passage', selectedId: null, passageId: null, bundle: null,
+
+export function findCommentaryEntryAtPoint(entries, target) {
+    if (!validPoint(target)) return null;
+    const ordinal = value => value.chapter * 1000 + value.verse;
+    return entries.find(entry => entry.kind === 'commentary' && entry.mappingStatus === 'confirmed'
+        && (entry.ranges || []).some(range => isCommentaryRange(range)
+            && ordinal(range.start) <= ordinal(target) && ordinal(target) <= ordinal(range.end))) || null;
+}
+function allEntries(bundle = {}) {
+    return [...readableFrontMatter(bundle).map((entry, i) => ({ ...entry, title: entry.title || `Preliminares · página ${entry.pdfPage || i + 1}` })),
+        ...(bundle.contents || bundle.entries || []), ...(bundle.indexes || [])];
+}
+function sectionOptions(entries, selectedId) {
+    const groups = [];
+    for (const entry of entries) {
+        const range = entry.kind === 'commentary' && entry.mappingStatus === 'confirmed' ? entry.ranges?.find(isCommentaryRange) : null;
+        const label = range ? `Apocalipsis ${range.start.chapter}` : entry.kind === 'context' ? 'Introducciones y contexto' : 'Preliminares e índices';
+        if (groups.at(-1)?.label !== label) groups.push({ label, entries: [] });
+        groups.at(-1).entries.push(entry);
+    }
+    return groups.map(group => `<optgroup label="${escape(group.label)}">${group.entries.map(entry => `<option value="${escape(entry.id)}"${entry.id === selectedId ? ' selected' : ''}>${escape(entry.title)}</option>`).join('')}</optgroup>`).join('');
+}
+export function renderCommentaryCredits(work = {}, descriptor = {}) {
+    if ((work.id || descriptor.id) === 'matthew-henry-apocalipsis') {
+        return `<details class="commentary-attribution"><summary>Créditos</summary><p>${escape(work.attribution || 'Comentario conciso de Matthew Henry y sus continuadores')}<br>Traducción: IA<br>Fuente: MHCC 2.0 · dominio público.</p></details>`;
+    }
+    return `<details class="commentary-attribution"><summary>Acerca de esta obra</summary><p>${escape(work.title || descriptor.title || '')}. ${escape(work.subtitle || '')}</p><p>${escape(work.author || descriptor.author || '')}${work.translator ? ` · Traducción: ${escape(work.translator)}` : ''}.</p><p>${escape(work.copyrightNotice || '')}</p>${work.isbn ? `<p>ISBN: ${escape(work.isbn)}</p>` : ''}</details>`;
+}
+const emptyWorkState = () => ({ mode: 'reading', selectedId: null, bundle: null,
     contentsBundle: null, scroll: new Map(), indexScroll: 0, openGroups: new Set() });
 
 /** Native text reader. Mounts inside a meditation shell when it is supplied. */
@@ -134,6 +163,7 @@ export class CommentaryPanel {
     async open({ anchor, range, workId = this.preferredWorkId, mountRoot = document.body, returnLabel = 'Volver a la Biblia', onClose, isCurrent = () => true }) {
         if (!isCommentaryRange(range)) return false;
         this.close({ restoreFocus: false });
+        range = { start: { ...range.start }, end: { ...range.end } };
         const overlay = document.createElement('div');
         overlay.className = 'commentary-overlay';
         const panel = document.createElement('section');
@@ -147,7 +177,7 @@ export class CommentaryPanel {
         const selection = window.getSelection?.();
         const savedRanges = selection ? Array.from({ length: selection.rangeCount }, (_, i) => selection.getRangeAt(i).cloneRange()) : [];
         if (!this.works.some(work => work.id === workId)) workId = this.works[0].id;
-        const state = { overlay, panel, anchor, range, returnLabel, onClose, isCurrent, workId, workStates: new Map(),
+        const state = { overlay, panel, anchor, range, location: { ...range.start }, jumpChapter: range.start.chapter, jumpVerse: range.start.verse, returnLabel, onClose, isCurrent, workId, workStates: new Map(),
             returnElement: active?.matches?.('input, textarea, [contenteditable="true"]') ? active : anchor,
             selection: savedRanges, background: [...mountRoot.children].map(element => [element, element.inert]),
             ...emptyWorkState(), loading: true, error: '' };
@@ -163,7 +193,7 @@ export class CommentaryPanel {
             event.stopPropagation();
             if (event.key === 'Escape') { event.preventDefault(); this.close(); return; }
             if (event.key !== 'Tab') return;
-            const focusable = [...panel.querySelectorAll('button:not([disabled]), select, summary, a[href]')]
+            const focusable = [...panel.querySelectorAll('button:not([disabled]), select:not([disabled]), summary, a[href]')]
                 .filter(element => element.getClientRects().length);
             const first = focusable[0], last = focusable.at(-1);
             if (!first) { event.preventDefault(); panel.focus({ preventScroll: true }); }
@@ -176,6 +206,12 @@ export class CommentaryPanel {
         overlay.addEventListener('change', event => {
             if (event.target.matches('[data-commentary-work]')) void this.selectWork(event.target.value);
             else if (event.target.matches('[data-commentary-select]')) this.selectEntry(event.target.value);
+            else if (event.target.matches('[data-commentary-chapter]')) {
+                this.rememberScroll();
+                state.jumpChapter = Number(event.target.value);
+                state.jumpVerse = Math.min(state.jumpVerse, REVELATION_VERSE_COUNTS[state.jumpChapter - 1]);
+                this.render();
+            } else if (event.target.matches('[data-commentary-verse]')) state.jumpVerse = Number(event.target.value);
         });
         this.render();
         panel.focus({ preventScroll: true });
@@ -183,21 +219,33 @@ export class CommentaryPanel {
         return true;
     }
 
+
+    currentBundle() {
+        return this.state?.contentsBundle || this.state?.bundle || {};
+    }
+    availableEntries() {
+        return this.state ? allEntries(this.currentBundle()) : [];
+    }
     async selectWork(workId) {
         const state = this.state;
         if (!state || state.workId === workId || !this.works.some(work => work.id === workId)) return;
         this.rememberScroll();
+        const mode = state.mode;
         state.workStates.set(state.workId, Object.fromEntries(Object.keys(emptyWorkState()).map(key => [key, state[key]])));
         ++this.epoch;
         state.workId = workId;
         this.preferredWorkId = workId;
-        Object.assign(state, state.workStates.get(workId) || emptyWorkState(), { loading: false, error: '' });
+        Object.assign(state, state.workStates.get(workId) || emptyWorkState(), { mode, loading: false, error: '' });
         if (!state.isCurrent()) { this.close({ restoreFocus: false }); return; }
+        state.selectedId = findCommentaryEntryAtPoint(this.availableEntries(), state.location)?.id || null;
+        state.jumpChapter = state.location.chapter;
+        state.jumpVerse = state.location.verse;
         this.render();
-        if (state.mode === 'contents' && !state.contentsBundle) await this.showContents();
-        else if (!state.bundle && state.mode === 'passage') await this.loadPassage();
+        if (!state.bundle && !state.contentsBundle) {
+            if (state.mode === 'contents') await this.showContents();
+            else await this.loadPassage();
+        }
     }
-
     async loadPassage() {
         const state = this.state;
         if (!state) return;
@@ -208,8 +256,8 @@ export class CommentaryPanel {
             if (this.state !== state || epoch !== this.epoch) return;
             if (!state.isCurrent()) { this.close({ restoreFocus: false }); return; }
             state.bundle = bundle;
-            state.selectedId = bundle.entries?.[0]?.id || null;
-            state.passageId = state.selectedId;
+            state.contentsBundle = bundle;
+            state.selectedId = findCommentaryEntryAtPoint(this.availableEntries(), state.location)?.id || null;
         } catch {
             if (this.state !== state || epoch !== this.epoch) return;
             state.error = 'No se pudo cargar el comentario. Revisa tu conexión y vuelve a intentarlo.';
@@ -218,19 +266,21 @@ export class CommentaryPanel {
         if (!state.isCurrent()) { this.close({ restoreFocus: false }); return; }
         state.loading = false; this.render();
     }
-
     async showContents() {
         const state = this.state;
         if (!state) return;
-        this.rememberScroll(); state.mode = 'contents'; state.error = '';
-        if (state.contentsBundle) { this.render(); return; }
+        if (!state.isCurrent()) { this.close({ restoreFocus: false }); return; }
+        this.rememberScroll();
         const epoch = ++this.epoch;
+        state.mode = 'contents'; state.error = '';
+        if (state.contentsBundle || state.bundle) { state.loading = false; this.render(); return; }
         state.loading = true; this.render();
         try {
             const bundle = await this.repository.getContents(state.workId);
             if (this.state !== state || epoch !== this.epoch) return;
             if (!state.isCurrent()) { this.close({ restoreFocus: false }); return; }
             state.contentsBundle = { ...bundle, contents: bundle.contents || bundle.entries };
+            state.selectedId = findCommentaryEntryAtPoint(this.availableEntries(), state.location)?.id || null;
         } catch {
             if (this.state !== state || epoch !== this.epoch) return;
             state.error = 'No se pudo abrir el índice. Vuelve a intentarlo.';
@@ -239,57 +289,56 @@ export class CommentaryPanel {
         if (!state.isCurrent()) { this.close({ restoreFocus: false }); return; }
         state.loading = false; this.render();
     }
-
     rememberScroll() {
         const state = this.state;
-        if (!state) return;
+        if (!state || state.loading) return;
         const scrollTop = state.panel.querySelector('.commentary-body')?.scrollTop || 0;
         if (state.mode === 'contents') {
             state.indexScroll = scrollTop;
             state.openGroups = new Set([...state.panel.querySelectorAll('[data-index-group][open]')].map(element => element.dataset.indexGroup));
         } else if (state.selectedId) state.scroll.set(state.selectedId, scrollTop);
     }
-
     selectEntry(id) {
         const state = this.state;
-        if (!state) return;
-        const entries = this.availableEntries();
-        if (!entries.some(entry => entry.id === id)) return;
-        this.rememberScroll();
-        state.selectedId = id;
-        if (state.mode === 'contents') state.mode = 'book';
-        if (state.mode === 'passage') state.passageId = id;
+        const entry = this.availableEntries().find(item => item.id === id);
+        if (!state || !entry) return false;
+        if (!state.isCurrent()) { this.close({ restoreFocus: false }); return false; }
+        this.rememberScroll(); ++this.epoch;
+        state.selectedId = id; state.mode = 'reading'; state.loading = false; state.error = '';
+        const range = entry.kind === 'commentary' && entry.mappingStatus === 'confirmed' ? entry.ranges?.find(isCommentaryRange) : null;
+        if (range) state.location = { ...range.start };
+        state.jumpChapter = state.location.chapter; state.jumpVerse = state.location.verse;
         this.render();
+        return true;
     }
-
-    availableEntries() {
+    goToPoint(target) {
         const state = this.state;
-        if (!state) return [];
-        if (state.mode === 'passage') return state.bundle?.entries || [];
-        const bundle = state.contentsBundle || state.bundle || {};
-        return [...(bundle.contents || bundle.entries || []), ...readableFrontMatter(bundle).map((entry, i) => ({ ...entry, title: entry.title || `Preliminares · página ${entry.pdfPage || i + 1}` })), ...(bundle.indexes || [])];
+        if (!state || !validPoint(target)) return false;
+        if (!state.isCurrent()) { this.close({ restoreFocus: false }); return false; }
+        const entry = findCommentaryEntryAtPoint(this.availableEntries(), target);
+        if (!entry) return false;
+        this.rememberScroll(); ++this.epoch;
+        state.location = { ...target };
+        state.jumpChapter = target.chapter; state.jumpVerse = target.verse;
+        state.selectedId = entry.id; state.mode = 'reading'; state.loading = false; state.error = '';
+        state.scroll.set(entry.id, 0);
+        this.render();
+        return true;
     }
-
     handleClick(event) {
         const button = event.target.closest('[data-commentary-action]');
         const state = this.state;
         if (!button || !state) return;
         const action = button.dataset.commentaryAction;
-        if (action === 'close') this.close();
-        if (action === 'contents') void this.showContents();
+        if (action === 'close') { this.close(); return; }
+        if (action === 'contents') { void this.showContents(); return; }
         if (action === 'passage') {
-            ++this.epoch; this.rememberScroll(); state.mode = 'passage'; state.loading = false; state.error = '';
-            if (!state.bundle) void this.loadPassage();
-            else { state.selectedId = state.passageId || state.bundle.entries?.[0]?.id || null; this.render(); }
+            if (!this.goToPoint(state.range.start) && !state.loading) void this.loadPassage();
+            return;
         }
-        if (action === 'entry') {
-            if (state.mode === 'passage' && !state.bundle?.entries?.some(entry => entry.id === button.dataset.entryId)) {
-                state.contentsBundle ||= state.bundle;
-                state.mode = 'book';
-            }
-            this.selectEntry(button.dataset.entryId);
-        }
-        if (action === 'retry') void (state.mode === 'contents' ? this.showContents() : this.loadPassage());
+        if (action === 'goto') { this.goToPoint(point(state.jumpChapter, state.jumpVerse)); return; }
+        if (action === 'entry') { this.selectEntry(button.dataset.entryId); return; }
+        if (action === 'retry') { void (state.mode === 'contents' ? this.showContents() : this.loadPassage()); return; }
         if (action === 'previous' || action === 'next') {
             const entries = this.availableEntries();
             const index = entries.findIndex(entry => entry.id === state.selectedId);
@@ -301,39 +350,46 @@ export class CommentaryPanel {
     render() {
         const state = this.state;
         if (!state) return;
-        const hadFocus = state.panel.contains(document.activeElement);
-        const focusedWork = hadFocus && document.activeElement.matches('[data-commentary-work]');
-        const focusedEntryId = hadFocus ? document.activeElement.dataset?.entryId : null;
-        const focusedSelect = hadFocus && document.activeElement.matches('[data-commentary-select]');
-        const focusedAction = hadFocus ? document.activeElement.dataset?.commentaryAction : null;
-        const bundle = (state.mode === 'passage' ? state.bundle : state.contentsBundle) || state.bundle || {};
-        const work = bundle.work || {};
+        const active = document.activeElement;
+        const hadFocus = state.panel.contains(active);
+        const focusField = hadFocus ? ['work', 'chapter', 'verse', 'select'].find(key => active.matches('[data-commentary-' + key + ']')) : null;
+        const focusedEntryId = hadFocus ? active.dataset?.entryId : null;
+        const focusedAction = hadFocus ? active.dataset?.commentaryAction : null;
+        const bundle = this.currentBundle(), work = bundle.work || {};
         const descriptor = this.works.find(item => item.id === state.workId) || this.works[0];
-        const title = work.title || descriptor.title;
-        const authorLabel = work.displayLabel || (descriptor.id === 'matthew-henry-apocalipsis' ? descriptor.label : work.author || descriptor.author);
         state.panel.setAttribute('aria-label', descriptor.label);
         const entries = this.availableEntries();
         const selected = entries.find(entry => entry.id === state.selectedId);
         const selectedIndex = entries.indexOf(selected);
-        let body = state.loading ? '<p class="commentary-status" role="status">Cargando comentario…</p>'
+        const disabled = state.loading || Boolean(state.error) || !entries.length;
+        const body = state.loading ? '<p class="commentary-status" role="status">Cargando comentario…</p>'
             : state.error ? `<div class="commentary-status" role="status"><p>${escape(state.error)}</p><button type="button" data-commentary-action="retry">Reintentar</button></div>`
             : state.mode === 'contents' ? renderContents(bundle, state.openGroups) : renderCommentaryEntry(selected, bundle);
-        const navigation = !state.loading && !state.error && state.mode !== 'contents' && entries.length > 1
-            ? `<div class="commentary-section-navigation"><label>Sección del comentario<select data-commentary-select>${entries.map(entry => `<option value="${escape(entry.id)}"${entry.id === selected?.id ? ' selected' : ''}>${escape(entry.title)}</option>`).join('')}</select></label><div><button type="button" data-commentary-action="previous"${selectedIndex <= 0 ? ' disabled' : ''} aria-label="Sección anterior">← Anterior</button><span>${selectedIndex + 1} de ${entries.length}</span><button type="button" data-commentary-action="next"${selectedIndex >= entries.length - 1 ? ' disabled' : ''} aria-label="Sección siguiente">Siguiente →</button></div></div>` : '';
-        state.panel.innerHTML = `<header class="commentary-header"><div><span class="commentary-eyebrow">Comentario bíblico</span><h2>${escape(title)}</h2><p>${escape(authorLabel)}</p></div><button type="button" class="commentary-close" data-commentary-action="close" aria-label="Cerrar comentario">×</button></header>
-            ${this.works.length > 1 ? `<div class="commentary-work-picker"><label>Comentario<select data-commentary-work aria-label="Elegir comentario">${this.works.map(item => `<option value="${escape(item.id)}"${item.id === state.workId ? ' selected' : ''}>${escape(item.label)}</option>`).join('')}</select></label></div>` : ''}
-            <div class="commentary-origin">${escape(formatCommentaryRange(state.range))}</div>
-            <nav class="commentary-tabs" aria-label="Navegación del comentario"><button type="button" data-commentary-action="passage" aria-pressed="${state.mode === 'passage'}">Este pasaje</button><button type="button" data-commentary-action="contents" aria-pressed="${state.mode !== 'passage'}">Índice del libro</button></nav>
-            ${navigation}<div class="commentary-body" tabindex="-1" aria-busy="${state.loading}">${body}
-            ${!state.loading && !state.error ? `<details class="commentary-attribution"><summary>Acerca de esta obra</summary><p>${escape(title)}. ${escape(work.subtitle || '')}</p><p>${escape(work.attribution || work.author || descriptor.author)}${work.translator ? ` · Traducción: ${escape(work.translator)}` : ''}.</p><p>${escape(work.copyrightNotice || '')}</p>${work.editionNote ? `<p>${escape(work.editionNote)}</p>` : ''}${work.translationReview ? `<p>${escape(work.translationReview)}</p>` : ''}${work.isbn ? `<p>ISBN: ${escape(work.isbn)}</p>` : ''}</details>` : ''}</div>
-            <footer class="commentary-footer"><button type="button" data-commentary-action="close">${escape(state.returnLabel)}</button></footer>`;
-        const bodyElement = state.panel.querySelector('.commentary-body');
-        bodyElement.scrollTop = state.mode === 'contents' ? state.indexScroll : state.scroll.get(state.selectedId) || 0;
-        if (focusedWork) state.panel.querySelector('[data-commentary-work]')?.focus({ preventScroll: true });
-        else if (focusedSelect) (state.panel.querySelector('[data-commentary-select]') || state.panel).focus({ preventScroll: true });
+        state.panel.innerHTML = `<header class="commentary-header"><h2>Comentario bíblico</h2><button type="button" class="commentary-close" data-commentary-action="close" aria-label="Cerrar comentario">×</button></header>
+            <div class="commentary-controls">
+                <label class="commentary-work-picker"><span class="commentary-label">Obra</span><select data-commentary-work aria-label="Elegir comentario">${this.works.map(item => `<option value="${escape(item.id)}"${item.id === state.workId ? ' selected' : ''}>${escape(item.label)}</option>`).join('')}</select></label>
+                <label class="commentary-section-picker"><span class="commentary-label">Sección de la obra completa</span><select data-commentary-select aria-label="Sección de la obra completa"${disabled ? ' disabled' : ''}>${sectionOptions(entries, state.selectedId)}</select></label>
+                <div class="commentary-jump" role="group" aria-label="Ir a capítulo y versículo">
+                    <label>Capítulo<select data-commentary-chapter${disabled ? ' disabled' : ''}>${REVELATION_VERSE_COUNTS.map((_, index) => `<option value="${index + 1}"${index + 1 === state.jumpChapter ? ' selected' : ''}>${index + 1}</option>`).join('')}</select></label>
+                    <label>Versículo<select data-commentary-verse${disabled ? ' disabled' : ''}>${Array.from({ length: REVELATION_VERSE_COUNTS[state.jumpChapter - 1] }, (_, index) => `<option value="${index + 1}"${index + 1 === state.jumpVerse ? ' selected' : ''}>${index + 1}</option>`).join('')}</select></label>
+                    <button type="button" data-commentary-action="goto"${disabled ? ' disabled' : ''}>Ir</button>
+                </div>
+                <nav class="commentary-navigation" aria-label="Recorrer el comentario">
+                    <button type="button" data-commentary-action="previous"${disabled || selectedIndex <= 0 ? ' disabled' : ''} aria-label="Sección anterior">← Anterior</button>
+                    <button type="button" data-commentary-action="next"${disabled || selectedIndex >= entries.length - 1 ? ' disabled' : ''} aria-label="Sección siguiente">Siguiente →</button>
+                    <button type="button" data-commentary-action="contents" aria-pressed="${state.mode === 'contents'}">Índice</button>
+                    <button type="button" data-commentary-action="passage" title="${escape(formatCommentaryRange(state.range))}" aria-label="Volver a mi pasaje: ${escape(formatCommentaryRange(state.range))}"${disabled ? ' disabled' : ''}>Volver a mi pasaje</button>
+                </nav>
+            </div>
+            <div class="commentary-body" tabindex="-1" aria-busy="${state.loading}">${body}
+            ${!state.loading && !state.error ? renderCommentaryCredits(work, descriptor) : ''}</div>
+            <footer class="commentary-footer"><small>Mi pasaje: <span class="commentary-origin">${escape(formatCommentaryRange(state.range))}</span></small><button type="button" data-commentary-action="close">${escape(state.returnLabel)}</button></footer>`;
+        state.panel.querySelector('.commentary-body').scrollTop = state.mode === 'contents' ? state.indexScroll : state.scroll.get(state.selectedId) || 0;
+        if (focusField) (state.panel.querySelector('[data-commentary-' + focusField + ']:not([disabled])') || state.panel).focus({ preventScroll: true });
         else if (focusedAction) {
-            const target = [...state.panel.querySelectorAll('[data-commentary-action]')].find(button => button.dataset.commentaryAction === focusedAction && (!focusedEntryId || button.dataset.entryId === focusedEntryId) && !button.disabled);
-            (target || state.panel.querySelector('[data-commentary-select]') || state.panel).focus({ preventScroll: true });
+            const target = [...state.panel.querySelectorAll('[data-commentary-action]')].find(button => button.dataset.commentaryAction === focusedAction
+                && (!focusedEntryId || button.dataset.entryId === focusedEntryId) && !button.disabled);
+            (target || state.panel.querySelector('[data-commentary-select]:not([disabled])') || state.panel).focus({ preventScroll: true });
         } else if (hadFocus) state.panel.focus({ preventScroll: true });
     }
 }
