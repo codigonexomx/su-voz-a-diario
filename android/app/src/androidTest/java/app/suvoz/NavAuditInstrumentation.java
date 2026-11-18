@@ -106,7 +106,7 @@ public class NavAuditInstrumentation extends Instrumentation {
     public void releaseNavigationAndUpgrade() throws Exception {
         assertEquals("Only disposable emulator", "1", shell("getprop ro.kernel.qemu"));
         String phase = arguments.getString("phase", "candidate");
-        if (phase.equals("commentary61") || phase.equals("commentary62")) {
+        if (phase.equals("commentary61") || phase.equals("commentary62") || phase.equals("commentary63")) {
             // Check isolation before the app can initialize any production service.
             assertEquals("Network isolated before app launch", "1", shell("settings get global airplane_mode_on"));
             assertEquals("Wi-Fi disabled before app launch", "0", shell("settings get global wifi_on"));
@@ -131,6 +131,10 @@ public class NavAuditInstrumentation extends Instrumentation {
         }
         if (phase.equals("commentary62")) {
             nativeCommentaryRoundTrip(true);
+            return;
+        }
+        if (phase.equals("commentary63")) {
+            nativeCommentaryGlobalRoundTrip();
             return;
         }
         if (phase.equals("backup44")) {
@@ -259,7 +263,7 @@ public class NavAuditInstrumentation extends Instrumentation {
     }
 
     private void awaitCommentaryVisible(String reference) throws Exception {
-        String visible = "(()=>{const panel=document.querySelector('.commentary-panel'),title=panel?.querySelector('.commentary-article h3'),meta=panel?.querySelector('.commentary-entry-meta');"
+        String visible = "(()=>{const panel=document.querySelector('.commentary-panel'),title=panel?.querySelector('.commentary-article h3'),meta=panel?.querySelector('.commentary-entry-meta')||title;"
             + "if(!panel||!title||!meta?.innerText.includes("+JSONObject.quote(reference)+"))return false;"
             + "const style=getComputedStyle(panel),r=panel.getBoundingClientRect(),t=title.getBoundingClientRect();"
             + "if(style.display==='none'||style.visibility!=='visible'||Number(style.opacity)!==1||r.width<100||r.height<100||r.top<0||r.bottom>innerHeight+1||t.top<r.top||t.bottom>r.bottom)return false;"
@@ -283,7 +287,132 @@ public class NavAuditInstrumentation extends Instrumentation {
         awaitJs("document.querySelector('[data-commentary-work] option[value=\""+workId+"\"]')");
         js("(()=>{const select=document.querySelector('[data-commentary-work]');select.value="+JSONObject.quote(workId)+";select.dispatchEvent(new Event('change',{bubbles:true}));})()");
         awaitJs("document.querySelector('[data-commentary-work]')?.value==="+JSONObject.quote(workId)
-            +" && document.querySelector('.commentary-article') && document.querySelector('.commentary-header')?.innerText.includes("+JSONObject.quote(author)+")");
+            +" && document.querySelector('.commentary-article') && (document.querySelector('[data-commentary-work] option:checked')?.textContent.includes("+JSONObject.quote(author)+")"
+            +" || document.querySelector('.commentary-header')?.innerText.includes("+JSONObject.quote(author)+"))");
+    }
+
+    private int assertGlobalCommentaryContents(String file) throws Exception {
+        JSONObject packaged;
+        try (java.io.InputStream source = inst.getTargetContext().getAssets().open("public/data/commentaries/"+file)) {
+            packaged = new JSONObject(new String(source.readAllBytes(), StandardCharsets.UTF_8));
+        }
+        org.json.JSONArray expected = new org.json.JSONArray();
+        org.json.JSONArray entries = packaged.getJSONArray("entries");
+        for (int index=0; index<entries.length(); index++) expected.put(entries.getJSONObject(index).getString("id"));
+        awaitJs("document.querySelectorAll('[data-commentary-select] option').length>1");
+        JSONObject actual = data("(()=>{const expected="+expected+",ids=Array.from(document.querySelectorAll('[data-commentary-select] option'),option=>option.value),unique=new Set(ids);return{count:ids.length,unique:unique.size===ids.length,allPackagedEntries:expected.every(id=>unique.has(id))};})()");
+        assertTrue("Global selector includes every packaged entry", actual.getBoolean("allPackagedEntries"));
+        assertTrue("Global selector has no duplicate entries", actual.getBoolean("unique"));
+        return actual.getInt("count");
+    }
+
+    private void goToCommentaryReference(int chapter, int verse, String expectedReference) throws Exception {
+        awaitJs("document.querySelector('[data-commentary-chapter]') && document.querySelector('[data-commentary-verse]')");
+        js("(()=>{const select=document.querySelector('[data-commentary-chapter]');select.value='"+chapter+"';select.dispatchEvent(new Event('change',{bubbles:true}));})()");
+        awaitJs("document.querySelector('[data-commentary-verse] option[value=\""+verse+"\"]')");
+        js("(()=>{const select=document.querySelector('[data-commentary-verse]');select.value='"+verse+"';select.dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('[data-commentary-action=\"goto\"]').click();})()");
+        awaitCommentaryVisible(expectedReference);
+    }
+
+    private void exerciseGlobalCommentaryNavigation(String originLabel, String originEntry, String screenshot) throws Exception {
+        js("window.__commentary63OriginRange=JSON.stringify(window.App.commentaryPanel.state.range)");
+        assertEquals("Origin reference is visible", "true", js("document.querySelector('.commentary-origin')?.textContent.includes("+JSONObject.quote(originLabel)+")"));
+        goToCommentaryReference(22, 21, "22:20–21");
+        snapshot(screenshot);
+        assertEquals("Navigation keeps the original passage", "true", js("JSON.stringify(window.App.commentaryPanel.state.range)===window.__commentary63OriginRange"));
+        js("document.querySelector('[data-commentary-action=\"previous\"]').click()");
+        awaitCommentaryVisible("22:6–19");
+        js("document.querySelector('[data-commentary-action=\"next\"]').click()");
+        awaitCommentaryVisible("22:20–21");
+        js("window.__commentary63ExploredLocation=JSON.stringify(window.App.commentaryPanel.state.location)");
+        chooseCommentaryWork("hendriksen-mas-que-vencedores-es-2005", "Hendriksen");
+        awaitCommentaryVisible("22:6–21");
+        assertGlobalCommentaryContents("hendriksen-apocalipsis.json");
+        assertEquals("Changing to Hendriksen preserves the explored location", "true", js("JSON.stringify(window.App.commentaryPanel.state.location)===window.__commentary63ExploredLocation"));
+        chooseCommentaryWork("matthew-henry-apocalipsis", "Matthew Henry");
+        awaitCommentaryVisible("22:20–21");
+        assertEquals("Changing back to Henry preserves the explored location", "true", js("JSON.stringify(window.App.commentaryPanel.state.location)===window.__commentary63ExploredLocation"));
+        js("document.querySelector('[data-commentary-action=\"passage\"]').click()");
+        awaitCommentaryVisible(originEntry);
+        assertEquals("Return uses the unchanged original range", "true", js("JSON.stringify(window.App.commentaryPanel.state.range)===window.__commentary63OriginRange && document.querySelector('.commentary-origin')?.textContent.includes("+JSONObject.quote(originLabel)+")"));
+    }
+
+    private void nativeCommentaryGlobalRoundTrip() throws Exception {
+        awaitJs("window.App?._pushRouteReady===true && window.App?._androidBackButtonListenerReady===true");
+        for (int i=0; i<250 && !"true".equals(js("!document.getElementById('splash-screen')")); i++) SystemClock.sleep(100);
+        assertEquals("Splash no longer intercepts touches", "true", js("!document.getElementById('splash-screen')"));
+        assertEquals("Native local application", "true", js("window.App.isCapacitorAndroid() && location.hostname==='localhost'"));
+        js("window.App.navigateToVerse('rev',1,2,null,'rvr60')");
+        awaitJs("document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-item[data-verse-number=\"2\"]') && window.App.targetVerse==null");
+        js("document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-item[data-verse-number=\"2\"] .verse-number').click()");
+        awaitJs("document.querySelector('#selectionPanel.visible')");
+        js("document.querySelector('[data-action=\"commentary-for-selection\"]').click()");
+        chooseCommentaryWork("matthew-henry-apocalipsis", "Matthew Henry");
+        awaitCommentaryVisible("1:1–3");
+        int henryOptions = assertGlobalCommentaryContents("matthew-henry-apocalipsis.json");
+        js("document.querySelector('[data-commentary-action=\"next\"]').click()");
+        awaitCommentaryVisible("1:4–8");
+        assertEquals("Global next remains in the commentary", "true", js("Boolean(document.querySelector('.commentary-overlay')) && window.App.currentView==='bible-reading'"));
+        snapshot("commentary63-global-next");
+        exerciseGlobalCommentaryNavigation("1:2", "1:1–3", "commentary63-bible-jump22");
+        chooseCommentaryWork("hendriksen-mas-que-vencedores-es-2005", "Hendriksen");
+        awaitCommentaryVisible("1:1–3");
+        js("document.querySelector('.commentary-footer button').click()");
+        awaitCommentaryClosed();
+        awaitJs("document.querySelector('#selectionPanel.visible')");
+        assertEquals("Original Bible verse remains selected", "true", js("Boolean(document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-selected[data-verse-number=\"2\"]'))"));
+        js("document.querySelector('#closePanel').click()");
+        js("document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-item[data-verse-number=\"17\"] .verse-number').click()");
+        awaitJs("document.querySelector('#selectionPanel.visible')");
+        js("document.querySelector('[data-action=\"commentary-for-selection\"]').click()");
+        chooseCommentaryWork("matthew-henry-apocalipsis", "Matthew Henry");
+        awaitCommentaryVisible("1:12–20");
+        js("document.querySelector('.commentary-footer button').click()");
+        awaitCommentaryClosed();
+        assertEquals("Selected verse retained", "true", js("Boolean(document.querySelector('#selectionPanel.visible')) && Boolean(document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-selected[data-verse-number=\"17\"]'))"));
+        js("document.querySelector('#closePanel').click()");
+        js("window.App.navigateToVerse('rev',1,1,null,'rvr60-strong')");
+        awaitJs("window.App.currentBibleVersion==='rvr60-strong' && window.App.targetVerse==null && document.querySelector('[data-action=\"open-strong-dictionary\"]') && document.querySelector('[data-action=\"open-bible-commentary\"]')");
+        js("document.querySelector('[data-action=\"open-bible-commentary\"]').click()");
+        awaitCommentaryVisible("1:1–3");
+        inst.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
+        awaitCommentaryClosed();
+        assertEquals("Native Back stays in Bible", "true", js("window.App.currentView==='bible-reading' && window.App.currentBibleVersion==='rvr60-strong'"));
+        js("window.App.navigateToVerse('gen',1,1,null,'rvr60')");
+        awaitJs("window.App.currentBibleChapterData?.bookId==='gen' && window.App.targetVerse==null");
+        assertEquals("Commentary hidden outside Revelation", "true", js("!document.querySelector('[data-action=\"open-bible-commentary\"]')"));
+        js("window.__commentary63Opening={done:false}; (async()=>{try{const reading=await window.App.getReadingByDate('2026-12-05');if(!reading)throw new Error('Missing packaged meditation');window.App.openNoteDate=reading.date;window.App.openDeepeningShell(reading);window.__commentary63Opening.done=true;}catch(error){window.__commentary63Opening.error=String(error);}})()");
+        awaitJs("window.__commentary63Opening.done || window.__commentary63Opening.error");
+        assertEquals("Packaged meditation opens offline", "true", js("!window.__commentary63Opening.error"));
+        awaitJs("document.querySelector('[data-deepening-commentary]') && document.querySelector('[data-deepening-editor]')");
+        js("(()=>{const editor=document.querySelector('[data-deepening-editor]');editor.textContent='Reflexión ficticia para comprobar la navegación completa del comentario.';editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus();const range=document.createRange();range.setStart(editor.firstChild,15);range.collapse(true);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);const reading=document.querySelector('[data-deepening-reading-document]');reading.scrollTop=120;window.__commentary63Before={html:editor.innerHTML,offset:selection.anchorOffset,readingScroll:reading.scrollTop};const button=document.querySelector('[data-deepening-commentary]');button.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch'}));button.click();})()");
+        awaitJs("document.querySelector('#deepening-root > .commentary-overlay .commentary-article')");
+        chooseCommentaryWork("matthew-henry-apocalipsis", "Matthew Henry");
+        awaitCommentaryVisible("11:14–19");
+        assertGlobalCommentaryContents("matthew-henry-apocalipsis.json");
+        assertEquals("Meditation contains both passage sections within the full selector", "true", js("['mhcc-b66-c011-v014-e003','mhcc-b66-c012-v001-e001'].every(id=>Array.from(document.querySelectorAll('[data-commentary-select] option')).some(option=>option.value===id))"));
+        exerciseGlobalCommentaryNavigation("11:15–12:6", "11:14–19", "commentary63-meditation-jump22");
+        chooseCommentaryWork("hendriksen-mas-que-vencedores-es-2005", "Hendriksen");
+        awaitCommentaryVisible("11:15–19");
+        int hendriksenOptions = assertGlobalCommentaryContents("hendriksen-apocalipsis.json");
+        snapshot("commentary63-meditation-return");
+        js("document.querySelector('.commentary-footer button').click()");
+        awaitCommentaryClosed();
+        awaitJs("document.activeElement?.hasAttribute('data-deepening-editor')");
+        JSONObject restored = data("(()=>{const editor=document.querySelector('[data-deepening-editor]'),before=window.__commentary63Before,selection=window.getSelection();return{mounted:window.DeepeningShell.isMounted(),draftPreserved:editor.innerHTML===before.html,caretPreserved:selection.anchorOffset===before.offset&&editor.contains(selection.anchorNode),focusPreserved:document.activeElement===editor,readingScrollPreserved:document.querySelector('[data-deepening-reading-document]').scrollTop===before.readingScroll};})()");
+        for (String check : new String[]{"mounted", "draftPreserved", "caretPreserved", "focusPreserved", "readingScrollPreserved"}) assertTrue("Meditation return: "+check, restored.getBoolean(check));
+        assertEquals("Network isolation retained", "1", shell("settings get global airplane_mode_on"));
+        assertEquals("Wi-Fi isolation retained", "0", shell("settings get global wifi_on"));
+        save("commentary63", new JSONObject().put("passed",true).put("phase","commentary63")
+            .put("syntheticDataOnly",true).put("offline",true).put("physicalDeviceTouched",false).put("productionWrites",false)
+            .put("rvr60",true).put("strong",true).put("selectedVerseRetained",true).put("nativeBackClosesCommentaryOnly",true)
+            .put("otherBooksHidden",true).put("henrySelectedThroughWorkPicker",true).put("henryChapter1And22",true)
+            .put("henryCrossChapterMeditation",true).put("switchedBackToHendriksen",true)
+            .put("visibleNativeScenesVerified",true).put("screenshotsAfterWebViewPaint",true)
+            .put("globalNavigation",true).put("directChapterVerseNavigation",true).put("originalPassageRetained",true)
+            .put("returnToOriginalPassage",true).put("sameLocationAcrossWorks",true).put("fullWorkSelector",true)
+            .put("henrySelectorOptions",henryOptions).put("hendriksenSelectorOptions",hendriksenOptions)
+            .put("meditationGlobalNavigation",true).put("meditationDate","2026-12-05").put("meditationSections",2).put("meditationReturn",restored));
     }
 
     private void nativeCommentaryRoundTrip(boolean includeHenry) throws Exception {

@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59', '--candidate60', '--candidate61', '--candidate62'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59', '--candidate60', '--candidate61', '--candidate62', '--candidate63'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate62')
+const release = process.argv.includes('--candidate63')
+    ? { code: 63, name: '1.5.31', pwa: 283 }
+    : process.argv.includes('--candidate62')
     ? { code: 62, name: '1.5.30', pwa: 282 }
     : process.argv.includes('--candidate61')
     ? { code: 61, name: '1.5.29', pwa: 281 }
@@ -52,7 +54,9 @@ const java = '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const run = (program, args) => execFileSync(program, args, { maxBuffer: 100000000 });
 const tool = args => run(java + 'java', ['-jar', path.join(root, 'artifacts/tools/bundletool-all-1.18.3.jar'), ...args]).toString();
-const baseline = release.code >= 62
+const baseline = release.code >= 63
+    ? 'artifacts/android-1.5.30-62-release/su-voz-1.5.30-62.aab'
+    : release.code >= 62
     ? 'artifacts/android-1.5.29-61-release/su-voz-1.5.29-61.aab'
     : release.code >= 61
     ? 'artifacts/android-1.5.28-60-release/su-voz-1.5.28-60.aab'
@@ -62,6 +66,9 @@ const baseline = release.code >= 62
     ? 'artifacts/android-1.5.26-58-release/su-voz-1.5.26-58.aab'
     : 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
 const frozen = [
+    ...(release.code >= 63 ? [
+        ['artifacts/android-1.5.30-62-release/su-voz-1.5.30-62.aab', '68a700a21ed79a31811c65b0a267076059bc182009e8a75557023b3fbee62e56']
+    ] : []),
     ...(release.code >= 62 ? [
         ['artifacts/android-1.5.29-61-release/su-voz-1.5.29-61.aab', '615ccafb1726239f90ab83ced629e24ceb53ac578d69f2cf946b5dcbfdbe82d9']
     ] : []),
@@ -273,6 +280,13 @@ if (release.code >= 61) {
         const henryBytes = packaged('data/commentaries/matthew-henry-apocalipsis.json');
         const { validatePackage, lookupRange } = await import('../js/bible/commentaryLookup.js');
         const henry = validatePackage(JSON.parse(henryBytes));
+        if (release.code >= 63) {
+            assert.equal(hash(henryBytes), '3bfa323a84f86aab1a188a53ecaac4939825b097405d8b408040f6e46ce57702');
+            const previous = JSON.parse(run('/usr/bin/unzip', ['-p', path.resolve(baseline),
+                'base/assets/public/data/commentaries/matthew-henry-apocalipsis.json']));
+            assert.deepEqual(henry.entries, previous.entries, 'Henry commentary text and verse mapping remain unchanged');
+            assert.deepEqual(henry.notes, previous.notes, 'Henry notes remain unchanged');
+        }
         assert.equal(henry.work.id, 'matthew-henry-apocalipsis');
         assert.equal(henry.book.id, 'rev');
         assert.deepEqual(henry.book.chapterVerseCounts, commentary.book.chapterVerseCounts);
@@ -368,6 +382,12 @@ if (release.code >= 61) {
             'henryCrossChapterMeditation', 'switchedBackToHendriksen',
             'visibleNativeScenesVerified', 'screenshotsAfterWebViewPaint']) {
             assert.equal(nativeResult[key], true, `Native two-commentary QA: ${key}`);
+        }
+    }
+    if (release.code >= 63) {
+        for (const key of ['globalNavigation', 'directChapterVerseNavigation', 'originalPassageRetained',
+            'returnToOriginalPassage', 'sameLocationAcrossWorks', 'fullWorkSelector', 'meditationGlobalNavigation']) {
+            assert.equal(nativeResult[key], true, `Native complete-book navigation QA: ${key}`);
         }
     }
     nativeCommentaryQa = { result: nativeResult, environment };

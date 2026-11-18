@@ -18,4 +18,8 @@ La aplicación completa pasó en 390×844 y 1280×900: navegación fuera del pas
 
 La prueba específica del panel pasó también en 320×568 y 844×390, con texto de 20 px, sin desbordamiento horizontal. Cubre todos los destinos, límites de versículos, preliminares, índice, respuestas asíncronas, reintentos y cierre cuando el pasaje de origen deja de estar activo. Evidencias en `artifacts/validation/commentary-ui-navigation63.log` y `artifacts/validation/commentary-navigation-layout/`.
 
-Pasaron 70/70 comprobaciones del proyecto con emuladores locales Firestore/Auth/Storage y datos ficticios. `bundleRelease`, `assembleRelease` y `lintRelease` de Android63 completaron correctamente con Java21.
+Pasaron 70/70 comprobaciones del proyecto con emuladores locales Firestore/Auth/Storage y datos ficticios. `bundleRelease`, `assembleRelease` y `lintRelease` de Android 63 completaron correctamente con Java 21.
+
+La web 283 quedó publicada en `https://suvoz.app` desde el commit `1c8bd25de294b16aeecfd12af90e0c31f04f1f29`. Se comprobaron el JSON y el código exactos del panel; la prueba de la aplicación pública pasó en móvil y escritorio sin errores JavaScript ni escrituras en producción. Evidencia en `artifacts/validation/commentary-navigation63-app-live/`.
+
+Android 63 / 1.5.31 pasó la auditoría y la prueba nativa sin conexión y quedó enviado a revisión de Google Play. La disponibilidad pública Android queda pendiente de Google; detalles en `release-android-1.5.31-63.md`.
