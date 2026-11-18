@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59', '--candidate60', '--candidate61'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59', '--candidate60', '--candidate61', '--candidate62'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate61')
+const release = process.argv.includes('--candidate62')
+    ? { code: 62, name: '1.5.30', pwa: 282 }
+    : process.argv.includes('--candidate61')
     ? { code: 61, name: '1.5.29', pwa: 281 }
     : process.argv.includes('--candidate60')
     ? { code: 60, name: '1.5.28', pwa: 279 }
@@ -50,7 +52,9 @@ const java = '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const run = (program, args) => execFileSync(program, args, { maxBuffer: 100000000 });
 const tool = args => run(java + 'java', ['-jar', path.join(root, 'artifacts/tools/bundletool-all-1.18.3.jar'), ...args]).toString();
-const baseline = release.code >= 61
+const baseline = release.code >= 62
+    ? 'artifacts/android-1.5.29-61-release/su-voz-1.5.29-61.aab'
+    : release.code >= 61
     ? 'artifacts/android-1.5.28-60-release/su-voz-1.5.28-60.aab'
     : release.code >= 60
     ? 'artifacts/android-1.5.27-59-release/su-voz-1.5.27-59.aab'
@@ -58,6 +62,9 @@ const baseline = release.code >= 61
     ? 'artifacts/android-1.5.26-58-release/su-voz-1.5.26-58.aab'
     : 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
 const frozen = [
+    ...(release.code >= 62 ? [
+        ['artifacts/android-1.5.29-61-release/su-voz-1.5.29-61.aab', '615ccafb1726239f90ab83ced629e24ceb53ac578d69f2cf946b5dcbfdbe82d9']
+    ] : []),
     ...(release.code >= 61 ? [
         ['artifacts/android-1.5.28-60-release/su-voz-1.5.28-60.aab', 'c29f58d8932790e950973b8c99ec3fc6a537f80114564810b3c6477ad845f3af']
     ] : []),
@@ -228,6 +235,7 @@ if (release.code >= 59) {
 }
 
 let commentaryBundle = null;
+let matthewHenryBundle = null;
 if (release.code >= 61) {
     const packaged = relative => {
         assert(entries.has(relative), `Packaged commentary dependency: ${relative}`);
@@ -261,6 +269,30 @@ if (release.code >= 61) {
         entries: 94, sections: 50, notes: 273, noteGroups: 14, verses: 404, scheduledMeditations: 36,
         coverageValidatedBy: 'scripts/validate-commentary.mjs', sourceAndBundleHashesMatch: true,
         humanReview: commentary.quality.humanReview };
+    if (release.code >= 62) {
+        const henryBytes = packaged('data/commentaries/matthew-henry-apocalipsis.json');
+        const { validatePackage, lookupRange } = await import('../js/bible/commentaryLookup.js');
+        const henry = validatePackage(JSON.parse(henryBytes));
+        assert.equal(henry.work.id, 'matthew-henry-apocalipsis');
+        assert.equal(henry.book.id, 'rev');
+        assert.deepEqual(henry.book.chapterVerseCounts, commentary.book.chapterVerseCounts);
+        assert(!/\/(?:Users|Volumes)\//.test(henryBytes.toString()), 'Henry source audit paths stay outside the native edition');
+        for (let chapter = 1; chapter <= 22; chapter++) {
+            for (let verse = 1; verse <= henry.book.chapterVerseCounts[chapter - 1]; verse++) {
+                const point = { bookId: 'rev', chapter, verse };
+                assert.equal(lookupRange(henry, { start: point, end: point }).length, 1,
+                    `Packaged Henry covers Revelation ${chapter}:${verse} exactly once`);
+            }
+        }
+        const meditationEntries = lookupRange(henry, {
+            start: { bookId: 'rev', chapter: 11, verse: 15 }, end: { bookId: 'rev', chapter: 12, verse: 6 }
+        });
+        assert.deepEqual(meditationEntries.map(entry => entry.id), ['mhcc-b66-c011-v014-e003', 'mhcc-b66-c012-v001-e001']);
+        matthewHenryBundle = { sha256: hash(henryBytes), workId: henry.work.id,
+            entries: henry.entries.length, sections: henry.entries.filter(entry => entry.kind === 'commentary').length,
+            verses: 404, crossChapterMeditationSections: meditationEntries.length,
+            sourceAndBundleHashesMatch: true, coverageValidatedBy: 'scripts/validate-commentary.mjs' };
+    }
 }
 
 const nativeConfig = JSON.parse(extract('base/assets/capacitor.config.json'));
@@ -331,6 +363,13 @@ if (release.code >= 61) {
     for (const key of ['mounted', 'draftPreserved', 'caretPreserved', 'focusPreserved', 'readingScrollPreserved']) {
         assert.equal(nativeResult.meditationReturn[key], true, `Native meditation return: ${key}`);
     }
+    if (release.code >= 62) {
+        for (const key of ['henrySelectedThroughWorkPicker', 'henryChapter1And22',
+            'henryCrossChapterMeditation', 'switchedBackToHendriksen',
+            'visibleNativeScenesVerified', 'screenshotsAfterWebViewPaint']) {
+            assert.equal(nativeResult[key], true, `Native two-commentary QA: ${key}`);
+        }
+    }
     nativeCommentaryQa = { result: nativeResult, environment };
 }
 const result = { auditedAt: new Date().toISOString(), bundle, sha256: hash(readFileSync(bundle)),
@@ -338,6 +377,7 @@ const result = { auditedAt: new Date().toISOString(), bundle, sha256: hash(readF
     versionCode: release.code, versionName: release.name, pwa: release.pwa, minSdk: 24, targetSdk: 36,
     bundletoolValidated: true, sameUploadCertificate: true, signatureVerified: true, comparisonBaseline: baseline,
     runtimeAssetsCompared: compared.size, runtimeAssetsMatch: true, privateFilesExcluded: true, strongBundle, commentaryBundle,
+    ...(release.code >= 62 ? { matthewHenryBundle } : {}),
     newPermissions: false, appCheckBridgeBundled: true, appCheckEnabled: false,
     nativeLibraries: libraries, zipAlignment: 'PAGE_ALIGNMENT_16K', pageSizeDeviceQa: false,
     lintErrors: 0, lintWarnings: issues.filter(issue => issue.severity === 'Warning').length,

@@ -106,7 +106,7 @@ public class NavAuditInstrumentation extends Instrumentation {
     public void releaseNavigationAndUpgrade() throws Exception {
         assertEquals("Only disposable emulator", "1", shell("getprop ro.kernel.qemu"));
         String phase = arguments.getString("phase", "candidate");
-        if (phase.equals("commentary61")) {
+        if (phase.equals("commentary61") || phase.equals("commentary62")) {
             // Check isolation before the app can initialize any production service.
             assertEquals("Network isolated before app launch", "1", shell("settings get global airplane_mode_on"));
             assertEquals("Wi-Fi disabled before app launch", "0", shell("settings get global wifi_on"));
@@ -126,7 +126,11 @@ public class NavAuditInstrumentation extends Instrumentation {
         awaitJs("document.querySelector('#nav-home') && document.querySelector('#app-content')?.textContent.length > 100");
         SystemClock.sleep(1500);
         if (phase.equals("commentary61")) {
-            nativeCommentaryRoundTrip();
+            nativeCommentaryRoundTrip(false);
+            return;
+        }
+        if (phase.equals("commentary62")) {
+            nativeCommentaryRoundTrip(true);
             return;
         }
         if (phase.equals("backup44")) {
@@ -275,7 +279,17 @@ public class NavAuditInstrumentation extends Instrumentation {
         assertEquals("Commentary closed after native paint", "true", js("!document.querySelector('.commentary-overlay')"));
     }
 
-    private void nativeCommentaryRoundTrip() throws Exception {
+    private void chooseCommentaryWork(String workId, String author) throws Exception {
+        awaitJs("document.querySelector('[data-commentary-work] option[value=\""+workId+"\"]')");
+        js("(()=>{const select=document.querySelector('[data-commentary-work]');select.value="+JSONObject.quote(workId)+";select.dispatchEvent(new Event('change',{bubbles:true}));})()");
+        awaitJs("document.querySelector('[data-commentary-work]')?.value==="+JSONObject.quote(workId)
+            +" && document.querySelector('.commentary-article') && document.querySelector('.commentary-header')?.innerText.includes("+JSONObject.quote(author)+")");
+    }
+
+    private void nativeCommentaryRoundTrip(boolean includeHenry) throws Exception {
+        final String phase = includeHenry ? "commentary62" : "commentary61";
+        final String selectedReference = includeHenry ? "1:12–20" : "1:17–20";
+        final String primaryAuthor = includeHenry ? "Matthew Henry" : "Hendriksen";
         awaitJs("window.App?._pushRouteReady===true && window.App?._androidBackButtonListenerReady===true");
         for (int i=0; i<250 && !"true".equals(js("!document.getElementById('splash-screen')")); i++) SystemClock.sleep(100);
         assertEquals("Splash no longer intercepts touches", "true", js("!document.getElementById('splash-screen')"));
@@ -284,19 +298,22 @@ public class NavAuditInstrumentation extends Instrumentation {
         awaitJs("document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-item[data-verse-number=\"1\"]') && document.querySelector('[data-action=\"open-bible-commentary\"]')");
         SystemClock.sleep(700); // Allow the real target timer and chapter prepend to finish.
         js("document.querySelector('[data-action=\"open-bible-commentary\"]').click()");
-        awaitJs("document.querySelector('.commentary-article')?.innerText.includes('La introducción')");
+        awaitJs("document.querySelector('.commentary-article')");
+        if (includeHenry) chooseCommentaryWork("matthew-henry-apocalipsis", "Matthew Henry");
+        else awaitJs("document.querySelector('.commentary-article')?.innerText.includes('La introducción')");
         assertEquals("RVR60 first passage", "true", js("document.querySelector('.commentary-entry-meta').innerText.includes('1:1–3')"));
         awaitCommentaryVisible("1:1–3");
-        snapshot("commentary61-bible");
+        snapshot(phase+"-bible");
         js("document.querySelector('.commentary-footer button').click()");
         awaitCommentaryClosed();
 
         js("document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-item[data-verse-number=\"17\"] .verse-number').click()");
         awaitJs("document.querySelector('#selectionPanel.visible') && document.querySelector('[data-action=\"commentary-for-selection\"]')");
         js("document.querySelector('[data-action=\"commentary-for-selection\"]').click()");
-        awaitJs("document.querySelector('.commentary-entry-meta')?.innerText.includes('1:17–20')");
-        awaitCommentaryVisible("1:17–20");
-        snapshot("commentary61-selection");
+        awaitJs("document.querySelector('.commentary-entry-meta')?.innerText.includes("+JSONObject.quote(selectedReference)+")");
+        awaitCommentaryVisible(selectedReference);
+        assertEquals("Selected verse uses chosen commentary", "true", js("document.querySelector('.commentary-header').innerText.includes("+JSONObject.quote(primaryAuthor)+")"));
+        snapshot(phase+"-selection");
         js("document.querySelector('.commentary-footer button').click()");
         awaitCommentaryClosed();
         awaitJs("!document.querySelector('.commentary-overlay') && document.querySelector('#selectionPanel.visible')");
@@ -307,11 +324,33 @@ public class NavAuditInstrumentation extends Instrumentation {
         awaitJs("window.App.currentBibleVersion==='rvr60-strong' && document.querySelector('[data-action=\"open-strong-dictionary\"]') && document.querySelector('[data-action=\"open-bible-commentary\"]')");
         SystemClock.sleep(700);
         js("document.querySelector('[data-action=\"open-bible-commentary\"]').click()");
-        awaitJs("document.querySelector('.commentary-article') && document.querySelector('.commentary-header')?.innerText.includes('Hendriksen')");
+        awaitJs("document.querySelector('.commentary-article') && document.querySelector('.commentary-header')?.innerText.includes("+JSONObject.quote(primaryAuthor)+")");
         awaitCommentaryVisible("1:1–3");
         inst.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
         awaitCommentaryClosed();
         assertEquals("Native Back stays in Bible", "true", js("window.App.currentView==='bible-reading' && window.App.currentBibleVersion==='rvr60-strong' && window.App.selectedBibleBook==='rev'"));
+
+        if (includeHenry) {
+            for (int verse : new int[]{1, 21}) {
+                String expectedReference = verse == 1 ? "22:1–5" : "22:20–21";
+                js("window.App.navigateToVerse('rev',22,"+verse+",null,'rvr60')");
+                awaitJs("window.App.currentBibleChapterData?.bookId==='rev' && window.App.currentBibleChapterData?.chapter===22 && document.querySelector('[data-action=\"open-bible-commentary\"]')");
+                SystemClock.sleep(700);
+                if (verse == 21) {
+                    // The last verse cannot always reach the top of a short final chapter.
+                    // Select it explicitly instead of querying the toolbar's first visible verse.
+                    js("document.querySelector('[data-reading-date=\"bible-rvr60-rev-22\"] .verse-item[data-verse-number=\"21\"] .verse-number').click()");
+                    awaitJs("document.querySelector('#selectionPanel.visible')");
+                    js("document.querySelector('[data-action=\"commentary-for-selection\"]').click()");
+                } else js("document.querySelector('[data-action=\"open-bible-commentary\"]').click()");
+                awaitJs("document.querySelector('.commentary-header')?.innerText.includes('Matthew Henry')");
+                awaitCommentaryVisible(expectedReference);
+                if (verse == 21) snapshot(phase+"-henry-final-verses");
+                js("document.querySelector('.commentary-footer button').click()");
+                awaitCommentaryClosed();
+                if (verse == 21) js("document.querySelector('#closePanel').click()");
+            }
+        }
 
         js("window.App.navigateToVerse('gen',1,1,null,'rvr60')");
         awaitJs("window.App.currentBibleChapterData?.bookId==='gen'");
@@ -322,10 +361,17 @@ public class NavAuditInstrumentation extends Instrumentation {
         awaitJs("document.querySelector('[data-deepening-commentary]') && document.querySelector('[data-deepening-editor]')");
         js("(()=>{const editor=document.querySelector('[data-deepening-editor]');editor.textContent='Reflexión ficticia para comprobar Hendriksen sin conexión.';editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus();const range=document.createRange();range.setStart(editor.firstChild,15);range.collapse(true);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);const reading=document.querySelector('[data-deepening-reading-document]');reading.scrollTop=120;window.__commentary61Before={html:editor.innerHTML,offset:selection.anchorOffset,readingScroll:reading.scrollTop};const button=document.querySelector('[data-deepening-commentary]');button.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch'}));button.click();})()");
         awaitJs("document.querySelector('#deepening-root > .commentary-overlay .commentary-article')");
-        assertEquals("Both sections cover the cross-chapter meditation", "true", js("JSON.stringify(Array.from(document.querySelectorAll('[data-commentary-select] option'),option=>option.value))===JSON.stringify(['hendriksen-x-g','hendriksen-xi-a'])"));
+        String expectedSections = includeHenry ? "['mhcc-b66-c011-v014-e003','mhcc-b66-c012-v001-e001']" : "['hendriksen-x-g','hendriksen-xi-a']";
+        assertEquals("Both sections cover the cross-chapter meditation", "true", js("JSON.stringify(Array.from(document.querySelectorAll('[data-commentary-select] option'),option=>option.value))===JSON.stringify("+expectedSections+")"));
         assertEquals("Panel remains interactive inside meditation", "true", js("!document.querySelector('.commentary-overlay').closest('[inert]')"));
-        awaitCommentaryVisible("11:15–19");
-        snapshot("commentary61-meditation");
+        awaitCommentaryVisible(includeHenry ? "11:14–19" : "11:15–19");
+        snapshot(phase+"-meditation");
+        if (includeHenry) {
+            chooseCommentaryWork("hendriksen-mas-que-vencedores-es-2005", "Hendriksen");
+            assertEquals("Changing commentary preserves the same meditation range", "true", js("JSON.stringify(Array.from(document.querySelectorAll('[data-commentary-select] option'),option=>option.value))===JSON.stringify(['hendriksen-x-g','hendriksen-xi-a'])"));
+            awaitCommentaryVisible("11:15–19");
+            snapshot(phase+"-meditation-hendriksen");
+        }
         js("document.querySelector('.commentary-footer button').click()");
         awaitCommentaryClosed();
         awaitJs("!document.querySelector('.commentary-overlay') && document.activeElement?.hasAttribute('data-deepening-editor')");
@@ -335,12 +381,14 @@ public class NavAuditInstrumentation extends Instrumentation {
         }
         assertEquals("Network isolation retained", "1", shell("settings get global airplane_mode_on"));
         assertEquals("Wi-Fi isolation retained", "0", shell("settings get global wifi_on"));
-        save("commentary61", new JSONObject().put("passed",true).put("phase","commentary61")
+        save(phase, new JSONObject().put("passed",true).put("phase",phase)
             .put("syntheticDataOnly",true).put("offline",true).put("physicalDeviceTouched",false)
             .put("productionWrites",false).put("rvr60",true).put("strong",true)
             .put("visibleNativeScenesVerified",true).put("screenshotsAfterWebViewPaint",true)
             .put("selectedVerseRetained",true).put("nativeBackClosesCommentaryOnly",true)
             .put("otherBooksHidden",true).put("meditationDate","2026-12-05")
+            .put("henrySelectedThroughWorkPicker",includeHenry).put("henryChapter1And22",includeHenry)
+            .put("henryCrossChapterMeditation",includeHenry).put("switchedBackToHendriksen",includeHenry)
             .put("meditationSections",2).put("meditationReturn",restored));
     }
 

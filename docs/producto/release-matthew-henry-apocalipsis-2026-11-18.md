@@ -28,7 +28,7 @@ La validación de contenido exige exactamente una sección de Henry por cada ver
 
 Pasaron 70/70 comprobaciones con emuladores locales Firestore/Auth/Storage y datos ficticios. La prueba completa de la aplicación con el JSON real pasó en 390×844 y 1280×900, sin errores JavaScript: selector de obras, índice de 22 capítulos, capítulos 17 y 22, selección de versículo, Strong, notas separadas y meditación entre capítulos con borrador y foco preservados. Evidencias en `artifacts/validation/matthew-henry-app/`; no se hicieron escrituras en producción.
 
-La auditoría Android y el estado observado de Google Play se registrarán en los artefactos locales de la versión. Subir o enviar una versión a revisión no equivale a aprobación y disponibilidad pública.
+La web 282 quedó publicada y comprobada en `https://suvoz.app`: JSON y versión exactos, pruebas reales en móvil y escritorio correctas. La auditoría Android 62 y la prueba nativa sin conexión también pasaron; la versión 1.5.30 quedó enviada a revisión en Google Play. La aprobación y disponibilidad de esa actualización Android siguen pendientes de Google. Evidencia en los artefactos locales de la versión y detalles en `release-android-1.5.30-62.md`.
 
 Notas previstas para Google Play, es-419:
 
