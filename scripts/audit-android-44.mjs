@@ -5,9 +5,11 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const { parseStringPromise } = createRequire(import.meta.url)('xml2js');
-assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59', '--candidate60'].includes(arg)), 'Unsupported release audit option');
+assert(process.argv.slice(2).every(arg => ['--candidate45', '--candidate46', '--candidate47', '--candidate48', '--candidate49', '--candidate50', '--candidate51', '--candidate52', '--candidate53', '--candidate54', '--candidate55', '--candidate56', '--candidate57', '--candidate58', '--candidate59', '--candidate60', '--candidate61'].includes(arg)), 'Unsupported release audit option');
 assert(process.argv.slice(2).length <= 1, 'Select only one release candidate');
-const release = process.argv.includes('--candidate60')
+const release = process.argv.includes('--candidate61')
+    ? { code: 61, name: '1.5.29', pwa: 281 }
+    : process.argv.includes('--candidate60')
     ? { code: 60, name: '1.5.28', pwa: 279 }
     : process.argv.includes('--candidate59')
     ? { code: 59, name: '1.5.27', pwa: 278 }
@@ -48,12 +50,17 @@ const java = '/Library/Java/JavaVirtualMachines/temurin-21.jdk/Contents/Home/bin
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const run = (program, args) => execFileSync(program, args, { maxBuffer: 100000000 });
 const tool = args => run(java + 'java', ['-jar', path.join(root, 'artifacts/tools/bundletool-all-1.18.3.jar'), ...args]).toString();
-const baseline = release.code >= 60
+const baseline = release.code >= 61
+    ? 'artifacts/android-1.5.28-60-release/su-voz-1.5.28-60.aab'
+    : release.code >= 60
     ? 'artifacts/android-1.5.27-59-release/su-voz-1.5.27-59.aab'
     : release.code >= 59
     ? 'artifacts/android-1.5.26-58-release/su-voz-1.5.26-58.aab'
     : 'artifacts/android-1.5.11-43/su-voz-1.5.11-43.aab';
 const frozen = [
+    ...(release.code >= 61 ? [
+        ['artifacts/android-1.5.28-60-release/su-voz-1.5.28-60.aab', 'c29f58d8932790e950973b8c99ec3fc6a537f80114564810b3c6477ad845f3af']
+    ] : []),
     ...(release.code >= 60 ? [
         ['artifacts/android-1.5.27-59-release/su-voz-1.5.27-59.aab', 'cafdf8e14023c6c008a4ce65832f7bc4229ef0de8adfda444147e9ba35c48626']
     ] : []),
@@ -115,9 +122,15 @@ const frozen = [
 ];
 for (const [file, expected] of frozen) assert.equal(hash(readFileSync(file)), expected, file);
 const checks = JSON.parse(readFileSync('artifacts/validation/tests.json', 'utf8'));
-const expectedChecks = release.code >= 60 ? 68 : release.code >= 59 ? 67 : release.code >= 54 ? 64 : release.code >= 53 ? 62 : release.code >= 52 ? 61 : release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
+const expectedChecks = release.code >= 61 ? 70 : release.code >= 60 ? 68 : release.code >= 59 ? 67 : release.code >= 54 ? 64 : release.code >= 53 ? 62 : release.code >= 52 ? 61 : release.code >= 51 ? 60 : release.code >= 50 ? 59 : release.code >= 49 ? 56 : release.code >= 48 ? 55 : release.code >= 47 ? 53 : 52;
 assert.equal(checks.results.length, expectedChecks);
 assert(checks.results.every(check => check.status === 0));
+if (release.code >= 61) {
+    for (const script of ['scripts/validate-commentary.mjs', 'scripts/validate-commentary-ui.mjs',
+        'scripts/validate-continuous-reader.mjs']) {
+        assert(checks.results.some(check => check.command[0] === script), `Required commentary check: ${script}`);
+    }
+}
 if (release.code >= 60) {
     assert(checks.results.some(check => check.command[0] === 'scripts/validate-rvr1960-links.mjs'));
 }
@@ -214,6 +227,42 @@ if (release.code >= 59) {
         dictionaryEntries, sourceAndManifestHashesMatch: true };
 }
 
+let commentaryBundle = null;
+if (release.code >= 61) {
+    const packaged = relative => {
+        assert(entries.has(relative), `Packaged commentary dependency: ${relative}`);
+        const bytes = extract(entries.get(relative));
+        assert.equal(hash(bytes), hash(readFileSync(path.join(root, relative))), `Current source: ${relative}`);
+        return bytes;
+    };
+    for (const relative of ['data/commentaries/NOTICE.txt', 'css/commentary-panel.css',
+        'js/bible/CommentaryRepository.js', 'js/bible/commentaryLookup.js', 'js/bible/CommentaryPanel.js',
+        'js/app.js', 'js/ReadingDocument.js', 'js/DeepeningShell.js',
+        'data/readings/2026-11.json', 'data/readings/2026-12.json']) packaged(relative);
+    const bytes = packaged('data/commentaries/hendriksen-apocalipsis.json');
+    assert.equal(hash(bytes), '332e16359dfbaebad14ad659c1d01eb87b7c6efd5837acb9a0af02e63da411fa');
+    const commentary = JSON.parse(bytes);
+    assert.equal(commentary.source.editorialPackageSha256, 'e587f81cab2a628bf5109257c629a4b4b53e90393db119326a06402c910d5aae');
+    assert.equal(commentary.source.pdfPageCount, 243);
+    assert.equal(commentary.book.id, 'rev');
+    assert.equal(commentary.book.chapterVerseCounts.length, 22);
+    assert.equal(commentary.book.chapterVerseCounts.reduce((sum, count) => sum + count, 0), 404);
+    assert.equal(commentary.entries.length, 94);
+    assert.equal(commentary.entries.filter(entry => entry.kind === 'commentary').length, 50);
+    assert.equal(commentary.notes.length, 273);
+    assert.equal(commentary.noteGroups.length, 14);
+    assert.equal(commentary.quality.detectedOcrDifferencesPending, 0);
+    assert.equal(commentary.quality.bodyRewrittenOrSummarized, false);
+    assert.deepEqual(commentary.quality.unmappedVerses, []);
+    assert(!/\/(?:Users|Volumes)\//.test(bytes.toString()), 'Editorial audit paths stay outside the native edition');
+    // validate-commentary.mjs, required above, checks every verse and all 36
+    // scheduled meditations against these exact source bytes and catalogs.
+    commentaryBundle = { sha256: hash(bytes), editorialPackageSha256: commentary.source.editorialPackageSha256,
+        entries: 94, sections: 50, notes: 273, noteGroups: 14, verses: 404, scheduledMeditations: 36,
+        coverageValidatedBy: 'scripts/validate-commentary.mjs', sourceAndBundleHashesMatch: true,
+        humanReview: commentary.quality.humanReview };
+}
+
 const nativeConfig = JSON.parse(extract('base/assets/capacitor.config.json'));
 assert.equal(nativeConfig.appId, 'app.suvoz');
 assert(!nativeConfig.server?.url);
@@ -256,15 +305,43 @@ if (existsSync(nativeResultPath)) {
     assert.equal(nativeResult.syntheticDataOnly, true);
     nativeBackupQa = { result: nativeResult, environment };
 }
+let nativeCommentaryQa = null;
+if (release.code >= 61) {
+    const evidencePath = path.join(out, `native-qa/evidence/commentary${release.code}.json`);
+    const environmentPath = path.join(out, 'native-qa/environment.json');
+    assert(existsSync(evidencePath) && existsSync(environmentPath), 'Native commentary QA evidence is required for this candidate');
+    const environment = JSON.parse(readFileSync(environmentPath, 'utf8'));
+    const nativeResult = JSON.parse(readFileSync(evidencePath, 'utf8'));
+    assert.equal(environment.versionCode, release.code);
+    assert.equal(environment.versionName, release.name);
+    assert.equal(environment.aabSha256, hash(readFileSync(bundle)), 'Native QA must refer to this exact AAB');
+    assert.equal(environment.apkSha256, hash(readFileSync(path.join(root, 'android/app/build/outputs/apk/release/app-release.apk'))),
+        'Native QA must refer to the current release APK');
+    assert.equal(environment.networkIsolated, true);
+    assert.equal(environment.productionWrites, false);
+    assert.equal(environment.physicalDeviceTouched, false);
+    assert.equal(nativeResult.phase, `commentary${release.code}`);
+    for (const key of ['passed', 'offline', 'syntheticDataOnly', 'rvr60', 'strong',
+        'selectedVerseRetained', 'nativeBackClosesCommentaryOnly', 'otherBooksHidden']) {
+        assert.equal(nativeResult[key], true, `Native commentary QA: ${key}`);
+    }
+    assert.equal(nativeResult.productionWrites, false);
+    assert.equal(nativeResult.physicalDeviceTouched, false);
+    assert.equal(nativeResult.meditationSections, 2);
+    for (const key of ['mounted', 'draftPreserved', 'caretPreserved', 'focusPreserved', 'readingScrollPreserved']) {
+        assert.equal(nativeResult.meditationReturn[key], true, `Native meditation return: ${key}`);
+    }
+    nativeCommentaryQa = { result: nativeResult, environment };
+}
 const result = { auditedAt: new Date().toISOString(), bundle, sha256: hash(readFileSync(bundle)),
     sourceBaseCommit: run('git', ['rev-parse', 'HEAD']).toString().trim(),
     versionCode: release.code, versionName: release.name, pwa: release.pwa, minSdk: 24, targetSdk: 36,
     bundletoolValidated: true, sameUploadCertificate: true, signatureVerified: true, comparisonBaseline: baseline,
-    runtimeAssetsCompared: compared.size, runtimeAssetsMatch: true, privateFilesExcluded: true, strongBundle,
+    runtimeAssetsCompared: compared.size, runtimeAssetsMatch: true, privateFilesExcluded: true, strongBundle, commentaryBundle,
     newPermissions: false, appCheckBridgeBundled: true, appCheckEnabled: false,
     nativeLibraries: libraries, zipAlignment: 'PAGE_ALIGNMENT_16K', pageSizeDeviceQa: false,
     lintErrors: 0, lintWarnings: issues.filter(issue => issue.severity === 'Warning').length,
-    emulatorChecksPassed: expectedChecks, capacitorSecurityPatch, nativeBackupQa, prior42And43Unchanged: true,
+    emulatorChecksPassed: expectedChecks, capacitorSecurityPatch, nativeBackupQa, nativeCommentaryQa, prior42And43Unchanged: true,
     uploadedToPlay: false, physicalQa: false, productionPublished: false };
 write('audit-release.json', JSON.stringify(result, null, 2));
 console.log(JSON.stringify(result, null, 2));

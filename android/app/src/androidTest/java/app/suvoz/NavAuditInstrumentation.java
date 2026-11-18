@@ -105,6 +105,12 @@ public class NavAuditInstrumentation extends Instrumentation {
 
     public void releaseNavigationAndUpgrade() throws Exception {
         assertEquals("Only disposable emulator", "1", shell("getprop ro.kernel.qemu"));
+        String phase = arguments.getString("phase", "candidate");
+        if (phase.equals("commentary61")) {
+            // Check isolation before the app can initialize any production service.
+            assertEquals("Network isolated before app launch", "1", shell("settings get global airplane_mode_on"));
+            assertEquals("Wi-Fi disabled before app launch", "0", shell("settings get global wifi_on"));
+        }
         Intent intent = new Intent().setClassName("app.suvoz", "app.suvoz.MainActivity");
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         activity = inst.startActivitySync(intent);
@@ -119,7 +125,10 @@ public class NavAuditInstrumentation extends Instrumentation {
         assertNotNull(web);
         awaitJs("document.querySelector('#nav-home') && document.querySelector('#app-content')?.textContent.length > 100");
         SystemClock.sleep(1500);
-        String phase = arguments.getString("phase", "candidate");
+        if (phase.equals("commentary61")) {
+            nativeCommentaryRoundTrip();
+            return;
+        }
         if (phase.equals("backup44")) {
             assertEquals("Network isolated before install", "1", shell("settings get global airplane_mode_on"));
             nativeBackupRoundTrip();
@@ -224,6 +233,115 @@ public class NavAuditInstrumentation extends Instrumentation {
             shell(originalHandwriting.equals("null") ? "settings delete secure stylus_handwriting_enabled" : "settings put secure stylus_handwriting_enabled "+originalHandwriting);
             shell(originalHardwareIme.equals("null") ? "settings delete secure show_ime_with_hard_keyboard" : "settings put secure show_ime_with_hard_keyboard "+originalHardwareIme);
         }
+    }
+
+    private void awaitWebViewPaint() throws Exception {
+        CountDownLatch visualState = new CountDownLatch(1);
+        inst.runOnMainSync(() -> {
+            assertTrue("WebView must be attached and visible", web.isAttachedToWindow() && web.isShown());
+            web.postVisualStateCallback(SystemClock.uptimeMillis(), new WebView.VisualStateCallback() {
+                @Override public void onComplete(long requestId) {
+                    // Visual state is committed; wait for its next actual draw too.
+                    web.postOnAnimation(() -> visualState.countDown());
+                    web.invalidate();
+                }
+            });
+        });
+        assertTrue("WebView visual state reached a draw frame", visualState.await(10, TimeUnit.SECONDS));
+        inst.waitForIdleSync();
+        // UiAutomation reads the compositor surface, which can trail the WebView callback.
+        SystemClock.sleep(350);
+        inst.waitForIdleSync();
+    }
+
+    private void awaitCommentaryVisible(String reference) throws Exception {
+        String visible = "(()=>{const panel=document.querySelector('.commentary-panel'),title=panel?.querySelector('.commentary-article h3'),meta=panel?.querySelector('.commentary-entry-meta');"
+            + "if(!panel||!title||!meta?.innerText.includes("+JSONObject.quote(reference)+"))return false;"
+            + "const style=getComputedStyle(panel),r=panel.getBoundingClientRect(),t=title.getBoundingClientRect();"
+            + "if(style.display==='none'||style.visibility!=='visible'||Number(style.opacity)!==1||r.width<100||r.height<100||r.top<0||r.bottom>innerHeight+1||t.top<r.top||t.bottom>r.bottom)return false;"
+            + "const target=document.elementFromPoint(t.left+t.width/2,t.top+t.height/2);"
+            + "const selection=document.querySelector('#selectionPanel');"
+            + "return target?.closest('.commentary-panel')===panel&&!panel.closest('[inert]')"
+            + "&&!panel.getAnimations({subtree:true}).some(a=>a.playState==='running')"
+            + "&&!selection?.getAnimations({subtree:true}).some(a=>a.playState==='running');})()";
+        awaitJs(visible);
+        awaitWebViewPaint();
+        assertEquals("Expected commentary is visible above other native content", "true", js(visible));
+    }
+
+    private void awaitCommentaryClosed() throws Exception {
+        awaitJs("!document.querySelector('.commentary-overlay') && !window.App.commentaryPanel?.state");
+        awaitWebViewPaint();
+        assertEquals("Commentary closed after native paint", "true", js("!document.querySelector('.commentary-overlay')"));
+    }
+
+    private void nativeCommentaryRoundTrip() throws Exception {
+        awaitJs("window.App?._pushRouteReady===true && window.App?._androidBackButtonListenerReady===true");
+        for (int i=0; i<250 && !"true".equals(js("!document.getElementById('splash-screen')")); i++) SystemClock.sleep(100);
+        assertEquals("Splash no longer intercepts touches", "true", js("!document.getElementById('splash-screen')"));
+        assertEquals("Native local application", "true", js("window.App.isCapacitorAndroid() && location.hostname==='localhost'"));
+        js("window.App.navigateToVerse('rev',1,1,null,'rvr60')");
+        awaitJs("document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-item[data-verse-number=\"1\"]') && document.querySelector('[data-action=\"open-bible-commentary\"]')");
+        SystemClock.sleep(700); // Allow the real target timer and chapter prepend to finish.
+        js("document.querySelector('[data-action=\"open-bible-commentary\"]').click()");
+        awaitJs("document.querySelector('.commentary-article')?.innerText.includes('La introducción')");
+        assertEquals("RVR60 first passage", "true", js("document.querySelector('.commentary-entry-meta').innerText.includes('1:1–3')"));
+        awaitCommentaryVisible("1:1–3");
+        snapshot("commentary61-bible");
+        js("document.querySelector('.commentary-footer button').click()");
+        awaitCommentaryClosed();
+
+        js("document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-item[data-verse-number=\"17\"] .verse-number').click()");
+        awaitJs("document.querySelector('#selectionPanel.visible') && document.querySelector('[data-action=\"commentary-for-selection\"]')");
+        js("document.querySelector('[data-action=\"commentary-for-selection\"]').click()");
+        awaitJs("document.querySelector('.commentary-entry-meta')?.innerText.includes('1:17–20')");
+        awaitCommentaryVisible("1:17–20");
+        snapshot("commentary61-selection");
+        js("document.querySelector('.commentary-footer button').click()");
+        awaitCommentaryClosed();
+        awaitJs("!document.querySelector('.commentary-overlay') && document.querySelector('#selectionPanel.visible')");
+        assertEquals("Selected verse retained", "true", js("Boolean(document.querySelector('[data-reading-date=\"bible-rvr60-rev-1\"] .verse-selected[data-verse-number=\"17\"]'))"));
+        js("document.querySelector('#closePanel').click()");
+
+        js("window.App.navigateToVerse('rev',1,1,null,'rvr60-strong')");
+        awaitJs("window.App.currentBibleVersion==='rvr60-strong' && document.querySelector('[data-action=\"open-strong-dictionary\"]') && document.querySelector('[data-action=\"open-bible-commentary\"]')");
+        SystemClock.sleep(700);
+        js("document.querySelector('[data-action=\"open-bible-commentary\"]').click()");
+        awaitJs("document.querySelector('.commentary-article') && document.querySelector('.commentary-header')?.innerText.includes('Hendriksen')");
+        awaitCommentaryVisible("1:1–3");
+        inst.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
+        awaitCommentaryClosed();
+        assertEquals("Native Back stays in Bible", "true", js("window.App.currentView==='bible-reading' && window.App.currentBibleVersion==='rvr60-strong' && window.App.selectedBibleBook==='rev'"));
+
+        js("window.App.navigateToVerse('gen',1,1,null,'rvr60')");
+        awaitJs("window.App.currentBibleChapterData?.bookId==='gen'");
+        assertEquals("Commentary hidden outside Revelation", "true", js("!document.querySelector('[data-action=\"open-bible-commentary\"]')"));
+        js("window.__commentary61Opening={done:false}; (async()=>{try{const reading=await window.App.getReadingByDate('2026-12-05');if(!reading)throw new Error('Missing packaged meditation');window.App.openNoteDate=reading.date;window.App.openDeepeningShell(reading);window.__commentary61Opening.done=true;}catch(error){window.__commentary61Opening.error=String(error);}})()");
+        awaitJs("window.__commentary61Opening.done || window.__commentary61Opening.error");
+        assertEquals("Packaged meditation opens offline", "true", js("!window.__commentary61Opening.error"));
+        awaitJs("document.querySelector('[data-deepening-commentary]') && document.querySelector('[data-deepening-editor]')");
+        js("(()=>{const editor=document.querySelector('[data-deepening-editor]');editor.textContent='Reflexión ficticia para comprobar Hendriksen sin conexión.';editor.dispatchEvent(new Event('input',{bubbles:true}));editor.focus();const range=document.createRange();range.setStart(editor.firstChild,15);range.collapse(true);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);const reading=document.querySelector('[data-deepening-reading-document]');reading.scrollTop=120;window.__commentary61Before={html:editor.innerHTML,offset:selection.anchorOffset,readingScroll:reading.scrollTop};const button=document.querySelector('[data-deepening-commentary]');button.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,cancelable:true,pointerType:'touch'}));button.click();})()");
+        awaitJs("document.querySelector('#deepening-root > .commentary-overlay .commentary-article')");
+        assertEquals("Both sections cover the cross-chapter meditation", "true", js("JSON.stringify(Array.from(document.querySelectorAll('[data-commentary-select] option'),option=>option.value))===JSON.stringify(['hendriksen-x-g','hendriksen-xi-a'])"));
+        assertEquals("Panel remains interactive inside meditation", "true", js("!document.querySelector('.commentary-overlay').closest('[inert]')"));
+        awaitCommentaryVisible("11:15–19");
+        snapshot("commentary61-meditation");
+        js("document.querySelector('.commentary-footer button').click()");
+        awaitCommentaryClosed();
+        awaitJs("!document.querySelector('.commentary-overlay') && document.activeElement?.hasAttribute('data-deepening-editor')");
+        JSONObject restored = data("(()=>{const editor=document.querySelector('[data-deepening-editor]'),before=window.__commentary61Before,selection=window.getSelection();return{mounted:window.DeepeningShell.isMounted(),draftPreserved:editor.innerHTML===before.html,caretPreserved:selection.anchorOffset===before.offset&&editor.contains(selection.anchorNode),focusPreserved:document.activeElement===editor,readingScrollPreserved:document.querySelector('[data-deepening-reading-document]').scrollTop===before.readingScroll};})()");
+        for (String check : new String[]{"mounted", "draftPreserved", "caretPreserved", "focusPreserved", "readingScrollPreserved"}) {
+            assertTrue("Meditation return: "+check, restored.getBoolean(check));
+        }
+        assertEquals("Network isolation retained", "1", shell("settings get global airplane_mode_on"));
+        assertEquals("Wi-Fi isolation retained", "0", shell("settings get global wifi_on"));
+        save("commentary61", new JSONObject().put("passed",true).put("phase","commentary61")
+            .put("syntheticDataOnly",true).put("offline",true).put("physicalDeviceTouched",false)
+            .put("productionWrites",false).put("rvr60",true).put("strong",true)
+            .put("visibleNativeScenesVerified",true).put("screenshotsAfterWebViewPaint",true)
+            .put("selectedVerseRetained",true).put("nativeBackClosesCommentaryOnly",true)
+            .put("otherBooksHidden",true).put("meditationDate","2026-12-05")
+            .put("meditationSections",2).put("meditationReturn",restored));
     }
 
     private void openBackupSettings() throws Exception {
