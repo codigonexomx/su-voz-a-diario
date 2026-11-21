@@ -31,10 +31,19 @@ export function createBibleVerse({
     headingNotes = [],
     strongSpans = [],
     strongUnalignedIds = [],
-    strongHeadingIds = []
+    strongHeadingIds = [],
+    verseNumbers = null,
+    displayNumber = '',
+    sourceBlockIndices = null,
+    parts = null
 } = {}) {
-    return Object.freeze({
-        number: normalizePositiveInteger(number, 'número de versículo'),
+    const normalizedNumber = normalizePositiveInteger(number, 'número de versículo');
+    const normalizedVerseNumbers = Array.isArray(verseNumbers) && verseNumbers.length
+        ? Object.freeze(verseNumbers.map(value => normalizePositiveInteger(value, 'número de versículo')))
+        : null;
+    const normalizedDisplayNumber = String(displayNumber || '').trim();
+    const verse = {
+        number: normalizedNumber,
         text: String(text || ''),
         reference: String(reference || '').trim(),
         subtitle: String(subtitle || '').trim(),
@@ -47,7 +56,12 @@ export function createBibleVerse({
         })) : []),
         strongUnalignedIds: Object.freeze(Array.isArray(strongUnalignedIds) ? [...strongUnalignedIds] : []),
         strongHeadingIds: Object.freeze(Array.isArray(strongHeadingIds) ? [...strongHeadingIds] : [])
-    });
+    };
+    if (normalizedVerseNumbers) verse.verseNumbers = normalizedVerseNumbers;
+    if (normalizedDisplayNumber) verse.displayNumber = normalizedDisplayNumber;
+    if (Array.isArray(sourceBlockIndices)) verse.sourceBlockIndices = Object.freeze([...sourceBlockIndices]);
+    if (Array.isArray(parts)) verse.parts = Object.freeze(parts.map(part => String(part ?? '')));
+    return Object.freeze(verse);
 }
 
 export function createBibleChapter({
@@ -59,7 +73,11 @@ export function createBibleChapter({
     sourceBookId = '',
     bookName = '',
     chapter,
-    verses
+    verses,
+    blocks = null,
+    notes = null,
+    tables = null,
+    copyright = null
 } = {}) {
     const normalizedVersionId = normalizeRequiredId(versionId, 'versionId');
     const normalizedBookId = normalizeRequiredId(bookId, 'bookId');
@@ -74,12 +92,12 @@ export function createBibleChapter({
         ...verse,
         reference: verse?.reference || (
             normalizedBookName
-                ? `${normalizedBookName} ${normalizedChapter}:${verse?.number}`
+                ? `${normalizedBookName} ${normalizedChapter}:${verse?.displayNumber || verse?.number}`
                 : ''
         )
     }));
 
-    return Object.freeze({
+    const result = {
         id: `${normalizedBookId}.${normalizedChapter}`,
         versionId: normalizedVersionId,
         versionLabel: String(versionLabel || versionId || '').trim(),
@@ -91,5 +109,11 @@ export function createBibleChapter({
         chapter: normalizedChapter,
         chapterNumber: normalizedChapter,
         verses: Object.freeze(normalizedVerses)
-    });
+    };
+    if (Array.isArray(blocks)) result.blocks = Object.freeze([...blocks]);
+    if (Array.isArray(notes)) result.notes = Object.freeze([...notes]);
+    if (Array.isArray(tables)) result.tables = Object.freeze([...tables]);
+    if (copyright != null) result.copyright = copyright;
+
+    return Object.freeze(result);
 }

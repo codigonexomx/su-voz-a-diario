@@ -7,7 +7,7 @@ const INTERNAL_REMOTE_VERSION_IDS = Object.freeze([
 ]);
 
 // Reading keys also include bundled editions; internal overrides remain remote-only.
-const READING_VERSION_IDS = Object.freeze(['rvr60-strong', 'rvr60', ...INTERNAL_REMOTE_VERSION_IDS]);
+const READING_VERSION_IDS = Object.freeze(['rvr60-strong', 'rvr60', 'ntv', ...INTERNAL_REMOTE_VERSION_IDS]);
 
 let bibleAdminState = false;
 

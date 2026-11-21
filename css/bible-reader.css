@@ -554,3 +554,21 @@ body.dark-mode .strong-study-panel.bible-study-panel {
 .strong-panel-attribution summary { cursor: pointer; }
 .strong-panel-attribution p { margin: 8px 0 0; }
 .strong-panel-attribution a { color: var(--strong-accent); }
+.bible-reader-label {
+    margin: 14px 0 6px;
+    color: var(--bible-muted, #606e67);
+    font: 500 0.92em/1.5 var(--font-reading, Georgia, serif);
+}
+.bible-reader-label em { font-style: italic; }
+.bible-chapter-editorial-notes {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--bible-line, #dfe7e2);
+    color: var(--bible-muted, #606e67);
+    font: 500 13px/1.5 var(--font-ui, sans-serif);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.bible-chapter-editorial-notes-label { color: var(--bible-muted, #606e67); }
