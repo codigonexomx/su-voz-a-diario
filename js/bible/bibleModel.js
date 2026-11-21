@@ -77,6 +77,8 @@ export function createBibleChapter({
     blocks = null,
     notes = null,
     tables = null,
+    parallelReferences = null,
+    supplementalContent = null,
     copyright = null
 } = {}) {
     const normalizedVersionId = normalizeRequiredId(versionId, 'versionId');
@@ -113,6 +115,8 @@ export function createBibleChapter({
     if (Array.isArray(blocks)) result.blocks = Object.freeze([...blocks]);
     if (Array.isArray(notes)) result.notes = Object.freeze([...notes]);
     if (Array.isArray(tables)) result.tables = Object.freeze([...tables]);
+    if (Array.isArray(parallelReferences)) result.parallelReferences = Object.freeze([...parallelReferences]);
+    if (Array.isArray(supplementalContent)) result.supplementalContent = Object.freeze([...supplementalContent]);
     if (copyright != null) result.copyright = copyright;
 
     return Object.freeze(result);

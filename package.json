@@ -35,6 +35,7 @@
     "test:bible-plain": "node scripts/validate-bible-plain.mjs",
     "test:rvr1960-strong": "node scripts/validate-rvr1960-strong.mjs",
     "test:ntv": "node scripts/validate-ntv.mjs",
+    "test:tla-bible": "node scripts/validate-tla-bible.mjs",
     "test:commentary": "node scripts/validate-commentary.mjs"
   },
   "dependencies": {

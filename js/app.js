@@ -112,6 +112,10 @@ import {
     LocalNtvProvider,
     NTV_VERSION_ID
 } from './bible/LocalNtvProvider.js';
+import {
+    LocalTlaProvider,
+    TLA_VERSION_ID
+} from './bible/LocalTlaProvider.js';
 import { StrongRepository } from './bible/StrongRepository.js';
 import { LocalRvr1960StrongProvider, RVR1960_STRONG_VERSION_ID } from './bible/LocalRvr1960StrongProvider.js';
 import { StrongStudyPanel, renderStrongVerseText, renderStrongNumber } from './bible/StrongStudyPanel.js';
@@ -377,6 +381,9 @@ const localRvr1960Provider = new LocalRvr1960Provider();
 const localNtvProvider = new LocalNtvProvider({
     dataPath: './data/ntv.json'
 });
+const localTlaProvider = new LocalTlaProvider({
+    dataPath: './data/tla.json'
+});
 const strongRepository = new StrongRepository();
 const localRvr1960StrongProvider = new LocalRvr1960StrongProvider({ baseProvider: localRvr1960Provider, strongRepository });
 const crossReferencesRepository = new CrossReferencesRepository();
@@ -395,6 +402,7 @@ const bibleRepository = new BibleRepository([
     localRvr1960Provider,
     localRvr1960StrongProvider,
     localNtvProvider,
+    localTlaProvider,
     remoteBibleProvider
 ], {
     versionResolver: versionId => versionId
@@ -438,11 +446,15 @@ function renderBibleSourceBlocksDocument(chapterData) {
     const versesByKey = new Map();
     const verseNoteBuckets = new Map();
     const blockNotesByIndex = new Map();
+    const supplementalNotesById = new Map();
     const unassignedChapterNotes = [];
     let sourceNoteIndex = 0;
 
     for (const note of (chapterData.notes || [])) {
-        if (Number.isInteger(note.blockIndex) && chapterData.blocks[note.blockIndex]?.type !== 'verse') {
+        if (note.supplementalContentId) {
+            if (!supplementalNotesById.has(note.supplementalContentId)) supplementalNotesById.set(note.supplementalContentId, []);
+            supplementalNotesById.get(note.supplementalContentId).push(note);
+        } else if (Number.isInteger(note.blockIndex) && chapterData.blocks[note.blockIndex]?.type !== 'verse') {
             if (!blockNotesByIndex.has(note.blockIndex)) blockNotesByIndex.set(note.blockIndex, []);
             blockNotesByIndex.get(note.blockIndex).push(note);
         } else if (note.blockIndex == null && (!Array.isArray(note.verseNumbers) || !note.verseNumbers.length)) {
@@ -486,6 +498,13 @@ function renderBibleSourceBlocksDocument(chapterData) {
         verseNoteBuckets.set(key, buckets);
     }
 
+    const positionedContent = [
+        ...(chapterData.supplementalContent || []).map(content => ({ ...content, contentType: 'supplemental' })),
+        ...(chapterData.parallelReferences || []).map(content => ({ ...content, contentType: 'parallel' }))
+    ].sort((a, b) => (a.sourceOrder ?? Number.MAX_SAFE_INTEGER) - (b.sourceOrder ?? Number.MAX_SAFE_INTEGER));
+    const renderedPositioned = new Set();
+    const validBlockCount = chapterData.blocks.length;
+
     const blocksHtml = [];
     let paragraph = [];
     const seenFragments = new Map();
@@ -495,7 +514,52 @@ function renderBibleSourceBlocksDocument(chapterData) {
         paragraph = [];
     };
 
+    const renderSourceTableHtml = table => {
+        const rowsHtml = (table.rows || []).map(row =>
+            '<tr>' + row.map(cell => {
+                const tag = cell.tag === 'th' ? 'th' : 'td';
+                const rowSpan = Number.isSafeInteger(cell.rowSpan) && cell.rowSpan > 1 ? ` rowspan="${cell.rowSpan}"` : '';
+                const colSpan = Number.isSafeInteger(cell.colSpan) && cell.colSpan > 1 ? ` colspan="${cell.colSpan}"` : '';
+                return `<${tag}${rowSpan}${colSpan}>${escapeBibleHtml(cell.text)}</${tag}>`;
+            }).join('') + '</tr>'
+        ).join('');
+        return `<div class="bible-reader-table-wrap"><table class="bible-reader-source-table"><tbody>${rowsHtml}</tbody></table></div>`;
+    };
+
+    const renderPositionedContent = predicate => {
+        for (const content of positionedContent.filter(predicate)) {
+            if (renderedPositioned.has(content.id)) continue;
+            flush();
+            const noteContext = {
+                bookId: chapterData.bookId,
+                bookName: chapterData.bookName,
+                chapter: chapterData.chapter,
+                verse: 0,
+                versionId: chapterData.versionId
+            };
+            if (content.contentType === 'parallel') {
+                blocksHtml.push(`<p class="bible-reader-parallel-references" aria-label="Pasajes paralelos">${escapeBibleHtml(content.text)}</p>`);
+            } else if (content.kind === 'chapterLabel') {
+                blocksHtml.push(`<p class="bible-reader-chapter-label">${escapeBibleHtml(content.text)}</p>`);
+            } else if (content.kind === 'unnumberedScripture') {
+                const suppText = (content.lines || [content.text]).join('\n');
+                const suppNotes = (supplementalNotesById.get(content.id) || []).map(rawNote => ({
+                    note: { ...rawNote, number: ++sourceNoteIndex },
+                    localOffset: Number.isInteger(rawNote.offset) && rawNote.offset >= 0 && rawNote.offset <= suppText.length
+                        ? rawNote.offset : suppText.length
+                }));
+                const renderedSupp = renderBibleSourceFragmentText(suppText, suppNotes, noteContext);
+                blocksHtml.push(`<p class="bible-reader-unnumbered-scripture" data-supplemental-id="${escapeBibleHtml(content.id)}">${renderedSupp}</p>`);
+            }
+            renderedPositioned.add(content.id);
+        }
+    };
+
+    renderPositionedContent(content => content.beforeBlockIndex == null && content.afterBlockIndex == null);
+
     chapterData.blocks.forEach((block, blockIndex) => {
+        renderPositionedContent(content => content.beforeBlockIndex === blockIndex);
+
         if (block.type !== 'verse') {
             flush();
             const headingNotes = (blockNotesByIndex.get(blockIndex) || []).map(note => ({
@@ -513,11 +577,19 @@ function renderBibleSourceBlocksDocument(chapterData) {
                 ? ` ${headingNotes.map(note => renderBibleSourceNoteMarker(note, noteContext)).join(' ')}`
                 : '';
             const safeBlockText = block.lines.map(escapeBibleHtml).join('<br>');
-            if (block.type === 'label') {
+            if (block.type === 'section1') {
+                blocksHtml.push(`<h2 class="bible-reader-section-title">${safeBlockText}${notesHtml}</h2>`);
+            } else if (block.type === 'section2') {
+                blocksHtml.push(`<p class="bible-reader-section-reference">${safeBlockText}${notesHtml}</p>`);
+            } else if (block.type === 'heading2') {
+                blocksHtml.push(`<h4 class="bible-reader-subheading">${safeBlockText}${notesHtml}</h4>`);
+            } else if (block.type === 'label') {
                 blocksHtml.push(`<p class="bible-reader-label"><em>${safeBlockText}</em>${notesHtml}</p>`);
             } else {
                 blocksHtml.push(`<h3 class="bible-reader-subtitle">${safeBlockText}${notesHtml}</h3>`);
             }
+            renderPositionedContent(content => content.afterBlockIndex === blockIndex &&
+                !(Number.isInteger(content.beforeBlockIndex) && content.beforeBlockIndex >= 0 && content.beforeBlockIndex < validBlockCount));
             return;
         }
 
@@ -543,26 +615,80 @@ function renderBibleSourceBlocksDocument(chapterData) {
         };
         const fragmentText = block.lines.join('\n');
         const fragmentNotes = verseNoteBuckets.get(key)?.[fragmentIndex] || [];
-        const renderedFragment = renderBibleSourceFragmentText(fragmentText, fragmentNotes, noteContext);
         const isFirst = fragmentIndex === 0;
         const numberButton = isFirst
             ? `<button type="button" class="verse-number" data-verse-number="${verse.number}" data-verse-display="${escapeBibleHtml(displayNumber)}" aria-label="Seleccionar versículo ${escapeBibleHtml(displayNumber)}" title="Seleccionar versículo ${escapeBibleHtml(displayNumber)}">${escapeBibleHtml(displayNumber)}</button>`
             : '';
 
-        paragraph.push(`
-            <span
-                class="verse-item verse-selectable${isFirst ? '' : ' verse-fragment-continuation'}"
-                data-verse-number="${verse.number}"
-                data-verse-numbers="${escapeBibleHtml(numbers.join(','))}"
-                data-verse-display="${escapeBibleHtml(displayNumber)}"
-                data-verse-group-key="${escapeBibleHtml(key)}"
-                ${isFirst ? '' : `data-verse-fragment-index="${fragmentIndex}"`}
-                data-verse-text="${safeFullText}"
-                data-verse-full="${safeFullText}"
-            >
-                ${numberButton}
-                <span class="verse-text">${renderedFragment}</span>
-            </span>`);
+        const blockTables = (chapterData.tables || []).filter(table =>
+            table.blockIndex === blockIndex &&
+            Number.isInteger(table.lineStart) && Number.isInteger(table.lineEndExclusive) &&
+            table.lineStart >= 0 && table.lineEndExclusive > table.lineStart &&
+            table.lineEndExclusive <= block.lines.length
+        ).sort((a, b) => a.lineStart - b.lineStart);
+
+        if (!blockTables.length) {
+            const renderedFragment = renderBibleSourceFragmentText(fragmentText, fragmentNotes, noteContext);
+            paragraph.push(`
+                <span
+                    class="verse-item verse-selectable${isFirst ? '' : ' verse-fragment-continuation'}"
+                    data-verse-number="${verse.number}"
+                    data-verse-numbers="${escapeBibleHtml(numbers.join(','))}"
+                    data-verse-display="${escapeBibleHtml(displayNumber)}"
+                    data-verse-group-key="${escapeBibleHtml(key)}"
+                    ${isFirst ? '' : `data-verse-fragment-index="${fragmentIndex}"`}
+                    data-verse-text="${safeFullText}"
+                    data-verse-full="${safeFullText}"
+                >
+                    ${numberButton}
+                    <span class="verse-text">${renderedFragment}</span>
+                </span>`);
+        } else {
+            flush();
+            let lineIndex = 0;
+            let charOffset = 0;
+            let pendingNumberButton = numberButton;
+            const tableParts = [];
+            const appendLinesSegment = lines => {
+                if (!lines.length && !pendingNumberButton) return;
+                const segText = lines.join('\n');
+                const segStart = charOffset;
+                const segEnd = segStart + segText.length;
+                const segNotes = fragmentNotes
+                    .filter(item => item.localOffset >= segStart && item.localOffset <= segEnd)
+                    .map(item => ({ note: item.note, localOffset: item.localOffset - segStart }));
+                const renderedSeg = renderBibleSourceFragmentText(segText, segNotes, noteContext);
+                tableParts.push(`<p class="bible-reading-paragraph">${pendingNumberButton}<span class="verse-text">${renderedSeg}</span></p>`);
+                pendingNumberButton = '';
+                charOffset = segEnd + (lines.length ? 1 : 0);
+            };
+            for (const table of blockTables) {
+                const beforeLines = block.lines.slice(lineIndex, table.lineStart);
+                appendLinesSegment(beforeLines);
+                const skippedLines = block.lines.slice(table.lineStart, table.lineEndExclusive);
+                charOffset += skippedLines.join('\n').length + (skippedLines.length ? 1 : 0);
+                tableParts.push(renderSourceTableHtml(table));
+                lineIndex = table.lineEndExclusive;
+            }
+            const afterLines = block.lines.slice(lineIndex);
+            appendLinesSegment(afterLines);
+            blocksHtml.push(`
+                <div
+                    class="verse-item verse-selectable bible-reader-verse-table${isFirst ? '' : ' verse-fragment-continuation'}"
+                    data-verse-number="${verse.number}"
+                    data-verse-numbers="${escapeBibleHtml(numbers.join(','))}"
+                    data-verse-display="${escapeBibleHtml(displayNumber)}"
+                    data-verse-group-key="${escapeBibleHtml(key)}"
+                    ${isFirst ? '' : `data-verse-fragment-index="${fragmentIndex}"`}
+                    data-verse-text="${safeFullText}"
+                    data-verse-full="${safeFullText}"
+                >
+                    ${tableParts.join('')}
+                </div>`);
+        }
+
+        renderPositionedContent(content => content.afterBlockIndex === blockIndex &&
+            !(Number.isInteger(content.beforeBlockIndex) && content.beforeBlockIndex >= 0 && content.beforeBlockIndex < validBlockCount));
     });
 
     flush();
@@ -754,6 +880,8 @@ const text = verse.text;
             ? '<p class="reading-copyright" data-translation="rvr60">Reina-Valera 1960® · © Sociedades Bíblicas en América Latina, 1960. Renovado © Sociedades Bíblicas Unidas, 1988. Reina-Valera 1960® es una marca registrada de Sociedades Bíblicas Unidas y se puede usar solamente bajo licencia.</p>'
             : chapterData.versionId === 'ntv'
             ? `<p class="reading-copyright" data-translation="ntv">${escapeBibleHtml(chapterData.copyright?.text || 'Santa Biblia, Nueva Traducción Viviente, copyright © 2010 by Tyndale House Foundation. Todos los derechos reservados.')}</p>`
+            : chapterData.versionId === 'tla'
+            ? `<p class="reading-copyright" data-translation="tla">${escapeBibleHtml(chapterData.copyright?.text || 'Traducción en lenguaje actual ® © Sociedades Bíblicas Unidas, 2002, 2004.')}</p>`
             : ''
     };
 }
@@ -1272,7 +1400,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '284'
+            pwaVersion: '285'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -8857,6 +8985,7 @@ getBibleVersionLabel: function(versionKey) {
         rvr60: 'RVR1960',
         'rvr60-strong': 'RVR1960 + Strong',
         ntv: 'NTV',
+        tla: 'TLA',
         rv1909: 'Reina-Valera 1909',
         nbla: 'NBLA',
         nvi: 'NVI',
@@ -13568,7 +13697,7 @@ extractChapterVerse: function(result) {
 },
 
 getLocalBibleSearchVersionId: function() {
-    return ['rv1909', 'rvr60', 'rvr60-strong', 'ntv'].includes(this.currentBibleVersion) ? this.currentBibleVersion : RVR1960_VERSION_ID;
+    return ['rv1909', 'rvr60', 'rvr60-strong', 'ntv', 'tla'].includes(this.currentBibleVersion) ? this.currentBibleVersion : RVR1960_VERSION_ID;
 },
 
 renderBibleSearchResults: function() {
@@ -13611,8 +13740,12 @@ renderBibleSearchResults: function() {
                     const book = this.getBibleBookById(result.bookId);
                     const bookName = book ? book.name : (result.bookName || result.bookId);
                     const chapter = Number(result.chapter || 0);
-                    const verse = Number(result.verse || 0);
-                    const displayVerse = String(result.displayNumber || verse);
+                    const hasVerse = !result.chapterOnly && result.verse != null && Number.isInteger(Number(result.verse)) && Number(result.verse) >= 1;
+                    const verse = hasVerse ? Number(result.verse) : '';
+                    const displayVerse = hasVerse ? String(result.displayNumber || verse) : '';
+                    const referenceLabel = hasVerse
+                        ? `${bookName} ${chapter}:${displayVerse}`
+                        : `${bookName} ${chapter}`;
 
                     return `
                         <button
@@ -13623,9 +13756,10 @@ renderBibleSearchResults: function() {
                             data-book-id="${result.bookId}"
                             data-chapter="${chapter}"
                             data-verse="${verse}"
+                            ${result.supplementalContentId ? `data-supplemental-id="${this.escapeHtml(result.supplementalContentId)}"` : ''}
                         >
                             <span class="bible-search-result-reference">
-                                ${this.escapeHtml(bookName)} ${chapter}:${this.escapeHtml(displayVerse)} · ${this.escapeHtml(this.getBibleVersionLabel(result.versionId))}
+                                ${this.escapeHtml(referenceLabel)} · ${this.escapeHtml(this.getBibleVersionLabel(result.versionId))}
                             </span>
 
                             <span class="bible-search-result-text">
@@ -13822,13 +13956,15 @@ loadLocalBibleSearchData: async function(versionId = this.getLocalBibleSearchVer
 
     const provider = versionId === 'ntv'
         ? localNtvProvider
+        : versionId === 'tla'
+        ? localTlaProvider
         : ['rvr60', 'rvr60-strong'].includes(versionId) ? localRvr1960Provider : localRv1909Provider;
     const bible = await provider.loadBible();
     // A previous version's request must not replace the active search index.
     if (versionId !== this.getLocalBibleSearchVersionId()) return false;
     const verses = [];
 
-    if (versionId === 'ntv' && Array.isArray(bible?.books)) {
+    if ((versionId === 'ntv' || versionId === 'tla') && Array.isArray(bible?.books)) {
         const formatDisplayNumber = numbers => (
             numbers.length > 1 && numbers.every((value, index) => !index || value === numbers[index - 1] + 1)
                 ? `${numbers[0]}-${numbers[numbers.length - 1]}`
@@ -13842,6 +13978,28 @@ loadLocalBibleSearchData: async function(versionId = this.getLocalBibleSearchVer
             const bookOrder = this.bibleBooks.indexOf(book) + 1;
 
             sourceBook.chapters.forEach(sourceChapter => {
+                if (Array.isArray(sourceChapter?.supplementalContent)) {
+                    for (const content of sourceChapter.supplementalContent) {
+                        if (content?.kind !== 'unnumberedScripture') continue;
+                        const normalizedText = String(content.text || (content.lines || []).join('\n')).trim();
+                        if (!normalizedText) continue;
+                        verses.push({
+                            id: content.id,
+                            versionId,
+                            bookId,
+                            bookName: book.name,
+                            testament,
+                            bookOrder,
+                            chapter: sourceChapter.number,
+                            verse: null,
+                            verseNumbers: [],
+                            displayNumber: '',
+                            chapterOnly: true,
+                            supplementalContentId: content.id,
+                            text: normalizedText
+                        });
+                    }
+                }
                 if (!Array.isArray(sourceChapter?.blocks)) return;
                 const groups = new Map();
                 for (const block of sourceChapter.blocks) {
@@ -14317,8 +14475,9 @@ navigateToVerse: function(apiBookId, chapter, verse, endVerse = null, versionId 
 scrollToTargetVerse: function() {
     let start = this.targetVerseStart || this.targetVerse;
     let end = this.targetVerseEnd || this.targetVerse;
+    const supplementalId = this.targetSupplementalId || null;
 
-    if (!start) return;
+    if (!start && !supplementalId) return;
     
     const bookId = this.selectedBibleBook;
     const chapter = this.selectedBibleChapter;
@@ -14331,6 +14490,20 @@ scrollToTargetVerse: function() {
             || this.currentBibleVersion !== version || this._bibleTargetScrollRequestId !== requestId) return;
         const shell = this.$content?.querySelector(`[data-reading-date="${createBibleReadingKey(version, bookId, chapter)}"]`);
         if (!shell) return;
+        if (supplementalId && !start) {
+            const suppElement = shell.querySelector?.(`[data-supplemental-id="${supplementalId}"]`);
+            if (suppElement) {
+                const headerBottom = this.$content.querySelector('.bible-reader-fixed-header')?.getBoundingClientRect().bottom || 72;
+                this.scrollWindowInstantly(Math.max(0,
+                    (window.scrollY || 0) + suppElement.getBoundingClientRect().top - headerBottom - 16));
+                this.continuousReader?.update();
+                suppElement.classList.add('highlight-temporary');
+                setTimeout(() => suppElement.classList.remove('highlight-temporary'), 2000);
+            }
+            this.targetSupplementalId = null;
+            this._bibleTargetScrollTimer = null;
+            return;
+        }
         const findVerseElements = targetNumber => {
             const targetStr = String(targetNumber);
             if (typeof shell.querySelectorAll === 'function') {
@@ -15235,6 +15408,7 @@ renderBibleVersionPicker: function() {
         { id: 'rvr60', label: 'Reina-Valera 1960' },
         { id: 'rvr60-strong', label: 'Reina-Valera 1960 + Strong' },
         { id: 'ntv', label: 'Nueva Traducción Viviente' },
+        { id: 'tla', label: 'Traducción en Lenguaje Actual' },
         { id: 'rv1909', label: 'Reina-Valera 1909' },
         { id: 'nbla', label: 'NBLA' },
         { id: 'nvi', label: 'NVI' },
@@ -15314,11 +15488,12 @@ getBibleReaderVersions: function() {
         { id: 'rvr60', label: 'RVR1960', name: 'Reina-Valera 1960' },
         { id: 'rvr60-strong', label: 'RVR1960 + Strong', name: 'Reina-Valera 1960 con números Strong' },
         { id: 'ntv', label: 'NTV', name: 'Nueva Traducción Viviente' },
+        { id: 'tla', label: 'TLA', name: 'Traducción en Lenguaje Actual' },
         { id: 'rv1909', label: 'RV1909', name: 'Reina-Valera 1909' },
         { id: 'nbla', label: 'NBLA', name: 'Nueva Biblia de las Américas' },
         { id: 'nvi', label: 'NVI', name: 'Nueva Versión Internacional' },
         { id: 'biblia-libre', label: 'BL', name: 'Biblia Libre' }
-    ].filter(version => ['rv1909', 'rvr60', 'rvr60-strong', 'ntv'].includes(version.id) || canAccessRemoteBibleVersions());
+    ].filter(version => ['rv1909', 'rvr60', 'rvr60-strong', 'ntv', 'tla'].includes(version.id) || canAccessRemoteBibleVersions());
 },
 
 renderBibleReaderVersionSwitcher: function() {
@@ -16058,7 +16233,7 @@ renderBibleReading: async function() {
 
         this.restoreHighlightsInDOMForVerses(readingDateKey);
 
-        if (this.targetVerse) {
+        if (this.targetVerse || this.targetSupplementalId) {
             this.scrollToTargetVerse();
             this.bibleRestoreScrollPending = false;
             this.bibleSuppressScrollSave = false;
@@ -16109,7 +16284,7 @@ renderBibleReading: async function() {
             return;
         }
 
-        const isRemote = !['rv1909', 'rvr60', 'rvr60-strong', 'ntv'].includes(this.currentBibleVersion);
+        const isRemote = !['rv1909', 'rvr60', 'rvr60-strong', 'ntv', 'tla'].includes(this.currentBibleVersion);
 
         let errorMessage = error?.message || 'Intenta nuevamente más tarde.';
         let actionButtonHtml = `
@@ -19328,12 +19503,16 @@ const navigateToVerseBtn = e.target.closest('[data-action="navigate-to-verse"]')
 if (navigateToVerseBtn) {
     const bookId = navigateToVerseBtn.getAttribute('data-book-id');
     const chapter = parseInt(navigateToVerseBtn.getAttribute('data-chapter'));
-    const verse = parseInt(navigateToVerseBtn.getAttribute('data-verse'));
+    const rawVerse = navigateToVerseBtn.getAttribute('data-verse');
+    const parsedVerse = rawVerse ? parseInt(rawVerse, 10) : null;
+    const verse = Number.isInteger(parsedVerse) && parsedVerse >= 1 ? parsedVerse : null;
+    const supplementalId = navigateToVerseBtn.getAttribute('data-supplemental-id') || '';
     const versionId = navigateToVerseBtn.getAttribute('data-version-id');
     if (versionId && this.getBibleReaderVersions().some(version => version.id === versionId)) {
         this.currentBibleVersion = versionId;
         localStorage.setItem('current-bible-version', versionId);
     }
+    this.targetSupplementalId = supplementalId || null;
     this.navigateToVerse(bookId, chapter, verse);
     return;
 }

@@ -8,7 +8,7 @@ const checks = [
     'validate-analytics-service', 'validate-first-experience', 'validate-reading-presentation', 'validate-daily-reading-flow', 'validate-daily-reading-voice', 'validate-calendar', 'validate-journey', 'validate-workshop', 'validate-app-connections',
     'validate-community-voice', 'validate-library-upgrade', 'validate-continuous-reader',
     'validate-bible-continuous-voice', 'validate-bible-study', 'validate-bible-plain', 'validate-bible-reader-presentation',
-    'validate-rvr1960', 'validate-rvr1960-references', 'validate-rvr1960-strong', 'validate-rvr1960-links', 'validate-ntv', 'validate-commentary', 'validate-commentary-ui', 'validate-bible-phase3', 'validate-bible-phase6', 'validate-bible-phase7',
+    'validate-rvr1960', 'validate-rvr1960-references', 'validate-rvr1960-strong', 'validate-rvr1960-links', 'validate-ntv', 'validate-tla-bible', 'validate-commentary', 'validate-commentary-ui', 'validate-bible-phase3', 'validate-bible-phase6', 'validate-bible-phase7',
     'validate-bottom-nav', 'validate-deepening-keyboard', 'validate-deepening-steps', 'validate-meditation-learning', 'validate-glass-nav', 'validate-deep-links',
     'test-community-hotfix-203', 'audit-bottom-nav', 'validate-stabilization', 'validate-account-recovery',
     'validate-community-global', 'validate-community-experience', 'validate-local-backup', 'validate-app-check', 'validate-private-assets',
