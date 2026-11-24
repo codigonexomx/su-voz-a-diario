@@ -1,4 +1,4 @@
-const APP_VERSION = '285';
+const APP_VERSION = '286';
 const CACHE_NAME = `su-voz-${APP_VERSION}`;
 const DYNAMIC_CACHE = `su-voz-dynamic-${APP_VERSION}`;
 const OFFICIAL_ORIGIN = 'https://suvoz.app';
@@ -8,7 +8,7 @@ const PRIVATE_ASSETS = [
   './js/services/AppCheckService.js',
   './js/core/securityConfig.js',
   './js/vendor/jspdf-4.2.1.umd.min.js',
-  './css/fonts-local.css?v=285',
+  './css/fonts-local.css?v=286',
   './assets/fonts/inter-normal-400.ttf',
   './assets/fonts/inter-normal-500.ttf',
   './assets/fonts/inter-normal-600.ttf',
@@ -30,7 +30,7 @@ const STATIC_ASSETS = [
   './js/workshop/WorkshopController.js',
   './js/workshop/WorkshopScripture.js',
   './js/services/WorkshopStorage.js',
-  './css/workshop.css?v=285',
+  './css/workshop.css?v=286',
   './js/AccountPanel.js',
   './js/services/AccountRecoveryService.js',
   './js/utils/bibleIcons.js',
@@ -40,51 +40,51 @@ const STATIC_ASSETS = [
   './js/calendar/CalendarView.js',
   './js/calendar/CalendarController.js',
   './js/community/CommunityExperience.js',
-  './css/community.css?v=285',
-  './css/calendar.css?v=285',
+  './css/community.css?v=286',
+  './css/calendar.css?v=286',
   './js/vendor/lucide-LICENSE.txt',
   './js/services/DeepLinkService.js',
   './',
   './index.html',
-  './manifest.json?v=285',
-  './css/styles.css?v=285',
-  './css/deepening-mode.css?v=285',
-  './css/deepening-shell.css?v=285',
-  './css/meditation-document-viewer.css?v=285',
-  './css/meditation-actions-panel.css?v=285',
-  './js/NotebookGestureController.js?v=285',
-  './js/app.js?v=285',
-  './js/ReadingPositionManager.js?v=285',
-  './js/ReadingDocument.js?v=285',
-  './js/DocumentFactory.js?v=285',
-  './js/DocumentExporter.js?v=285',
-  './js/PdfDocumentBuilder.js?v=285',
-  './js/PdfExporter.js?v=285',
-  './js/ShareService.js?v=285',
-  './js/MeditationDocumentViewer.js?v=285',
-  './js/MeditationActionsPanel.js?v=285',
-  './js/MeditationDocument.js?v=285',
-  './js/KeyboardManager.js?v=285',
-  './js/KeyboardViewportManager.js?v=285',
-  './js/DeepeningFocusDiagnostics.js?v=285',
-  './js/DeepeningShell.js?v=285',
-  './js/utils/dompurify.min.js?v=285',
-  './js/communityIdentity.js?v=285',
-  './js/avatarGenerator.js?v=285',
-  './js/richTextEditor.js?v=285',
-  './js/voiceReflections.js?v=285',
-  './js/liveFeed.js?v=285',
-  './js/moderation.js?v=285',
-  './js/userMetrics.js?v=285',
-  './js/notifications.js?v=285',
-  './js/performance.js?v=285',
-  './js/accessibility.js?v=285',
-  './js/i18n.js?v=285',
-  './js/toastManager.js?v=285',
-  './js/communityAnalytics.js?v=285',
-  './js/searchCommunity.js?v=285',
-  './js/filters.js?v=285',
-  './js/offlineSupport.js?v=285',
+  './manifest.json?v=286',
+  './css/styles.css?v=286',
+  './css/deepening-mode.css?v=286',
+  './css/deepening-shell.css?v=286',
+  './css/meditation-document-viewer.css?v=286',
+  './css/meditation-actions-panel.css?v=286',
+  './js/NotebookGestureController.js?v=286',
+  './js/app.js?v=286',
+  './js/ReadingPositionManager.js?v=286',
+  './js/ReadingDocument.js?v=286',
+  './js/DocumentFactory.js?v=286',
+  './js/DocumentExporter.js?v=286',
+  './js/PdfDocumentBuilder.js?v=286',
+  './js/PdfExporter.js?v=286',
+  './js/ShareService.js?v=286',
+  './js/MeditationDocumentViewer.js?v=286',
+  './js/MeditationActionsPanel.js?v=286',
+  './js/MeditationDocument.js?v=286',
+  './js/KeyboardManager.js?v=286',
+  './js/KeyboardViewportManager.js?v=286',
+  './js/DeepeningFocusDiagnostics.js?v=286',
+  './js/DeepeningShell.js?v=286',
+  './js/utils/dompurify.min.js?v=286',
+  './js/communityIdentity.js?v=286',
+  './js/avatarGenerator.js?v=286',
+  './js/richTextEditor.js?v=286',
+  './js/voiceReflections.js?v=286',
+  './js/liveFeed.js?v=286',
+  './js/moderation.js?v=286',
+  './js/userMetrics.js?v=286',
+  './js/notifications.js?v=286',
+  './js/performance.js?v=286',
+  './js/accessibility.js?v=286',
+  './js/i18n.js?v=286',
+  './js/toastManager.js?v=286',
+  './js/communityAnalytics.js?v=286',
+  './js/searchCommunity.js?v=286',
+  './js/filters.js?v=286',
+  './js/offlineSupport.js?v=286',
   './js/core/constants.js',
   './assets/video-intros/c3FzB5MiJ38.jpg',
   './assets/video-intros/wyEJ9jynm0M.jpg',
@@ -108,13 +108,13 @@ const STATIC_ASSETS = [
   './js/bible/CommentaryRepository.js',
   './js/bible/commentaryLookup.js',
   './js/bible/CommentaryPanel.js',
-  './css/commentary-panel.css?v=285',
+  './css/commentary-panel.css?v=286',
   './js/bible/CrossReferencesRepository.js',
   './js/bible/SectionHeadingsRepository.js',
   './js/bible/ContinuousReader.js',
   './js/bible/BibleReaderPresentation.js',
   './js/bible/BibleReaderSelection.js',
-  './css/bible-reader.css?v=285',
+  './css/bible-reader.css?v=286',
   './js/bible/FootnotesRepository.js',
   './js/bible/RemoteBibleProvider.js',
   './js/services/AnalyticsService.js',
@@ -234,30 +234,31 @@ const STATIC_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-pdf.png',
-  './icons/splash.png'
+  './media/intro-2026-11-24-poster.jpg',
+  './media/intro-2026-11-24.mp4'
 ];
 
 const REQUIRED_ASSETS = new Set([
   './js/bible/CommentaryRepository.js',
   './js/bible/commentaryLookup.js',
   './js/bible/CommentaryPanel.js',
-  './css/commentary-panel.css?v=285',
+  './css/commentary-panel.css?v=286',
   './js/workshop/WorkshopContent.js',
   './js/workshop/WorkshopView.js',
   './js/workshop/WorkshopController.js',
   './js/workshop/WorkshopScripture.js',
   './js/services/WorkshopStorage.js',
-  './css/workshop.css?v=285',
+  './css/workshop.css?v=286',
   './js/community/CommunityExperience.js',
-  './css/community.css?v=285',
-  './js/notifications.js?v=285',
+  './css/community.css?v=286',
+  './js/notifications.js?v=286',
   './js/calendar/CalendarModel.js',
   './js/calendar/CalendarView.js',
   './js/calendar/CalendarController.js',
-  './css/calendar.css?v=285',
+  './css/calendar.css?v=286',
   './js/bible/BibleReaderPresentation.js',
   './js/bible/BibleReaderSelection.js',
-  './css/bible-reader.css?v=285',
+  './css/bible-reader.css?v=286',
   ...PRIVATE_ASSETS,
   './js/AccountPanel.js',
   './js/services/AccountRecoveryService.js',
@@ -303,32 +304,33 @@ const REQUIRED_ASSETS = new Set([
   './js/MeditationSessionStorage.js',
   './js/MeditationLibrary.js',
   './js/JourneyView.js',
-  './js/KeyboardViewportManager.js?v=285',
-  './js/DeepeningFocusDiagnostics.js?v=285',
+  './js/KeyboardViewportManager.js?v=286',
+  './js/DeepeningFocusDiagnostics.js?v=286',
   './',
   './index.html',
-  './manifest.json?v=285',
-  './css/styles.css?v=285',
-  './css/deepening-mode.css?v=285',
-  './css/deepening-shell.css?v=285',
-  './css/meditation-document-viewer.css?v=285',
-  './css/meditation-actions-panel.css?v=285',
-  './js/NotebookGestureController.js?v=285',
-  './js/app.js?v=285',
-  './js/ReadingPositionManager.js?v=285',
-  './js/ReadingDocument.js?v=285',
-  './js/DocumentFactory.js?v=285',
-  './js/DocumentExporter.js?v=285',
-  './js/PdfDocumentBuilder.js?v=285',
-  './js/PdfExporter.js?v=285',
-  './js/ShareService.js?v=285',
-  './js/MeditationDocumentViewer.js?v=285',
-  './js/MeditationActionsPanel.js?v=285',
-  './js/MeditationDocument.js?v=285',
-  './js/KeyboardManager.js?v=285',
-  './js/DeepeningShell.js?v=285',
-  './js/communityIdentity.js?v=285',
-  './js/core/appLinks.js'
+  './manifest.json?v=286',
+  './css/styles.css?v=286',
+  './css/deepening-mode.css?v=286',
+  './css/deepening-shell.css?v=286',
+  './css/meditation-document-viewer.css?v=286',
+  './css/meditation-actions-panel.css?v=286',
+  './js/NotebookGestureController.js?v=286',
+  './js/app.js?v=286',
+  './js/ReadingPositionManager.js?v=286',
+  './js/ReadingDocument.js?v=286',
+  './js/DocumentFactory.js?v=286',
+  './js/DocumentExporter.js?v=286',
+  './js/PdfDocumentBuilder.js?v=286',
+  './js/PdfExporter.js?v=286',
+  './js/ShareService.js?v=286',
+  './js/MeditationDocumentViewer.js?v=286',
+  './js/MeditationActionsPanel.js?v=286',
+  './js/MeditationDocument.js?v=286',
+  './js/KeyboardManager.js?v=286',
+  './js/DeepeningShell.js?v=286',
+  './js/communityIdentity.js?v=286',
+  './js/core/appLinks.js',
+  './media/intro-2026-11-24-poster.jpg'
 ]);
 
 // Firebase compat en Service Worker.
@@ -490,6 +492,11 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  if (request.destination === 'video' || url.pathname.endsWith('.mp4')) {
+    event.respondWith(cacheFirstMediaStrategy(request));
+    return;
+  }
+
   if (request.destination === 'image') {
     event.respondWith(cacheFirstStrategy(request));
     return;
@@ -497,6 +504,75 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(staleWhileRevalidateStrategy(request));
 });
+
+async function buildRangeResponse(request, fullResponse) {
+  const rangeHeader = request.headers.get('range');
+  if (!rangeHeader) return fullResponse;
+
+  const buffer = await fullResponse.arrayBuffer();
+  const total = buffer.byteLength;
+  const match = /bytes=(\d*)-(\d*)/.exec(rangeHeader);
+
+  if (!match) {
+    return new Response(buffer, {
+      status: 200,
+      headers: {
+        'Content-Type': fullResponse.headers.get('Content-Type') || 'video/mp4',
+        'Content-Length': String(total),
+        'Accept-Ranges': 'bytes'
+      }
+    });
+  }
+
+  const start = match[1] ? Number.parseInt(match[1], 10) : 0;
+  const end = match[2] ? Math.min(Number.parseInt(match[2], 10), total - 1) : total - 1;
+
+  if (Number.isNaN(start) || Number.isNaN(end) || start > end || start >= total) {
+    return new Response(null, {
+      status: 416,
+      headers: {
+        'Content-Range': `bytes */${total}`
+      }
+    });
+  }
+
+  const sliced = buffer.slice(start, end + 1);
+  return new Response(sliced, {
+    status: 206,
+    statusText: 'Partial Content',
+    headers: {
+      'Content-Type': fullResponse.headers.get('Content-Type') || 'video/mp4',
+      'Content-Range': `bytes ${start}-${end}/${total}`,
+      'Content-Length': String(sliced.byteLength),
+      'Accept-Ranges': 'bytes'
+    }
+  });
+}
+
+async function cacheFirstMediaStrategy(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request.url);
+  if (cached) {
+    return buildRangeResponse(request, cached.clone());
+  }
+
+  try {
+    const response = await fetch(request);
+    if (response && response.ok && response.status === 200) {
+      try {
+        await cache.put(request.url, response.clone());
+      } catch (e) {
+        console.warn('[SW] No se pudo guardar medio en caché:', request.url, e);
+      }
+    }
+    return response;
+  } catch (error) {
+    return new Response('Sin conexión', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+    });
+  }
+}
 
 async function cacheFirstStrategy(request) {
   const cache = await caches.open(CACHE_NAME);

@@ -7162,13 +7162,18 @@ body.dark-mode .about-feature {
 #splash-screen {
     position: fixed;
     inset: 0;
-    background: #0f172a url("../icons/splash 2.png") center / cover no-repeat;
+    width: 100%;
+    height: 100%;
+    width: 100dvw;
+    height: 100dvh;
+    background-color: #c8b6a0;
+    background-image: radial-gradient(circle at 50% 35%, #ddd0bc 0%, #c8b6a0 58%, #b39b80 100%);
     z-index: 30000;
     opacity: 1;
     visibility: visible;
     transition:
-        opacity 700ms ease,
-        visibility 700ms ease;
+        opacity 500ms ease,
+        visibility 500ms ease;
     overflow: hidden;
 }
 
@@ -7179,25 +7184,34 @@ body.dark-mode .about-feature {
     pointer-events: none;
 }
 
-#splash-screen img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
+#splash-screen img,
 #splash-screen video {
     position: absolute;
     inset: 0;
     width: 100%;
     height: 100%;
+    max-inline-size: none;
     object-fit: cover;
-    opacity: 0;
+    object-position: center center;
+    display: block;
     pointer-events: none;
+}
+
+#splash-screen video {
+    opacity: 0;
+    background: transparent;
 }
 
 #splash-screen.is-video-playing video {
     opacity: 1;
+}
+
+@media (min-aspect-ratio: 5/8), (orientation: landscape) {
+    #splash-screen img,
+    #splash-screen video {
+        object-fit: contain;
+        object-position: center center;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -7205,6 +7219,10 @@ body.dark-mode .about-feature {
         transition:
             opacity 80ms ease,
             visibility 80ms ease;
+    }
+
+    #splash-screen video {
+        display: none;
     }
 }
 

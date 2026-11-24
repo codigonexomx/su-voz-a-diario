@@ -1400,7 +1400,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '285'
+            pwaVersion: '286'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -23181,6 +23181,10 @@ function hideSplashScreen(delay = 0) {
         };
 
         splash.classList.add('intro-exiting', 'is-hidden');
+        if (typeof splash.getAnimations === 'function' && splash.getAnimations().length === 0) {
+            removeSplash();
+            return;
+        }
         splash.addEventListener('transitionend', handleSplashTransitionEnd);
         removalFallback = setTimeout(removeSplash, 900);
     }, delay);
