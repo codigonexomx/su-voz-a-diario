@@ -33,8 +33,9 @@ export function positionBibleStudyPanel(anchor, panel) {
     const bottom = Math.min(top + height - padding, nav?.top > top ? nav.top - padding : Infinity);
     const docked = reader && width >= 1100 && left + width - reader.right >= 320;
     const panelWidth = docked ? 296 : Math.min(480, width - padding * 2);
+    const readingReference = Boolean(panel.querySelector?.('.bible-crossref-panel-text'));
     const maxHeight = docked ? Math.max(120, bottom - Math.max(top + padding, reader.top))
-        : Math.max(120, Math.min(height * 0.58, bottom - top - padding));
+        : Math.max(120, Math.min(height * (readingReference ? 0.7 : 0.58), bottom - top - padding));
     panel.classList.add('bible-study-panel');
     panel.classList.toggle('is-docked', Boolean(docked));
     panel.classList.remove('is-above', 'is-below');

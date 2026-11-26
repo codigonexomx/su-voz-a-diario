@@ -321,7 +321,9 @@ body .bible-reader-view .verse-note-icon svg { width: 16px; height: 16px; }
 .bible-study-panel .bible-footnote-popover-inner { display: block; }
 .bible-study-panel .bible-footnote-popover-number { display: none; }
 .bible-study-panel .bible-footnote-popover-text { white-space: pre-line; font: inherit; color: inherit; }
-.bible-study-panel .bible-crossref-panel-inner { max-height: none; padding: 0; overflow: visible; }
+.bible-crossref-popover.bible-study-panel { padding: 0; overflow: hidden; }
+.bible-study-panel .bible-crossref-panel-inner { max-height: calc(var(--bible-crossref-max-height) - 2px); padding: 14px 16px; }
+.bible-study-panel .bible-crossref-panel-text { overflow: hidden; }
 .bible-study-panel .bible-crossref-panel-head { position: static; background: transparent; }
 .bible-study-panel .bible-crossref-passage-verse { font: 400 17px/1.8 var(--font-reading-content, Georgia, serif); }
 .bible-study-panel .bible-crossref-panel-close { width: 36px; height: 36px; border-radius: 4px; }
@@ -427,6 +429,7 @@ body .bible-reader-view .bible-source-parallel {
     cursor: pointer;
 }
 .bible-crossref-source-version { display: block; margin-bottom: 10px; }
+.bible-crossref-panel-text .bible-crossref-source-version { margin-bottom: 2px; }
 
 /* Strong study keeps the reading typography and puts lexical details in one quiet panel. */
 .bible-strong-verse {

@@ -1400,7 +1400,7 @@ console.log('[App] Inicialización completada');
         analyticsService.init({
             platform: this.getAnalyticsPlatform(),
             appVersion: '2.1',
-            pwaVersion: '286'
+            pwaVersion: '287'
         });
         window.SuVozAnalytics = analyticsService;
     },
@@ -12070,7 +12070,6 @@ getBibleCrossReferencePassage: async function(reference, versionId = this.curren
 
     const chapterCache = new Map();
     const passageVerses = [];
-    const maxPassageVerses = 120;
 
     const loadChapter = async (bookId, chapter) => {
         const chapterKey = `${bookId}.${chapter}`;
@@ -12088,12 +12087,11 @@ getBibleCrossReferencePassage: async function(reference, versionId = this.curren
     const appendVerses = (chapterData, firstVerse, lastVerse) => {
         const verses = Array.isArray(chapterData?.verses) ? chapterData.verses : [];
         const first = Math.max(1, Number(firstVerse) || 1);
-        const last = Math.min(verses.length, Number(lastVerse) || verses.length);
+        const last = Number(lastVerse) || Infinity;
 
-        for (let verseNumber = first; verseNumber <= last; verseNumber += 1) {
-            if (passageVerses.length >= maxPassageVerses) return;
-
-            const verse = verses[verseNumber - 1];
+        for (const verse of verses) {
+            const numbers = verse.verseNumbers?.length ? verse.verseNumbers : [verse.number];
+            if (!numbers.some(number => number >= first && number <= last)) continue;
             const text = this.normalizeBibleText(
                 String(verse?.text || '').replace(/\[\[REF:[fc]:[^\]]+\]\]/g, '')
             );
@@ -12104,6 +12102,8 @@ getBibleCrossReferencePassage: async function(reference, versionId = this.curren
                 bookName: chapterData.bookName,
                 chapter: chapterData.chapter,
                 number: verse.number,
+                verseNumbers: numbers,
+                displayNumber: verse.displayNumber || String(verse.number),
                 text
             });
         }
@@ -12116,31 +12116,29 @@ getBibleCrossReferencePassage: async function(reference, versionId = this.curren
         for (let chapter = firstChapter; chapter <= lastChapter; chapter += 1) {
             const chapterData = await loadChapter(start.bookId, chapter);
             const firstVerse = chapter === start.chapter ? start.verse : 1;
-            const lastVerse = chapter === end.chapter ? end.verse : chapterData.verses.length;
+            const lastVerse = chapter === end.chapter ? end.verse : null;
             appendVerses(chapterData, firstVerse, lastVerse);
-
-            if (passageVerses.length >= maxPassageVerses) break;
         }
     } else {
         const firstBookIndex = this.bibleBooks.findIndex(book => book.id === start.bookId);
         const lastBookIndex = this.bibleBooks.findIndex(book => book.id === end.bookId);
         if (firstBookIndex < 0 || lastBookIndex < firstBookIndex) return null;
-        for (let bookIndex = firstBookIndex; bookIndex <= lastBookIndex && passageVerses.length < maxPassageVerses; bookIndex += 1) {
+        for (let bookIndex = firstBookIndex; bookIndex <= lastBookIndex; bookIndex += 1) {
             const book = this.bibleBooks[bookIndex];
             const firstChapter = bookIndex === firstBookIndex ? start.chapter : 1;
             const lastChapter = bookIndex === lastBookIndex ? end.chapter : book.chapters;
-            for (let chapter = firstChapter; chapter <= lastChapter && passageVerses.length < maxPassageVerses; chapter += 1) {
+            for (let chapter = firstChapter; chapter <= lastChapter; chapter += 1) {
                 const chapterData = await loadChapter(book.id, chapter);
                 appendVerses(chapterData,
                     bookIndex === firstBookIndex && chapter === start.chapter ? start.verse : 1,
-                    bookIndex === lastBookIndex && chapter === end.chapter ? end.verse : chapterData.verses.length);
+                    bookIndex === lastBookIndex && chapter === end.chapter ? end.verse : null);
             }
         }
     }
 
     const passage = Object.freeze({
         verses: Object.freeze(passageVerses),
-        isTruncated: passageVerses.length >= maxPassageVerses
+        isTruncated: false
     });
 
     this.bibleCrossReferencePassageCache.set(cacheKey, passage);
@@ -12150,23 +12148,24 @@ getBibleCrossReferencePassage: async function(reference, versionId = this.curren
 renderBibleCrossReferencePassage: function(state) {
     const reference = state.selectedReference;
     const passage = state.passage;
-    const visibleVerses = passage?.verses?.slice(0, 4) || [];
-    const hasMoreVerses = Boolean(
-        passage && (passage.isTruncated || passage.verses.length > visibleVerses.length)
-    );
+    const visibleVerses = passage?.verses || [];
+    const verseCount = visibleVerses.reduce((count, verse) => count + (verse.verseNumbers?.length || 1), 0);
+    const hasGroupedVerses = visibleVerses.some(verse => verse.verseNumbers?.length > 1);
+    const spansChapters = reference.start.bookId !== reference.end.bookId
+        || reference.start.chapter !== reference.end.chapter;
     const fullLabel = this.formatBibleCrossReferenceLabel(reference);
     const passageHtml = state.loading
         ? '<p class="bible-crossref-panel-loading">Cargando el texto…</p>'
         : reference?.titleOnly && passage?.headings?.length
-            ? `<div class="bible-crossref-passage" aria-label="Título del salmo">${passage.headings.map(text => `<p>${this.escapeHtml(text)}</p>`).join('')}</div>`
+            ? `<div class="bible-crossref-passage" role="region" tabindex="0" aria-label="Título del salmo">${passage.headings.map(text => `<p>${this.escapeHtml(text)}</p>`).join('')}</div>`
         : visibleVerses.length
-            ? `<div class="bible-crossref-passage" aria-label="Texto bíblico">
+            ? `<div class="bible-crossref-passage" role="region" tabindex="0" aria-label="Texto de ${this.escapeHtml(fullLabel)}">
                 ${visibleVerses.map(verse => `
                     <p class="bible-crossref-passage-verse">
-                        <sup>${verse.number}</sup>${this.escapeHtml(verse.text)}
+                        <sup>${spansChapters ? `${this.escapeHtml(verse.bookName)} ${verse.chapter}:` : ''}${this.escapeHtml(verse.displayNumber || String(verse.number))}</sup>${this.escapeHtml(verse.text)}
                     </p>
                 `).join('')}
-                ${hasMoreVerses ? '<p class="bible-crossref-preview-note">Vista previa · Ir al pasaje para ver completo</p>' : ''}
+                ${hasGroupedVerses ? '<p class="bible-crossref-preview-note">Se muestran completos los versículos que esta traducción agrupa.</p>' : ''}
             </div>`
             : '<p class="bible-crossref-panel-loading">No se pudo cargar el texto.</p>';
 
@@ -12195,6 +12194,7 @@ renderBibleCrossReferencePassage: function(state) {
             </div>
             <strong class="bible-crossref-panel-reference">${this.escapeHtml(fullLabel)}</strong>
             ${state.versionId ? `<small class="bible-crossref-source-version">${this.escapeHtml(this.getBibleVersionLabel(state.versionId))}</small>` : ''}
+            ${!state.loading && visibleVerses.length ? `<small class="bible-crossref-passage-count">${verseCount} ${verseCount === 1 ? 'versículo' : 'versículos'}</small>` : ''}
             ${passageHtml}
             ${state.loading ? '' : `
                 <button
@@ -12614,7 +12614,9 @@ mountBibleCrossReferencePopover: function(anchor, state) {
     popover.innerHTML = this.renderBibleCrossReferencePanel(state);
     document.body.appendChild(popover);
 
-    const updatePosition = () => {
+    const updatePosition = event => {
+        // Scrolling the cited text must not remeasure or move its container.
+        if (event?.type === 'scroll' && event.target instanceof Node && popover.contains(event.target)) return;
         this.positionBibleCrossReferencePopover(anchor, popover);
     };
     const handleKeydown = event => {

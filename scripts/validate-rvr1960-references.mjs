@@ -5,6 +5,8 @@ import vm from 'node:vm';
 import { parse as parseJavaScript } from 'acorn';
 import { parse as parseHTML } from 'node-html-parser';
 import { LocalRvr1960Provider, RVR1960_VERSION_ID } from '../js/bible/LocalRvr1960Provider.js';
+import { LocalTlaProvider } from '../js/bible/LocalTlaProvider.js';
+import { LocalNtvProvider } from '../js/bible/LocalNtvProvider.js';
 import { renderBibleReadingDocument } from '../js/bible/BibleReaderPresentation.js';
 import { escapeBibleHtml } from '../js/utils/text.js';
 import { normalizeBibleVoiceText } from '../js/bible/BibleReaderSelection.js';
@@ -277,6 +279,50 @@ assert.equal(await passageReader.call(passageApp, gen13.references[0], 'rvr60'),
 assert.equal(requestedVersions.length, readsBeforeCache);
 await passageReader.call(passageApp, gen13.references[0], 'nvi');
 assert.equal(requestedVersions.at(-1), 'nvi', 'Passage cache is isolated per edition.');
+
+// Regression: Revelation 4:7 must show all six verses of Ezekiel 1:5–10.
+const rev47 = byBook.get('rev').chapterAnnotations[3].verses['7']
+    .find(note => note.references.some(ref => ref.start.bookId === 'ezk' && ref.start.chapter === 1));
+assert(rev47);
+const renderPassage = method('renderBibleCrossReferencePassage');
+const renderApp = { escapeHtml: escapeBibleHtml, getBibleVersionLabel: () => 'RVR1960',
+    getBibleBookById: id => books.find(book => book.id === id),
+    formatBibleCrossReferenceLabel: method('formatBibleCrossReferenceLabel'),
+    formatBibleCrossReferenceAccessibleLabel: method('formatBibleCrossReferenceAccessibleLabel') };
+for (const [reference, expectedCount] of [
+    [rev47.references[0], 6], [rev47.references[1], 1],
+    [parseReference('Ez. 1.1-8.')[0], 8], [parseReference('Ez. 1.1-9.')[0], 9],
+    [parseReference('Sal. 119.1-176.')[0], 176], [ex31.note.references[0], 7], [crossBook, 3]
+]) {
+    const passage = await passageReader.call(passageApp, reference, 'rvr60');
+    assert.equal(passage.verses.length, expectedCount, 'Load the whole cited range, including long passages');
+    assert.equal(passage.isTruncated, false);
+    const dom = parseHTML(renderPassage.call(renderApp, { selectedReference: reference, passage, versionId: 'rvr60' }));
+    const rows = dom.querySelectorAll('.bible-crossref-passage-verse');
+    assert.equal(rows.length, expectedCount, 'Every loaded verse must be rendered, without a preview limit');
+    for (const [index, row] of rows.entries()) assert(row.text.trim().endsWith(passage.verses[index].text));
+    assert.equal(dom.querySelector('.bible-crossref-passage').getAttribute('tabindex'), '0');
+    assert(dom.querySelector('.bible-crossref-passage-count').text.startsWith(String(expectedCount)));
+    assert.equal(Number(dom.querySelector('[data-action="navigate-to-cross-reference"]').getAttribute('data-verse')), reference.start.verse);
+}
+console.log('OK: Revelation 4:7, 1/6/8/9/176 verses and cross-chapter/book ranges render completely.');
+
+const originalChapterLoader = context.bibleRepository.getChapter;
+for (const [version, Provider, file, reference, expectedLabels] of [
+    ['tla', LocalTlaProvider, 'data/tla.json', parseReference('Ez. 1.5-10.')[0], ['5', '6-14']],
+    ['tla', LocalTlaProvider, 'data/tla.json', parseReference('Ez. 1.27-28.')[0], ['27-28']],
+    ['ntv', LocalNtvProvider, 'data/ntv.json', parseReference('Nm. 1.20-21.')[0], ['20-21']]
+]) {
+    const groupedProvider = new Provider({ fetchImpl: async () => ({ ok: true, json: async () => JSON.parse(read(file)) }) });
+    context.bibleRepository.getChapter = (_version, book, chapter) => groupedProvider.getChapter(book, chapter);
+    const passage = await passageReader.call(passageApp, reference, version);
+    assert.deepEqual(Array.from(passage.verses, verse => verse.displayNumber), expectedLabels,
+        'Resolve by actual verse numbers, preserving the complete source group exactly once');
+    const dom = parseHTML(renderPassage.call(renderApp, { selectedReference: reference, passage, versionId: version }));
+    assert.deepEqual(dom.querySelectorAll('.bible-crossref-passage-verse sup').map(el => el.text), expectedLabels);
+    assert(dom.querySelector('.bible-crossref-preview-note').text.includes('agrupa'));
+}
+context.bibleRepository.getChapter = originalChapterLoader;
 
 const button = attributes => ({ isConnected: true, getAttribute: name => attributes[name] ?? null });
 const sourceButton = button({ 'data-book-id': 'gen', 'data-chapter': '1', 'data-verse': '3',
